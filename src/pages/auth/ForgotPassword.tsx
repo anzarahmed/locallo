@@ -2,16 +2,8 @@ import { type JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
-import * as Yup from 'yup';
 import AuthField from '../../components/ui/AuthField';
-
-// ── Schema ────────────────────────────────────────────────────────────────────
-
-const forgotSchema = Yup.object({
-  email: Yup.string().trim().email('Enter a valid email address').required('Email is required'),
-});
-
-type ForgotValues = Yup.InferType<typeof forgotSchema>;
+import { forgotSchema, type ForgotValues } from './authSchemas';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 

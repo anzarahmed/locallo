@@ -2,23 +2,8 @@ import { type JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
-import * as Yup from 'yup';
 import AuthField from '../../components/ui/AuthField';
-
-// ── Schema ────────────────────────────────────────────────────────────────────
-
-const resetSchema = Yup.object({
-  password: Yup.string()
-    .min(8, 'Password must be at least 8 characters')
-    .matches(/[A-Z]/, 'Must contain at least one uppercase letter')
-    .matches(/[0-9]/, 'Must contain at least one number')
-    .required('Password is required'),
-  confirmPassword: Yup.string()
-    .oneOf([Yup.ref('password')], 'Passwords do not match')
-    .required('Please confirm your password'),
-});
-
-type ResetValues = Yup.InferType<typeof resetSchema>;
+import { resetSchema, type ResetValues } from './authSchemas';
 
 // ── Strength hints ────────────────────────────────────────────────────────────
 

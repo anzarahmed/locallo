@@ -2,18 +2,9 @@ import { type JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
-import * as Yup from 'yup';
 import { useAuth } from '../../hooks/useAuth';
 import AuthField from '../../components/ui/AuthField';
-
-// ── Schema ────────────────────────────────────────────────────────────────────
-
-const loginSchema = Yup.object({
-  email: Yup.string().trim().email('Enter a valid email address').required('Email is required'),
-  password: Yup.string().min(6, 'Password must be at least 6 characters').required('Password is required'),
-});
-
-type LoginValues = Yup.InferType<typeof loginSchema>;
+import { loginSchema, type LoginValues } from './authSchemas';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
