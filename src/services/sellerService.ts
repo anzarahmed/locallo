@@ -42,10 +42,26 @@ export async function createSeller(
         pincode: data.pincode ?? null,
         category: data.category ?? null,
         bio: data.bio ?? null,
+        workingHours: data.workingHours ?? null,
       },
       { transaction: t },
     );
 
     return { user, profile };
   });
+}
+
+export async function getSellerList(
+  limit: number,
+  offset: number,
+): Promise<{ sellers: User[]; total: number }> {
+  const { count, rows } = await User.findAndCountAll({
+    where: { role: 'SELLER' },
+    include: [SellerProfile],
+    limit,
+    offset,
+    order: [['id', 'DESC']], // Orders by newest records first; you can replace 'id' with 'createdAt' if defined
+  });
+
+  return { sellers: rows, total: count };
 }
