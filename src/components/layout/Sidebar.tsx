@@ -3,7 +3,6 @@ import {
   LayoutDashboard,
   Users,
   LogOut,
-  Store,
   ChevronLeft,
   ChevronRight,
   type LucideIcon,
@@ -39,13 +38,12 @@ export default function Sidebar(): JSX.Element {
       }`}
     >
       {/* Logo */}
-      <div className={`flex items-center gap-3 px-4 py-5 border-b border-gray-700 ${collapsed ? 'justify-center' : ''}`}>
-        <div className="flex items-center justify-center w-9 h-9 rounded-xl bg-indigo-600 shrink-0">
-          <Store className="w-5 h-5 text-white" />
-        </div>
-        {!collapsed && (
-          <span className="text-lg font-bold tracking-tight text-white">Localo</span>
-        )}
+      <div className={`flex items-center px-4 py-5 border-b border-gray-700 ${collapsed ? 'justify-center' : ''}`}>
+        <img
+          src="/src/assets/logo.png"
+          alt="Localo"
+          className={`object-contain ${collapsed ? 'h-8 w-8' : 'h-10 w-auto'}`}
+        />
       </div>
 
       {/* Nav */}
