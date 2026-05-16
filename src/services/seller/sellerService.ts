@@ -1,8 +1,8 @@
 import type { InferType } from 'yup';
-import sequelize from '../config/database';
-import { User } from '../models/User';
-import { SellerProfile } from '../models/SellerProfile';
-import type { createSellerSchema } from '../validation/sellerSchemas';
+import sequelize from '../../config/database';
+import { User } from '../../models/User';
+import { SellerProfile } from '../../models/SellerProfile';
+import type { createSellerSchema } from '../../validation/seller/sellerSchemas';
 
 type CreateSellerInput = InferType<typeof createSellerSchema>;
 
@@ -60,7 +60,7 @@ export async function getSellerList(
     include: [SellerProfile],
     limit,
     offset,
-    order: [['id', 'DESC']], // Orders by newest records first; you can replace 'id' with 'createdAt' if defined
+    order: [['id', 'DESC']],
   });
 
   return { sellers: rows, total: count };

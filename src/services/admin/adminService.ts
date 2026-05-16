@@ -1,6 +1,6 @@
 import bcrypt from 'bcrypt';
 import jwt from 'jsonwebtoken';
-import { Admin } from '../models/Admin';
+import { Admin } from '../../models/Admin';
 
 interface LoginResult {
   token: string;

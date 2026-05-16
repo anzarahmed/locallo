@@ -2,7 +2,7 @@ import * as Yup from 'yup';
 
 const dayScheduleSchema = Yup.object({
   isClosed: Yup.boolean().required(),
-  open: Yup.string().ensure(),  // .ensure() converts undefined/null to empty string ""
+  open: Yup.string().ensure(),
   close: Yup.string().ensure()
 });
 

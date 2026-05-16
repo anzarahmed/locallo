@@ -29,6 +29,12 @@ export class Session extends Model {
   @Column(DataType.TEXT)
   declare tokenHash: string;
 
+  @Column(DataType.TEXT)
+  declare deviceId: string | null;
+
+  @Column(DataType.TEXT)
+  declare deviceType: string | null;
+
   @Column(DataType.DATE)
   declare expiresAt: Date | null;
 

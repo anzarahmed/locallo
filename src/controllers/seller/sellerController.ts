@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList } from '../services/sellerService';
-import { sendSuccess, sendError } from '../utils/response';
+import { createSeller, getSellerList } from '../../services/seller/sellerService';
+import { sendSuccess, sendError } from '../../utils/response';
 
 export async function addSeller(req: Request, res: Response): Promise<void> {
   try {
@@ -54,7 +54,7 @@ export async function getSellers(req: Request, res: Response): Promise<void> {
       },
       200,
     );
-  } catch (err: unknown) {
+  } catch {
     sendError(res, 'Internal server error');
   }
 }

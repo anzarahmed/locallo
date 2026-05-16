@@ -1,7 +1,8 @@
 import express from 'express';
 import cors from 'cors';
-import adminRoutes from './routes/adminRoutes';
-import sellerRoutes from './routes/sellerRoutes';
+import adminRoutes from './routes/admin/index';
+import sellerRoutes from './routes/seller/index';
+import customerRoutes from './routes/customer/index';
 
 const app = express();
 
@@ -14,5 +15,6 @@ app.get('/health', (_req, res) => {
 
 app.use('/api/admins', adminRoutes);
 app.use('/api/sellers', sellerRoutes);
+app.use('/api/customers', customerRoutes);
 
 export default app;
