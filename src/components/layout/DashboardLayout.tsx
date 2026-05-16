@@ -19,9 +19,10 @@ function resolveTitle(pathname: string): string {
 }
 
 export default function DashboardLayout(): JSX.Element {
-  const { token } = useAuth();
+  const { token, isRestoring } = useAuth();
   const location = useLocation();
 
+  if (isRestoring) return <></>;
   if (!token) return <Navigate to="/login" replace />;
 
   return (

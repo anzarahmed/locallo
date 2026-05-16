@@ -72,11 +72,11 @@ export default function Sidebar(): JSX.Element {
         {!collapsed && (
           <div className="flex items-center gap-2 px-2 py-2 mb-1">
             <div className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold shrink-0">
-              {admin?.name.charAt(0)}
+              {admin?.email.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0">
-              <p className="text-sm font-medium text-white truncate">{admin?.name}</p>
-              <p className="text-xs text-gray-400 truncate">{admin?.email}</p>
+              <p className="text-sm font-medium text-white truncate">{admin?.email}</p>
+              <p className="text-xs text-gray-400 truncate capitalize">{admin?.role.replace('_', ' ')}</p>
             </div>
           </div>
         )}

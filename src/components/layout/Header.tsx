@@ -22,9 +22,9 @@ export default function Header({ title }: HeaderProps): JSX.Element {
         </button>
         <div
           className="w-8 h-8 rounded-full bg-indigo-600 flex items-center justify-center text-xs font-bold text-white"
-          aria-label={admin?.name}
+          aria-label={admin?.email}
         >
-          {admin?.name.charAt(0)}
+          {admin?.email.charAt(0).toUpperCase()}
         </div>
       </div>
     </header>

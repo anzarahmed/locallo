@@ -92,9 +92,6 @@ export default function Login(): JSX.Element {
             </button>
           </form>
 
-          <p className="mt-6 text-center text-xs text-gray-400">
-            Demo: admin@localo.com / password
-          </p>
         </div>
       </div>
     </div>
