@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, type ReactNode, type JSX } from 'react';
 import type { Admin, AuthState } from '../types';
+import * as authService from '../services/authService';
 
 interface AuthContextType extends AuthState {
   isRestoring: boolean;
@@ -10,10 +11,7 @@ interface AuthContextType extends AuthState {
 const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
-  const [state, setState] = useState<AuthState>({
-    admin: null,
-    token: null,
-  });
+  const [state, setState] = useState<AuthState>({ admin: null, token: null });
   const [isRestoring, setIsRestoring] = useState<boolean>(true);
 
   useEffect((): void => {
@@ -26,21 +24,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   }, []);
 
   async function login(email: string, password: string): Promise<void> {
-    const res = await fetch(`${import.meta.env.VITE_API_URL}/api/admins/login`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
-    });
-
-    const data = await res.json() as { message?: string; token?: string; admin?: Admin };
-
-    if (!res.ok) {
-      throw new Error(data.message ?? 'Login failed. Please try again.');
-    }
-
-    const token = data.token as string;
-    const admin = data.admin as Admin;
-
+    const { token, admin } = await authService.login(email, password);
     localStorage.setItem('admin_token', token);
     localStorage.setItem('admin_user', JSON.stringify(admin));
     setState({ token, admin });

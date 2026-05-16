@@ -6,6 +6,8 @@ import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } 
 import AuthField from '../../components/ui/AuthField';
 import SelectField from '../../components/ui/SelectField';
 import { MOCK_SELLERS } from './sellerData';
+import * as sellerService from '../../services/sellerService';
+import { ApiError } from '../../lib/axios';
 import {
   sellerSchema,
   type SellerFormValues,
@@ -24,7 +26,12 @@ function getDayErrors(errors: FormikErrors<SellerFormValues>, day: Day): DayFiel
   return wh?.[day] ?? {};
 }
 
-function getDayTouched(touched: FormikTouched<SellerFormValues>, day: Day): DayFieldTouched {
+function getDayTouched(
+  touched: FormikTouched<SellerFormValues>,
+  day: Day,
+  submitted: boolean,
+): DayFieldTouched {
+  if (submitted) return { open: true, close: true };
   const wh = touched.workingHours as Partial<Record<Day, DayFieldTouched>> | undefined;
   return wh?.[day] ?? {};
 }
@@ -124,11 +131,14 @@ export default function SellerForm(): JSX.Element {
     { setSubmitting, setStatus }: FormikHelpers<SellerFormValues>,
   ): Promise<void> {
     try {
-      await new Promise<void>(r => setTimeout(r, 800));
-      console.log('Seller payload:', { ...values, mobile: `${values.countryCode}${values.mobile}` });
+      await sellerService.createSeller(values);
       navigate('/sellers');
-    } catch {
-      setStatus('Something went wrong. Please try again.');
+    } catch (err: unknown) {
+      if (err instanceof ApiError && err.status === 409) {
+        setStatus('This mobile number is already registered.');
+      } else {
+        setStatus('Something went wrong. Please try again.');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -144,8 +154,8 @@ export default function SellerForm(): JSX.Element {
       category:     existing?.category  ?? '',
       bio:          existing?.bio       ?? '',
       workingHours: existing?.workingHours ?? DEFAULT_WORKING_HOURS,
-      latitude:     existing?.latitude  as number,
-      longitude:    existing?.longitude as number,
+      latitude:     existing?.latitude  ?? 28.6139,
+      longitude:    existing?.longitude ?? 77.2090,
     },
     validationSchema: sellerSchema,
     validateOnBlur: true,
@@ -308,7 +318,7 @@ export default function SellerForm(): JSX.Element {
                 </div>
               }
             >
-              <LocationPicker
+              {/* <LocationPicker
                 latitude={f.values.latitude}
                 longitude={f.values.longitude}
                 onChange={(lat: number, lng: number): void => {
@@ -317,7 +327,7 @@ export default function SellerForm(): JSX.Element {
                   void f.setFieldTouched('latitude', true, false);
                   void f.setFieldTouched('longitude', true, false);
                 }}
-              />
+              /> */}
             </Suspense>
             {f.touched.latitude === true && typeof f.errors.latitude === 'string' && (
               <p className="mt-2 text-xs text-red-600 flex items-center gap-1" role="alert">
