@@ -1,4 +1,6 @@
 import { lazy, Suspense, type JSX } from 'react';
+
+const LocationPicker = lazy(() => import('../../components/LocationPicker'));
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, MapPin } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
