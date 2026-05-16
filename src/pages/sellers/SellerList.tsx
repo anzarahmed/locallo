@@ -1,8 +1,9 @@
 import { useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Search, Pencil, Trash2, ChevronUp, ChevronDown } from 'lucide-react';
+import { Plus, Search, Pencil, Trash2, ChevronUp, ChevronDown, Power } from 'lucide-react';
+import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import { MOCK_SELLERS } from './sellerData';
-import type { Seller } from '../../types';
+import type { Seller, SellerStatus } from '../../types';
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
@@ -12,11 +13,11 @@ interface Column {
 }
 
 const COLUMNS: Column[] = [
-  { key: 'name',         label: 'Seller' },
-  { key: 'businessName', label: 'Business' },
-  { key: 'phone',        label: 'Phone' },
-  { key: 'status',       label: 'Status' },
-  { key: 'createdAt',    label: 'Joined' },
+  { key: 'ownerName', label: 'Owner'   },
+  { key: 'shopName',  label: 'Shop'    },
+  { key: 'mobile',    label: 'Mobile'  },
+  { key: 'status',    label: 'Status'  },
+  { key: 'createdAt', label: 'Joined'  },
 ];
 
 const STATUS_STYLES: Record<Seller['status'], string> = {
@@ -49,6 +50,7 @@ export default function SellerList(): JSX.Element {
   const [sortKey, setSortKey] = useState<keyof Seller>('createdAt');
   const [sortAsc, setSortAsc] = useState<boolean>(false);
   const [deleteId, setDeleteId] = useState<number | null>(null);
+  const [toggleId, setToggleId] = useState<number | null>(null);
 
   function toggleSort(key: keyof Seller): void {
     if (sortKey === key) setSortAsc(a => !a);
@@ -57,8 +59,8 @@ export default function SellerList(): JSX.Element {
 
   const filtered: Seller[] = sellers
     .filter((s: Seller): boolean =>
-      s.name.toLowerCase().includes(search.toLowerCase()) ||
-      s.businessName.toLowerCase().includes(search.toLowerCase()) ||
+      s.ownerName.toLowerCase().includes(search.toLowerCase()) ||
+      s.shopName.toLowerCase().includes(search.toLowerCase()) ||
       s.email.toLowerCase().includes(search.toLowerCase())
     )
     .sort((a: Seller, b: Seller): number => {
@@ -66,6 +68,15 @@ export default function SellerList(): JSX.Element {
       const bv = String(b[sortKey] ?? '');
       return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
     });
+
+  function confirmToggle(id: number): void {
+    setSellers(prev => prev.map(s =>
+      s.id === id
+        ? { ...s, status: (s.status === 'active' ? 'inactive' : 'active') as SellerStatus }
+        : s,
+    ));
+    setToggleId(null);
+  }
 
   function confirmDelete(id: number): void {
     setSellers(prev => prev.filter(s => s.id !== id));
@@ -129,12 +140,12 @@ export default function SellerList(): JSX.Element {
                   <tr key={seller.id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3.5">
                       <div>
-                        <p className="font-medium text-gray-900">{seller.name}</p>
+                        <p className="font-medium text-gray-900">{seller.ownerName}</p>
                         <p className="text-xs text-gray-400">{seller.email}</p>
                       </div>
                     </td>
-                    <td className="px-4 py-3.5 text-gray-600">{seller.businessName}</td>
-                    <td className="px-4 py-3.5 text-gray-600">{seller.phone}</td>
+                    <td className="px-4 py-3.5 text-gray-600">{seller.shopName}</td>
+                    <td className="px-4 py-3.5 text-gray-600">{seller.mobile}</td>
                     <td className="px-4 py-3.5">
                       <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize ${STATUS_STYLES[seller.status]}`}>
                         {seller.status}
@@ -148,7 +159,12 @@ export default function SellerList(): JSX.Element {
                       })}
                     </td>
                     <td className="px-4 py-3.5">
-                      <div className="flex items-center justify-end gap-1">
+                      <div className="flex items-center justify-end gap-2">
+                        <ToggleSwitch
+                          active={seller.status === 'active'}
+                          onToggle={(): void => setToggleId(seller.id)}
+                        />
+                        <div className="w-px h-4 bg-gray-200" />
                         <button
                           onClick={(): void => { navigate(`/sellers/${seller.id}/edit`); }}
                           className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
@@ -175,6 +191,48 @@ export default function SellerList(): JSX.Element {
           Showing {filtered.length} of {sellers.length} sellers
         </div>
       </div>
+
+      {/* Toggle Status Confirm Modal */}
+      {toggleId !== null && (() => {
+        const seller = sellers.find(s => s.id === toggleId);
+        const willActivate = seller?.status !== 'active';
+        return (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+            <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
+              <div className={`flex items-center justify-center w-12 h-12 rounded-full mx-auto mb-4 ${willActivate ? 'bg-emerald-100' : 'bg-amber-100'}`}>
+                <Power className={`w-6 h-6 ${willActivate ? 'text-emerald-600' : 'text-amber-600'}`} />
+              </div>
+              <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">
+                {willActivate ? 'Activate seller?' : 'Deactivate seller?'}
+              </h3>
+              <p className="text-sm text-gray-500 text-center mb-1">
+                <span className="font-medium text-gray-700">{seller?.shopName}</span>
+              </p>
+              <p className="text-sm text-gray-500 text-center mb-6">
+                {willActivate
+                  ? 'The seller will be able to access the platform and receive orders.'
+                  : 'The seller will be suspended and will not be able to receive orders.'}
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={(): void => setToggleId(null)}
+                  className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={(): void => confirmToggle(toggleId)}
+                  className={`flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+                    willActivate ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-500 hover:bg-amber-600'
+                  }`}
+                >
+                  {willActivate ? 'Activate' : 'Deactivate'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* Delete Confirm Modal */}
       {deleteId !== null && (

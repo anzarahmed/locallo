@@ -8,12 +8,26 @@ export interface Admin {
   readonly role: AdminRole;
 }
 
+export interface DaySchedule {
+  isClosed: boolean;
+  open: string;
+  close: string;
+}
+
+export type WorkingHours = Record<
+  'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday' | 'sunday',
+  DaySchedule
+>;
+
 export interface Seller {
   readonly id: number;
-  name: string;
+  ownerName: string;
+  shopName: string;
   email: string;
-  phone: string;
-  businessName: string;
+  mobile: string;
+  category: string;
+  bio: string;
+  workingHours?: WorkingHours;
   status: SellerStatus;
   createdAt: string;
   latitude?: number;

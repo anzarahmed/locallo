@@ -1,12 +1,115 @@
 import { lazy, Suspense, type JSX } from 'react';
-
 const LocationPicker = lazy(() => import('../../components/LocationPicker'));
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, MapPin } from 'lucide-react';
-import { useFormik, type FormikHelpers } from 'formik';
-import { MOCK_SELLERS } from './sellerData';
+import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
-import { sellerSchema, type SellerFormValues } from './sellerSchemas';
+import SelectField from '../../components/ui/SelectField';
+import { MOCK_SELLERS } from './sellerData';
+import {
+  sellerSchema,
+  type SellerFormValues,
+  DAYS,
+  type Day,
+  SHOP_CATEGORIES,
+  COUNTRY_CODES,
+  DEFAULT_WORKING_HOURS,
+} from './sellerSchemas';
+
+type DayFieldErrors  = Partial<{ open: string; close: string }>;
+type DayFieldTouched = Partial<{ open: boolean; close: boolean }>;
+
+function getDayErrors(errors: FormikErrors<SellerFormValues>, day: Day): DayFieldErrors {
+  const wh = errors.workingHours as Partial<Record<Day, DayFieldErrors>> | undefined;
+  return wh?.[day] ?? {};
+}
+
+function getDayTouched(touched: FormikTouched<SellerFormValues>, day: Day): DayFieldTouched {
+  const wh = touched.workingHours as Partial<Record<Day, DayFieldTouched>> | undefined;
+  return wh?.[day] ?? {};
+}
+
+function parseMobile(raw: string): { countryCode: string; mobile: string } {
+  const sorted = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
+  for (const { code } of sorted) {
+    if (raw.startsWith(code)) return { countryCode: code, mobile: raw.slice(code.length) };
+  }
+  return { countryCode: '+91', mobile: raw };
+}
+
+// ── WorkingHoursRow ────────────────────────────────────────────────────────────
+
+interface WorkingHoursRowProps {
+  day: Day;
+  isClosed: boolean;
+  open: string;
+  close: string;
+  errors: DayFieldErrors;
+  touched: DayFieldTouched;
+  onToggleClosed: (checked: boolean) => void;
+  onOpenChange: (val: string) => void;
+  onCloseChange: (val: string) => void;
+  onOpenBlur: () => void;
+  onCloseBlur: () => void;
+}
+
+function WorkingHoursRow({
+  day, isClosed, open, close, errors, touched,
+  onToggleClosed, onOpenChange, onCloseChange, onOpenBlur, onCloseBlur,
+}: WorkingHoursRowProps): JSX.Element {
+  const timeClass = (invalid: boolean): string =>
+    `px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent disabled:bg-gray-50 disabled:text-gray-400 disabled:cursor-not-allowed ${
+      invalid ? 'border-red-400 bg-red-50' : 'border-gray-300'
+    }`;
+
+  return (
+    <div className="grid grid-cols-[110px_80px_1fr] items-start gap-3 py-2.5 border-b border-gray-100 last:border-0">
+      <span className="text-sm font-medium text-gray-700 capitalize pt-2">{day}</span>
+
+      <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer select-none pt-2">
+        <input
+          type="checkbox"
+          checked={isClosed}
+          onChange={(e): void => onToggleClosed(e.target.checked)}
+          className="w-4 h-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500 cursor-pointer"
+        />
+        Closed
+      </label>
+
+      <div className="flex items-center gap-2">
+        <div>
+          <input
+            type="time"
+            value={open}
+            disabled={isClosed}
+            onChange={(e): void => onOpenChange(e.target.value)}
+            onBlur={onOpenBlur}
+            className={timeClass(touched.open === true && Boolean(errors.open))}
+          />
+          {touched.open === true && errors.open && (
+            <p className="mt-1 text-xs text-red-600">{errors.open}</p>
+          )}
+        </div>
+        <span className="text-gray-400 text-sm shrink-0">–</span>
+        <div>
+          <input
+            type="time"
+            value={close}
+            disabled={isClosed}
+            onChange={(e): void => onCloseChange(e.target.value)}
+            onBlur={onCloseBlur}
+            className={timeClass(touched.close === true && Boolean(errors.close))}
+          />
+          {touched.close === true && errors.close && (
+            <p className="mt-1 text-xs text-red-600">{errors.close}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ── SellerForm ─────────────────────────────────────────────────────────────────
 
 export default function SellerForm(): JSX.Element {
   const navigate = useNavigate();
@@ -14,14 +117,15 @@ export default function SellerForm(): JSX.Element {
   const isEdit = Boolean(id);
   const existing = isEdit ? MOCK_SELLERS.find(s => s.id === Number(id)) : null;
 
+  const parsedMobile = parseMobile(existing?.mobile ?? '');
+
   async function handleSubmit(
     values: SellerFormValues,
     { setSubmitting, setStatus }: FormikHelpers<SellerFormValues>,
   ): Promise<void> {
     try {
-      // Stub: replace with real API call
       await new Promise<void>(r => setTimeout(r, 800));
-      console.log('Seller payload:', values);
+      console.log('Seller payload:', { ...values, mobile: `${values.countryCode}${values.mobile}` });
       navigate('/sellers');
     } catch {
       setStatus('Something went wrong. Please try again.');
@@ -32,13 +136,16 @@ export default function SellerForm(): JSX.Element {
 
   const f = useFormik<SellerFormValues>({
     initialValues: {
-      name: existing?.name ?? '',
-      email: existing?.email ?? '',
-      phone: existing?.phone ?? '',
-      businessName: existing?.businessName ?? '',
-      status: existing?.status ?? 'pending',
-      latitude: existing?.latitude as number,
-      longitude: existing?.longitude as number,
+      shopName:     existing?.shopName  ?? '',
+      ownerName:    existing?.ownerName ?? '',
+      email:        existing?.email     ?? '',
+      countryCode:  parsedMobile.countryCode,
+      mobile:       parsedMobile.mobile,
+      category:     existing?.category  ?? '',
+      bio:          existing?.bio       ?? '',
+      workingHours: existing?.workingHours ?? DEFAULT_WORKING_HOURS,
+      latitude:     existing?.latitude  as number,
+      longitude:    existing?.longitude as number,
     },
     validationSchema: sellerSchema,
     validateOnBlur: true,
@@ -68,58 +175,127 @@ export default function SellerForm(): JSX.Element {
         )}
 
         <form onSubmit={f.handleSubmit} noValidate className="space-y-6">
-          {/* Basic info */}
-          <div>
+
+          {/* Basic Information */}
+          <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
               Basic Information
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <AuthField
-                label="Full Name" name="name" placeholder="Ravi Kumar" required
-                value={f.values.name} onChange={f.handleChange} onBlur={f.handleBlur}
-                touched={f.touched.name} error={f.errors.name}
+                label="Shop Name" name="shopName" placeholder="Urban Eats" required
+                value={f.values.shopName} onChange={f.handleChange} onBlur={f.handleBlur}
+                touched={f.touched.shopName} error={f.errors.shopName}
+              />
+              <AuthField
+                label="Owner Name" name="ownerName" placeholder="Ravi Kumar" required
+                value={f.values.ownerName} onChange={f.handleChange} onBlur={f.handleBlur}
+                touched={f.touched.ownerName} error={f.errors.ownerName}
               />
               <AuthField
                 label="Email" name="email" type="email" placeholder="ravi@example.com" required
                 value={f.values.email} onChange={f.handleChange} onBlur={f.handleBlur}
                 touched={f.touched.email} error={f.errors.email}
               />
-              <AuthField
-                label="Phone" name="phone" placeholder="+91 98765 43210" required
-                value={f.values.phone} onChange={f.handleChange} onBlur={f.handleBlur}
-                touched={f.touched.phone} error={f.errors.phone}
-              />
-              <AuthField
-                label="Business Name" name="businessName" placeholder="Urban Eats" required
-                value={f.values.businessName} onChange={f.handleChange} onBlur={f.handleBlur}
-                touched={f.touched.businessName} error={f.errors.businessName}
-              />
+              <SelectField
+                label="Category" name="category" required
+                value={f.values.category} onChange={f.handleChange} onBlur={f.handleBlur}
+                touched={f.touched.category} error={f.errors.category}
+              >
+                <option value="">Select category</option>
+                {SHOP_CATEGORIES.map(cat => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </SelectField>
             </div>
-          </div>
+          </section>
 
-          {/* Status */}
-          <div>
+          {/* Contact */}
+          <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
-              Status
+              Contact
             </h3>
-            <select
-              id="status"
-              name="status"
-              value={f.values.status}
-              onChange={f.handleChange}
-              onBlur={f.handleBlur}
-              className="w-full sm:w-64 px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
-            >
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="pending">Pending</option>
-            </select>
-          </div>
+            <div className="flex gap-3">
+              <div className="w-48 shrink-0">
+                <SelectField
+                  label="Country Code" name="countryCode" required
+                  value={f.values.countryCode} onChange={f.handleChange} onBlur={f.handleBlur}
+                >
+                  {COUNTRY_CODES.map(({ code, label }) => (
+                    <option key={code} value={code}>{label}</option>
+                  ))}
+                </SelectField>
+              </div>
+              <div className="flex-1">
+                <AuthField
+                  label="Mobile Number" name="mobile" placeholder="9876543210" required
+                  value={f.values.mobile} onChange={f.handleChange} onBlur={f.handleBlur}
+                  touched={f.touched.mobile} error={f.errors.mobile}
+                />
+              </div>
+            </div>
+          </section>
+
+          {/* Shop Details */}
+          <section>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Shop Details
+            </h3>
+            <div>
+              <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Shop Bio
+              </label>
+              <textarea
+                id="bio" name="bio" rows={3}
+                placeholder="Brief description of the shop..."
+                value={f.values.bio}
+                onChange={f.handleChange} onBlur={f.handleBlur}
+                maxLength={500}
+                className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${
+                  f.touched.bio && f.errors.bio
+                    ? 'border-red-400 focus:ring-red-400 bg-red-50'
+                    : 'border-gray-300 focus:ring-indigo-500'
+                }`}
+              />
+              <div className="flex justify-between mt-1">
+                {f.touched.bio && f.errors.bio
+                  ? <p className="text-xs text-red-600" role="alert">{f.errors.bio}</p>
+                  : <span />
+                }
+                <span className="text-xs text-gray-400">{f.values.bio.length}/500</span>
+              </div>
+            </div>
+          </section>
+
+          {/* Working Hours */}
+          <section>
+            <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">
+              Working Hours
+            </h3>
+            <div className="border border-gray-200 rounded-lg px-4">
+              {DAYS.map(day => (
+                <WorkingHoursRow
+                  key={day}
+                  day={day}
+                  isClosed={f.values.workingHours[day].isClosed}
+                  open={f.values.workingHours[day].open ?? ''}
+                  close={f.values.workingHours[day].close ?? ''}
+                  errors={getDayErrors(f.errors, day)}
+                  touched={getDayTouched(f.touched, day)}
+                  onToggleClosed={(checked): void => { void f.setFieldValue(`workingHours.${day}.isClosed`, checked); }}
+                  onOpenChange={(val): void => { void f.setFieldValue(`workingHours.${day}.open`, val); }}
+                  onCloseChange={(val): void => { void f.setFieldValue(`workingHours.${day}.close`, val); }}
+                  onOpenBlur={(): void => { void f.setFieldTouched(`workingHours.${day}.open`, true); }}
+                  onCloseBlur={(): void => { void f.setFieldTouched(`workingHours.${day}.close`, true); }}
+                />
+              ))}
+            </div>
+          </section>
 
           {/* Location */}
-          <div>
+          <section>
             <h3 className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">
-              Seller Location <span className="text-red-500">*</span>
+              Shop Location <span className="text-red-500">*</span>
             </h3>
             <p className="text-xs text-gray-500 mb-3 flex items-center gap-1">
               <MapPin className="w-3.5 h-3.5" />
@@ -149,7 +325,7 @@ export default function SellerForm(): JSX.Element {
                 {f.errors.latitude}
               </p>
             )}
-          </div>
+          </section>
 
           {/* Actions */}
           <div className="flex gap-3 pt-2 border-t border-gray-100">
@@ -169,6 +345,7 @@ export default function SellerForm(): JSX.Element {
               {f.isSubmitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Seller'}
             </button>
           </div>
+
         </form>
       </div>
     </div>
