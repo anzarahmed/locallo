@@ -3,8 +3,8 @@ export const PATHS = {
     LOGIN: '/api/admins/login',
   },
   SELLERS: {
-    CREATE: '/api/sellers',
-    LIST:   '/api/sellers',
-    BY_ID:  (id: string) => `/api/sellers/${id}`,
+    CREATE: '/api/admins/sellers',
+    LIST:   '/api/admins/sellers',
+    BY_ID:  (id: string) => `/api/admins/sellers/${id}`,
   },
 } as const;
