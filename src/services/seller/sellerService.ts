@@ -2,11 +2,12 @@ import type { InferType } from 'yup';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
-import type { createSellerSchema, updateSellerSchema, updateAddressSchema } from '../../validation/seller/sellerSchemas';
+import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
-type CreateSellerInput = InferType<typeof createSellerSchema>;
-type UpdateSellerInput = InferType<typeof updateSellerSchema>;
-type UpdateAddressInput = InferType<typeof updateAddressSchema>;
+type CreateSellerInput       = InferType<typeof createSellerSchema>;
+type UpdateSellerInput       = InferType<typeof updateSellerSchema>;
+type UpdateAddressInput      = InferType<typeof updateAddressSchema>;
+type AdminUpdateSellerInput  = InferType<typeof adminUpdateSellerSchema>;
 
 export async function createSeller(
   data: CreateSellerInput,
@@ -126,4 +127,73 @@ export async function getSellerList(
   });
 
   return { sellers: rows, total: count };
+}
+
+export async function adminUpdateSeller(
+  id: string,
+  data: AdminUpdateSellerInput,
+): Promise<{ user: User; profile: SellerProfile }> {
+  return sequelize.transaction(async (t) => {
+    const user = await User.findOne({
+      where: { id, role: 'SELLER' },
+      include: [SellerProfile],
+      transaction: t,
+    });
+
+    if (!user) {
+      throw Object.assign(new Error('Seller not found'), { status: 404 });
+    }
+
+    const profile = user.sellerProfile;
+    if (!profile) {
+      throw Object.assign(new Error('Seller profile not found'), { status: 404 });
+    }
+
+    if (data.mobile !== user.mobile) {
+      const conflict = await User.findOne({ where: { mobile: data.mobile }, transaction: t });
+      if (conflict) {
+        throw Object.assign(new Error('Mobile number already registered'), { status: 409 });
+      }
+    }
+
+    await user.update(
+      { mobile: data.mobile, countryCode: data.countryCode, fullName: data.fullName ?? null },
+      { transaction: t },
+    );
+
+    await profile.update(
+      {
+        businessName: data.businessName,
+        email:        data.email,
+        category:     data.category ?? null,
+        bio:          data.bio ?? null,
+        workingHours: (data.workingHours ?? {}) as Record<string, unknown>,
+        lat:          data.lat,
+        long:         data.long,
+      },
+      { transaction: t },
+    );
+
+    return { user, profile };
+  });
+}
+
+export async function getSellerById(
+  id: string,
+): Promise<{ user: User; profile: SellerProfile }> {
+  const user = await User.findOne({
+    where: { id, role: 'SELLER' },
+    include: [SellerProfile],
+  });
+
+  if (!user) {
+    throw Object.assign(new Error('Seller not found'), { status: 404 });
+  }
+
+  const profile = user.sellerProfile;
+  if (!profile) {
+    throw Object.assign(new Error('Seller profile not found'), { status: 404 });
+  }
+
+  return { user, profile };
 }

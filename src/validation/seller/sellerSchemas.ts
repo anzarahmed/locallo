@@ -29,6 +29,27 @@ export const updateSellerSchema = Yup.object({
   }).nullable().default(null)
 });
 
+export const adminUpdateSellerSchema = Yup.object({
+  mobile:       Yup.string().required('Mobile number is required'),
+  countryCode:  Yup.string().required('Country code is required'),
+  fullName:     Yup.string().required('Owner name is required'),
+  businessName: Yup.string().required('Business name is required'),
+  email:        Yup.string().email('Invalid email').required('Email is required'),
+  category:     Yup.string().required('Category is required'),
+  bio:          Yup.string().default(''),
+  lat:          Yup.number().min(-90).max(90).required('Latitude is required'),
+  long:         Yup.number().min(-180).max(180).required('Longitude is required'),
+  workingHours: Yup.object().shape({
+    monday:    dayScheduleSchema.required(),
+    tuesday:   dayScheduleSchema.required(),
+    wednesday: dayScheduleSchema.required(),
+    thursday:  dayScheduleSchema.required(),
+    friday:    dayScheduleSchema.required(),
+    saturday:  dayScheduleSchema.required(),
+    sunday:    dayScheduleSchema.required(),
+  }).nullable().default(null),
+});
+
 export const createSellerSchema = Yup.object({
   mobile: Yup.string().required('Mobile number is required'),
   countryCode: Yup.string().default('+91'),
