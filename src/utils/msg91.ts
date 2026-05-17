@@ -21,7 +21,6 @@ export async function sendOtp(countryCode: string, phoneNumber: string, otp: str
       otp,
     }),
   });
-console.log("\n\n\n\nresponse>>", response)
   const data = await response.json() as Msg91Response;
 
   console.log('[MSG91]', { mobile, status: response.status, response: data });

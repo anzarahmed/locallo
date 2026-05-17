@@ -121,8 +121,10 @@ export async function getSellers(req: Request, res: Response): Promise<void> {
           mobile: user.mobile,
           countryCode: user.countryCode,
           fullName: user.fullName,
+          businessName: user.sellerProfile?.businessName ?? null,
+          email: user.sellerProfile?.email ?? null,
           isActive: user.isActive,
-          profile: user.SellerProfile ? user.SellerProfile.toJSON() : null,
+          profile: user.sellerProfile ? user.sellerProfile.toJSON() : null,
         })),
         pagination: {
           total,
