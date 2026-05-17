@@ -103,8 +103,8 @@ export default function SellerList(): JSX.Element {
     let bv = '';
 
     if (sortKey === 'businessName') {
-      av = a.profile?.businessName || '';
-      bv = b.profile?.businessName || '';
+      av = a.businessName || '';
+      bv = b.businessName || '';
     } else if (sortKey === 'isActive') {
       av = a.isActive ? 'active' : 'inactive';
       bv = b.isActive ? 'active' : 'inactive';
@@ -195,11 +195,11 @@ export default function SellerList(): JSX.Element {
                       <td className="px-4 py-3.5">
                         <div>
                           <p className="font-medium text-gray-900">{seller.fullName || 'N/A'}</p>
-                          <p className="text-xs text-gray-400">{seller.profile?.email || 'No Email'}</p>
+                          <p className="text-xs text-gray-400">{seller.email || 'No Email'}</p>
                         </div>
                       </td>
                       <td className="px-4 py-3.5 text-gray-600">
-                        {seller.profile?.businessName || 'N/A'}
+                        {seller.businessName || 'N/A'}
                       </td>
                       <td className="px-4 py-3.5 text-gray-600">
                         {seller.countryCode ? `(${seller.countryCode}) ` : ''}{seller.mobile}
@@ -285,7 +285,7 @@ export default function SellerList(): JSX.Element {
                 {willActivate ? 'Activate seller?' : 'Deactivate seller?'}
               </h3>
               <p className="text-sm text-gray-500 text-center mb-1">
-                <span className="font-medium text-gray-700">{seller?.profile?.businessName || 'This seller'}</span>
+                <span className="font-medium text-gray-700">{seller?.businessName || 'This seller'}</span>
               </p>
               <p className="text-sm text-gray-500 text-center mb-6">
                 {willActivate

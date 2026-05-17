@@ -30,6 +30,8 @@ export interface Seller {
   mobile: string;
   countryCode: string | null;
   fullName: string | null;
+  businessName: string | null;
+  email: string | null;
   isActive: boolean;
   profile: SellerProfile | null;
 }
