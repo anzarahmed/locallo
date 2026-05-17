@@ -2,10 +2,11 @@ import type { InferType } from 'yup';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
-import type { createSellerSchema, updateSellerSchema } from '../../validation/seller/sellerSchemas';
+import type { createSellerSchema, updateSellerSchema, updateAddressSchema } from '../../validation/seller/sellerSchemas';
 
 type CreateSellerInput = InferType<typeof createSellerSchema>;
 type UpdateSellerInput = InferType<typeof updateSellerSchema>;
+type UpdateAddressInput = InferType<typeof updateAddressSchema>;
 
 export async function createSeller(
   data: CreateSellerInput,
@@ -97,6 +98,19 @@ export async function updateSellerProfile(
 
     return { user, profile };
   });
+}
+
+export async function updateSellerAddress(
+  userId: string,
+  data: UpdateAddressInput,
+): Promise<SellerProfile> {
+  const profile = await SellerProfile.findOne({ where: { userId } });
+  if (!profile) {
+    throw Object.assign(new Error('Seller profile not found'), { status: 404 });
+  }
+
+  await profile.update({ address: data.address, lat: data.lat, long: data.long });
+  return profile;
 }
 
 export async function getSellerList(

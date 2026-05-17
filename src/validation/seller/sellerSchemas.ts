@@ -6,6 +6,12 @@ const dayScheduleSchema = Yup.object({
   close: Yup.string().ensure()
 });
 
+export const updateAddressSchema = Yup.object({
+  address: Yup.string().required('Address is required'),
+  lat: Yup.number().min(-90).max(90).required('Latitude is required'),
+  long: Yup.number().min(-180).max(180).required('Longitude is required'),
+});
+
 export const updateSellerSchema = Yup.object({
   businessName: Yup.string(),
   email: Yup.string().email('Invalid email'),
