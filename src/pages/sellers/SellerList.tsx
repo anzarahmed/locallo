@@ -2,7 +2,7 @@ import { useState, useEffect, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Pencil, Trash2, ChevronUp, ChevronDown, Power } from 'lucide-react';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
-import { getSellerList, type Seller } from '../../services/sellerService';
+import { getSellerList, toggleSellerStatus, type Seller } from '../../services/sellerService';
 
 type SortableKeys = 'fullName' | 'businessName' | 'mobile' | 'isActive';
 
@@ -56,6 +56,7 @@ export default function SellerList(): JSX.Element {
   // Modals States
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [toggleId, setToggleId] = useState<string | null>(null);
+  const [toggling, setToggling] = useState<boolean>(false);
 
   // Debounce mechanism for search text
   useEffect(() => {
@@ -117,10 +118,20 @@ export default function SellerList(): JSX.Element {
   });
 
   async function confirmToggle(id: string): Promise<void> {
-    setSellers(prev => prev.map(s =>
-      s.id === id ? { ...s, isActive: !s.isActive } : s
-    ));
+    const prev = sellers.find(s => s.id === id);
+    setSellers(list => list.map(s => s.id === id ? { ...s, isActive: !s.isActive } : s));
     setToggleId(null);
+    setToggling(true);
+    try {
+      const result = await toggleSellerStatus(id);
+      setSellers(list => list.map(s => s.id === id ? { ...s, isActive: result.isActive } : s));
+    } catch {
+      if (prev) {
+        setSellers(list => list.map(s => s.id === id ? { ...s, isActive: prev.isActive } : s));
+      }
+    } finally {
+      setToggling(false);
+    }
   }
 
   async function confirmDelete(id: string): Promise<void> {
@@ -217,7 +228,7 @@ export default function SellerList(): JSX.Element {
                         <div className="flex items-center justify-end gap-2">
                           <ToggleSwitch
                             active={seller.isActive}
-                            onToggle={(): void => setToggleId(seller.id)}
+                            onToggle={(): void => { if (!toggling) setToggleId(seller.id); }}
                           />
                           <div className="w-px h-4 bg-gray-200" />
                           <button
@@ -301,7 +312,8 @@ export default function SellerList(): JSX.Element {
                 </button>
                 <button
                   onClick={(): void => { if (toggleId) confirmToggle(toggleId); }}
-                  className={`flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors ${
+                  disabled={toggling}
+                  className={`flex-1 px-4 py-2 text-sm font-medium text-white rounded-lg transition-colors disabled:opacity-60 disabled:cursor-not-allowed ${
                     willActivate ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-amber-500 hover:bg-amber-600'
                   }`}
                 >

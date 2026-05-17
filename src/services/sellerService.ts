@@ -1,4 +1,4 @@
-import { apiPost, apiGet, apiPut } from '../lib/axios';
+import { apiPost, apiGet, apiPut, apiPatch } from '../lib/axios';
 import { PATHS } from '../api/paths';
 import type { WorkingHours } from '../types';
 import type { SellerFormValues } from '../pages/sellers/sellerSchemas';
@@ -73,6 +73,10 @@ export function getSellerList(page: number, limit: number, search?: string): Pro
 
 export function getSellerById(id: string): Promise<Seller> {
   return apiGet<Seller>(PATHS.SELLERS.BY_ID(id));
+}
+
+export function toggleSellerStatus(id: string): Promise<{ id: string; isActive: boolean }> {
+  return apiPatch<{ id: string; isActive: boolean }>(PATHS.SELLERS.STATUS(id), {});
 }
 
 export function updateSeller(id: string, values: SellerFormValues): Promise<Seller> {
