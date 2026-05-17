@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { requestSellerOtp, verifySellerOtp } from '../../services/seller/sellerAuthService';
+import { requestSellerOtp, verifySellerOtp, logoutSeller } from '../../services/seller/sellerAuthService';
 import { sendSuccess, sendError } from '../../utils/response';
 
 export async function requestOtp(req: Request, res: Response): Promise<void> {
@@ -16,6 +16,16 @@ export async function requestOtp(req: Request, res: Response): Promise<void> {
       sendError(res, (err as Error).message, 403);
       return;
     }
+    sendError(res, 'Internal server error');
+  }
+}
+
+export async function logout(req: Request, res: Response): Promise<void> {
+  try {
+    const token = req.headers.authorization!.slice(7);
+    await logoutSeller(token);
+    sendSuccess(res, { message: 'Logged out successfully' });
+  } catch {
     sendError(res, 'Internal server error');
   }
 }

@@ -39,6 +39,11 @@ export async function requestSellerOtp(data: RequestOtpInput): Promise<void> {
   await sendOtp(data.countryCode, data.phoneNumber, otp);
 }
 
+export async function logoutSeller(token: string): Promise<void> {
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  await Session.destroy({ where: { tokenHash } });
+}
+
 export async function verifySellerOtp(data: VerifyOtpInput): Promise<{ token: string; seller: object }> {
   const user = await findActiveSeller(data.phoneNumber);
 

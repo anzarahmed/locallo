@@ -1,7 +1,9 @@
+import crypto from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Admin } from '../models/Admin';
 import { User } from '../models/User';
+import { Session } from '../models/Session';
 
 interface JwtPayload {
   id: string;
@@ -57,6 +59,13 @@ export async function requireSeller(req: Request, res: Response, next: NextFunct
     return;
   }
 
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const session = await Session.findOne({ where: { tokenHash, actorType: 'user' } });
+  if (!session) {
+    res.status(401).json({ message: 'Session expired or logged out' });
+    return;
+  }
+
   const user = await User.findByPk(payload.id);
   if (!user || !user.isActive) {
     res.status(401).json({ message: 'Unauthorized' });
@@ -86,6 +95,13 @@ export async function requireCustomer(req: Request, res: Response, next: NextFun
 
   if (payload.role !== 'CUSTOMER') {
     res.status(403).json({ message: 'Forbidden' });
+    return;
+  }
+
+  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const session = await Session.findOne({ where: { tokenHash, actorType: 'user' } });
+  if (!session) {
+    res.status(401).json({ message: 'Session expired or logged out' });
     return;
   }
 
