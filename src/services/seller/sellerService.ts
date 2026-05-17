@@ -2,9 +2,10 @@ import type { InferType } from 'yup';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
-import type { createSellerSchema } from '../../validation/seller/sellerSchemas';
+import type { createSellerSchema, updateSellerSchema } from '../../validation/seller/sellerSchemas';
 
 type CreateSellerInput = InferType<typeof createSellerSchema>;
+type UpdateSellerInput = InferType<typeof updateSellerSchema>;
 
 export async function createSeller(
   data: CreateSellerInput,
@@ -46,6 +47,53 @@ export async function createSeller(
       },
       { transaction: t },
     );
+
+    return { user, profile };
+  });
+}
+
+export async function updateSellerProfile(
+  userId: string,
+  data: UpdateSellerInput,
+): Promise<{ user: User; profile: SellerProfile }> {
+  return sequelize.transaction(async (t) => {
+    const user = await User.findOne({
+      where: { id: userId, role: 'SELLER' },
+      include: [SellerProfile],
+      transaction: t,
+    });
+
+    if (!user) {
+      throw Object.assign(new Error('Seller not found'), { status: 404 });
+    }
+
+    const profile = user.sellerProfile;
+    if (!profile) {
+      throw Object.assign(new Error('Seller profile not found'), { status: 404 });
+    }
+
+    const userUpdates: Partial<{ fullName: string }> = {};
+    if (data.fullName !== undefined) userUpdates.fullName = data.fullName;
+
+    const profileUpdates: Partial<{
+      businessName: string;
+      email: string;
+      category: string;
+      bio: string;
+      workingHours: Record<string, unknown>;
+    }> = {};
+    if (data.businessName !== undefined) profileUpdates.businessName = data.businessName;
+    if (data.email !== undefined) profileUpdates.email = data.email;
+    if (data.category !== undefined) profileUpdates.category = data.category;
+    if (data.bio !== undefined) profileUpdates.bio = data.bio;
+    if (data.workingHours !== undefined) profileUpdates.workingHours = data.workingHours as Record<string, unknown>;
+
+    if (Object.keys(userUpdates).length > 0) {
+      await user.update(userUpdates, { transaction: t });
+    }
+    if (Object.keys(profileUpdates).length > 0) {
+      await profile.update(profileUpdates, { transaction: t });
+    }
 
     return { user, profile };
   });

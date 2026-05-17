@@ -1,23 +1,18 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import type { InferType } from 'yup';
-import redis from '../../config/redis';
 import { User } from '../../models/User';
 import { Session } from '../../models/Session';
+import { sendOtp } from '../../utils/msg91';
 import type { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/sellerAuthSchemas';
 
 type RequestOtpInput = InferType<typeof requestOtpSchema>;
 type VerifyOtpInput = InferType<typeof verifyOtpSchema>;
 
-const OTP_KEY_PREFIX = 'otp:seller:';
 const SESSION_TTL_DAYS = 30;
 
 function generateOtp(): string {
   return String(Math.floor(100000 + Math.random() * 900000));
-}
-
-function otpKey(userId: string): string {
-  return `${OTP_KEY_PREFIX}${userId}`;
 }
 
 async function findActiveSeller(phoneNumber: string): Promise<User> {
@@ -38,30 +33,26 @@ export async function requestSellerOtp(data: RequestOtpInput): Promise<void> {
 
   const otp = generateOtp();
   const ttl = parseInt(process.env.OTP_TTL_SECONDS ?? '300', 10);
+  const otpExpiresAt = new Date(Date.now() + ttl * 1000);
 
-  await redis.set(otpKey(user.id), otp, 'EX', ttl);
-
-  // TODO: integrate SMS gateway — log OTP for development
-  console.log(`[OTP] ${data.countryCode}${data.phoneNumber} → ${otp}`);
+  await user.update({ otpCode: otp, otpExpiresAt });
+  await sendOtp(data.countryCode, data.phoneNumber, otp);
 }
 
 export async function verifySellerOtp(data: VerifyOtpInput): Promise<{ token: string; seller: object }> {
   const user = await findActiveSeller(data.phoneNumber);
 
-  const stored = await redis.get(otpKey(user.id));
-
-  if (!stored) {
-    throw Object.assign(new Error('OTP expired or not requested'), { status: 410 });
+  if (!user.otpCode || !user.otpExpiresAt) {
+    throw Object.assign(new Error('OTP not requested'), { status: 410 });
   }
-  if (stored !== data.otp) {
+  if (user.otpExpiresAt < new Date()) {
+    throw Object.assign(new Error('OTP expired'), { status: 410 });
+  }
+  if (user.otpCode !== data.otp) {
     throw Object.assign(new Error('Invalid OTP'), { status: 422 });
   }
 
-  await redis.del(otpKey(user.id));
-
-  if (!user.isVerified) {
-    await user.update({ isVerified: true });
-  }
+  await user.update({ otpCode: null, otpExpiresAt: null, isVerified: true });
 
   const token = jwt.sign(
     { id: user.id, role: 'SELLER' },
@@ -88,7 +79,7 @@ export async function verifySellerOtp(data: VerifyOtpInput): Promise<{ token: st
       mobile: user.mobile,
       countryCode: user.countryCode,
       fullName: user.fullName,
-      isVerified: user.isVerified,
+      isVerified: true,
       isActive: user.isActive,
     },
   };

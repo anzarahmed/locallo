@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList } from '../../services/seller/sellerService';
+import { createSeller, getSellerList, updateSellerProfile } from '../../services/seller/sellerService';
 import { sendSuccess, sendError } from '../../utils/response';
 
 export async function addSeller(req: Request, res: Response): Promise<void> {
@@ -20,6 +20,27 @@ export async function addSeller(req: Request, res: Response): Promise<void> {
   } catch (err: unknown) {
     if ((err as { status?: number }).status === 409) {
       sendError(res, (err as Error).message, 409);
+      return;
+    }
+    sendError(res, 'Internal server error');
+  }
+}
+
+export async function updateSeller(req: Request, res: Response): Promise<void> {
+  try {
+    const { user, profile } = await updateSellerProfile(req.seller!.id, req.body);
+    sendSuccess(res, {
+      id: user.id,
+      mobile: user.mobile,
+      countryCode: user.countryCode,
+      fullName: user.fullName,
+      isActive: user.isActive,
+      profile: profile.toJSON(),
+    });
+  } catch (err: unknown) {
+    const status = (err as { status?: number }).status;
+    if (status === 404) {
+      sendError(res, (err as Error).message, 404);
       return;
     }
     sendError(res, 'Internal server error');

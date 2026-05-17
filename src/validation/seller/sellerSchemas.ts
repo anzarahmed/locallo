@@ -6,6 +6,23 @@ const dayScheduleSchema = Yup.object({
   close: Yup.string().ensure()
 });
 
+export const updateSellerSchema = Yup.object({
+  businessName: Yup.string(),
+  email: Yup.string().email('Invalid email'),
+  fullName: Yup.string(),
+  category: Yup.string(),
+  bio: Yup.string(),
+  workingHours: Yup.object().shape({
+    monday: dayScheduleSchema.required(),
+    tuesday: dayScheduleSchema.required(),
+    wednesday: dayScheduleSchema.required(),
+    thursday: dayScheduleSchema.required(),
+    friday: dayScheduleSchema.required(),
+    saturday: dayScheduleSchema.required(),
+    sunday: dayScheduleSchema.required()
+  }).nullable().default(null)
+});
+
 export const createSellerSchema = Yup.object({
   mobile: Yup.string().required('Mobile number is required'),
   countryCode: Yup.string().default('+91'),
