@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress } from '../../services/seller/sellerService';
+import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus } from '../../services/seller/sellerService';
 import { sendSuccess, sendError } from '../../utils/response';
 
 export async function addSeller(req: Request, res: Response): Promise<void> {
@@ -96,6 +96,19 @@ export async function getSeller(req: Request, res: Response): Promise<void> {
       isActive: user.isActive,
       profile: profile.toJSON(),
     });
+  } catch (err: unknown) {
+    if ((err as { status?: number }).status === 404) {
+      sendError(res, (err as Error).message, 404);
+      return;
+    }
+    sendError(res, 'Internal server error');
+  }
+}
+
+export async function patchSellerStatus(req: Request, res: Response): Promise<void> {
+  try {
+    const user = await toggleSellerStatus(req.params.id as string);
+    sendSuccess(res, { id: user.id, isActive: user.isActive });
   } catch (err: unknown) {
     if ((err as { status?: number }).status === 404) {
       sendError(res, (err as Error).message, 404);

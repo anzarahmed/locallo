@@ -178,6 +178,15 @@ export async function adminUpdateSeller(
   });
 }
 
+export async function toggleSellerStatus(id: string): Promise<User> {
+  const user = await User.findOne({ where: { id, role: 'SELLER' } });
+  if (!user) {
+    throw Object.assign(new Error('Seller not found'), { status: 404 });
+  }
+  await user.update({ isActive: !user.isActive });
+  return user;
+}
+
 export async function getSellerById(
   id: string,
 ): Promise<{ user: User; profile: SellerProfile }> {
