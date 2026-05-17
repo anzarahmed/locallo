@@ -1,5 +1,6 @@
-import { apiPost, apiGet } from '../lib/axios'; // Assuming apiGet is available in your axios lib
+import { apiPost, apiGet, apiPut } from '../lib/axios';
 import { PATHS } from '../api/paths';
+import type { WorkingHours } from '../types';
 import type { SellerFormValues } from '../pages/sellers/sellerSchemas';
 
 interface CreateSellerResponse {
@@ -10,19 +11,18 @@ interface CreateSellerResponse {
   isActive: boolean;
 }
 
-// Target structure matching your backend payload
 export interface SellerProfile {
   businessName: string;
   email: string;
-  lat: number;
-  long: number;
+  lat: number | string;
+  long: number | string;
   address: string | null;
   city: string | null;
   state: string | null;
   pincode: string | null;
   category: string | null;
   bio: string | null;
-  workingHours: string | null;
+  workingHours: WorkingHours | null;
 }
 
 export interface Seller {
@@ -57,15 +57,33 @@ export function createSeller(values: SellerFormValues): Promise<CreateSellerResp
     long:         values.longitude,
     category:     values.category,
     bio:          values.bio,
-    workingHours: values.workingHours ?? null
+    workingHours: values.workingHours ?? null,
   });
 }
 
-// Added service function for fetching the paginated list
 export function getSellerList(page: number, limit: number, search?: string): Promise<GetSellersResponse> {
-  let url = `${PATHS.SELLERS.LIST || '/sellers'}?page=${page}&limit=${limit}`;
+  let url = `${PATHS.SELLERS.LIST}?page=${page}&limit=${limit}`;
   if (search && search.trim() !== '') {
     url += `&search=${encodeURIComponent(search.trim())}`;
   }
   return apiGet<GetSellersResponse>(url);
+}
+
+export function getSellerById(id: string): Promise<Seller> {
+  return apiGet<Seller>(PATHS.SELLERS.BY_ID(id));
+}
+
+export function updateSeller(id: string, values: SellerFormValues): Promise<Seller> {
+  return apiPut<Seller>(PATHS.SELLERS.BY_ID(id), {
+    mobile:       values.mobile,
+    countryCode:  values.countryCode,
+    fullName:     values.ownerName,
+    businessName: values.shopName,
+    email:        values.email,
+    lat:          values.latitude,
+    long:         values.longitude,
+    category:     values.category,
+    bio:          values.bio,
+    workingHours: values.workingHours ?? null,
+  });
 }

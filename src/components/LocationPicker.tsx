@@ -34,6 +34,8 @@ function AutocompleteInput({ onPlace }: AutocompleteInputProps): JSX.Element {
   const placesLib = useMapsLibrary('places');
   const inputRef = useRef<HTMLInputElement>(null);
   const acRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const onPlaceRef = useRef(onPlace);
+  onPlaceRef.current = onPlace;
 
   useEffect((): (() => void) | undefined => {
     if (!placesLib || !inputRef.current) return undefined;
@@ -46,7 +48,7 @@ function AutocompleteInput({ onPlace }: AutocompleteInputProps): JSX.Element {
       const place = acRef.current?.getPlace();
       const loc = place?.geometry?.location;
       if (!loc) return;
-      onPlace({ lat: loc.lat(), lng: loc.lng() });
+      onPlaceRef.current({ lat: loc.lat(), lng: loc.lng() });
       if (inputRef.current) {
         inputRef.current.value = place?.formatted_address ?? '';
       }
@@ -55,7 +57,7 @@ function AutocompleteInput({ onPlace }: AutocompleteInputProps): JSX.Element {
     return (): void => {
       google.maps.event.removeListener(listener);
     };
-  }, [placesLib, onPlace]);
+  }, [placesLib]);
 
   return (
     <div className="relative">
@@ -65,6 +67,7 @@ function AutocompleteInput({ onPlace }: AutocompleteInputProps): JSX.Element {
         type="text"
         placeholder="Search address or place..."
         aria-label="Search address"
+        onKeyDown={(e): void => { if (e.key === 'Enter') e.preventDefault(); }}
         className="w-full pl-9 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent"
       />
     </div>

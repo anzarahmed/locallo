@@ -1,12 +1,12 @@
-import { lazy, Suspense, type JSX } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, type JSX } from 'react';
 const LocationPicker = lazy(() => import('../../components/LocationPicker'));
 import { useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Loader2, MapPin } from 'lucide-react';
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
 import SelectField from '../../components/ui/SelectField';
-import { MOCK_SELLERS } from './sellerData';
 import * as sellerService from '../../services/sellerService';
+import type { Seller } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import {
   sellerSchema,
@@ -34,14 +34,6 @@ function getDayTouched(
   if (submitted) return { open: true, close: true };
   const wh = touched.workingHours as Partial<Record<Day, DayFieldTouched>> | undefined;
   return wh?.[day] ?? {};
-}
-
-function parseMobile(raw: string): { countryCode: string; mobile: string } {
-  const sorted = [...COUNTRY_CODES].sort((a, b) => b.code.length - a.code.length);
-  for (const { code } of sorted) {
-    if (raw.startsWith(code)) return { countryCode: code, mobile: raw.slice(code.length) };
-  }
-  return { countryCode: '+91', mobile: raw };
 }
 
 // ── WorkingHoursRow ────────────────────────────────────────────────────────────
@@ -122,16 +114,53 @@ export default function SellerForm(): JSX.Element {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
-  const existing = isEdit ? MOCK_SELLERS.find(s => s.id === Number(id)) : null;
 
-  const parsedMobile = parseMobile(existing?.mobile ?? '');
+  const [seller, setSeller] = useState<Seller | null>(null);
+  const [loading, setLoading] = useState(isEdit);
+  const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect((): void => {
+    if (!isEdit || !id) return;
+    setLoading(true);
+    sellerService.getSellerById(id)
+      .then((data): void => { setSeller(data); })
+      .catch((): void => { setLoadError('Failed to load seller details. Please try again.'); })
+      .finally((): void => { setLoading(false); });
+  }, [id, isEdit]);
+
+  const initialValues = useMemo((): SellerFormValues => {
+    if (!seller) {
+      return {
+        shopName: '', ownerName: '', email: '', countryCode: '+91', mobile: '',
+        category: '', bio: '', workingHours: DEFAULT_WORKING_HOURS,
+        latitude: 28.6139, longitude: 77.2090,
+      };
+    }
+    const p = seller.profile;
+    return {
+      shopName:     p?.businessName ?? '',
+      ownerName:    seller.fullName ?? '',
+      email:        p?.email ?? '',
+      countryCode:  seller.countryCode ?? '+91',
+      mobile:       seller.mobile,
+      category:     p?.category ?? '',
+      bio:          p?.bio ?? '',
+      workingHours: p?.workingHours ?? DEFAULT_WORKING_HOURS,
+      latitude:     Number(p?.lat ?? 28.6139),
+      longitude:    Number(p?.long ?? 77.2090),
+    };
+  }, [seller]);
 
   async function handleSubmit(
     values: SellerFormValues,
     { setSubmitting, setStatus }: FormikHelpers<SellerFormValues>,
   ): Promise<void> {
     try {
-      await sellerService.createSeller(values);
+      if (isEdit && id) {
+        await sellerService.updateSeller(id, values);
+      } else {
+        await sellerService.createSeller(values);
+      }
       navigate('/sellers');
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 409) {
@@ -145,33 +174,49 @@ export default function SellerForm(): JSX.Element {
   }
 
   const f = useFormik<SellerFormValues>({
-    initialValues: {
-      shopName:     existing?.shopName  ?? '',
-      ownerName:    existing?.ownerName ?? '',
-      email:        existing?.email     ?? '',
-      countryCode:  parsedMobile.countryCode,
-      mobile:       parsedMobile.mobile,
-      category:     existing?.category  ?? '',
-      bio:          existing?.bio       ?? '',
-      workingHours: existing?.workingHours ?? DEFAULT_WORKING_HOURS,
-      latitude:     existing?.latitude  ?? 28.6139,
-      longitude:    existing?.longitude ?? 77.2090,
-    },
+    initialValues,
+    enableReinitialize: true,
     validationSchema: sellerSchema,
     validateOnBlur: true,
     validateOnChange: false,
     onSubmit: handleSubmit,
   });
 
+  const backButton = (
+    <button
+      onClick={(): void => { navigate('/sellers'); }}
+      className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-5"
+    >
+      <ArrowLeft className="w-4 h-4" />
+      Back to sellers
+    </button>
+  );
+
+  if (loading) {
+    return (
+      <div className="max-w-2xl">
+        {backButton}
+        <div className="bg-white rounded-xl border border-gray-200 h-64 flex items-center justify-center">
+          <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
+        </div>
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-2xl">
+        {backButton}
+        <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <p className="text-sm text-red-600">{loadError}</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-2xl">
-      <button
-        onClick={(): void => { navigate('/sellers'); }}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 mb-5"
-      >
-        <ArrowLeft className="w-4 h-4" />
-        Back to sellers
-      </button>
+      {backButton}
 
       <div className="bg-white rounded-xl border border-gray-200 p-6 space-y-6">
         <h2 className="text-base font-semibold text-gray-900">
@@ -291,7 +336,7 @@ export default function SellerForm(): JSX.Element {
                   open={f.values.workingHours[day].open ?? ''}
                   close={f.values.workingHours[day].close ?? ''}
                   errors={getDayErrors(f.errors, day)}
-                  touched={getDayTouched(f.touched, day)}
+                  touched={getDayTouched(f.touched, day, f.submitCount > 0)}
                   onToggleClosed={(checked): void => { void f.setFieldValue(`workingHours.${day}.isClosed`, checked); }}
                   onOpenChange={(val): void => { void f.setFieldValue(`workingHours.${day}.open`, val); }}
                   onCloseChange={(val): void => { void f.setFieldValue(`workingHours.${day}.close`, val); }}
@@ -318,7 +363,7 @@ export default function SellerForm(): JSX.Element {
                 </div>
               }
             >
-              {/* <LocationPicker
+              <LocationPicker
                 latitude={f.values.latitude}
                 longitude={f.values.longitude}
                 onChange={(lat: number, lng: number): void => {
@@ -327,7 +372,7 @@ export default function SellerForm(): JSX.Element {
                   void f.setFieldTouched('latitude', true, false);
                   void f.setFieldTouched('longitude', true, false);
                 }}
-              /> */}
+              />
             </Suspense>
             {f.touched.latitude === true && typeof f.errors.latitude === 'string' && (
               <p className="mt-2 text-xs text-red-600 flex items-center gap-1" role="alert">
