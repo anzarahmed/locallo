@@ -7,13 +7,14 @@ import AuthField from '../../components/ui/AuthField';
 import SelectField from '../../components/ui/SelectField';
 import * as sellerService from '../../services/sellerService';
 import type { Seller } from '../../services/sellerService';
+import { getCategories } from '../../services/categoryService';
+import type { Category } from '../../types';
 import { ApiError } from '../../lib/axios';
 import {
   sellerSchema,
   type SellerFormValues,
   DAYS,
   type Day,
-  SHOP_CATEGORIES,
   COUNTRY_CODES,
   DEFAULT_WORKING_HOURS,
 } from './sellerSchemas';
@@ -116,8 +117,13 @@ export default function SellerForm(): JSX.Element {
   const isEdit = Boolean(id);
 
   const [seller, setSeller] = useState<Seller | null>(null);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(isEdit);
   const [loadError, setLoadError] = useState<string | null>(null);
+
+  useEffect((): void => {
+    getCategories().then(setCategories).catch((): void => {});
+  }, []);
 
   useEffect((): void => {
     if (!isEdit || !id) return;
@@ -132,7 +138,7 @@ export default function SellerForm(): JSX.Element {
     if (!seller) {
       return {
         shopName: '', ownerName: '', email: '', countryCode: '+91', mobile: '',
-        category: '', bio: '', workingHours: DEFAULT_WORKING_HOURS,
+        categoryId: 0, bio: '', workingHours: DEFAULT_WORKING_HOURS,
         latitude: 28.6139, longitude: 77.2090,
       };
     }
@@ -143,7 +149,7 @@ export default function SellerForm(): JSX.Element {
       email:        p?.email ?? '',
       countryCode:  seller.countryCode ?? '+91',
       mobile:       seller.mobile,
-      category:     p?.category ?? '',
+      categoryId:   p?.categoryId ?? 0,
       bio:          p?.bio ?? '',
       workingHours: p?.workingHours ?? DEFAULT_WORKING_HOURS,
       latitude:     Number(p?.lat ?? 28.6139),
@@ -253,13 +259,15 @@ export default function SellerForm(): JSX.Element {
                 touched={f.touched.email} error={f.errors.email}
               />
               <SelectField
-                label="Category" name="category" required
-                value={f.values.category} onChange={f.handleChange} onBlur={f.handleBlur}
-                touched={f.touched.category} error={f.errors.category}
+                label="Category" name="categoryId" required
+                value={f.values.categoryId || ''} onChange={(e): void => {
+                  void f.setFieldValue('categoryId', e.target.value ? Number(e.target.value) : 0);
+                }} onBlur={f.handleBlur}
+                touched={f.touched.categoryId} error={f.errors.categoryId}
               >
                 <option value="">Select category</option>
-                {SHOP_CATEGORIES.map(cat => (
-                  <option key={cat} value={cat}>{cat}</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
                 ))}
               </SelectField>
             </div>

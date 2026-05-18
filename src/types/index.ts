@@ -1,4 +1,12 @@
 export type AdminRole = 'super_admin' | 'manager' | 'operator';
+
+export interface Category {
+  readonly id: number;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  sortOrder: number;
+}
 export type SellerStatus = 'active' | 'inactive' | 'pending';
 
 export interface Admin {

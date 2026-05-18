@@ -8,4 +8,8 @@ export const PATHS = {
     BY_ID:    (id: string) => `/api/admins/sellers/${id}`,
     STATUS:   (id: string) => `/api/admins/sellers/${id}/status`,
   },
+  CATEGORIES: {
+    LIST:   '/api/admins/categories',
+    BY_ID:  (id: number) => `/api/admins/categories/${id}`,
+  },
 } as const;

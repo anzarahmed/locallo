@@ -20,7 +20,8 @@ export interface SellerProfile {
   city: string | null;
   state: string | null;
   pincode: string | null;
-  category: string | null;
+  categoryId: number | null;
+  category: { id: number; name: string; slug: string } | null;
   bio: string | null;
   workingHours: WorkingHours | null;
 }
@@ -57,7 +58,7 @@ export function createSeller(values: SellerFormValues): Promise<CreateSellerResp
     email:        values.email,
     lat:          values.latitude,
     long:         values.longitude,
-    category:     values.category,
+    categoryId:   values.categoryId,
     bio:          values.bio,
     workingHours: values.workingHours ?? null,
   });
@@ -88,7 +89,7 @@ export function updateSeller(id: string, values: SellerFormValues): Promise<Sell
     email:        values.email,
     lat:          values.latitude,
     long:         values.longitude,
-    category:     values.category,
+    categoryId:   values.categoryId,
     bio:          values.bio,
     workingHours: values.workingHours ?? null,
   });

@@ -5,19 +5,6 @@ export const DAYS = [
 ] as const;
 export type Day = typeof DAYS[number];
 
-export const SHOP_CATEGORIES = [
-  'Grocery',
-  'Restaurant & Food',
-  'Electronics',
-  'Fashion & Clothing',
-  'Pharmacy',
-  'Beauty & Personal Care',
-  'Home & Kitchen',
-  'Sports & Fitness',
-  'Books & Stationery',
-  'Other',
-] as const;
-
 export const COUNTRY_CODES = [
   { code: '+91',  label: '+91 (India)'     },
   { code: '+1',   label: '+1 (US/Canada)'  },
@@ -53,7 +40,7 @@ export const sellerSchema = Yup.object({
     .trim()
     .matches(/^[0-9]{7,15}$/, 'Digits only, 7–15 characters')
     .required('Mobile number is required'),
-  category: Yup.string().required('Category is required'),
+  categoryId: Yup.number().integer().positive().required('Category is required'),
   bio:      Yup.string().trim().max(500, 'Bio must be under 500 characters').default(''),
   workingHours: Yup.object({
     monday:    daySchema,
