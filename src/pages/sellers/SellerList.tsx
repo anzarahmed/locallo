@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Plus, Search, Pencil, Trash2, ChevronUp, ChevronDown, Power } from 'lucide-react';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import { getSellerList, toggleSellerStatus, type Seller } from '../../services/sellerService';
+import { useToast } from '../../hooks/useToast';
 
 type SortableKeys = 'fullName' | 'businessName' | 'mobile' | 'isActive';
 
@@ -33,7 +34,8 @@ function SortIcon({ col, sortKey, sortAsc }: SortIconProps): JSX.Element {
 
 export default function SellerList(): JSX.Element {
   const navigate = useNavigate();
-  
+  const toast = useToast();
+
   // API Core States
   const [sellers, setSellers] = useState<Seller[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -125,10 +127,12 @@ export default function SellerList(): JSX.Element {
     try {
       const result = await toggleSellerStatus(id);
       setSellers(list => list.map(s => s.id === id ? { ...s, isActive: result.isActive } : s));
+      toast.success(result.isActive ? 'Seller activated' : 'Seller deactivated');
     } catch {
       if (prev) {
         setSellers(list => list.map(s => s.id === id ? { ...s, isActive: prev.isActive } : s));
       }
+      toast.error('Failed to update seller status');
     } finally {
       setToggling(false);
     }
@@ -137,6 +141,7 @@ export default function SellerList(): JSX.Element {
   async function confirmDelete(id: string): Promise<void> {
     setSellers(prev => prev.filter(s => s.id !== id));
     setDeleteId(null);
+    toast.success('Seller removed');
   }
 
   return (

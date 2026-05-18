@@ -1,6 +1,8 @@
 import { type JSX } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
+import { ToastProvider } from './hooks/useToast';
+import Toaster from './components/ui/Toaster';
 import DashboardLayout from './components/layout/DashboardLayout';
 import GuestLayout from './components/layout/GuestLayout';
 import Login from './pages/auth/Login';
@@ -13,8 +15,10 @@ import CategoryList from './pages/categories/CategoryList';
 
 export default function App(): JSX.Element {
   return (
-    <AuthProvider>
-      <BrowserRouter>
+    <ToastProvider>
+      <Toaster />
+      <AuthProvider>
+        <BrowserRouter>
         <Routes>
           {/* Auth */}
           <Route element={<GuestLayout />}>
@@ -34,7 +38,8 @@ export default function App(): JSX.Element {
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
-      </BrowserRouter>
-    </AuthProvider>
+        </BrowserRouter>
+      </AuthProvider>
+    </ToastProvider>
   );
 }

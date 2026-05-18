@@ -10,6 +10,7 @@ import type { Seller } from '../../services/sellerService';
 import { getCategories } from '../../services/categoryService';
 import type { Category } from '../../types';
 import { ApiError } from '../../lib/axios';
+import { useToast } from '../../hooks/useToast';
 import {
   sellerSchema,
   type SellerFormValues,
@@ -115,6 +116,7 @@ export default function SellerForm(): JSX.Element {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
   const isEdit = Boolean(id);
+  const toast = useToast();
 
   const [seller, setSeller] = useState<Seller | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -167,6 +169,7 @@ export default function SellerForm(): JSX.Element {
       } else {
         await sellerService.createSeller(values);
       }
+      toast.success(isEdit ? 'Seller updated' : 'Seller added');
       navigate('/sellers');
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 409) {

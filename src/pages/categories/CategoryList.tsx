@@ -12,6 +12,7 @@ import {
 } from '../../services/categoryService';
 import type { Category } from '../../types';
 import { categorySchema, type CategoryFormValues } from './categorySchemas';
+import { useToast } from '../../hooks/useToast';
 
 // ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -29,6 +30,7 @@ interface CategoryModalProps {
 
 function CategoryModal({ category, onClose, onSaved }: CategoryModalProps): JSX.Element {
   const isEdit = Boolean(category);
+  const toast = useToast();
 
   const initialValues: CategoryFormValues = {
     name:      category?.name      ?? '',
@@ -44,6 +46,7 @@ function CategoryModal({ category, onClose, onSaved }: CategoryModalProps): JSX.
       const saved = isEdit && category
         ? await updateCategory(category.id, values)
         : await createCategory(values);
+      toast.success(isEdit ? 'Category updated' : 'Category added');
       onSaved(saved);
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 409) {
@@ -162,11 +165,13 @@ interface DeleteModalProps {
 function DeleteModal({ category, onClose, onDeleted }: DeleteModalProps): JSX.Element {
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   async function handleDelete(): Promise<void> {
     setDeleting(true);
     try {
       await deleteCategory(category.id);
+      toast.success('Category deleted');
       onDeleted(category.id);
     } catch (err: unknown) {
       const message = err instanceof ApiError ? err.message : 'Failed to delete. Please try again.';
@@ -220,6 +225,7 @@ function DeleteModal({ category, onClose, onDeleted }: DeleteModalProps): JSX.El
 const PAGE_SIZE = 5;
 
 export default function CategoryList(): JSX.Element {
+  const toast = useToast();
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -266,8 +272,9 @@ export default function CategoryList(): JSX.Element {
     try {
       const updated = await updateCategory(cat.id, { isActive: !cat.isActive });
       setCategories(prev => prev.map(c => c.id === updated.id ? updated : c));
+      toast.success(updated.isActive ? 'Category activated' : 'Category deactivated');
     } catch {
-      // silently revert — toggle snaps back via state
+      toast.error('Failed to update status');
     } finally {
       setToggling(null);
     }
