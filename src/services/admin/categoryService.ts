@@ -1,5 +1,6 @@
 import type { InferType } from 'yup';
 import { Category } from '../../models/Category';
+import { SellerProfile } from '../../models/SellerProfile';
 import type { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
 
 type CreateCategoryInput = InferType<typeof createCategorySchema>;
@@ -36,5 +37,12 @@ export async function deleteCategory(id: number): Promise<void> {
   if (!category) {
     throw Object.assign(new Error('Category not found'), { status: 404 });
   }
-  await category.update({ isActive: false });
+  const usageCount = await SellerProfile.count({ where: { categoryId: id } });
+  if (usageCount > 0) {
+    throw Object.assign(
+      new Error(`Cannot delete — ${usageCount} seller${usageCount === 1 ? ' is' : 's are'} using this category`),
+      { status: 409 },
+    );
+  }
+  await category.destroy();
 }
