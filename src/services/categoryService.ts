@@ -1,4 +1,4 @@
-import { apiGet } from '../lib/axios';
+import { apiGet, apiPost, apiPut, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
 import type { Category } from '../types';
 
@@ -6,6 +6,34 @@ interface GetCategoriesResponse {
   categories: Category[];
 }
 
-export function getCategories(): Promise<Category[]> {
-  return apiGet<GetCategoriesResponse>(PATHS.CATEGORIES.LIST).then(r => r.categories);
+interface CategoryPayload {
+  name: string;
+  slug: string;
+  sortOrder: number;
+}
+
+interface UpdateCategoryPayload {
+  name?: string;
+  slug?: string;
+  isActive?: boolean;
+  sortOrder?: number;
+}
+
+export function getCategories(includeInactive = false): Promise<Category[]> {
+  const url = includeInactive
+    ? `${PATHS.CATEGORIES.LIST}?includeInactive=true`
+    : PATHS.CATEGORIES.LIST;
+  return apiGet<GetCategoriesResponse>(url).then(r => r.categories);
+}
+
+export function createCategory(data: CategoryPayload): Promise<Category> {
+  return apiPost<{ category: Category }>(PATHS.CATEGORIES.LIST, data).then(r => r.category);
+}
+
+export function updateCategory(id: number, data: UpdateCategoryPayload): Promise<Category> {
+  return apiPut<{ category: Category }>(PATHS.CATEGORIES.BY_ID(id), data).then(r => r.category);
+}
+
+export function deleteCategory(id: number): Promise<void> {
+  return apiDelete<null>(PATHS.CATEGORIES.BY_ID(id)).then(() => undefined);
 }

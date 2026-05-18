@@ -2,6 +2,7 @@ import { NavLink, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard,
   Users,
+  Tag,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -17,8 +18,9 @@ interface NavItem {
 }
 
 const NAV_ITEMS: NavItem[] = [
-  { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
-  { to: '/sellers', icon: Users, label: 'Sellers' },
+  { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard'  },
+  { to: '/sellers',    icon: Users,            label: 'Sellers'    },
+  { to: '/categories', icon: Tag,              label: 'Categories' },
 ];
 
 export default function Sidebar(): JSX.Element {
