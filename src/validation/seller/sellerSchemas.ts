@@ -16,7 +16,7 @@ export const updateSellerSchema = Yup.object({
   businessName: Yup.string(),
   email: Yup.string().email('Invalid email'),
   fullName: Yup.string(),
-  category: Yup.string(),
+  categoryId: Yup.number().integer().positive(),
   bio: Yup.string(),
   workingHours: Yup.object().shape({
     monday: dayScheduleSchema.required(),
@@ -35,7 +35,7 @@ export const adminUpdateSellerSchema = Yup.object({
   fullName:     Yup.string().required('Owner name is required'),
   businessName: Yup.string().required('Business name is required'),
   email:        Yup.string().email('Invalid email').required('Email is required'),
-  category:     Yup.string().required('Category is required'),
+  categoryId:   Yup.number().integer().positive().required('Category is required'),
   bio:          Yup.string().default(''),
   lat:          Yup.number().min(-90).max(90).required('Latitude is required'),
   long:         Yup.number().min(-180).max(180).required('Longitude is required'),
@@ -62,7 +62,7 @@ export const createSellerSchema = Yup.object({
   city: Yup.string(),
   state: Yup.string(),
   pincode: Yup.string(),
-  category: Yup.string(),
+  categoryId: Yup.number().integer().positive(),
   bio: Yup.string(),
   workingHours: Yup.object().shape({
     monday: dayScheduleSchema.required(),

@@ -2,6 +2,7 @@ import type { InferType } from 'yup';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
+import { Category } from '../../models/Category';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
 type CreateSellerInput       = InferType<typeof createSellerSchema>;
@@ -43,7 +44,7 @@ export async function createSeller(
         city: data.city ?? null,
         state: data.state ?? null,
         pincode: data.pincode ?? null,
-        category: data.category ?? null,
+        categoryId: data.categoryId ?? null,
         bio: data.bio ?? null,
         workingHours: data.workingHours ?? null,
       },
@@ -61,7 +62,7 @@ export async function updateSellerProfile(
   return sequelize.transaction(async (t) => {
     const user = await User.findOne({
       where: { id: userId, role: 'SELLER' },
-      include: [SellerProfile],
+      include: [{ model: SellerProfile, include: [Category] }],
       transaction: t,
     });
 
@@ -80,13 +81,13 @@ export async function updateSellerProfile(
     const profileUpdates: Partial<{
       businessName: string;
       email: string;
-      category: string;
+      categoryId: number;
       bio: string;
       workingHours: Record<string, unknown>;
     }> = {};
     if (data.businessName !== undefined) profileUpdates.businessName = data.businessName;
     if (data.email !== undefined) profileUpdates.email = data.email;
-    if (data.category !== undefined) profileUpdates.category = data.category;
+    if (data.categoryId !== undefined) profileUpdates.categoryId = data.categoryId;
     if (data.bio !== undefined) profileUpdates.bio = data.bio;
     if (data.workingHours !== undefined) profileUpdates.workingHours = data.workingHours as Record<string, unknown>;
 
@@ -120,7 +121,7 @@ export async function getSellerList(
 ): Promise<{ sellers: User[]; total: number }> {
   const { count, rows } = await User.findAndCountAll({
     where: { role: 'SELLER' },
-    include: [SellerProfile],
+    include: [{ model: SellerProfile, include: [Category] }],
     limit,
     offset,
     order: [['id', 'DESC']],
@@ -136,7 +137,7 @@ export async function adminUpdateSeller(
   return sequelize.transaction(async (t) => {
     const user = await User.findOne({
       where: { id, role: 'SELLER' },
-      include: [SellerProfile],
+      include: [{ model: SellerProfile, include: [Category] }],
       transaction: t,
     });
 
@@ -165,7 +166,7 @@ export async function adminUpdateSeller(
       {
         businessName: data.businessName,
         email:        data.email,
-        category:     data.category ?? null,
+        categoryId:   data.categoryId ?? null,
         bio:          data.bio ?? null,
         workingHours: (data.workingHours ?? {}) as Record<string, unknown>,
         lat:          data.lat,
@@ -192,7 +193,7 @@ export async function getSellerById(
 ): Promise<{ user: User; profile: SellerProfile }> {
   const user = await User.findOne({
     where: { id, role: 'SELLER' },
-    include: [SellerProfile],
+    include: [{ model: SellerProfile, include: [Category] }],
   });
 
   if (!user) {
