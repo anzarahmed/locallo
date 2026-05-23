@@ -12,7 +12,7 @@ type VerifyOtpInput = InferType<typeof verifyOtpSchema>;
 const SESSION_TTL_DAYS = 30;
 
 function generateOtp(): string {
-  return String(Math.floor(100000 + Math.random() * 900000));
+  return String(Math.floor(1000 + Math.random() * 9000));
 }
 
 async function findActiveSeller(phoneNumber: string): Promise<User> {

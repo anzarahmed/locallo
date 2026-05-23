@@ -6,6 +6,7 @@ import {
   uploadImage, createProduct, getProducts,
   getProduct, updateProduct, toggleProduct, deleteProduct,
 } from '../../controllers/seller/productController';
+import { getCategories } from '../../controllers/seller/categoryController';
 import { validate } from '../../middleware/validate';
 import upload from '../../middleware/upload';
 import { updateSellerSchema, updateAddressSchema } from '../../validation/seller/sellerSchemas';
@@ -17,6 +18,8 @@ const router = Router();
 router.post('/auth/request-otp', validate(requestOtpSchema), requestOtp);
 router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
 router.post('/auth/logout',      requireSeller,               logout);
+
+router.get('/categories', requireSeller, getCategories);
 
 router.put('/profile', requireSeller, validate(updateSellerSchema),  updateSeller);
 router.put('/address', requireSeller, validate(updateAddressSchema), updateAddress);
