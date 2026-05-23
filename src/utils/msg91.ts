@@ -5,7 +5,7 @@ interface Msg91Response {
   message: string;
   request_id?: string;
 }
-
+  
 export async function sendOtp(countryCode: string, phoneNumber: string, otp: string): Promise<void> {
   const mobile = `${countryCode.replace('+', '')}${phoneNumber}`;
 
@@ -19,9 +19,18 @@ export async function sendOtp(countryCode: string, phoneNumber: string, otp: str
       template_id: process.env.MSG91_TEMPLATE_ID,
       mobile,
       otp,
+      DLT_TE_ID: process.env.MSG91_DLT_TEMPLATE_ID,
     }),
   });
-  const data = await response.json() as Msg91Response;
+
+  const text = await response.text();
+  let data: Msg91Response;
+  try {
+    data = JSON.parse(text) as Msg91Response;
+  } catch {
+    console.error('[MSG91] non-JSON response:', { mobile, status: response.status, body: text });
+    throw new Error(`MSG91: unexpected response (HTTP ${response.status})`);
+  }
 
   console.log('[MSG91]', { mobile, status: response.status, response: data });
 

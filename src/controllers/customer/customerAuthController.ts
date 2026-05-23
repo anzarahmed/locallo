@@ -12,6 +12,12 @@ export async function requestOtp(req: Request, res: Response): Promise<void> {
       sendError(res, (err as Error).message, 403);
       return;
     }
+    console.error('[requestOtp customer]', err);
+    const msg = (err as Error).message;
+    if (msg?.startsWith('MSG91:')) {
+      sendError(res, msg, 502);
+      return;
+    }
     sendError(res, 'Internal server error');
   }
 }
