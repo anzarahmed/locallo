@@ -22,6 +22,7 @@ export interface LocationPickerProps {
   latitude: number | undefined;
   longitude: number | undefined;
   onChange: (lat: number, lng: number) => void;
+  mapHeight?: string;
 }
 
 // ── Places Autocomplete input ─────────────────────────────────────────────────
@@ -88,7 +89,7 @@ function MapController({ position }: { position: LatLng | null }): null {
 
 // ── Inner map content ─────────────────────────────────────────────────────────
 
-function MapContent({ latitude, longitude, onChange }: LocationPickerProps): JSX.Element {
+function MapContent({ latitude, longitude, onChange, mapHeight = 'h-72' }: LocationPickerProps): JSX.Element {
   const hasPin = latitude != null && longitude != null;
   const pinPos: LatLng | null = hasPin
     ? { lat: latitude, lng: longitude }
@@ -114,7 +115,7 @@ function MapContent({ latitude, longitude, onChange }: LocationPickerProps): JSX
     <div className="space-y-3">
       <AutocompleteInput onPlace={(p: LatLng): void => onChange(p.lat, p.lng)} />
 
-      <div className="rounded-xl overflow-hidden border border-gray-200 h-72 relative">
+      <div className={`rounded-xl overflow-hidden border border-gray-200 ${mapHeight} relative`}>
         <Map
           defaultCenter={DEFAULT_CENTER}
           defaultZoom={DEFAULT_ZOOM}
@@ -212,7 +213,7 @@ export default function LocationPicker(props: LocationPickerProps): JSX.Element 
       onLoad={(): void => setApiReady(true)}
     >
       {!apiReady ? (
-        <div className="h-72 flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50">
+        <div className={`${props.mapHeight ?? 'h-72'} flex items-center justify-center rounded-xl border border-gray-200 bg-gray-50`}>
           <Loader2 className="w-5 h-5 text-gray-400 animate-spin" />
         </div>
       ) : (

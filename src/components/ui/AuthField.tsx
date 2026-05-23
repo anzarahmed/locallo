@@ -14,6 +14,7 @@ export default function AuthField({
   type = 'text',
   touched,
   error,
+  required,
   ...rest
 }: AuthFieldProps): JSX.Element {
   const [show, setShow] = useState<boolean>(false);
@@ -24,12 +25,14 @@ export default function AuthField({
     <div>
       <label htmlFor={name} className="block text-sm font-medium text-gray-700 mb-1.5">
         {label}
+        {required && <span className="text-red-500 ml-0.5">*</span>}
       </label>
       <div className="relative">
         <input
           id={name}
           name={name}
           type={isPassword ? (show ? 'text' : 'password') : type}
+          required={required}
           {...rest}
           className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${
             isPassword ? 'pr-10' : ''
