@@ -4,8 +4,8 @@ import { sendSuccess, sendError } from '../../utils/response';
 
 export async function requestOtp(req: Request, res: Response): Promise<void> {
   try {
-    await requestSellerOtp(req.body);
-    sendSuccess(res, { message: 'OTP sent successfully' });
+    const { otp } = await requestSellerOtp(req.body);
+    sendSuccess(res, { message: 'OTP sent successfully', otp });
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;
     if (status === 404) {

@@ -28,7 +28,7 @@ async function findActiveSeller(phoneNumber: string): Promise<User> {
   return user;
 }
 
-export async function requestSellerOtp(data: RequestOtpInput): Promise<void> {
+export async function requestSellerOtp(data: RequestOtpInput): Promise<{ otp: string }> {
   const user = await findActiveSeller(data.phoneNumber);
 
   const otp = generateOtp();
@@ -37,6 +37,7 @@ export async function requestSellerOtp(data: RequestOtpInput): Promise<void> {
 
   await user.update({ otpCode: otp, otpExpiresAt });
   await sendOtp(data.countryCode, data.phoneNumber, otp);
+  return { otp };
 }
 
 export async function logoutSeller(token: string): Promise<void> {

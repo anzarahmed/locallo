@@ -35,7 +35,7 @@ async function findOrCreateCustomer(phoneNumber: string, countryCode: string): P
   return user;
 }
 
-export async function requestCustomerOtp(data: RequestOtpInput): Promise<void> {
+export async function requestCustomerOtp(data: RequestOtpInput): Promise<{ otp: string }> {
   const user = await findOrCreateCustomer(data.phoneNumber, data.countryCode);
 
   const otp = generateOtp();
@@ -44,6 +44,7 @@ export async function requestCustomerOtp(data: RequestOtpInput): Promise<void> {
 
   await user.update({ otpCode: otp, otpExpiresAt });
   await sendOtp(data.countryCode, data.phoneNumber, otp);
+  return { otp };
 }
 
 export async function verifyCustomerOtp(
