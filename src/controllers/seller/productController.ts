@@ -9,13 +9,13 @@ export async function uploadImage(req: Request, res: Response): Promise<void> {
     return;
   }
   const url = saveImage(req.file, req.seller!.id);
-  sendSuccess(res, { url }, 201);
+  sendSuccess(res, { url }, 'Image uploaded', 201);
 }
 
 export async function createProduct(req: Request, res: Response): Promise<void> {
   try {
-  const product = await productService.createProduct(req.seller!.id, req.body);
-    sendSuccess(res, { product }, 201);
+    const product = await productService.createProduct(req.seller!.id, req.body);
+    sendSuccess(res, { product }, 'Product created', 201);
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Failed to create product', e.status ?? 500);
@@ -32,13 +32,13 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
     : undefined;
 
   const { rows, count } = await productService.getSellerProducts(req.seller!.id, page, limit, isActive);
-  sendSuccess(res, { products: rows, total: count, page, limit });
+  sendSuccess(res, { products: rows, total: count, page, limit }, 'Products fetched');
 }
 
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.getSellerProduct(req.seller!.id, String(req.params.id));
-    sendSuccess(res, { product });
+    sendSuccess(res, { product }, 'Product fetched');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Product not found', e.status ?? 500);
@@ -48,7 +48,7 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
 export async function updateProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.updateSellerProduct(req.seller!.id, String(req.params.id), req.body);
-    sendSuccess(res, { product });
+    sendSuccess(res, { product }, 'Product updated');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Failed to update product', e.status ?? 500);
@@ -58,7 +58,7 @@ export async function updateProduct(req: Request, res: Response): Promise<void> 
 export async function toggleProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.toggleSellerProduct(req.seller!.id, String(req.params.id));
-    sendSuccess(res, { product });
+    sendSuccess(res, { product }, 'Product status updated');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Failed to toggle product', e.status ?? 500);
@@ -68,7 +68,7 @@ export async function toggleProduct(req: Request, res: Response): Promise<void> 
 export async function deleteProduct(req: Request, res: Response): Promise<void> {
   try {
     await productService.deleteSellerProduct(req.seller!.id, String(req.params.id));
-    sendSuccess(res, null);
+    sendSuccess(res, null, 'Product deleted');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Failed to delete product', e.status ?? 500);

@@ -15,6 +15,7 @@ export async function addSeller(req: Request, res: Response): Promise<void> {
         isActive: user.isActive,
         profile: profile.toJSON(),
       },
+      'Seller created',
       201,
     );
   } catch (err: unknown) {
@@ -36,7 +37,7 @@ export async function updateSeller(req: Request, res: Response): Promise<void> {
       fullName: user.fullName,
       isActive: user.isActive,
       profile: profile.toJSON(),
-    });
+    }, 'Profile updated');
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;
     if (status === 404) {
@@ -50,7 +51,7 @@ export async function updateSeller(req: Request, res: Response): Promise<void> {
 export async function updateAddress(req: Request, res: Response): Promise<void> {
   try {
     const profile = await updateSellerAddress(req.seller!.id, req.body);
-    sendSuccess(res, { profile: profile.toJSON() });
+    sendSuccess(res, { profile: profile.toJSON() }, 'Address updated');
   } catch (err: unknown) {
     if ((err as { status?: number }).status === 404) {
       sendError(res, (err as Error).message, 404);
@@ -70,7 +71,7 @@ export async function adminEditSeller(req: Request, res: Response): Promise<void
       fullName: user.fullName,
       isActive: user.isActive,
       profile: profile.toJSON(),
-    });
+    }, 'Seller updated');
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;
     if (status === 404) {
@@ -95,7 +96,7 @@ export async function getSeller(req: Request, res: Response): Promise<void> {
       fullName: user.fullName,
       isActive: user.isActive,
       profile: profile.toJSON(),
-    });
+    }, 'Seller fetched');
   } catch (err: unknown) {
     if ((err as { status?: number }).status === 404) {
       sendError(res, (err as Error).message, 404);
@@ -108,7 +109,7 @@ export async function getSeller(req: Request, res: Response): Promise<void> {
 export async function patchSellerStatus(req: Request, res: Response): Promise<void> {
   try {
     const user = await toggleSellerStatus(req.params.id as string);
-    sendSuccess(res, { id: user.id, isActive: user.isActive });
+    sendSuccess(res, { id: user.id, isActive: user.isActive }, 'Status updated');
   } catch (err: unknown) {
     if ((err as { status?: number }).status === 404) {
       sendError(res, (err as Error).message, 404);
@@ -146,7 +147,7 @@ export async function getSellers(req: Request, res: Response): Promise<void> {
           totalPages: Math.ceil(total / limit),
         },
       },
-      200,
+      'Sellers fetched',
     );
   } catch {
     sendError(res, 'Internal server error');

@@ -4,5 +4,5 @@ import { listCategories } from '../../services/admin/categoryService';
 
 export async function getCategories(_req: Request, res: Response): Promise<void> {
   const categories = await listCategories();
-  sendSuccess(res, { categories });
+  sendSuccess(res, { categories }, 'Categories fetched');
 }

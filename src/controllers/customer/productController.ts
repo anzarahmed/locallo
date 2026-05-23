@@ -9,13 +9,13 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
   const search     = req.query.search     ? String(req.query.search)     : undefined;
 
   const { rows, count } = await productService.browseProducts({ categoryId, search }, page, limit);
-  sendSuccess(res, { products: rows, total: count, page, limit });
+  sendSuccess(res, { products: rows, total: count, page, limit }, 'Products fetched');
 }
 
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.getProductDetail(String(req.params.id));
-    sendSuccess(res, { product });
+    sendSuccess(res, { product }, 'Product fetched');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Product not found', e.status ?? 500);

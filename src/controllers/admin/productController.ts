@@ -19,13 +19,13 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
     page,
     limit,
   );
-  sendSuccess(res, { products: rows, total: count, page, limit });
+  sendSuccess(res, { products: rows, total: count, page, limit }, 'Products fetched');
 }
 
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.getProductById(String(req.params.id));
-    sendSuccess(res, { product });
+    sendSuccess(res, { product }, 'Product fetched');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Product not found', e.status ?? 500);
@@ -35,7 +35,7 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
 export async function toggleProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.toggleProduct(String(req.params.id));
-    sendSuccess(res, { product });
+    sendSuccess(res, { product }, 'Product status updated');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Failed to toggle product', e.status ?? 500);
@@ -45,7 +45,7 @@ export async function toggleProduct(req: Request, res: Response): Promise<void> 
 export async function deleteProduct(req: Request, res: Response): Promise<void> {
   try {
     await productService.deleteProduct(String(req.params.id));
-    sendSuccess(res, null);
+    sendSuccess(res, null, 'Product deleted');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Failed to delete product', e.status ?? 500);
