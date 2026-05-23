@@ -1,9 +1,10 @@
 import { type JSX } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { Loader2, CheckCircle2 } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
 import { resetSchema, type ResetValues } from './authSchemas';
+import { resetPassword } from '../../services/authService';
 
 // ── Strength hints ────────────────────────────────────────────────────────────
 
@@ -22,14 +23,15 @@ const STRENGTH_HINTS: StrengthHint[] = [
 
 export default function ResetPassword(): JSX.Element {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const token = searchParams.get('token') ?? '';
 
   async function handleSubmit(
-    _values: ResetValues,
+    values: ResetValues,
     { setSubmitting, setStatus }: FormikHelpers<ResetValues>,
   ): Promise<void> {
     try {
-      // Stub: replace with real API call using token from URL search params
-      await new Promise<void>(r => setTimeout(r, 1000));
+      await resetPassword(token, values.password);
       setStatus('done');
     } catch {
       setStatus('error');

@@ -41,7 +41,7 @@ export default function Login(): JSX.Element {
           {/* Logo */}
           <div className="flex flex-col items-center mb-8">
             <img src="/src/assets/logo.png" alt="Localo" className="h-16 w-auto mb-4 object-contain" />
-            <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
+            <h1 className="text-2xl font-bold text-gray-900">Welcome</h1>
             <p className="text-sm text-gray-500 mt-1">Sign in to your admin account</p>
           </div>
 

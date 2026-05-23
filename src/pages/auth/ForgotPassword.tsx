@@ -4,20 +4,21 @@ import { ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
 import { forgotSchema, type ForgotValues } from './authSchemas';
+import { forgotPassword } from '../../services/authService';
+import type { ApiError } from '../../lib/axios';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ForgotPassword(): JSX.Element {
   async function handleSubmit(
-    _values: ForgotValues,
+    values: ForgotValues,
     { setSubmitting, setStatus }: FormikHelpers<ForgotValues>,
   ): Promise<void> {
     try {
-      // Stub: replace with real API call
-      await new Promise<void>(r => setTimeout(r, 1000));
+      await forgotPassword(values.email);
       setStatus('sent');
-    } catch {
-      setStatus('error');
+    } catch (err: unknown) {
+      setStatus((err as ApiError).message ?? 'error');
     } finally {
       setSubmitting(false);
     }
@@ -32,7 +33,7 @@ export default function ForgotPassword(): JSX.Element {
   });
 
   const sent = f.status === 'sent';
-  const serverError = f.status === 'error';
+  const serverError = f.status && f.status !== 'sent';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-indigo-900 flex items-center justify-center p-4">
@@ -66,7 +67,7 @@ export default function ForgotPassword(): JSX.Element {
             <>
               {serverError && (
                 <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" role="alert">
-                  Failed to send reset email. Please try again.
+                  {f.status}
                 </div>
               )}
 
