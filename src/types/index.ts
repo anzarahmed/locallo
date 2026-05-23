@@ -22,7 +22,6 @@ export interface Category {
   name: string;
   slug: string;
   isActive: boolean;
-  sortOrder: number;
   attributeSchema?: AttributeField[] | null;
 }
 

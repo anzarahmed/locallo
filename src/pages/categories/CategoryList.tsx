@@ -1,5 +1,5 @@
 import { useState, useEffect, type JSX } from 'react';
-import { Plus, Pencil, Trash2, Loader2, GripVertical, AlertCircle } from 'lucide-react';
+import { Plus, Pencil, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import AuthField from '../../components/ui/AuthField';
@@ -34,7 +34,6 @@ function CategoryModal({ category, onClose, onSaved }: CategoryModalProps): JSX.
   const initialValues: CategoryFormValues = {
     name:            category?.name            ?? '',
     slug:            category?.slug            ?? '',
-    sortOrder:       category?.sortOrder       ?? 0,
     attributeSchema: category?.attributeSchema ?? [],
   };
 
@@ -45,7 +44,7 @@ function CategoryModal({ category, onClose, onSaved }: CategoryModalProps): JSX.
     try {
       const saved = isEdit && category
         ? await updateCategory(category.id, values)
-        : await createCategory({ name: values.name, slug: values.slug, sortOrder: values.sortOrder });
+        : await createCategory({ name: values.name, slug: values.slug });
       toast.success(isEdit ? 'Category updated' : 'Category added');
       onSaved(saved);
     } catch (err: unknown) {
@@ -108,29 +107,6 @@ function CategoryModal({ category, onClose, onSaved }: CategoryModalProps): JSX.
               touched={f.touched.slug}
               error={f.errors.slug}
             />
-
-            <div>
-              <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-700 mb-1.5">
-                Sort Order
-              </label>
-              <input
-                id="sortOrder"
-                name="sortOrder"
-                type="number"
-                min={0}
-                value={f.values.sortOrder}
-                onChange={f.handleChange}
-                onBlur={f.handleBlur}
-                className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${
-                  f.touched.sortOrder && f.errors.sortOrder
-                    ? 'border-red-400 focus:ring-red-400 bg-red-50'
-                    : 'border-gray-300 focus:ring-indigo-500'
-                }`}
-              />
-              {f.touched.sortOrder && f.errors.sortOrder && (
-                <p className="mt-1 text-xs text-red-600" role="alert">{f.errors.sortOrder}</p>
-              )}
-            </div>
 
             <AttributeSchemaEditor
               value={f.values.attributeSchema}
@@ -252,7 +228,7 @@ export default function CategoryList(): JSX.Element {
     setCategories(prev => {
       const idx = prev.findIndex(c => c.id === saved.id);
       if (idx === -1) {
-        const next = [...prev, saved].sort((a, b) => a.sortOrder - b.sortOrder || a.name.localeCompare(b.name));
+        const next = [...prev, saved].sort((a, b) => a.name.localeCompare(b.name));
         setPage(Math.ceil(next.length / PAGE_SIZE));
         return next;
       }
@@ -325,13 +301,9 @@ export default function CategoryList(): JSX.Element {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider w-10">
-                <GripVertical className="w-4 h-4 text-gray-300" />
-              </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Slug</th>
               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Fields</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Order</th>
               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Active</th>
               <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
@@ -339,16 +311,13 @@ export default function CategoryList(): JSX.Element {
           <tbody className="divide-y divide-gray-50">
             {paginated.length === 0 && (
               <tr>
-                <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
+                <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">
                   No categories yet. Add one to get started.
                 </td>
               </tr>
             )}
             {paginated.map(cat => (
               <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3 text-gray-300">
-                  <GripVertical className="w-4 h-4" />
-                </td>
                 <td className="px-4 py-3">
                   <span className="font-medium text-gray-900">{cat.name}</span>
                 </td>
@@ -360,7 +329,6 @@ export default function CategoryList(): JSX.Element {
                     {cat.attributeSchema?.length ?? 0}
                   </span>
                 </td>
-                <td className="px-4 py-3 text-center text-gray-500">{cat.sortOrder}</td>
                 <td className="px-4 py-3">
                   <div className="flex justify-center">
                     <ToggleSwitch

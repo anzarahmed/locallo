@@ -9,14 +9,12 @@ interface GetCategoriesResponse {
 interface CategoryPayload {
   name: string;
   slug: string;
-  sortOrder: number;
 }
 
 interface UpdateCategoryPayload {
   name?: string;
   slug?: string;
   isActive?: boolean;
-  sortOrder?: number;
   attributeSchema?: AttributeField[];
 }
 
