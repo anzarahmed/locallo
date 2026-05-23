@@ -5,7 +5,7 @@ import { sendError } from '../utils/response';
 export function validate(schema: Yup.ObjectSchema<Yup.AnyObject>) {
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
     try {
-      req.body = await schema.validate(req.body, { abortEarly: false, stripUnknown: true });
+      req.body = await schema.validate(req.body, { abortEarly: false });
       next();
     } catch (err: unknown) {
       if (err instanceof Yup.ValidationError) {

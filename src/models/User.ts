@@ -8,11 +8,13 @@ import {
   AllowNull,
   DataType,
   HasOne,
+  HasMany,
   CreatedAt,
   UpdatedAt,
 } from 'sequelize-typescript';
 import type { UserRole } from '../types';
 import { SellerProfile } from './SellerProfile';
+import { Product } from './Product';
 
 @Table({ tableName: 'users', timestamps: true, underscored: true })
 export class User extends Model {
@@ -60,4 +62,7 @@ export class User extends Model {
 
   @HasOne(() => SellerProfile, 'userId')
   declare sellerProfile: SellerProfile | null;
+
+  @HasMany(() => Product, 'sellerId')
+  declare products: Product[];
 }

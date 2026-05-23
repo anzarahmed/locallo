@@ -2,6 +2,11 @@ import { Router } from 'express';
 import { login } from '../../controllers/admin/adminController';
 import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory } from '../../controllers/admin/categoryController';
+import {
+  getProducts as getAdminProducts,
+  getProduct  as getAdminProduct,
+  toggleProduct, deleteProduct,
+} from '../../controllers/admin/productController';
 import { validate } from '../../middleware/validate';
 import { requireAdmin } from '../../middleware/auth';
 import { adminLoginSchema } from '../../validation/admin/adminSchemas';
@@ -22,5 +27,10 @@ router.get('/categories',           getCategories);
 router.post('/categories',          requireAdmin, validate(createCategorySchema),   addCategory);
 router.put('/categories/:id',       requireAdmin, validate(updateCategorySchema),   editCategory);
 router.delete('/categories/:id',    requireAdmin,                                   removeCategory);
+
+router.get('/products',             requireAdmin, getAdminProducts);
+router.get('/products/:id',         requireAdmin, getAdminProduct);
+router.patch('/products/:id/toggle',requireAdmin, toggleProduct);
+router.delete('/products/:id',      requireAdmin, deleteProduct);
 
 export default router;

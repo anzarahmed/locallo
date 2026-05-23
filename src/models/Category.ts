@@ -12,6 +12,7 @@ import {
   CreatedAt,
   UpdatedAt,
 } from 'sequelize-typescript';
+import type { AttributeField } from '../types';
 import { SellerProfile } from './SellerProfile';
 
 @Table({ tableName: 'categories', timestamps: true, underscored: true })
@@ -40,6 +41,9 @@ export class Category extends Model {
   @AllowNull(false)
   @Column(DataType.INTEGER)
   declare sortOrder: number;
+
+  @Column(DataType.JSONB)
+  declare attributeSchema: AttributeField[] | null;
 
   @HasMany(() => SellerProfile)
   declare sellerProfiles: SellerProfile[];
