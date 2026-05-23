@@ -24,7 +24,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
-    const product = await productService.getProductById(Number(req.params.id));
+    const product = await productService.getProductById(String(req.params.id));
     sendSuccess(res, { product });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
@@ -34,7 +34,7 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
 
 export async function toggleProduct(req: Request, res: Response): Promise<void> {
   try {
-    const product = await productService.toggleProduct(Number(req.params.id));
+    const product = await productService.toggleProduct(String(req.params.id));
     sendSuccess(res, { product });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
@@ -44,7 +44,7 @@ export async function toggleProduct(req: Request, res: Response): Promise<void> 
 
 export async function deleteProduct(req: Request, res: Response): Promise<void> {
   try {
-    await productService.deleteProduct(Number(req.params.id));
+    await productService.deleteProduct(String(req.params.id));
     sendSuccess(res, null);
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };

@@ -44,7 +44,7 @@ export async function listAllProducts(
   });
 }
 
-export async function getProductById(id: number): Promise<Product> {
+export async function getProductById(id: string): Promise<Product> {
   const product = await Product.findByPk(id, {
     include: [SELLER_INCLUDE, { model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }],
   });
@@ -54,7 +54,7 @@ export async function getProductById(id: number): Promise<Product> {
   return product;
 }
 
-export async function toggleProduct(id: number): Promise<Product> {
+export async function toggleProduct(id: string): Promise<Product> {
   const product = await Product.findByPk(id);
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });
@@ -63,7 +63,7 @@ export async function toggleProduct(id: number): Promise<Product> {
   return product;
 }
 
-export async function deleteProduct(id: number): Promise<void> {
+export async function deleteProduct(id: string): Promise<void> {
   const product = await Product.findByPk(id);
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });

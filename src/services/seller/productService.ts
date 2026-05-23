@@ -45,7 +45,7 @@ function validateAttributes(
   }
 }
 
-async function requireOwnProduct(sellerId: string, productId: number): Promise<Product> {
+async function requireOwnProduct(sellerId: string, productId: string): Promise<Product> {
   const product = await Product.findOne({ where: { id: productId, sellerId } });
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });
@@ -103,7 +103,7 @@ export async function getSellerProducts(
   });
 }
 
-export async function getSellerProduct(sellerId: string, productId: number): Promise<Product> {
+export async function getSellerProduct(sellerId: string, productId: string): Promise<Product> {
   const product = await Product.findOne({
     where: { id: productId, sellerId },
     include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }],
@@ -116,7 +116,7 @@ export async function getSellerProduct(sellerId: string, productId: number): Pro
 
 export async function updateSellerProduct(
   sellerId: string,
-  productId: number,
+  productId: string,
   data: UpdateProductInput,
 ): Promise<Product> {
   const product = await requireOwnProduct(sellerId, productId);
@@ -153,13 +153,13 @@ export async function updateSellerProduct(
   return product.reload({ include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }] });
 }
 
-export async function toggleSellerProduct(sellerId: string, productId: number): Promise<Product> {
+export async function toggleSellerProduct(sellerId: string, productId: string): Promise<Product> {
   const product = await requireOwnProduct(sellerId, productId);
   await product.update({ isActive: !product.isActive });
   return product;
 }
 
-export async function deleteSellerProduct(sellerId: string, productId: number): Promise<void> {
+export async function deleteSellerProduct(sellerId: string, productId: string): Promise<void> {
   const product = await requireOwnProduct(sellerId, productId);
   await product.destroy();
 }

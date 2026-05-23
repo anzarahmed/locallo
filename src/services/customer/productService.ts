@@ -36,7 +36,7 @@ export async function browseProducts(
   });
 }
 
-export async function getProductDetail(id: number): Promise<Product> {
+export async function getProductDetail(id: string): Promise<Product> {
   const product = await Product.findOne({
     attributes: SAFE_PRODUCT_ATTRIBUTES,
     where: { id, isActive: true },

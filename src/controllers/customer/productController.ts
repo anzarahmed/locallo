@@ -14,7 +14,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
-    const product = await productService.getProductDetail(Number(req.params.id));
+    const product = await productService.getProductDetail(String(req.params.id));
     sendSuccess(res, { product });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };

@@ -3,7 +3,6 @@ import {
   Column,
   Model,
   PrimaryKey,
-  AutoIncrement,
   AllowNull,
   Default,
   DataType,
@@ -18,9 +17,9 @@ import { Category } from './Category';
 @Table({ tableName: 'products', timestamps: true, underscored: true })
 export class Product extends Model {
   @PrimaryKey
-  @AutoIncrement
-  @Column(DataType.INTEGER)
-  declare id: number;
+  @Default(DataType.UUIDV4)
+  @Column(DataType.UUID)
+  declare id: string;
 
   @AllowNull(false)
   @ForeignKey(() => User)

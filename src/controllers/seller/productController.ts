@@ -37,7 +37,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
-    const product = await productService.getSellerProduct(req.seller!.id, Number(req.params.id));
+    const product = await productService.getSellerProduct(req.seller!.id, String(req.params.id));
     sendSuccess(res, { product });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
@@ -47,7 +47,7 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
 
 export async function updateProduct(req: Request, res: Response): Promise<void> {
   try {
-    const product = await productService.updateSellerProduct(req.seller!.id, Number(req.params.id), req.body);
+    const product = await productService.updateSellerProduct(req.seller!.id, String(req.params.id), req.body);
     sendSuccess(res, { product });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
@@ -57,7 +57,7 @@ export async function updateProduct(req: Request, res: Response): Promise<void> 
 
 export async function toggleProduct(req: Request, res: Response): Promise<void> {
   try {
-    const product = await productService.toggleSellerProduct(req.seller!.id, Number(req.params.id));
+    const product = await productService.toggleSellerProduct(req.seller!.id, String(req.params.id));
     sendSuccess(res, { product });
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
@@ -67,7 +67,7 @@ export async function toggleProduct(req: Request, res: Response): Promise<void> 
 
 export async function deleteProduct(req: Request, res: Response): Promise<void> {
   try {
-    await productService.deleteSellerProduct(req.seller!.id, Number(req.params.id));
+    await productService.deleteSellerProduct(req.seller!.id, String(req.params.id));
     sendSuccess(res, null);
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
