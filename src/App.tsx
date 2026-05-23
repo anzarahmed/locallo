@@ -12,6 +12,7 @@ import Dashboard from './pages/dashboard/Dashboard';
 import SellerList from './pages/sellers/SellerList';
 import SellerForm from './pages/sellers/SellerForm';
 import CategoryList from './pages/categories/CategoryList';
+import ProductList from './pages/products/ProductList';
 
 export default function App(): JSX.Element {
   return (
@@ -33,6 +34,7 @@ export default function App(): JSX.Element {
             <Route path="/sellers" element={<SellerList />} />
             <Route path="/sellers/add" element={<SellerForm />} />
             <Route path="/sellers/:id/edit" element={<SellerForm />} />
+            <Route path="/products"   element={<ProductList />} />
             <Route path="/categories" element={<CategoryList />} />
           </Route>
 

@@ -1,4 +1,21 @@
 export type AdminRole = 'super_admin' | 'manager' | 'operator';
+export type SellerStatus = 'active' | 'inactive' | 'pending';
+export type AttributeFieldType = 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'color';
+
+export interface AttributeFieldOption {
+  label: string;
+  value: string;
+  hex?: string;
+}
+
+export interface AttributeField {
+  key: string;
+  label: string;
+  type: AttributeFieldType;
+  required: boolean;
+  unit?: string;
+  options?: AttributeFieldOption[];
+}
 
 export interface Category {
   readonly id: number;
@@ -6,8 +23,8 @@ export interface Category {
   slug: string;
   isActive: boolean;
   sortOrder: number;
+  attributeSchema?: AttributeField[] | null;
 }
-export type SellerStatus = 'active' | 'inactive' | 'pending';
 
 export interface Admin {
   readonly id: string;
@@ -44,4 +61,40 @@ export interface Seller {
 export interface AuthState {
   admin: Admin | null;
   token: string | null;
+}
+
+export interface ProductCategory {
+  id: number;
+  name: string;
+  slug: string;
+  attributeSchema?: AttributeField[];
+}
+
+export interface ProductSeller {
+  id: string;
+  fullName: string | null;
+  mobile: string;
+  sellerProfile: { businessName: string } | null;
+}
+
+export interface Product {
+  id: number;
+  sellerId: string;
+  categoryId: number;
+  name: string;
+  description: string;
+  sellingPrice: number | string;
+  mrp: number | string | null;
+  costPrice: number | string | null;
+  stock: number;
+  images: string[];
+  attributes: Record<string, unknown>;
+  pickupAddress: string | null;
+  pickupLat: number | string | null;
+  pickupLong: number | string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+  seller?: ProductSeller;
+  category?: ProductCategory;
 }

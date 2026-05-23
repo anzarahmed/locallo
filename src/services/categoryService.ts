@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { Category } from '../types';
+import type { AttributeField, Category } from '../types';
 
 interface GetCategoriesResponse {
   categories: Category[];
@@ -17,6 +17,7 @@ interface UpdateCategoryPayload {
   slug?: string;
   isActive?: boolean;
   sortOrder?: number;
+  attributeSchema?: AttributeField[];
 }
 
 export function getCategories(includeInactive = false): Promise<Category[]> {

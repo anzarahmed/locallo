@@ -3,6 +3,7 @@ import { Plus, Pencil, Trash2, Loader2, GripVertical, AlertCircle } from 'lucide
 import { useFormik, type FormikHelpers } from 'formik';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import AuthField from '../../components/ui/AuthField';
+import AttributeSchemaEditor from '../../components/ui/AttributeSchemaEditor';
 import { ApiError } from '../../lib/axios';
 import {
   getCategories,
@@ -10,11 +11,9 @@ import {
   updateCategory,
   deleteCategory,
 } from '../../services/categoryService';
-import type { Category } from '../../types';
+import type { AttributeField, Category } from '../../types';
 import { categorySchema, type CategoryFormValues } from './categorySchemas';
 import { useToast } from '../../hooks/useToast';
-
-// ── helpers ────────────────────────────────────────────────────────────────────
 
 function toSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -30,12 +29,13 @@ interface CategoryModalProps {
 
 function CategoryModal({ category, onClose, onSaved }: CategoryModalProps): JSX.Element {
   const isEdit = Boolean(category);
-  const toast = useToast();
+  const toast  = useToast();
 
   const initialValues: CategoryFormValues = {
-    name:      category?.name      ?? '',
-    slug:      category?.slug      ?? '',
-    sortOrder: category?.sortOrder ?? 0,
+    name:            category?.name            ?? '',
+    slug:            category?.slug            ?? '',
+    sortOrder:       category?.sortOrder       ?? 0,
+    attributeSchema: category?.attributeSchema ?? [],
   };
 
   async function handleSubmit(
@@ -45,7 +45,7 @@ function CategoryModal({ category, onClose, onSaved }: CategoryModalProps): JSX.
     try {
       const saved = isEdit && category
         ? await updateCategory(category.id, values)
-        : await createCategory(values);
+        : await createCategory({ name: values.name, slug: values.slug, sortOrder: values.sortOrder });
       toast.success(isEdit ? 'Category updated' : 'Category added');
       onSaved(saved);
     } catch (err: unknown) {
@@ -76,62 +76,69 @@ function CategoryModal({ category, onClose, onSaved }: CategoryModalProps): JSX.
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-xl shadow-xl w-full max-w-md">
-        <div className="px-6 py-4 border-b border-gray-100">
+      <div className="bg-white rounded-xl shadow-xl w-full max-w-xl flex flex-col max-h-[90vh]">
+        <div className="px-6 py-4 border-b border-gray-100 shrink-0">
           <h2 className="text-base font-semibold text-gray-900">
             {isEdit ? 'Edit Category' : 'Add Category'}
           </h2>
         </div>
 
-        <form onSubmit={f.handleSubmit} noValidate className="px-6 py-4 space-y-4">
-          {typeof f.status === 'string' && (
-            <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" role="alert">
-              {f.status}
-            </div>
-          )}
+        <form onSubmit={f.handleSubmit} noValidate className="flex flex-col flex-1 min-h-0">
+          <div className="px-6 py-4 space-y-4 overflow-y-auto flex-1">
+            {typeof f.status === 'string' && (
+              <div className="px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" role="alert">
+                {f.status}
+              </div>
+            )}
 
-          <AuthField
-            label="Name" name="name" placeholder="e.g. Grocery" required
-            value={f.values.name}
-            onChange={handleNameChange}
-            onBlur={f.handleBlur}
-            touched={f.touched.name}
-            error={f.errors.name}
-          />
+            <AuthField
+              label="Name" name="name" placeholder="e.g. Grocery" required
+              value={f.values.name}
+              onChange={handleNameChange}
+              onBlur={f.handleBlur}
+              touched={f.touched.name}
+              error={f.errors.name}
+            />
 
-          <AuthField
-            label="Slug" name="slug" placeholder="e.g. grocery" required
-            value={f.values.slug}
-            onChange={f.handleChange}
-            onBlur={f.handleBlur}
-            touched={f.touched.slug}
-            error={f.errors.slug}
-          />
-
-          <div>
-            <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-700 mb-1.5">
-              Sort Order
-            </label>
-            <input
-              id="sortOrder"
-              name="sortOrder"
-              type="number"
-              min={0}
-              value={f.values.sortOrder}
+            <AuthField
+              label="Slug" name="slug" placeholder="e.g. grocery" required
+              value={f.values.slug}
               onChange={f.handleChange}
               onBlur={f.handleBlur}
-              className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${
-                f.touched.sortOrder && f.errors.sortOrder
-                  ? 'border-red-400 focus:ring-red-400 bg-red-50'
-                  : 'border-gray-300 focus:ring-indigo-500'
-              }`}
+              touched={f.touched.slug}
+              error={f.errors.slug}
             />
-            {f.touched.sortOrder && f.errors.sortOrder && (
-              <p className="mt-1 text-xs text-red-600" role="alert">{f.errors.sortOrder}</p>
-            )}
+
+            <div>
+              <label htmlFor="sortOrder" className="block text-sm font-medium text-gray-700 mb-1.5">
+                Sort Order
+              </label>
+              <input
+                id="sortOrder"
+                name="sortOrder"
+                type="number"
+                min={0}
+                value={f.values.sortOrder}
+                onChange={f.handleChange}
+                onBlur={f.handleBlur}
+                className={`w-full px-3.5 py-2.5 border rounded-lg text-sm text-gray-900 focus:outline-none focus:ring-2 focus:border-transparent transition-shadow ${
+                  f.touched.sortOrder && f.errors.sortOrder
+                    ? 'border-red-400 focus:ring-red-400 bg-red-50'
+                    : 'border-gray-300 focus:ring-indigo-500'
+                }`}
+              />
+              {f.touched.sortOrder && f.errors.sortOrder && (
+                <p className="mt-1 text-xs text-red-600" role="alert">{f.errors.sortOrder}</p>
+              )}
+            </div>
+
+            <AttributeSchemaEditor
+              value={f.values.attributeSchema}
+              onChange={(fields: AttributeField[]): void => { void f.setFieldValue('attributeSchema', fields); }}
+            />
           </div>
 
-          <div className="flex gap-3 pt-2">
+          <div className="px-6 py-4 border-t border-gray-100 flex gap-3 shrink-0">
             <button
               type="button"
               onClick={onClose}
@@ -164,7 +171,7 @@ interface DeleteModalProps {
 
 function DeleteModal({ category, onClose, onDeleted }: DeleteModalProps): JSX.Element {
   const [deleting, setDeleting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError]       = useState<string | null>(null);
   const toast = useToast();
 
   async function handleDelete(): Promise<void> {
@@ -189,8 +196,7 @@ function DeleteModal({ category, onClose, onDeleted }: DeleteModalProps): JSX.El
         <div className="text-center">
           <h3 className="text-base font-semibold text-gray-900">Delete category?</h3>
           <p className="mt-1 text-sm text-gray-500">
-            <span className="font-medium text-gray-700">{category.name}</span> will be deactivated
-            and hidden from all seller forms.
+            <span className="font-medium text-gray-700">{category.name}</span> will be permanently removed.
           </p>
         </div>
         {error && (
@@ -226,13 +232,13 @@ const PAGE_SIZE = 5;
 
 export default function CategoryList(): JSX.Element {
   const toast = useToast();
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [categories, setCategories]   = useState<Category[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState<string | null>(null);
   const [modalCategory, setModalCategory] = useState<Category | null | undefined>(undefined);
-  const [deleteTarget, setDeleteTarget] = useState<Category | null>(null);
-  const [toggling, setToggling] = useState<number | null>(null);
-  const [page, setPage] = useState(1);
+  const [deleteTarget, setDeleteTarget]   = useState<Category | null>(null);
+  const [toggling, setToggling]       = useState<number | null>(null);
+  const [page, setPage]               = useState(1);
 
   useEffect((): void => {
     setLoading(true);
@@ -301,7 +307,6 @@ export default function CategoryList(): JSX.Element {
 
   return (
     <>
-      {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Categories</h1>
@@ -316,7 +321,6 @@ export default function CategoryList(): JSX.Element {
         </button>
       </div>
 
-      {/* Table */}
       <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
         <table className="w-full text-sm">
           <thead>
@@ -326,6 +330,7 @@ export default function CategoryList(): JSX.Element {
               </th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
               <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Slug</th>
+              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Fields</th>
               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Order</th>
               <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Active</th>
               <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
@@ -334,7 +339,7 @@ export default function CategoryList(): JSX.Element {
           <tbody className="divide-y divide-gray-50">
             {paginated.length === 0 && (
               <tr>
-                <td colSpan={6} className="px-4 py-10 text-center text-sm text-gray-400">
+                <td colSpan={7} className="px-4 py-10 text-center text-sm text-gray-400">
                   No categories yet. Add one to get started.
                 </td>
               </tr>
@@ -349,6 +354,11 @@ export default function CategoryList(): JSX.Element {
                 </td>
                 <td className="px-4 py-3">
                   <code className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{cat.slug}</code>
+                </td>
+                <td className="px-4 py-3 text-center">
+                  <span className="text-xs text-gray-500">
+                    {cat.attributeSchema?.length ?? 0}
+                  </span>
                 </td>
                 <td className="px-4 py-3 text-center text-gray-500">{cat.sortOrder}</td>
                 <td className="px-4 py-3">
@@ -383,7 +393,6 @@ export default function CategoryList(): JSX.Element {
           </tbody>
         </table>
 
-        {/* Pagination footer */}
         <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
           <span>
             Showing {Math.min((page - 1) * PAGE_SIZE + 1, categories.length)}–{Math.min(page * PAGE_SIZE, categories.length)} of {categories.length}
@@ -410,7 +419,6 @@ export default function CategoryList(): JSX.Element {
         </div>
       </div>
 
-      {/* Add / Edit modal — undefined = closed, null = adding, Category = editing */}
       {modalCategory !== undefined && (
         <CategoryModal
           category={modalCategory}

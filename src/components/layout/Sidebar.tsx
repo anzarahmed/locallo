@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Users,
   Tag,
+  Package,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -20,6 +21,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard'  },
   { to: '/sellers',    icon: Users,            label: 'Sellers'    },
+  { to: '/products',   icon: Package,          label: 'Products'   },
   { to: '/categories', icon: Tag,              label: 'Categories' },
 ];
 

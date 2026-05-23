@@ -1,4 +1,5 @@
 import * as Yup from 'yup';
+import type { AttributeField } from '../../types';
 
 export const categorySchema = Yup.object({
   name:      Yup.string().trim().max(100, 'Max 100 characters').required('Name is required'),
@@ -10,4 +11,6 @@ export const categorySchema = Yup.object({
   sortOrder: Yup.number().integer().min(0, 'Must be 0 or higher').default(0),
 });
 
-export type CategoryFormValues = Yup.InferType<typeof categorySchema>;
+export type CategoryFormValues = Yup.InferType<typeof categorySchema> & {
+  attributeSchema: AttributeField[];
+};
