@@ -55,6 +55,14 @@ export class Admin extends Model {
   @Column(DataType.BOOLEAN)
   declare isActive: boolean;
 
+  @AllowNull(true)
+  @Column(DataType.TEXT)
+  declare resetToken: string | null;
+
+  @AllowNull(true)
+  @Column(DataType.DATE)
+  declare resetTokenExpiresAt: Date | null;
+
   @CreatedAt
   declare createdAt: Date;
 

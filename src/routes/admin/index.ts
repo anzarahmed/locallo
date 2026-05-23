@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login } from '../../controllers/admin/adminController';
+import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
 import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory } from '../../controllers/admin/categoryController';
 import {
@@ -9,13 +9,15 @@ import {
 } from '../../controllers/admin/productController';
 import { validate } from '../../middleware/validate';
 import { requireAdmin } from '../../middleware/auth';
-import { adminLoginSchema } from '../../validation/admin/adminSchemas';
+import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
 import { createSellerSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
 
 const router = Router();
 
-router.post('/login', validate(adminLoginSchema), login);
+router.post('/login',          validate(adminLoginSchema),        login);
+router.post('/forgot-password', validate(forgotPasswordSchema),   forgotPassword);
+router.post('/reset-password',  validate(resetPasswordSchema),    resetPassword);
 
 router.post('/sellers',             requireAdmin, validate(createSellerSchema),      addSeller);
 router.get('/sellers',              requireAdmin,                                     getSellers);
