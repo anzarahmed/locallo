@@ -1,5 +1,5 @@
 import { useState, type JSX } from 'react';
-import { Plus, X, ChevronDown, ChevronUp } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
 import type { AttributeField, AttributeFieldOption, AttributeFieldType } from '../../types';
 
 interface AttributeSchemaEditorProps {
@@ -50,10 +50,19 @@ function toKey(label: string): string {
 }
 
 export default function AttributeSchemaEditor({ value, onChange }: AttributeSchemaEditorProps): JSX.Element {
-  const [open, setOpen]       = useState(false);
-  const [adding, setAdding]   = useState(false);
-  const [draft, setDraft]     = useState<DraftField>(EMPTY_DRAFT);
+  const [open, setOpen]             = useState(false);
+  const [adding, setAdding]         = useState(false);
+  const [draft, setDraft]           = useState<DraftField>(EMPTY_DRAFT);
   const [draftError, setDraftError] = useState('');
+  const [expandedOpts, setExpandedOpts] = useState<Set<string>>(new Set());
+
+  function toggleOpts(key: string): void {
+    setExpandedOpts(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  }
 
   function removeField(key: string): void {
     onChange(value.filter(f => f.key !== key));
@@ -129,31 +138,58 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
           {/* Existing fields */}
           {value.length > 0 && (
             <ul className="space-y-1.5">
-              {value.map(field => (
-                <li key={field.key} className="flex items-center gap-2 py-1.5 px-2 rounded-lg bg-gray-50 group">
-                  <span className="flex-1 text-sm text-gray-800 font-medium truncate">{field.label}</span>
-                  <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${TYPE_BADGE[field.type]}`}>
-                    {field.type}
-                  </span>
-                  {field.required && (
-                    <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">req</span>
-                  )}
-                  {field.unit && (
-                    <span className="text-xs text-gray-400">{field.unit}</span>
-                  )}
-                  {field.options && field.options.length > 0 && (
-                    <span className="text-xs text-gray-400">{field.options.length} opts</span>
-                  )}
-                  <button
-                    type="button"
-                    onClick={(): void => removeField(field.key)}
-                    className="p-0.5 text-gray-300 hover:text-red-500 transition-colors opacity-0 group-hover:opacity-100"
-                    title="Remove field"
-                  >
-                    <X className="w-3.5 h-3.5" />
-                  </button>
-                </li>
-              ))}
+              {value.map(field => {
+                const hasOpts = field.options && field.options.length > 0;
+                const optsOpen = expandedOpts.has(field.key);
+                return (
+                  <li key={field.key} className="rounded-lg bg-gray-50 border border-gray-100">
+                    <div className="flex items-center gap-2 py-1.5 px-2">
+                      <span className="flex-1 text-sm text-gray-800 font-medium truncate">{field.label}</span>
+                      <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${TYPE_BADGE[field.type]}`}>
+                        {field.type}
+                      </span>
+                      {field.required && (
+                        <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">req</span>
+                      )}
+                      {field.unit && (
+                        <span className="text-xs text-gray-400">{field.unit}</span>
+                      )}
+                      {hasOpts && (
+                        <button
+                          type="button"
+                          onClick={(): void => toggleOpts(field.key)}
+                          className="flex items-center gap-0.5 text-xs text-gray-500 hover:text-indigo-600 transition-colors"
+                          title={optsOpen ? 'Hide options' : 'Show options'}
+                        >
+                          {field.options!.length} opts
+                          {optsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={(): void => removeField(field.key)}
+                        className="p-0.5 text-gray-400 hover:text-red-500 transition-colors"
+                        title="Remove field"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
+                    {hasOpts && optsOpen && (
+                      <ul className="px-3 pb-2 space-y-1 border-t border-gray-100 pt-1.5">
+                        {field.options!.map(opt => (
+                          <li key={opt.value} className="flex items-center gap-2 text-xs text-gray-600">
+                            {field.type === 'color' && opt.hex && (
+                              <span className="w-3 h-3 rounded-full border border-gray-200 shrink-0" style={{ backgroundColor: opt.hex }} />
+                            )}
+                            <span className="flex-1">{opt.label}</span>
+                            <code className="text-gray-400">{opt.value}</code>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </li>
+                );
+              })}
             </ul>
           )}
 
