@@ -37,11 +37,6 @@ export class Category extends Model {
   @Column(DataType.BOOLEAN)
   declare isActive: boolean;
 
-  @Default(0)
-  @AllowNull(false)
-  @Column(DataType.INTEGER)
-  declare sortOrder: number;
-
   @Column(DataType.JSONB)
   declare attributeSchema: AttributeField[] | null;
 

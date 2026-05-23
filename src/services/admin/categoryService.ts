@@ -8,7 +8,7 @@ type UpdateCategoryInput = InferType<typeof updateCategorySchema>;
 
 export async function listCategories(includeInactive = false): Promise<Category[]> {
   const where = includeInactive ? {} : { isActive: true };
-  return Category.findAll({ where, order: [['sortOrder', 'ASC'], ['name', 'ASC']] });
+  return Category.findAll({ where, order: [['name', 'ASC']] });
 }
 
 export async function createCategory(data: CreateCategoryInput): Promise<Category> {
@@ -20,7 +20,7 @@ export async function createCategory(data: CreateCategoryInput): Promise<Categor
   if (slugExists) {
     throw Object.assign(new Error('Category slug already exists'), { status: 409 });
   }
-  return Category.create({ name: data.name, slug: data.slug, sortOrder: data.sortOrder ?? 0 });
+  return Category.create({ name: data.name, slug: data.slug });
 }
 
 export async function updateCategory(id: number, data: UpdateCategoryInput): Promise<Category> {
