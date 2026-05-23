@@ -21,6 +21,31 @@ function formatPrice(val: number | string | null): string {
   return `₹${Number(val).toLocaleString('en-IN')}`;
 }
 
+function ThumbnailImage({ src, alt }: { src: string; alt: string }): JSX.Element {
+  const [status, setStatus] = useState<'loading' | 'loaded' | 'error'>('loading');
+
+  return (
+    <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0 relative">
+      {status === 'loading' && (
+        <div className="absolute inset-0 animate-pulse bg-gradient-to-br from-gray-200 via-gray-100 to-gray-200" />
+      )}
+      {status === 'error' ? (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <Package className="w-4 h-4 text-gray-300" />
+        </div>
+      ) : (
+        <img
+          src={src}
+          alt={alt}
+          onLoad={(): void => setStatus('loaded')}
+          onError={(): void => setStatus('error')}
+          className={`w-full h-full object-cover transition-opacity duration-150 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+        />
+      )}
+    </div>
+  );
+}
+
 // ── DeleteModal ────────────────────────────────────────────────────────────────
 
 interface DeleteModalProps {
@@ -258,15 +283,13 @@ export default function ProductList(): JSX.Element {
                     {/* Product */}
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-lg overflow-hidden bg-gray-100 shrink-0">
-                          {product.images.length > 0 ? (
-                            <img src={imgUrl(product.images[0])} alt="" className="w-full h-full object-cover" />
-                          ) : (
-                            <div className="w-full h-full flex items-center justify-center">
-                              <Package className="w-4 h-4 text-gray-300" />
-                            </div>
-                          )}
-                        </div>
+                        {product.images.length > 0 ? (
+                          <ThumbnailImage src={imgUrl(product.images[0])} alt={product.name} />
+                        ) : (
+                          <div className="w-10 h-10 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center">
+                            <Package className="w-4 h-4 text-gray-300" />
+                          </div>
+                        )}
                         <span className="font-medium text-gray-900 max-w-48 truncate" title={product.name}>
                           {product.name}
                         </span>
