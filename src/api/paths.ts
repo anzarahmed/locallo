@@ -14,7 +14,7 @@ export const PATHS = {
   },
   PRODUCTS: {
     LIST:   '/api/admins/products',
-    BY_ID:  (id: number) => `/api/admins/products/${id}`,
-    TOGGLE: (id: number) => `/api/admins/products/${id}/toggle`,
+    BY_ID:  (id: string) => `/api/admins/products/${id}`,
+    TOGGLE: (id: string) => `/api/admins/products/${id}/toggle`,
   },
 } as const;

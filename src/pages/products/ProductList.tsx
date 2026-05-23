@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, type JSX } from 'react';
-import { Search, Loader2, Package, Trash2, Eye, AlertCircle } from 'lucide-react';
+import { Search, Loader2, Package, Trash2, Eye, AlertCircle, ChevronDown } from 'lucide-react';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import ProductDetail from './ProductDetail';
 import { getProducts, toggleProduct, deleteProduct } from '../../services/productService';
@@ -26,7 +26,7 @@ function formatPrice(val: number | string | null): string {
 interface DeleteModalProps {
   product: Product;
   onClose: () => void;
-  onDeleted: (id: number) => void;
+  onDeleted: (id: string) => void;
 }
 
 function DeleteModal({ product, onClose, onDeleted }: DeleteModalProps): JSX.Element {
@@ -97,8 +97,8 @@ export default function ProductList(): JSX.Element {
   const [categoryFilter, setCategoryFilter] = useState<number | ''>('');
   const [statusFilter, setStatusFilter]     = useState<'' | 'true' | 'false'>('');
   const [categories, setCategories] = useState<Category[]>([]);
-  const [toggling, setToggling]   = useState<number | null>(null);
-  const [detailId, setDetailId]   = useState<number | null>(null);
+  const [toggling, setToggling]   = useState<string | null>(null);
+  const [detailId, setDetailId]   = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const searchRef = useRef<HTMLInputElement>(null);
 
@@ -150,7 +150,7 @@ export default function ProductList(): JSX.Element {
     setProducts(prev => prev.map(p => p.id === updated.id ? { ...p, isActive: updated.isActive } : p));
   }
 
-  function handleDeleted(id: number): void {
+  function handleDeleted(id: string): void {
     setProducts(prev => prev.filter(p => p.id !== id));
     setTotal(t => t - 1);
     setDeleteTarget(null);
@@ -191,26 +191,32 @@ export default function ProductList(): JSX.Element {
           </button>
         </div>
 
-        <select
-          value={categoryFilter}
-          onChange={e => { setCategoryFilter(e.target.value ? Number(e.target.value) : ''); handleFilterChange(); }}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          <option value="">All Categories</option>
-          {categories.map(c => (
-            <option key={c.id} value={c.id}>{c.name}</option>
-          ))}
-        </select>
+        <div className="relative">
+          <select
+            value={categoryFilter}
+            onChange={e => { setCategoryFilter(e.target.value ? Number(e.target.value) : ''); handleFilterChange(); }}
+            className="appearance-none pl-3 pr-8 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">All Categories</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        </div>
 
-        <select
-          value={statusFilter}
-          onChange={e => { setStatusFilter(e.target.value as '' | 'true' | 'false'); handleFilterChange(); }}
-          className="px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-700 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-        >
-          <option value="">All Status</option>
-          <option value="true">Active</option>
-          <option value="false">Inactive</option>
-        </select>
+        <div className="relative">
+          <select
+            value={statusFilter}
+            onChange={e => { setStatusFilter(e.target.value as '' | 'true' | 'false'); handleFilterChange(); }}
+            className="appearance-none pl-3 pr-8 py-2 bg-white border border-gray-300 rounded-lg text-sm text-gray-700 cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500"
+          >
+            <option value="">All Status</option>
+            <option value="true">Active</option>
+            <option value="false">Inactive</option>
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+        </div>
       </div>
 
       {/* Table */}

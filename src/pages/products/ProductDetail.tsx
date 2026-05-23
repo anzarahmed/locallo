@@ -6,10 +6,10 @@ import type { AttributeField, AttributeFieldOption, Product } from '../../types'
 import { useToast } from '../../hooks/useToast';
 
 interface ProductDetailProps {
-  productId: number;
+  productId: string;
   onClose: () => void;
   onToggled: (product: Product) => void;
-  onDeleted: (id: number) => void;
+  onDeleted: (id: string) => void;
 }
 
 function imgUrl(path: string): string {

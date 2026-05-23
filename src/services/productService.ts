@@ -28,14 +28,14 @@ export function getProducts(params: GetProductsParams = {}): Promise<GetProducts
   return apiGet<GetProductsResponse>(url);
 }
 
-export function getProduct(id: number): Promise<Product> {
+export function getProduct(id: string): Promise<Product> {
   return apiGet<{ product: Product }>(PATHS.PRODUCTS.BY_ID(id)).then(r => r.product);
 }
 
-export function toggleProduct(id: number): Promise<Product> {
+export function toggleProduct(id: string): Promise<Product> {
   return apiPatch<{ product: Product }>(PATHS.PRODUCTS.TOGGLE(id)).then(r => r.product);
 }
 
-export function deleteProduct(id: number): Promise<void> {
+export function deleteProduct(id: string): Promise<void> {
   return apiDelete<null>(PATHS.PRODUCTS.BY_ID(id)).then(() => undefined);
 }

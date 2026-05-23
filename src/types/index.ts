@@ -78,7 +78,7 @@ export interface ProductSeller {
 }
 
 export interface Product {
-  id: number;
+  id: string;
   sellerId: string;
   categoryId: number;
   name: string;
