@@ -14,8 +14,6 @@ import { useToast } from '../../hooks/useToast';
 import { SkeletonThumbnailCell, SkeletonPriceCell } from '../../components/ui/SkeletonCells';
 import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
 
-const PAGE_SIZE = DEFAULT_PAGE_SIZE;
-
 function imgUrl(path: string): string {
   if (!path) return '';
   if (path.startsWith('http')) return path;
@@ -118,6 +116,7 @@ export default function ProductList(): JSX.Element {
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState<string | null>(null);
   const [page, setPage]             = useState(1);
+  const [pageSize, setPageSize]     = useState(DEFAULT_PAGE_SIZE);
   const [categories, setCategories] = useState<Category[]>([]);
   const [sellers, setSellers]       = useState<Seller[]>([]);
   const [toggling, setToggling]     = useState<string | null>(null);
@@ -156,7 +155,7 @@ export default function ProductList(): JSX.Element {
 
     const params = {
       page,
-      limit: PAGE_SIZE,
+      limit: pageSize,
       ...(search        && { search }),
       ...(catId         && { categoryId: Number(catId) }),
       ...(sellerIdVal   && { sellerId: sellerIdVal }),
@@ -168,7 +167,7 @@ export default function ProductList(): JSX.Element {
       .then(r => { setProducts(r.products); setTotal(r.total); })
       .catch(() => { setError('Failed to load products.'); })
       .finally(() => { setLoading(false); });
-  }, [page, sorting, debouncedFilters]);
+  }, [page, pageSize, sorting, debouncedFilters]);
 
   async function handleToggle(product: Product): Promise<void> {
     setToggling(product.id);
@@ -361,13 +360,13 @@ export default function ProductList(): JSX.Element {
         columns={columns}
         data={products}
         loading={loading}
-        skeletonRows={10}
+        skeletonRows={pageSize}
         emptyMessage="No products found"
         sorting={sorting}
         onSortingChange={setSorting}
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}
-        pagination={{ page, pageSize: PAGE_SIZE, total, onPageChange: setPage }}
+        pagination={{ page, pageSize, total, onPageChange: setPage, onPageSizeChange: size => { setPageSize(size); setPage(1); } }}
       />
 
       {detailId !== null && (

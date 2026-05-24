@@ -20,8 +20,6 @@ import { useToast } from '../../hooks/useToast';
 
 import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
 
-const PAGE_SIZE = DEFAULT_PAGE_SIZE;
-
 function toSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
@@ -219,6 +217,7 @@ export default function CategoryList(): JSX.Element {
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState<string | null>(null);
   const [page, setPage]                   = useState(1);
+  const [pageSize, setPageSize]           = useState(DEFAULT_PAGE_SIZE);
   const [fetchKey, setFetchKey]           = useState(0);
   const [modalCategory, setModalCategory] = useState<Category | null | undefined>(undefined);
   const [deleteTarget, setDeleteTarget]   = useState<Category | null>(null);
@@ -248,7 +247,7 @@ export default function CategoryList(): JSX.Element {
 
     const params: GetCategoriesPaginatedParams = {
       page,
-      limit: PAGE_SIZE,
+      limit: pageSize,
       ...(search      && { search }),
       ...(isActiveStr && { isActive: isActiveStr === 'true' }),
       ...(sortCol     && { sortBy: sortCol.id, sortOrder: sortCol.desc ? 'desc' as const : 'asc' as const }),
@@ -258,7 +257,7 @@ export default function CategoryList(): JSX.Element {
       .then(r => { setCategories(r.categories); setTotal(r.total); })
       .catch((): void => { setError('Failed to load categories.'); })
       .finally((): void => { setLoading(false); });
-  }, [page, sorting, debouncedFilters, fetchKey]);
+  }, [page, pageSize, sorting, debouncedFilters, fetchKey]);
 
   function handleSaved(saved: Category): void {
     const isAdd = !categories.find(c => c.id === saved.id);
@@ -407,13 +406,13 @@ export default function CategoryList(): JSX.Element {
         columns={columns}
         data={categories}
         loading={loading}
-        skeletonRows={8}
+        skeletonRows={pageSize}
         emptyMessage="No categories found."
         sorting={sorting}
         onSortingChange={setSorting}
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}
-        pagination={{ page, pageSize: PAGE_SIZE, total, onPageChange: setPage }}
+        pagination={{ page, pageSize, total, onPageChange: setPage, onPageSizeChange: size => { setPageSize(size); setPage(1); } }}
       />
 
       {modalCategory !== undefined && (

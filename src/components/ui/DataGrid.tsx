@@ -12,7 +12,8 @@ import {
   type VisibilityState,
 } from '@tanstack/react-table';
 import { useState, type JSX } from 'react';
-import { ChevronUp, ChevronDown, ChevronsUpDown, Eye, EyeOff, X } from 'lucide-react';
+import { PAGE_SIZE_OPTIONS } from '../../lib/constants';
+import { ChevronUp, ChevronDown, ChevronsUpDown, Eye, EyeOff, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { ColumnTextFilter, ColumnSelectFilter } from './DataGridFilters';
 
 declare module '@tanstack/react-table' {
@@ -31,6 +32,7 @@ interface PaginationInfo {
   pageSize: number;
   total: number;
   onPageChange: (page: number) => void;
+  onPageSizeChange?: (size: number) => void;
 }
 
 interface DataGridProps<TData extends object> {
@@ -240,31 +242,56 @@ export default function DataGrid<TData extends object>({
       </div>
 
       {pagination && !loading && (
-        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
-          <span>
+        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between gap-4">
+          <span className="text-xs text-gray-500 shrink-0">
             {pagination.total === 0
               ? '0 records'
               : `Showing ${(pagination.page - 1) * pagination.pageSize + 1}–${Math.min(pagination.page * pagination.pageSize, pagination.total)} of ${pagination.total}`}
           </span>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                disabled={pagination.page === 1}
-                onClick={() => pagination.onPageChange(pagination.page - 1)}
-                className="px-2 py-1 border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span>Page {pagination.page} of {totalPages}</span>
-              <button
-                disabled={pagination.page === totalPages}
-                onClick={() => pagination.onPageChange(pagination.page + 1)}
-                className="px-2 py-1 border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-          )}
+
+          <div className="flex items-center gap-3">
+            {pagination.onPageSizeChange && (
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-400 whitespace-nowrap">Rows per page</span>
+                <div className="relative">
+                  <select
+                    value={pagination.pageSize}
+                    onChange={e => pagination.onPageSizeChange!(Number(e.target.value))}
+                    className="appearance-none h-7 pl-2.5 pr-6 text-xs font-medium text-gray-700 bg-white border border-gray-300 rounded-md shadow-sm cursor-pointer focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 hover:border-gray-400 transition-colors"
+                  >
+                    {PAGE_SIZE_OPTIONS.map(s => (
+                      <option key={s} value={s}>{s}</option>
+                    ))}
+                  </select>
+                  <ChevronDown className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                </div>
+              </div>
+            )}
+
+            {totalPages > 1 && (
+              <div className="flex items-center gap-1">
+                <button
+                  disabled={pagination.page === 1}
+                  onClick={() => pagination.onPageChange(pagination.page - 1)}
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  title="Previous page"
+                >
+                  <ChevronLeft className="w-3.5 h-3.5" />
+                </button>
+                <span className="px-2 text-xs text-gray-600 font-medium whitespace-nowrap">
+                  {pagination.page} / {totalPages}
+                </span>
+                <button
+                  disabled={pagination.page === totalPages}
+                  onClick={() => pagination.onPageChange(pagination.page + 1)}
+                  className="inline-flex items-center justify-center w-7 h-7 rounded-md border border-gray-300 bg-white text-gray-500 hover:bg-gray-50 hover:text-gray-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
+                  title="Next page"
+                >
+                  <ChevronRight className="w-3.5 h-3.5" />
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

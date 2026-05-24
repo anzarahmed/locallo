@@ -39,8 +39,6 @@ function SellerAvatar({ name }: { name: string | null }): JSX.Element {
 import { SkeletonAvatarCell, SkeletonNameBadgeCell } from '../../components/ui/SkeletonCells';
 import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
 
-const PAGE_SIZE = DEFAULT_PAGE_SIZE;
-
 export default function SellerList(): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
@@ -49,6 +47,7 @@ export default function SellerList(): JSX.Element {
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState<string | null>(null);
   const [page, setPage]                 = useState(1);
+  const [pageSize, setPageSize]         = useState(DEFAULT_PAGE_SIZE);
   const [totalRecords, setTotalRecords] = useState(0);
 
   const [sorting, setSorting]               = useState<SortingState>([]);
@@ -87,7 +86,7 @@ export default function SellerList(): JSX.Element {
 
         const data = await getSellerList({
           page,
-          limit: PAGE_SIZE,
+          limit: pageSize,
           sortBy:       sortCol?.id,
           sortOrder:    sortCol ? (sortCol.desc ? 'desc' : 'asc') : undefined,
           fullName,
@@ -105,7 +104,7 @@ export default function SellerList(): JSX.Element {
       }
     }
     void fetch();
-  }, [page, sorting, debouncedFilters]);
+  }, [page, pageSize, sorting, debouncedFilters]);
 
   async function confirmToggle(id: string): Promise<void> {
     const prev = sellers.find(s => s.id === id);
@@ -278,13 +277,13 @@ export default function SellerList(): JSX.Element {
         columns={columns}
         data={sellers}
         loading={loading}
-        skeletonRows={PAGE_SIZE}
+        skeletonRows={pageSize}
         emptyMessage="No sellers found"
         sorting={sorting}
         onSortingChange={setSorting}
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}
-        pagination={{ page, pageSize: PAGE_SIZE, total: totalRecords, onPageChange: setPage }}
+        pagination={{ page, pageSize, total: totalRecords, onPageChange: setPage, onPageSizeChange: size => { setPageSize(size); setPage(1); } }}
       />
 
       {toggleId !== null && (() => {
