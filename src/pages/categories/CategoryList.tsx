@@ -1,19 +1,26 @@
-import { useState, useEffect, type JSX } from 'react';
+import { useState, useEffect, useMemo, type JSX } from 'react';
 import { Plus, Pencil, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
+import { type ColumnDef, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
+import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import AuthField from '../../components/ui/AuthField';
 import AttributeSchemaEditor from '../../components/ui/AttributeSchemaEditor';
 import { ApiError } from '../../lib/axios';
 import {
-  getCategories,
+  getCategoriesPaginated,
   createCategory,
   updateCategory,
   deleteCategory,
+  type GetCategoriesPaginatedParams,
 } from '../../services/categoryService';
 import type { AttributeField, Category } from '../../types';
 import { categorySchema, type CategoryFormValues } from './categorySchemas';
 import { useToast } from '../../hooks/useToast';
+
+import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
+
+const PAGE_SIZE = DEFAULT_PAGE_SIZE;
 
 function toSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -204,48 +211,69 @@ function DeleteModal({ category, onClose, onDeleted }: DeleteModalProps): JSX.El
 
 // ── CategoryList ───────────────────────────────────────────────────────────────
 
-const PAGE_SIZE = 5;
-
 export default function CategoryList(): JSX.Element {
   const toast = useToast();
-  const [categories, setCategories]   = useState<Category[]>([]);
-  const [loading, setLoading]         = useState(true);
-  const [error, setError]             = useState<string | null>(null);
+
+  const [categories, setCategories]       = useState<Category[]>([]);
+  const [total, setTotal]                 = useState(0);
+  const [loading, setLoading]             = useState(true);
+  const [error, setError]                 = useState<string | null>(null);
+  const [page, setPage]                   = useState(1);
+  const [fetchKey, setFetchKey]           = useState(0);
   const [modalCategory, setModalCategory] = useState<Category | null | undefined>(undefined);
   const [deleteTarget, setDeleteTarget]   = useState<Category | null>(null);
-  const [toggling, setToggling]       = useState<number | null>(null);
-  const [page, setPage]               = useState(1);
+  const [toggling, setToggling]           = useState<number | null>(null);
+
+  const [sorting, setSorting]                   = useState<SortingState>([]);
+  const [columnFilters, setColumnFilters]       = useState<ColumnFiltersState>([]);
+  const [debouncedFilters, setDebouncedFilters] = useState<ColumnFiltersState>([]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedFilters(columnFilters);
+      setPage(1);
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [columnFilters]);
+
+  useEffect(() => { setPage(1); }, [sorting]);
 
   useEffect((): void => {
     setLoading(true);
-    getCategories(true)
-      .then(setCategories)
+    setError(null);
+
+    const sortCol     = sorting[0];
+    const search      = debouncedFilters.find(f => f.id === 'name')?.value as string | undefined;
+    const isActiveStr = debouncedFilters.find(f => f.id === 'isActive')?.value as string | undefined;
+
+    const params: GetCategoriesPaginatedParams = {
+      page,
+      limit: PAGE_SIZE,
+      ...(search      && { search }),
+      ...(isActiveStr && { isActive: isActiveStr === 'true' }),
+      ...(sortCol     && { sortBy: sortCol.id, sortOrder: sortCol.desc ? 'desc' as const : 'asc' as const }),
+    };
+
+    getCategoriesPaginated(params)
+      .then(r => { setCategories(r.categories); setTotal(r.total); })
       .catch((): void => { setError('Failed to load categories.'); })
       .finally((): void => { setLoading(false); });
-  }, []);
+  }, [page, sorting, debouncedFilters, fetchKey]);
 
   function handleSaved(saved: Category): void {
-    setCategories(prev => {
-      const idx = prev.findIndex(c => c.id === saved.id);
-      if (idx === -1) {
-        const next = [...prev, saved].sort((a, b) => a.name.localeCompare(b.name));
-        setPage(Math.ceil(next.length / PAGE_SIZE));
-        return next;
-      }
-      const next = [...prev];
-      next[idx] = saved;
-      return next;
-    });
+    const isAdd = !categories.find(c => c.id === saved.id);
+    if (isAdd) {
+      setPage(1);
+      setFetchKey(k => k + 1);
+    } else {
+      setCategories(prev => prev.map(c => c.id === saved.id ? saved : c));
+    }
     setModalCategory(undefined);
   }
 
   function handleDeleted(id: number): void {
-    setCategories(prev => {
-      const next = prev.filter(c => c.id !== id);
-      const maxPage = Math.max(1, Math.ceil(next.length / PAGE_SIZE));
-      setPage(p => Math.min(p, maxPage));
-      return next;
-    });
+    setCategories(prev => prev.filter(c => c.id !== id));
+    setTotal(t => t - 1);
     setDeleteTarget(null);
   }
 
@@ -262,13 +290,94 @@ export default function CategoryList(): JSX.Element {
     }
   }
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-6 h-6 text-gray-400 animate-spin" />
-      </div>
-    );
-  }
+  const columns = useMemo<ColumnDef<Category, unknown>[]>(() => [
+    {
+      accessorKey: 'name',
+      header: 'Name',
+      enableSorting: true,
+      enableColumnFilter: true,
+      meta: { filterPlaceholder: 'Search name…' },
+      cell: ({ row }) => (
+        <span className="font-medium text-gray-900">{row.original.name}</span>
+      ),
+    },
+    {
+      accessorKey: 'slug',
+      header: 'Slug',
+      enableSorting: true,
+      enableColumnFilter: false,
+      cell: ({ row }) => (
+        <code className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
+          {row.original.slug}
+        </code>
+      ),
+    },
+    {
+      id: 'fields',
+      accessorFn: row => row.attributeSchema?.length ?? 0,
+      header: 'Fields',
+      enableSorting: false,
+      enableColumnFilter: false,
+      cell: ({ row }) => (
+        <div className="text-center">
+          <span className="text-xs text-gray-500">{row.original.attributeSchema?.length ?? 0}</span>
+        </div>
+      ),
+    },
+    {
+      accessorKey: 'isActive',
+      header: 'Active',
+      enableSorting: true,
+      enableColumnFilter: true,
+      meta: {
+        filterVariant: 'select',
+        filterOptions: [
+          { label: 'Active',   value: 'true'  },
+          { label: 'Inactive', value: 'false' },
+        ],
+      },
+      cell: ({ row }) => {
+        const cat = row.original;
+        return (
+          <div className="flex justify-center">
+            <ToggleSwitch
+              active={cat.isActive}
+              onToggle={toggling === cat.id ? (): void => {} : (): void => { void handleToggleActive(cat); }}
+              title={`${cat.isActive ? 'Deactivate' : 'Activate'} ${cat.name}`}
+            />
+          </div>
+        );
+      },
+    },
+    {
+      id: 'actions',
+      header: 'Actions',
+      enableSorting: false,
+      enableColumnFilter: false,
+      meta: { hideFromVisibility: true },
+      cell: ({ row }) => {
+        const cat = row.original;
+        return (
+          <div className="flex items-center justify-end gap-1">
+            <button
+              onClick={() => setModalCategory(cat)}
+              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+              title="Edit"
+            >
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setDeleteTarget(cat)}
+              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              title="Delete"
+            >
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        );
+      },
+    },
+  ], [toggling]);
 
   if (error) {
     return (
@@ -278,18 +387,15 @@ export default function CategoryList(): JSX.Element {
     );
   }
 
-  const totalPages = Math.max(1, Math.ceil(categories.length / PAGE_SIZE));
-  const paginated  = categories.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
-
   return (
     <>
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-xl font-bold text-gray-900">Categories</h1>
-          <p className="text-sm text-gray-500 mt-0.5">{categories.length} total</p>
+          <p className="text-sm text-gray-500 mt-0.5">{total} total</p>
         </div>
         <button
-          onClick={(): void => setModalCategory(null)}
+          onClick={() => setModalCategory(null)}
           className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
         >
           <Plus className="w-4 h-4" />
@@ -297,100 +403,23 @@ export default function CategoryList(): JSX.Element {
         </button>
       </div>
 
-      <div className="bg-white rounded-xl border border-gray-200 overflow-hidden">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-gray-100 bg-gray-50">
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Name</th>
-              <th className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wider">Slug</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Fields</th>
-              <th className="px-4 py-3 text-center text-xs font-semibold text-gray-500 uppercase tracking-wider">Active</th>
-              <th className="px-4 py-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wider">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-50">
-            {paginated.length === 0 && (
-              <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-sm text-gray-400">
-                  No categories yet. Add one to get started.
-                </td>
-              </tr>
-            )}
-            {paginated.map(cat => (
-              <tr key={cat.id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3">
-                  <span className="font-medium text-gray-900">{cat.name}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <code className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">{cat.slug}</code>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <span className="text-xs text-gray-500">
-                    {cat.attributeSchema?.length ?? 0}
-                  </span>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex justify-center">
-                    <ToggleSwitch
-                      active={cat.isActive}
-                      onToggle={toggling === cat.id ? (): void => {} : (): void => { void handleToggleActive(cat); }}
-                      title={`${cat.isActive ? 'Deactivate' : 'Activate'} ${cat.name}`}
-                    />
-                  </div>
-                </td>
-                <td className="px-4 py-3">
-                  <div className="flex items-center justify-end gap-1">
-                    <button
-                      onClick={(): void => setModalCategory(cat)}
-                      className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                      title="Edit"
-                    >
-                      <Pencil className="w-4 h-4" />
-                    </button>
-                    <button
-                      onClick={(): void => setDeleteTarget(cat)}
-                      className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                      title="Delete"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-
-        <div className="px-4 py-3 border-t border-gray-100 bg-gray-50 flex items-center justify-between text-xs text-gray-500">
-          <span>
-            Showing {Math.min((page - 1) * PAGE_SIZE + 1, categories.length)}–{Math.min(page * PAGE_SIZE, categories.length)} of {categories.length}
-          </span>
-          {totalPages > 1 && (
-            <div className="flex items-center gap-2">
-              <button
-                disabled={page === 1}
-                onClick={(): void => setPage(p => p - 1)}
-                className="px-2 py-1 border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <span>Page {page} of {totalPages}</span>
-              <button
-                disabled={page === totalPages}
-                onClick={(): void => setPage(p => p + 1)}
-                className="px-2 py-1 border border-gray-300 rounded bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-            </div>
-          )}
-        </div>
-      </div>
+      <DataGrid
+        columns={columns}
+        data={categories}
+        loading={loading}
+        skeletonRows={8}
+        emptyMessage="No categories found."
+        sorting={sorting}
+        onSortingChange={setSorting}
+        columnFilters={columnFilters}
+        onColumnFiltersChange={setColumnFilters}
+        pagination={{ page, pageSize: PAGE_SIZE, total, onPageChange: setPage }}
+      />
 
       {modalCategory !== undefined && (
         <CategoryModal
           category={modalCategory}
-          onClose={(): void => setModalCategory(undefined)}
+          onClose={() => setModalCategory(undefined)}
           onSaved={handleSaved}
         />
       )}
@@ -398,7 +427,7 @@ export default function CategoryList(): JSX.Element {
       {deleteTarget && (
         <DeleteModal
           category={deleteTarget}
-          onClose={(): void => setDeleteTarget(null)}
+          onClose={() => setDeleteTarget(null)}
           onDeleted={handleDeleted}
         />
       )}

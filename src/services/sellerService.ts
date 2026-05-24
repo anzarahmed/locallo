@@ -64,12 +64,30 @@ export function createSeller(values: SellerFormValues): Promise<CreateSellerResp
   });
 }
 
-export function getSellerList(page: number, limit: number, search?: string): Promise<GetSellersResponse> {
-  let url = `${PATHS.SELLERS.LIST}?page=${page}&limit=${limit}`;
-  if (search && search.trim() !== '') {
-    url += `&search=${encodeURIComponent(search.trim())}`;
-  }
-  return apiGet<GetSellersResponse>(url);
+export interface SellerListParams {
+  page: number;
+  limit: number;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
+  fullName?: string;
+  businessName?: string;
+  mobile?: string;
+  isActive?: 'true' | 'false';
+  categoryId?: number;
+}
+
+export function getSellerList(params: SellerListParams): Promise<GetSellersResponse> {
+  const q = new URLSearchParams();
+  q.set('page', String(params.page));
+  q.set('limit', String(params.limit));
+  if (params.sortBy)       q.set('sortBy',       params.sortBy);
+  if (params.sortOrder)    q.set('sortOrder',     params.sortOrder);
+  if (params.fullName)     q.set('fullName',      params.fullName);
+  if (params.businessName) q.set('businessName',  params.businessName);
+  if (params.mobile)       q.set('mobile',        params.mobile);
+  if (params.isActive)     q.set('isActive',      params.isActive);
+  if (params.categoryId)   q.set('categoryId',    String(params.categoryId));
+  return apiGet<GetSellersResponse>(`${PATHS.SELLERS.LIST}?${q}`);
 }
 
 export function getSellerById(id: string): Promise<Seller> {

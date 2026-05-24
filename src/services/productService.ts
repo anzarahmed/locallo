@@ -8,6 +8,8 @@ interface GetProductsParams {
   search?: string;
   categoryId?: number;
   isActive?: boolean;
+  sortBy?: string;
+  sortOrder?: 'asc' | 'desc';
 }
 
 interface GetProductsResponse {
@@ -24,6 +26,8 @@ export function getProducts(params: GetProductsParams = {}): Promise<GetProducts
   if (params.search)     q.set('search',     params.search);
   if (params.categoryId) q.set('categoryId', String(params.categoryId));
   if (params.isActive !== undefined) q.set('isActive', String(params.isActive));
+  if (params.sortBy)    q.set('sortBy',    params.sortBy);
+  if (params.sortOrder) q.set('sortOrder', params.sortOrder);
   const url = q.toString() ? `${PATHS.PRODUCTS.LIST}?${q}` : PATHS.PRODUCTS.LIST;
   return apiGet<GetProductsResponse>(url);
 }
