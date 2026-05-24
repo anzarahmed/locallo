@@ -11,6 +11,7 @@ import { ApiError } from '../../lib/axios';
 import type { Category, Product } from '../../types';
 import { useToast } from '../../hooks/useToast';
 
+import { SkeletonThumbnailCell, SkeletonPriceCell } from '../../components/ui/SkeletonCells';
 import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
@@ -198,7 +199,10 @@ export default function ProductList(): JSX.Element {
       header: 'Product',
       enableSorting: true,
       enableColumnFilter: true,
-      meta: { filterPlaceholder: 'Search products…' },
+      meta: {
+        filterPlaceholder: 'Search products…',
+        skeletonCell: () => <SkeletonThumbnailCell />,
+      },
       cell: ({ row }) => {
         const p = row.original;
         return (
@@ -253,6 +257,9 @@ export default function ProductList(): JSX.Element {
       header: 'Price',
       enableSorting: true,
       enableColumnFilter: false,
+      meta: {
+        skeletonCell: () => <SkeletonPriceCell />,
+      },
       cell: ({ row }) => {
         const p = row.original;
         return (

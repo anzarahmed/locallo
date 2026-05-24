@@ -36,6 +36,7 @@ function SellerAvatar({ name }: { name: string | null }): JSX.Element {
   );
 }
 
+import { SkeletonAvatarCell, SkeletonNameBadgeCell } from '../../components/ui/SkeletonCells';
 import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
 
 const PAGE_SIZE = DEFAULT_PAGE_SIZE;
@@ -136,7 +137,10 @@ export default function SellerList(): JSX.Element {
       header: 'Owner',
       enableSorting: true,
       enableColumnFilter: true,
-      meta: { filterPlaceholder: 'Filter owner…' },
+      meta: {
+        filterPlaceholder: 'Filter owner…',
+        skeletonCell: () => <SkeletonAvatarCell />,
+      },
       cell: ({ row }) => {
         const s = row.original;
         return (
@@ -155,7 +159,10 @@ export default function SellerList(): JSX.Element {
       header: 'Shop',
       enableSorting: true,
       enableColumnFilter: true,
-      meta: { filterPlaceholder: 'Filter shop…' },
+      meta: {
+        filterPlaceholder: 'Filter shop…',
+        skeletonCell: () => <SkeletonNameBadgeCell />,
+      },
       cell: ({ row }) => {
         const s = row.original;
         return (

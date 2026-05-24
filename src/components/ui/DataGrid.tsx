@@ -22,6 +22,7 @@ declare module '@tanstack/react-table' {
     filterVariant?: 'text' | 'select';
     filterOptions?: Array<{ label: string; value: string }>;
     hideFromVisibility?: boolean;
+    skeletonCell?: () => JSX.Element;
   }
 }
 
@@ -199,11 +200,19 @@ export default function DataGrid<TData extends object>({
             {loading ? (
               Array.from({ length: skeletonRows }).map((_, i) => (
                 <tr key={i} className="animate-pulse">
-                  {table.getVisibleLeafColumns().map(col => (
-                    <td key={col.id} className="px-4 py-3.5">
-                      <div className="h-4 bg-gray-200 rounded w-3/4" />
-                    </td>
-                  ))}
+                  {table.getVisibleLeafColumns().map((col, j) => {
+                    const widths = ['w-3/4', 'w-1/2', 'w-2/3', 'w-4/5', 'w-3/5', 'w-1/2'];
+                    const w = widths[(i * 3 + j) % widths.length];
+                    return (
+                      <td key={col.id} className="px-4 py-3.5">
+                        {col.columnDef.meta?.skeletonCell ? (
+                          col.columnDef.meta.skeletonCell()
+                        ) : (
+                          <div className={`h-4 bg-gray-200 rounded ${w}`} />
+                        )}
+                      </td>
+                    );
+                  })}
                 </tr>
               ))
             ) : table.getRowModel().rows.length === 0 ? (
