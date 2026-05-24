@@ -39,6 +39,7 @@ export const adminUpdateSellerSchema = Yup.object({
   bio:          Yup.string().default(''),
   lat:          Yup.number().min(-90).max(90).required('Latitude is required'),
   long:         Yup.number().min(-180).max(180).required('Longitude is required'),
+  address:      Yup.string().default(''),
   workingHours: Yup.object().shape({
     monday:    dayScheduleSchema.required(),
     tuesday:   dayScheduleSchema.required(),

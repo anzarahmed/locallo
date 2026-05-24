@@ -224,6 +224,7 @@ export async function adminUpdateSeller(
         workingHours: (data.workingHours ?? {}) as Record<string, unknown>,
         lat:          data.lat,
         long:         data.long,
+        address:      data.address ?? null,
       },
       { transaction: t },
     );
