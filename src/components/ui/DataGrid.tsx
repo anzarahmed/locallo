@@ -14,13 +14,13 @@ import {
 import { useState, type JSX } from 'react';
 import { PAGE_SIZE_OPTIONS } from '../../lib/constants';
 import { ChevronUp, ChevronDown, ChevronsUpDown, Eye, EyeOff, X, ChevronLeft, ChevronRight } from 'lucide-react';
-import { ColumnTextFilter, ColumnSelectFilter } from './DataGridFilters';
+import { ColumnTextFilter, ColumnSelectFilter, ColumnComboboxFilter } from './DataGridFilters';
 
 declare module '@tanstack/react-table' {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   interface ColumnMeta<TData extends RowData, TValue> {
     filterPlaceholder?: string;
-    filterVariant?: 'text' | 'select';
+    filterVariant?: 'text' | 'select' | 'combobox';
     filterOptions?: Array<{ label: string; value: string }>;
     hideFromVisibility?: boolean;
     skeletonCell?: () => JSX.Element;
@@ -178,6 +178,12 @@ export default function DataGrid<TData extends object>({
                         {header.column.getCanFilter() ? (
                           header.column.columnDef.meta?.filterVariant === 'select' ? (
                             <ColumnSelectFilter
+                              value={(header.column.getFilterValue() as string) ?? ''}
+                              onChange={v => header.column.setFilterValue(v)}
+                              options={header.column.columnDef.meta?.filterOptions ?? []}
+                            />
+                          ) : header.column.columnDef.meta?.filterVariant === 'combobox' ? (
+                            <ColumnComboboxFilter
                               value={(header.column.getFilterValue() as string) ?? ''}
                               onChange={v => header.column.setFilterValue(v)}
                               options={header.column.columnDef.meta?.filterOptions ?? []}

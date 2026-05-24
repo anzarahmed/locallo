@@ -225,7 +225,7 @@ export default function ProductList(): JSX.Element {
       enableSorting: false,
       enableColumnFilter: true,
       meta: {
-        filterVariant: 'select',
+        filterVariant: 'combobox',
         filterOptions: categories.map(c => ({ label: c.name, value: String(c.id) })),
       },
       cell: ({ row }) => (
@@ -239,7 +239,7 @@ export default function ProductList(): JSX.Element {
       enableSorting: false,
       enableColumnFilter: true,
       meta: {
-        filterVariant: 'select',
+        filterVariant: 'combobox',
         filterOptions: sellers.map(s => ({
           label: s.businessName ?? s.fullName ?? s.mobile,
           value: s.id,

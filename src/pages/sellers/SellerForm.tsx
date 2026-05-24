@@ -8,6 +8,7 @@ import {
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
 import SelectField from '../../components/ui/SelectField';
+import ComboboxField from '../../components/ui/ComboboxField';
 import * as sellerService from '../../services/sellerService';
 import type { Seller } from '../../services/sellerService';
 import { getCategories } from '../../services/categoryService';
@@ -363,18 +364,17 @@ export default function SellerForm(): JSX.Element {
                   value={f.values.email} onChange={f.handleChange} onBlur={f.handleBlur}
                   touched={f.touched.email} error={f.errors.email}
                 />
-                <SelectField
+                <ComboboxField
                   label="Category" name="categoryId" required
-                  value={f.values.categoryId || ''} onChange={(e): void => {
-                    void f.setFieldValue('categoryId', e.target.value ? Number(e.target.value) : 0);
-                  }} onBlur={f.handleBlur}
+                  value={f.values.categoryId}
+                  options={categories.map(c => ({ label: c.name, value: c.id }))}
+                  onChange={(val): void => {
+                    void f.setFieldValue('categoryId', val ? Number(val) : 0);
+                  }}
+                  onBlur={(): void => { void f.setFieldTouched('categoryId', true); }}
                   touched={f.touched.categoryId} error={f.errors.categoryId}
-                >
-                  <option value="">Select category</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </SelectField>
+                  placeholder="Select category"
+                />
               </div>
             </SectionCard>
 
