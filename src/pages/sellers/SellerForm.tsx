@@ -180,7 +180,7 @@ export default function SellerForm(): JSX.Element {
       return {
         shopName: '', ownerName: '', email: '', countryCode: '+91', mobile: '',
         categoryId: 0, bio: '', workingHours: DEFAULT_WORKING_HOURS,
-        latitude: 28.6139, longitude: 77.2090,
+        latitude: 28.6139, longitude: 77.2090, address: '',
       };
     }
     const p = seller.profile;
@@ -195,6 +195,7 @@ export default function SellerForm(): JSX.Element {
       workingHours: p?.workingHours ?? DEFAULT_WORKING_HOURS,
       latitude:     Number(p?.lat ?? 28.6139),
       longitude:    Number(p?.long ?? 77.2090),
+      address:      p?.address ?? '',
     };
   }, [seller]);
 
@@ -498,6 +499,9 @@ export default function SellerForm(): JSX.Element {
                     void f.setFieldTouched('latitude', true, false);
                     void f.setFieldTouched('longitude', true, false);
                   }}
+                  onAddress={(addr: string): void => {
+                    void f.setFieldValue('address', addr);
+                  }}
                 />
               </Suspense>
               {f.touched.latitude === true && typeof f.errors.latitude === 'string' && (
@@ -506,6 +510,18 @@ export default function SellerForm(): JSX.Element {
                   {f.errors.latitude}
                 </p>
               )}
+              <div className="mt-4">
+                <label htmlFor="address" className="block text-sm font-medium text-gray-700 mb-1.5">
+                  Address
+                </label>
+                <textarea
+                  id="address" name="address" rows={3}
+                  placeholder="Auto-filled when you pin a location…"
+                  value={f.values.address}
+                  onChange={f.handleChange} onBlur={f.handleBlur}
+                  className="w-full px-3.5 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 resize-none focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent transition-shadow"
+                />
+              </div>
             </SectionCard>
           </div>
 

@@ -22,6 +22,7 @@ export interface LocationPickerProps {
   latitude: number | undefined;
   longitude: number | undefined;
   onChange: (lat: number, lng: number) => void;
+  onAddress?: (address: string) => void;
   mapHeight?: string;
 }
 
@@ -29,14 +30,17 @@ export interface LocationPickerProps {
 
 interface AutocompleteInputProps {
   onPlace: (pos: LatLng) => void;
+  onAddress?: (address: string) => void;
 }
 
-function AutocompleteInput({ onPlace }: AutocompleteInputProps): JSX.Element {
+function AutocompleteInput({ onPlace, onAddress }: AutocompleteInputProps): JSX.Element {
   const placesLib = useMapsLibrary('places');
   const inputRef = useRef<HTMLInputElement>(null);
   const acRef = useRef<google.maps.places.Autocomplete | null>(null);
   const onPlaceRef = useRef(onPlace);
+  const onAddressRef = useRef(onAddress);
   onPlaceRef.current = onPlace;
+  onAddressRef.current = onAddress;
 
   useEffect((): (() => void) | undefined => {
     if (!placesLib || !inputRef.current) return undefined;
@@ -50,9 +54,9 @@ function AutocompleteInput({ onPlace }: AutocompleteInputProps): JSX.Element {
       const loc = place?.geometry?.location;
       if (!loc) return;
       onPlaceRef.current({ lat: loc.lat(), lng: loc.lng() });
-      if (inputRef.current) {
-        inputRef.current.value = place?.formatted_address ?? '';
-      }
+      const addr = place?.formatted_address ?? '';
+      if (inputRef.current) inputRef.current.value = addr;
+      if (addr) onAddressRef.current?.(addr);
     });
 
     return (): void => {
@@ -89,31 +93,57 @@ function MapController({ position }: { position: LatLng | null }): null {
 
 // ── Inner map content ─────────────────────────────────────────────────────────
 
-function MapContent({ latitude, longitude, onChange, mapHeight = 'h-72' }: LocationPickerProps): JSX.Element {
+function MapContent({ latitude, longitude, onChange, onAddress, mapHeight = 'h-72' }: LocationPickerProps): JSX.Element {
   const hasPin = latitude != null && longitude != null;
   const pinPos: LatLng | null = hasPin
     ? { lat: latitude, lng: longitude }
     : null;
 
+  const geocodingLib = useMapsLibrary('geocoding');
+  const geocoderRef = useRef<google.maps.Geocoder | null>(null);
+
+  useEffect((): void => {
+    if (geocodingLib) geocoderRef.current = new google.maps.Geocoder();
+  }, [geocodingLib]);
+
+  const reverseGeocode = useCallback((lat: number, lng: number): void => {
+    if (!geocoderRef.current || !onAddress) return;
+    geocoderRef.current.geocode({ location: { lat, lng } })
+      .then((response): void => {
+        const addr = response.results[0]?.formatted_address;
+        if (addr) onAddress(addr);
+      })
+      .catch((): void => {});
+  }, [onAddress]);
+
   const handleMapClick = useCallback(
     (e: google.maps.MapMouseEvent): void => {
       if (!e.latLng) return;
-      onChange(e.latLng.lat(), e.latLng.lng());
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      onChange(lat, lng);
+      reverseGeocode(lat, lng);
     },
-    [onChange],
+    [onChange, reverseGeocode],
   );
 
   const handleDragEnd = useCallback(
     (e: google.maps.MapMouseEvent): void => {
       if (!e.latLng) return;
-      onChange(e.latLng.lat(), e.latLng.lng());
+      const lat = e.latLng.lat();
+      const lng = e.latLng.lng();
+      onChange(lat, lng);
+      reverseGeocode(lat, lng);
     },
-    [onChange],
+    [onChange, reverseGeocode],
   );
 
   return (
     <div className="space-y-3">
-      <AutocompleteInput onPlace={(p: LatLng): void => onChange(p.lat, p.lng)} />
+      <AutocompleteInput
+        onPlace={(p: LatLng): void => onChange(p.lat, p.lng)}
+        onAddress={onAddress}
+      />
 
       <div className={`rounded-xl overflow-hidden border border-gray-200 ${mapHeight} relative`}>
         <Map

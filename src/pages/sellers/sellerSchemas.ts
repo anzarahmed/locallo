@@ -53,6 +53,7 @@ export const sellerSchema = Yup.object({
   }).required(),
   latitude:  Yup.number().min(-90).max(90).required('Location is required — pin the seller on the map'),
   longitude: Yup.number().min(-180).max(180).required('Location is required — pin the seller on the map'),
+  address:   Yup.string().trim().default(''),
 });
 
 export type SellerFormValues = Yup.InferType<typeof sellerSchema>;
