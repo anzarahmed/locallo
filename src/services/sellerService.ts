@@ -76,6 +76,11 @@ export interface SellerListParams {
   categoryId?: number;
 }
 
+export function getAllSellers(): Promise<Seller[]> {
+  const q = new URLSearchParams({ page: '1', limit: '500' });
+  return apiGet<GetSellersResponse>(`${PATHS.SELLERS.LIST}?${q}`).then(r => r.sellers);
+}
+
 export function getSellerList(params: SellerListParams): Promise<GetSellersResponse> {
   const q = new URLSearchParams();
   q.set('page', String(params.page));

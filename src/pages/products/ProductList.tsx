@@ -6,6 +6,7 @@ import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import ProductDetail from './ProductDetail';
 import { getProducts, toggleProduct, deleteProduct } from '../../services/productService';
 import { getCategories } from '../../services/categoryService';
+import { getAllSellers, type Seller } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import type { Category, Product } from '../../types';
 import { useToast } from '../../hooks/useToast';
@@ -117,6 +118,7 @@ export default function ProductList(): JSX.Element {
   const [error, setError]           = useState<string | null>(null);
   const [page, setPage]             = useState(1);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [sellers, setSellers]       = useState<Seller[]>([]);
   const [toggling, setToggling]     = useState<string | null>(null);
   const [detailId, setDetailId]     = useState<string | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
@@ -128,6 +130,7 @@ export default function ProductList(): JSX.Element {
 
   useEffect((): void => {
     getCategories(false).then(setCategories).catch(() => {});
+    getAllSellers().then(setSellers).catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -145,17 +148,19 @@ export default function ProductList(): JSX.Element {
     setError(null);
 
     const sortCol    = sorting[0];
-    const search     = debouncedFilters.find(f => f.id === 'name')?.value as string | undefined;
-    const catId      = debouncedFilters.find(f => f.id === 'category')?.value as string | undefined;
+    const search      = debouncedFilters.find(f => f.id === 'name')?.value as string | undefined;
+    const catId       = debouncedFilters.find(f => f.id === 'category')?.value as string | undefined;
+    const sellerIdVal = debouncedFilters.find(f => f.id === 'seller')?.value as string | undefined;
     const isActiveStr = debouncedFilters.find(f => f.id === 'isActive')?.value as string | undefined;
 
     const params = {
       page,
       limit: PAGE_SIZE,
-      ...(search      && { search }),
-      ...(catId       && { categoryId: Number(catId) }),
-      ...(isActiveStr && { isActive: isActiveStr === 'true' }),
-      ...(sortCol     && { sortBy: sortCol.id, sortOrder: sortCol.desc ? 'desc' as const : 'asc' as const }),
+      ...(search        && { search }),
+      ...(catId         && { categoryId: Number(catId) }),
+      ...(sellerIdVal   && { sellerId: sellerIdVal }),
+      ...(isActiveStr   && { isActive: isActiveStr === 'true' }),
+      ...(sortCol       && { sortBy: sortCol.id, sortOrder: sortCol.desc ? 'desc' as const : 'asc' as const }),
     };
 
     getProducts(params)
@@ -229,7 +234,14 @@ export default function ProductList(): JSX.Element {
       accessorFn: row => row.seller?.sellerProfile?.businessName ?? row.seller?.fullName ?? '',
       header: 'Seller',
       enableSorting: false,
-      enableColumnFilter: false,
+      enableColumnFilter: true,
+      meta: {
+        filterVariant: 'select',
+        filterOptions: sellers.map(s => ({
+          label: s.businessName ?? s.fullName ?? s.mobile,
+          value: s.id,
+        })),
+      },
       cell: ({ row }) => (
         <span className="text-gray-600 max-w-36 truncate block">
           {row.original.seller?.sellerProfile?.businessName ?? row.original.seller?.fullName ?? '—'}
@@ -319,7 +331,7 @@ export default function ProductList(): JSX.Element {
         );
       },
     },
-  ], [categories, toggling]);
+  ], [categories, sellers, toggling]);
 
   if (error) {
     return (

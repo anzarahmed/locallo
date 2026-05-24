@@ -1,3 +1,4 @@
+import { ChevronDown } from 'lucide-react';
 import type { JSX } from 'react';
 
 interface ColumnTextFilterProps {
@@ -29,15 +30,18 @@ export function ColumnTextFilter({ value, onChange, placeholder = 'Filter…' }:
 
 export function ColumnSelectFilter({ value, onChange, options }: ColumnSelectFilterProps): JSX.Element {
   return (
-    <select
-      value={value}
-      onChange={e => onChange(e.target.value || undefined)}
-      className={INPUT_CLASS}
-    >
-      <option value="">All</option>
-      {options.map(opt => (
-        <option key={opt.value} value={opt.value}>{opt.label}</option>
-      ))}
-    </select>
+    <div className="relative">
+      <select
+        value={value}
+        onChange={e => onChange(e.target.value || undefined)}
+        className={`${INPUT_CLASS} appearance-none pr-7`}
+      >
+        <option value="">All</option>
+        {options.map(opt => (
+          <option key={opt.value} value={opt.value}>{opt.label}</option>
+        ))}
+      </select>
+      <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3 h-3 text-gray-400" />
+    </div>
   );
 }

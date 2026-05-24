@@ -7,6 +7,7 @@ interface GetProductsParams {
   limit?: number;
   search?: string;
   categoryId?: number;
+  sellerId?: string;
   isActive?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
@@ -25,6 +26,7 @@ export function getProducts(params: GetProductsParams = {}): Promise<GetProducts
   if (params.limit)      q.set('limit',      String(params.limit));
   if (params.search)     q.set('search',     params.search);
   if (params.categoryId) q.set('categoryId', String(params.categoryId));
+  if (params.sellerId)   q.set('sellerId',   params.sellerId);
   if (params.isActive !== undefined) q.set('isActive', String(params.isActive));
   if (params.sortBy)    q.set('sortBy',    params.sortBy);
   if (params.sortOrder) q.set('sortOrder', params.sortOrder);
