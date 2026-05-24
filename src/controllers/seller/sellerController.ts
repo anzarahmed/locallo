@@ -2,6 +2,26 @@ import type { Request, Response } from 'express';
 import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus } from '../../services/seller/sellerService';
 import { sendSuccess, sendError } from '../../utils/response';
 
+export async function getProfile(req: Request, res: Response): Promise<void> {
+  try {
+    const { user, profile } = await getSellerById(req.seller!.id);
+    sendSuccess(res, {
+      id: user.id,
+      mobile: user.mobile,
+      countryCode: user.countryCode,
+      fullName: user.fullName,
+      isActive: user.isActive,
+      profile: profile.toJSON(),
+    }, 'Profile fetched');
+  } catch (err: unknown) {
+    if ((err as { status?: number }).status === 404) {
+      sendError(res, (err as Error).message, 404);
+      return;
+    }
+    sendError(res, 'Internal server error');
+  }
+}
+
 export async function addSeller(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await createSeller(req.body, req.admin!.id);

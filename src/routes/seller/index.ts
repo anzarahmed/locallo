@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireSeller } from '../../middleware/auth';
-import { updateSeller, updateAddress } from '../../controllers/seller/sellerController';
+import { getProfile, updateSeller, updateAddress } from '../../controllers/seller/sellerController';
 import { requestOtp, verifyOtp, logout } from '../../controllers/seller/sellerAuthController';
 import {
   uploadImage, createProduct, getProducts,
@@ -21,6 +21,7 @@ router.post('/auth/logout',      requireSeller,               logout);
 
 router.get('/categories', requireSeller, getCategories);
 
+router.get('/profile', requireSeller, getProfile);
 router.put('/profile', requireSeller, validate(updateSellerSchema),  updateSeller);
 router.put('/address', requireSeller, validate(updateAddressSchema), updateAddress);
 
