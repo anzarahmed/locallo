@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Power } from 'lucide-react';
+import { Plus, Pencil, Trash2, Power, Eye } from 'lucide-react';
 import { type ColumnDef, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
+import SellerDetail from './SellerDetail';
 import { getSellerList, toggleSellerStatus, type Seller } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 
@@ -57,6 +58,7 @@ export default function SellerList(): JSX.Element {
   const [deleteId, setDeleteId]   = useState<string | null>(null);
   const [toggleId, setToggleId]   = useState<string | null>(null);
   const [toggling, setToggling]   = useState(false);
+  const [viewId, setViewId]       = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -224,6 +226,13 @@ export default function SellerList(): JSX.Element {
             />
             <div className="w-px h-4 bg-gray-200" />
             <button
+              onClick={() => setViewId(s.id)}
+              className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+              title="View details"
+            >
+              <Eye className="w-4 h-4" />
+            </button>
+            <button
               onClick={() => { navigate(`/sellers/${s.id}/edit`); }}
               className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
               title="Edit"
@@ -312,6 +321,16 @@ export default function SellerList(): JSX.Element {
           </div>
         );
       })()}
+
+      {viewId !== null && (
+        <SellerDetail
+          sellerId={viewId}
+          onClose={() => setViewId(null)}
+          onToggled={(updated) => {
+            setSellers(list => list.map(s => s.id === updated.id ? { ...s, isActive: updated.isActive } : s));
+          }}
+        />
+      )}
 
       {deleteId !== null && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
