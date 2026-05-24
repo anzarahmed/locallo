@@ -7,12 +7,12 @@ export type Day = typeof DAYS[number];
 
 export const COUNTRY_CODES = [
   { code: '+91',  label: '+91 (India)'     },
-  { code: '+1',   label: '+1 (US/Canada)'  },
+ /*  { code: '+1',   label: '+1 (US/Canada)'  },
   { code: '+44',  label: '+44 (UK)'        },
   { code: '+971', label: '+971 (UAE)'      },
   { code: '+61',  label: '+61 (Australia)' },
   { code: '+65',  label: '+65 (Singapore)' },
-  { code: '+60',  label: '+60 (Malaysia)'  },
+  { code: '+60',  label: '+60 (Malaysia)'  }, */
 ] as const;
 
 const daySchema = Yup.object({
