@@ -221,7 +221,7 @@ export default function SellerList(): JSX.Element {
       header: 'Actions',
       enableSorting: false,
       enableColumnFilter: false,
-      meta: { hideFromVisibility: true },
+      meta: { hideFromVisibility: true, align: 'right' },
       cell: ({ row }) => {
         const s = row.original;
         return (

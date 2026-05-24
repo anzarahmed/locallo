@@ -24,6 +24,8 @@ declare module '@tanstack/react-table' {
     filterOptions?: Array<{ label: string; value: string }>;
     hideFromVisibility?: boolean;
     skeletonCell?: () => JSX.Element;
+    align?: 'left' | 'center' | 'right';
+    className?: string;
   }
 }
 
@@ -133,12 +135,15 @@ export default function DataGrid<TData extends object>({
                     const sortDir = header.column.getIsSorted();
                     const canHide = !header.column.columnDef.meta?.hideFromVisibility;
 
+                    const align = header.column.columnDef.meta?.align ?? 'left';
+                    const justifyClass = align === 'center' ? 'justify-center' : align === 'right' ? 'justify-end' : 'justify-start';
+
                     return (
                       <th
                         key={header.id}
-                        className="px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide select-none"
+                        className={`px-4 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide select-none${header.column.columnDef.meta?.className ? ` ${header.column.columnDef.meta.className}` : ''}`}
                       >
-                        <div className="flex items-center gap-1 group">
+                        <div className={`flex items-center gap-1 group ${justifyClass}`}>
                           {canSort ? (
                             <button
                               onClick={header.column.getToggleSortingHandler()}
@@ -174,7 +179,7 @@ export default function DataGrid<TData extends object>({
                 {hasFilterRow && (
                   <tr key={`${headerGroup.id}-filters`} className="border-b border-gray-200 bg-white">
                     {headerGroup.headers.map(header => (
-                      <th key={`${header.id}-filter`} className="px-3 py-2">
+                      <th key={`${header.id}-filter`} className={`px-3 py-2${header.column.columnDef.meta?.className ? ` ${header.column.columnDef.meta.className}` : ''}`}>
                         {header.column.getCanFilter() ? (
                           header.column.columnDef.meta?.filterVariant === 'select' ? (
                             <ColumnSelectFilter
@@ -212,7 +217,7 @@ export default function DataGrid<TData extends object>({
                     const widths = ['w-3/4', 'w-1/2', 'w-2/3', 'w-4/5', 'w-3/5', 'w-1/2'];
                     const w = widths[(i * 3 + j) % widths.length];
                     return (
-                      <td key={col.id} className="px-4 py-3.5">
+                      <td key={col.id} className={`px-4 py-3.5${col.columnDef.meta?.className ? ` ${col.columnDef.meta.className}` : ''}`}>
                         {col.columnDef.meta?.skeletonCell ? (
                           col.columnDef.meta.skeletonCell()
                         ) : (
@@ -236,7 +241,7 @@ export default function DataGrid<TData extends object>({
               table.getRowModel().rows.map(row => (
                 <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                   {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className="px-4 py-3.5">
+                    <td key={cell.id} className={`px-4 py-3.5${cell.column.columnDef.meta?.className ? ` ${cell.column.columnDef.meta.className}` : ''}`}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}

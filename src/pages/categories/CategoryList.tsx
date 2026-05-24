@@ -317,6 +317,7 @@ export default function CategoryList(): JSX.Element {
       header: 'Fields',
       enableSorting: false,
       enableColumnFilter: false,
+      meta: { align: 'center' },
       cell: ({ row }) => (
         <div className="text-center">
           <span className="text-xs text-gray-500">{row.original.attributeSchema?.length ?? 0}</span>
@@ -334,6 +335,8 @@ export default function CategoryList(): JSX.Element {
           { label: 'Active',   value: 'true'  },
           { label: 'Inactive', value: 'false' },
         ],
+        align: 'center',
+        className: 'w-24',
       },
       cell: ({ row }) => {
         const cat = row.original;
@@ -353,7 +356,7 @@ export default function CategoryList(): JSX.Element {
       header: 'Actions',
       enableSorting: false,
       enableColumnFilter: false,
-      meta: { hideFromVisibility: true },
+      meta: { hideFromVisibility: true, align: 'right' },
       cell: ({ row }) => {
         const cat = row.original;
         return (

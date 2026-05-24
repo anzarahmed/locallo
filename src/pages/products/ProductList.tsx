@@ -258,6 +258,7 @@ export default function ProductList(): JSX.Element {
       enableColumnFilter: false,
       meta: {
         skeletonCell: () => <SkeletonPriceCell />,
+        align: 'right',
       },
       cell: ({ row }) => {
         const p = row.original;
@@ -276,6 +277,7 @@ export default function ProductList(): JSX.Element {
       header: 'Stock',
       enableSorting: true,
       enableColumnFilter: false,
+      meta: { align: 'center' },
       cell: ({ row }) => (
         <div className="text-center">
           <span className={`text-sm font-medium ${row.original.stock === 0 ? 'text-red-500' : 'text-gray-700'}`}>
@@ -295,6 +297,7 @@ export default function ProductList(): JSX.Element {
           { label: 'Active',   value: 'true'  },
           { label: 'Inactive', value: 'false' },
         ],
+        align: 'center',
       },
       cell: ({ row }) => {
         const p = row.original;
@@ -314,7 +317,7 @@ export default function ProductList(): JSX.Element {
       header: 'Actions',
       enableSorting: false,
       enableColumnFilter: false,
-      meta: { hideFromVisibility: true },
+      meta: { hideFromVisibility: true, align: 'right' },
       cell: ({ row }) => {
         const p = row.original;
         return (
