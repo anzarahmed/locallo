@@ -319,9 +319,7 @@ export default function CategoryList(): JSX.Element {
       enableColumnFilter: false,
       meta: { align: 'center' },
       cell: ({ row }) => (
-        <div className="text-center">
-          <span className="text-xs text-gray-500">{row.original.attributeSchema?.length ?? 0}</span>
-        </div>
+        <span className="text-xs text-gray-500">{row.original.attributeSchema?.length ?? 0}</span>
       ),
     },
     {

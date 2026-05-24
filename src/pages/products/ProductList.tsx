@@ -263,12 +263,12 @@ export default function ProductList(): JSX.Element {
       cell: ({ row }) => {
         const p = row.original;
         return (
-          <div className="text-right">
+          <>
             <span className="font-medium text-gray-900">{formatPrice(p.sellingPrice)}</span>
             {p.mrp && Number(p.mrp) > Number(p.sellingPrice) && (
               <span className="block text-xs text-gray-400 line-through">{formatPrice(p.mrp)}</span>
             )}
-          </div>
+          </>
         );
       },
     },
@@ -279,11 +279,9 @@ export default function ProductList(): JSX.Element {
       enableColumnFilter: false,
       meta: { align: 'center' },
       cell: ({ row }) => (
-        <div className="text-center">
-          <span className={`text-sm font-medium ${row.original.stock === 0 ? 'text-red-500' : 'text-gray-700'}`}>
-            {row.original.stock}
-          </span>
-        </div>
+        <span className={`text-sm font-medium ${row.original.stock === 0 ? 'text-red-500' : 'text-gray-700'}`}>
+          {row.original.stock}
+        </span>
       ),
     },
     {

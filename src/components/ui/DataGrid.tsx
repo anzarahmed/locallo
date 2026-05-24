@@ -149,13 +149,24 @@ export default function DataGrid<TData extends object>({
                               onClick={header.column.getToggleSortingHandler()}
                               className="inline-flex items-center gap-1 hover:text-gray-700 transition-colors"
                             >
+                              {align === 'right' && (
+                                sortDir === 'asc' ? (
+                                  <ChevronUp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                ) : sortDir === 'desc' ? (
+                                  <ChevronDown className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                ) : (
+                                  <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                                )
+                              )}
                               {flexRender(header.column.columnDef.header, header.getContext())}
-                              {sortDir === 'asc' ? (
-                                <ChevronUp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                              ) : sortDir === 'desc' ? (
-                                <ChevronDown className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
-                              ) : (
-                                <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                              {align !== 'right' && (
+                                sortDir === 'asc' ? (
+                                  <ChevronUp className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                ) : sortDir === 'desc' ? (
+                                  <ChevronDown className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                                ) : (
+                                  <ChevronsUpDown className="w-3.5 h-3.5 text-gray-300 shrink-0" />
+                                )
                               )}
                             </button>
                           ) : (
@@ -217,7 +228,7 @@ export default function DataGrid<TData extends object>({
                     const widths = ['w-3/4', 'w-1/2', 'w-2/3', 'w-4/5', 'w-3/5', 'w-1/2'];
                     const w = widths[(i * 3 + j) % widths.length];
                     return (
-                      <td key={col.id} className={`px-4 py-3.5${col.columnDef.meta?.className ? ` ${col.columnDef.meta.className}` : ''}`}>
+                      <td key={col.id} className={`px-4 py-3.5${col.columnDef.meta?.align === 'right' ? ' text-right' : col.columnDef.meta?.align === 'center' ? ' text-center' : ''}${col.columnDef.meta?.className ? ` ${col.columnDef.meta.className}` : ''}`}>
                         {col.columnDef.meta?.skeletonCell ? (
                           col.columnDef.meta.skeletonCell()
                         ) : (
@@ -241,7 +252,7 @@ export default function DataGrid<TData extends object>({
               table.getRowModel().rows.map(row => (
                 <tr key={row.id} className="hover:bg-gray-50 transition-colors">
                   {row.getVisibleCells().map(cell => (
-                    <td key={cell.id} className={`px-4 py-3.5${cell.column.columnDef.meta?.className ? ` ${cell.column.columnDef.meta.className}` : ''}`}>
+                    <td key={cell.id} className={`px-4 py-3.5${cell.column.columnDef.meta?.align === 'right' ? ' text-right' : cell.column.columnDef.meta?.align === 'center' ? ' text-center' : ''}${cell.column.columnDef.meta?.className ? ` ${cell.column.columnDef.meta.className}` : ''}`}>
                       {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </td>
                   ))}
