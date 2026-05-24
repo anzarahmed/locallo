@@ -1,4 +1,5 @@
 import type { InferType } from 'yup';
+import { Op, literal } from 'sequelize';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
@@ -115,16 +116,68 @@ export async function updateSellerAddress(
   return profile;
 }
 
+const VALID_SELLER_SORT = new Set(['fullName', 'mobile', 'isActive', 'businessName', 'email', 'createdAt']);
+const PROFILE_SORT_FIELDS = new Set(['businessName', 'email']);
+
+export interface GetSellerListOptions {
+  search?: string;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+  isActive?: boolean;
+  categoryId?: number;
+  fullName?: string;
+  businessName?: string;
+  mobile?: string;
+}
+
 export async function getSellerList(
   limit: number,
   offset: number,
+  options: GetSellerListOptions = {},
 ): Promise<{ sellers: User[]; total: number }> {
+  const {
+    sortOrder = 'ASC',
+    isActive,
+    categoryId,
+    fullName,
+    businessName,
+    mobile,
+  } = options;
+
+  const sortBy = VALID_SELLER_SORT.has(options.sortBy ?? '') ? (options.sortBy as string) : 'createdAt';
+
+  const userWhere: Record<string, unknown> = { role: 'SELLER' };
+  if (isActive !== undefined) userWhere.isActive = isActive;
+  if (fullName) userWhere.fullName = { [Op.iLike]: `%${fullName}%` };
+  if (mobile) userWhere.mobile = { [Op.iLike]: `%${mobile}%` };
+
+  const profileWhere: Record<string, unknown> = {};
+  if (categoryId !== undefined) profileWhere.categoryId = categoryId;
+  if (businessName) profileWhere.businessName = { [Op.iLike]: `%${businessName}%` };
+
+  const hasProfileFilter = Object.keys(profileWhere).length > 0;
+  const isProfileSortField = PROFILE_SORT_FIELDS.has(sortBy);
+
+  // For profile fields use literal SQL (snake_case column, alias matches HasOne property name)
+  const PROFILE_COL_MAP: Record<string, string> = {
+    businessName: '"sellerProfile"."business_name"',
+    email:        '"sellerProfile"."email"',
+  };
+  const orderClause = isProfileSortField
+    ? [[literal(PROFILE_COL_MAP[sortBy]), sortOrder]]
+    : [[sortBy, sortOrder]];
+
   const { count, rows } = await User.findAndCountAll({
-    where: { role: 'SELLER' },
-    include: [{ model: SellerProfile, include: [Category] }],
+    where: userWhere,
+    include: [{
+      model: SellerProfile,
+      ...(hasProfileFilter ? { where: profileWhere, required: true } : {}),
+      include: [Category],
+    }],
     limit,
     offset,
-    order: [['id', 'DESC']],
+    order: orderClause as never,
+    subQuery: false,
   });
 
   return { sellers: rows, total: count };

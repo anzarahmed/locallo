@@ -14,8 +14,11 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
     ? false
     : undefined;
 
+  const sortBy    = req.query.sortBy    ? String(req.query.sortBy)    : undefined;
+  const sortOrder = req.query.sortOrder === 'asc' ? 'ASC' : 'DESC';
+
   const { rows, count } = await productService.listAllProducts(
-    { sellerId, categoryId, isActive, search },
+    { sellerId, categoryId, isActive, search, sortBy, sortOrder },
     page,
     limit,
   );

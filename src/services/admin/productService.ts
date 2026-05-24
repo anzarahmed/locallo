@@ -4,11 +4,15 @@ import { Category } from '../../models/Category';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 
+const VALID_PRODUCT_SORT = new Set(['name', 'sellingPrice', 'stock', 'createdAt']);
+
 interface ListProductsFilter {
   sellerId?: string;
   categoryId?: number;
   isActive?: boolean;
   search?: string;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
 }
 
 const SELLER_INCLUDE = {
@@ -35,10 +39,13 @@ export async function listAllProducts(
   if (filters.isActive !== undefined)   where.isActive   = filters.isActive;
   if (filters.search)                   where.name       = { [Op.iLike]: `%${filters.search}%` };
 
+  const sortField = VALID_PRODUCT_SORT.has(filters.sortBy ?? '') ? (filters.sortBy as string) : 'createdAt';
+  const sortOrder = filters.sortOrder ?? 'DESC';
+
   return Product.findAndCountAll({
     where,
     include: [SELLER_INCLUDE, CATEGORY_INCLUDE],
-    order: [['createdAt', 'DESC']],
+    order: [[sortField, sortOrder]],
     limit,
     offset: (page - 1) * limit,
   });

@@ -3,9 +3,20 @@ import { sendSuccess, sendError } from '../../utils/response';
 import * as categoryService from '../../services/admin/categoryService';
 
 export async function getCategories(req: Request, res: Response): Promise<void> {
-  const includeInactive = req.query.includeInactive === 'true';
-  const categories = await categoryService.listCategories(includeInactive);
-  sendSuccess(res, { categories }, 'Categories fetched');
+  const page       = Math.max(1, Number(req.query.page)  || 1);
+  const limit      = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+  const search     = req.query.search     ? String(req.query.search)     : undefined;
+  const sortBy     = req.query.sortBy     ? String(req.query.sortBy)     : undefined;
+  const sortOrder  = req.query.sortOrder  === 'asc' ? 'ASC' : 'DESC';
+  const isActiveRaw = req.query.isActive;
+  const isActive   = isActiveRaw === 'true' ? true : isActiveRaw === 'false' ? false : undefined;
+
+  const { rows, count } = await categoryService.listCategories(
+    { search, isActive, sortBy, sortOrder },
+    page,
+    limit,
+  );
+  sendSuccess(res, { categories: rows, total: count, page, limit }, 'Categories fetched');
 }
 
 export async function addCategory(req: Request, res: Response): Promise<void> {

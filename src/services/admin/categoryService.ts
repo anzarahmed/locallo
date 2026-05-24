@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import type { InferType } from 'yup';
 import { Category } from '../../models/Category';
 import { SellerProfile } from '../../models/SellerProfile';
@@ -6,9 +7,33 @@ import type { createCategorySchema, updateCategorySchema } from '../../validatio
 type CreateCategoryInput = InferType<typeof createCategorySchema>;
 type UpdateCategoryInput = InferType<typeof updateCategorySchema>;
 
-export async function listCategories(includeInactive = false): Promise<Category[]> {
-  const where = includeInactive ? {} : { isActive: true };
-  return Category.findAll({ where, order: [['name', 'ASC']] });
+const VALID_CATEGORY_SORT = new Set(['name', 'slug', 'createdAt']);
+
+interface ListCategoriesFilter {
+  search?: string;
+  isActive?: boolean;
+  sortBy?: string;
+  sortOrder?: 'ASC' | 'DESC';
+}
+
+export async function listCategories(
+  filters: ListCategoriesFilter = {},
+  page = 1,
+  limit = 1000,
+): Promise<{ rows: Category[]; count: number }> {
+  const where: Record<string, unknown> = {};
+  if (filters.isActive !== undefined) where.isActive = filters.isActive;
+  if (filters.search) where.name = { [Op.iLike]: `%${filters.search}%` };
+
+  const sortField = VALID_CATEGORY_SORT.has(filters.sortBy ?? '') ? (filters.sortBy as string) : 'name';
+  const sortOrder = filters.sortOrder ?? 'ASC';
+
+  return Category.findAndCountAll({
+    where,
+    order: [[sortField, sortOrder]],
+    limit,
+    offset: (page - 1) * limit,
+  });
 }
 
 export async function createCategory(data: CreateCategoryInput): Promise<Category> {

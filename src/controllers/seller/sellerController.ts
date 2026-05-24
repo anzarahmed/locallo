@@ -121,16 +121,30 @@ export async function patchSellerStatus(req: Request, res: Response): Promise<vo
 
 export async function getSellers(req: Request, res: Response): Promise<void> {
   try {
-    const page = parseInt(req.query.page as string, 10) || 1;
-    const limit = parseInt(req.query.limit as string, 10) || 10;
+    const page  = Math.max(1, parseInt(req.query.page as string, 10) || 1);
+    const limit = Math.min(50, Math.max(1, parseInt(req.query.limit as string, 10) || 10));
     const offset = (page - 1) * limit;
 
-    const { sellers, total } = await getSellerList(limit, offset);
+    const sortBy    = req.query.sortBy    ? String(req.query.sortBy)    : 'createdAt';
+    const sortOrder = req.query.sortOrder === 'desc' ? 'DESC' : 'ASC';
+    const isActive  = req.query.isActive === 'true'
+      ? true
+      : req.query.isActive === 'false'
+      ? false
+      : undefined;
+    const categoryId    = req.query.categoryId    ? Number(req.query.categoryId)    : undefined;
+    const fullName      = req.query.fullName      ? String(req.query.fullName)      : undefined;
+    const businessName  = req.query.businessName  ? String(req.query.businessName)  : undefined;
+    const mobile        = req.query.mobile        ? String(req.query.mobile)        : undefined;
+
+    const { sellers, total } = await getSellerList(limit, offset, {
+      sortBy, sortOrder, isActive, categoryId, fullName, businessName, mobile,
+    });
 
     sendSuccess(
       res,
       {
-        sellers: sellers.map((user: any) => ({
+        sellers: sellers.map((user) => ({
           id: user.id,
           mobile: user.mobile,
           countryCode: user.countryCode,
