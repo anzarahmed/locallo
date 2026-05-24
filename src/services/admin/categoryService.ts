@@ -7,7 +7,7 @@ import type { createCategorySchema, updateCategorySchema } from '../../validatio
 type CreateCategoryInput = InferType<typeof createCategorySchema>;
 type UpdateCategoryInput = InferType<typeof updateCategorySchema>;
 
-const VALID_CATEGORY_SORT = new Set(['name', 'slug', 'createdAt']);
+const VALID_CATEGORY_SORT = new Set(['name', 'slug', 'isActive', 'createdAt']);
 
 interface ListCategoriesFilter {
   search?: string;
