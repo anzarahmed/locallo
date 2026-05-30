@@ -14,7 +14,6 @@ import {
 } from 'sequelize-typescript';
 import { Admin } from './Admin';
 import { User } from './User';
-import { Category } from './Category';
 
 @Table({ tableName: 'seller_profiles', timestamps: true, underscored: true })
 export class SellerProfile extends Model {
@@ -80,12 +79,10 @@ export class SellerProfile extends Model {
   @BelongsTo(() => Admin, 'verifiedBy')
   declare verifier: Admin | null;
 
-  @ForeignKey(() => Category)
-  @Column(DataType.INTEGER)
-  declare categoryId: number | null;
-
-  @BelongsTo(() => Category, 'categoryId')
-  declare category: Category | null;
+  @Default([])
+  @AllowNull(false)
+  @Column(DataType.JSONB)
+  declare categoryIds: number[];
 
   @Column(DataType.TEXT)
   declare bio: string | null;

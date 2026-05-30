@@ -1,17 +1,27 @@
 import type { Request, Response } from 'express';
 import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus } from '../../services/seller/sellerService';
 import { sendSuccess, sendError } from '../../utils/response';
+import { Category } from '../../models/Category';
+
+interface CategoryObj { id: number; name: string; slug: string }
+
+async function resolveCats(ids: number[]): Promise<CategoryObj[]> {
+  if (ids.length === 0) return [];
+  const rows = await Category.findAll({ where: { id: ids }, attributes: ['id', 'name', 'slug'] });
+  return rows.map(c => ({ id: c.id, name: c.name, slug: c.slug }));
+}
 
 export async function getProfile(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await getSellerById(req.seller!.id);
+    const categories = await resolveCats(profile.categoryIds ?? []);
     sendSuccess(res, {
       id: user.id,
       mobile: user.mobile,
       countryCode: user.countryCode,
       fullName: user.fullName,
       isActive: user.isActive,
-      profile: profile.toJSON(),
+      profile: { ...profile.toJSON(), categories },
     }, 'Profile fetched');
   } catch (err: unknown) {
     if ((err as { status?: number }).status === 404) {
@@ -25,6 +35,7 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
 export async function addSeller(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await createSeller(req.body, req.admin!.id);
+    const categories = await resolveCats(profile.categoryIds ?? []);
     sendSuccess(
       res,
       {
@@ -33,7 +44,7 @@ export async function addSeller(req: Request, res: Response): Promise<void> {
         countryCode: user.countryCode,
         fullName: user.fullName,
         isActive: user.isActive,
-        profile: profile.toJSON(),
+        profile: { ...profile.toJSON(), categories },
       },
       'Seller created',
       201,
@@ -50,13 +61,14 @@ export async function addSeller(req: Request, res: Response): Promise<void> {
 export async function updateSeller(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await updateSellerProfile(req.seller!.id, req.body);
+    const categories = await resolveCats(profile.categoryIds ?? []);
     sendSuccess(res, {
       id: user.id,
       mobile: user.mobile,
       countryCode: user.countryCode,
       fullName: user.fullName,
       isActive: user.isActive,
-      profile: profile.toJSON(),
+      profile: { ...profile.toJSON(), categories },
     }, 'Profile updated');
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;
@@ -84,13 +96,14 @@ export async function updateAddress(req: Request, res: Response): Promise<void> 
 export async function adminEditSeller(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await adminUpdateSeller(req.params.id as string, req.body);
+    const categories = await resolveCats(profile.categoryIds ?? []);
     sendSuccess(res, {
       id: user.id,
       mobile: user.mobile,
       countryCode: user.countryCode,
       fullName: user.fullName,
       isActive: user.isActive,
-      profile: profile.toJSON(),
+      profile: { ...profile.toJSON(), categories },
     }, 'Seller updated');
   } catch (err: unknown) {
     const status = (err as { status?: number }).status;
@@ -109,13 +122,14 @@ export async function adminEditSeller(req: Request, res: Response): Promise<void
 export async function getSeller(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await getSellerById(req.params.id as string);
+    const categories = await resolveCats(profile.categoryIds ?? []);
     sendSuccess(res, {
       id: user.id,
       mobile: user.mobile,
       countryCode: user.countryCode,
       fullName: user.fullName,
       isActive: user.isActive,
-      profile: profile.toJSON(),
+      profile: { ...profile.toJSON(), categories },
     }, 'Seller fetched');
   } catch (err: unknown) {
     if ((err as { status?: number }).status === 404) {
@@ -161,19 +175,30 @@ export async function getSellers(req: Request, res: Response): Promise<void> {
       sortBy, sortOrder, isActive, categoryId, fullName, businessName, mobile,
     });
 
+    const allCategoryIds = [...new Set(sellers.flatMap(u => u.sellerProfile?.categoryIds ?? []))];
+    const fetchedCats = await resolveCats(allCategoryIds);
+    const categoryMap = new Map(fetchedCats.map(c => [c.id, c]));
+
     sendSuccess(
       res,
       {
-        sellers: sellers.map((user) => ({
-          id: user.id,
-          mobile: user.mobile,
-          countryCode: user.countryCode,
-          fullName: user.fullName,
-          businessName: user.sellerProfile?.businessName ?? null,
-          email: user.sellerProfile?.email ?? null,
-          isActive: user.isActive,
-          profile: user.sellerProfile ? user.sellerProfile.toJSON() : null,
-        })),
+        sellers: sellers.map((user) => {
+          const profileJson = user.sellerProfile ? user.sellerProfile.toJSON() : null;
+          const categories = (user.sellerProfile?.categoryIds ?? [])
+            .map(id => categoryMap.get(id))
+            .filter((c): c is CategoryObj => c !== undefined);
+          return {
+            id: user.id,
+            mobile: user.mobile,
+            countryCode: user.countryCode,
+            fullName: user.fullName,
+            businessName: user.sellerProfile?.businessName ?? null,
+            email: user.sellerProfile?.email ?? null,
+            isActive: user.isActive,
+            createdAt: user.createdAt,
+            profile: profileJson ? { ...profileJson, categories } : null,
+          };
+        }),
         pagination: {
           total,
           page,

@@ -3,7 +3,6 @@ import { Op, literal } from 'sequelize';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
-import { Category } from '../../models/Category';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
 type CreateSellerInput       = InferType<typeof createSellerSchema>;
@@ -45,7 +44,7 @@ export async function createSeller(
         city: data.city ?? null,
         state: data.state ?? null,
         pincode: data.pincode ?? null,
-        categoryId: data.categoryId ?? null,
+        categoryIds: data.categoryIds ?? [],
         bio: data.bio ?? null,
         workingHours: data.workingHours ?? null,
       },
@@ -63,7 +62,7 @@ export async function updateSellerProfile(
   return sequelize.transaction(async (t) => {
     const user = await User.findOne({
       where: { id: userId, role: 'SELLER' },
-      include: [{ model: SellerProfile, include: [Category] }],
+      include: [{ model: SellerProfile }],
       transaction: t,
     });
 
@@ -82,13 +81,13 @@ export async function updateSellerProfile(
     const profileUpdates: Partial<{
       businessName: string;
       email: string;
-      categoryId: number;
+      categoryIds: number[];
       bio: string;
       workingHours: Record<string, unknown>;
     }> = {};
     if (data.businessName !== undefined) profileUpdates.businessName = data.businessName;
     if (data.email !== undefined) profileUpdates.email = data.email;
-    if (data.categoryId !== undefined) profileUpdates.categoryId = data.categoryId;
+    if (data.categoryIds !== undefined) profileUpdates.categoryIds = data.categoryIds.filter((id): id is number => id !== undefined);
     if (data.bio !== undefined) profileUpdates.bio = data.bio;
     if (data.workingHours !== undefined) profileUpdates.workingHours = data.workingHours as Record<string, unknown>;
 
@@ -130,6 +129,8 @@ export interface GetSellerListOptions {
   mobile?: string;
 }
 
+type ProfileWhere = Record<string | symbol, unknown>;
+
 export async function getSellerList(
   limit: number,
   offset: number,
@@ -151,8 +152,10 @@ export async function getSellerList(
   if (fullName) userWhere.fullName = { [Op.iLike]: `%${fullName}%` };
   if (mobile) userWhere.mobile = { [Op.iLike]: `%${mobile}%` };
 
-  const profileWhere: Record<string, unknown> = {};
-  if (categoryId !== undefined) profileWhere.categoryId = categoryId;
+  const profileWhere: ProfileWhere = {};
+  if (categoryId !== undefined) {
+    profileWhere[Op.and] = literal(`"sellerProfile"."category_ids" @> '[${categoryId}]'::jsonb`);
+  }
   if (businessName) profileWhere.businessName = { [Op.iLike]: `%${businessName}%` };
 
   const hasProfileFilter = Object.keys(profileWhere).length > 0;
@@ -171,8 +174,7 @@ export async function getSellerList(
     where: userWhere,
     include: [{
       model: SellerProfile,
-      ...(hasProfileFilter ? { where: profileWhere, required: true } : {}),
-      include: [Category],
+      ...(hasProfileFilter ? { where: profileWhere as Record<string, unknown>, required: true } : {}),
     }],
     limit,
     offset,
@@ -190,7 +192,7 @@ export async function adminUpdateSeller(
   return sequelize.transaction(async (t) => {
     const user = await User.findOne({
       where: { id, role: 'SELLER' },
-      include: [{ model: SellerProfile, include: [Category] }],
+      include: [{ model: SellerProfile }],
       transaction: t,
     });
 
@@ -219,7 +221,7 @@ export async function adminUpdateSeller(
       {
         businessName: data.businessName,
         email:        data.email,
-        categoryId:   data.categoryId ?? null,
+        categoryIds:  data.categoryIds ?? [],
         bio:          data.bio ?? null,
         workingHours: (data.workingHours ?? {}) as Record<string, unknown>,
         lat:          data.lat,
@@ -247,7 +249,7 @@ export async function getSellerById(
 ): Promise<{ user: User; profile: SellerProfile }> {
   const user = await User.findOne({
     where: { id, role: 'SELLER' },
-    include: [{ model: SellerProfile, include: [Category] }],
+    include: [{ model: SellerProfile }],
   });
 
   if (!user) {

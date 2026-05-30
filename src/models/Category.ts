@@ -8,12 +8,10 @@ import {
   AllowNull,
   Default,
   DataType,
-  HasMany,
   CreatedAt,
   UpdatedAt,
 } from 'sequelize-typescript';
 import type { AttributeField } from '../types';
-import { SellerProfile } from './SellerProfile';
 
 @Table({ tableName: 'categories', timestamps: true, underscored: true })
 export class Category extends Model {
@@ -39,9 +37,6 @@ export class Category extends Model {
 
   @Column(DataType.JSONB)
   declare attributeSchema: AttributeField[] | null;
-
-  @HasMany(() => SellerProfile)
-  declare sellerProfiles: SellerProfile[];
 
   @CreatedAt
   declare createdAt: Date;
