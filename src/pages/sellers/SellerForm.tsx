@@ -3,15 +3,17 @@ const LocationPicker = lazy(() => import('../../components/LocationPicker'));
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, MapPin, Building2, Phone, FileText, Clock,
-  UserPlus, Store, AlertCircle, Copy, Clipboard,
+  UserPlus, Store, AlertCircle, Copy, Clipboard, CheckCircle,
 } from 'lucide-react';
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
 import SelectField from '../../components/ui/SelectField';
 import MultiComboboxField from '../../components/ui/MultiComboboxField';
+import OtpVerificationModal from '../../components/ui/OtpVerificationModal';
 import * as sellerService from '../../services/sellerService';
 import type { Seller } from '../../services/sellerService';
 import { getCategories } from '../../services/categoryService';
+import { requestMobileOtp } from '../../services/mobileVerificationService';
 import type { Category } from '../../types';
 import { ApiError } from '../../lib/axios';
 import { useToast } from '../../hooks/useToast';
@@ -195,6 +197,9 @@ export default function SellerForm(): JSX.Element {
   const [loading, setLoading] = useState(isEdit);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [copiedDay, setCopiedDay] = useState<Day | null>(null);
+  const [mobileVerified, setMobileVerified] = useState<boolean>(false);
+  const [otpModalOpen, setOtpModalOpen] = useState<boolean>(false);
+  const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
 
   useEffect((): void => {
     getCategories().then(setCategories).catch((): void => {});
@@ -204,7 +209,7 @@ export default function SellerForm(): JSX.Element {
     if (!isEdit || !id) return;
     setLoading(true);
     sellerService.getSellerById(id)
-      .then((data): void => { setSeller(data); })
+      .then((data): void => { setSeller(data); setMobileVerified(true); })
       .catch((): void => { setLoadError('Failed to load seller details. Please try again.'); })
       .finally((): void => { setLoading(false); });
   }, [id, isEdit]);
@@ -237,6 +242,11 @@ export default function SellerForm(): JSX.Element {
     values: SellerFormValues,
     { setSubmitting, setStatus }: FormikHelpers<SellerFormValues>,
   ): Promise<void> {
+    if (!mobileVerified) {
+      setStatus('Please verify the mobile number before saving.');
+      setSubmitting(false);
+      return;
+    }
     try {
       if (isEdit && id) {
         await sellerService.updateSeller(id, values);
@@ -253,6 +263,22 @@ export default function SellerForm(): JSX.Element {
       }
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  async function handleSendOtp(): Promise<void> {
+    const { countryCode, mobile } = f.values;
+    void f.setFieldTouched('mobile', true);
+    if (!mobile || !/^[0-9]{7,15}$/.test(mobile)) return;
+    setIsSendingOtp(true);
+    try {
+      await requestMobileOtp(countryCode, mobile);
+      setOtpModalOpen(true);
+    } catch (err: unknown) {
+      const msg = err instanceof ApiError ? err.message : 'Failed to send OTP. Please try again.';
+      f.setStatus(msg);
+    } finally {
+      setIsSendingOtp(false);
     }
   }
 
@@ -428,7 +454,12 @@ export default function SellerForm(): JSX.Element {
                 <div className="w-48 shrink-0">
                   <SelectField
                     label="Country Code" name="countryCode" required
-                    value={f.values.countryCode} onChange={f.handleChange} onBlur={f.handleBlur}
+                    value={f.values.countryCode}
+                    onChange={(e): void => {
+                      f.handleChange(e);
+                      setMobileVerified(false);
+                    }}
+                    onBlur={f.handleBlur}
                   >
                     {COUNTRY_CODES.map(({ code, label }) => (
                       <option key={code} value={code}>{label}</option>
@@ -438,12 +469,44 @@ export default function SellerForm(): JSX.Element {
                 <div className="flex-1">
                   <AuthField
                     label="Mobile Number" name="mobile" placeholder="9876543210" required
-                    value={f.values.mobile} onChange={f.handleChange} onBlur={f.handleBlur}
+                    value={f.values.mobile}
+                    onChange={(e): void => {
+                      f.handleChange(e);
+                      const newMobile = e.target.value;
+                      setMobileVerified(isEdit && newMobile === (seller?.mobile ?? ''));
+                    }}
+                    onBlur={f.handleBlur}
                     touched={f.touched.mobile} error={f.errors.mobile}
                   />
+                  <div className="mt-1.5 flex items-center gap-2">
+                    {mobileVerified ? (
+                      <span className="inline-flex items-center gap-1 text-xs text-emerald-600 font-medium">
+                        <CheckCircle className="w-3.5 h-3.5" />
+                        Verified
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={handleSendOtp}
+                        disabled={isSendingOtp || !f.values.mobile}
+                        className="text-xs text-indigo-600 hover:underline disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center gap-1"
+                      >
+                        {isSendingOtp && <Loader2 className="w-3 h-3 animate-spin" />}
+                        {isSendingOtp ? 'Sending OTP…' : 'Verify mobile number'}
+                      </button>
+                    )}
+                  </div>
                 </div>
               </div>
             </SectionCard>
+
+            <OtpVerificationModal
+              isOpen={otpModalOpen}
+              countryCode={f.values.countryCode}
+              mobile={f.values.mobile}
+              onVerified={(): void => { setMobileVerified(true); }}
+              onClose={(): void => { setOtpModalOpen(false); }}
+            />
 
             <SectionCard
               icon={<FileText className="w-3.5 h-3.5 text-indigo-600" />}

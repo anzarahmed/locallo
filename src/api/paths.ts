@@ -19,4 +19,8 @@ export const PATHS = {
     BY_ID:  (id: string) => `/api/admins/products/${id}`,
     TOGGLE: (id: string) => `/api/admins/products/${id}/toggle`,
   },
+  MOBILE_VERIFY: {
+    REQUEST: '/api/admins/mobile/request-otp',
+    VERIFY:  '/api/admins/mobile/verify-otp',
+  },
 } as const;
