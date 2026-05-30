@@ -7,17 +7,22 @@ import {
   getProduct  as getAdminProduct,
   toggleProduct, deleteProduct,
 } from '../../controllers/admin/productController';
+import { requestOtp as requestMobileOtp, verifyOtp as verifyMobileOtp } from '../../controllers/admin/mobileVerificationController';
 import { validate } from '../../middleware/validate';
 import { requireAdmin } from '../../middleware/auth';
 import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
 import { createSellerSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
+import { requestMobileOtpSchema, verifyMobileOtpSchema } from '../../validation/admin/mobileVerificationSchemas';
 
 const router = Router();
 
 router.post('/login',          validate(adminLoginSchema),        login);
 router.post('/forgot-password', validate(forgotPasswordSchema),   forgotPassword);
 router.post('/reset-password',  validate(resetPasswordSchema),    resetPassword);
+
+router.post('/mobile/request-otp', requireAdmin, validate(requestMobileOtpSchema), requestMobileOtp);
+router.post('/mobile/verify-otp',  requireAdmin, validate(verifyMobileOtpSchema),  verifyMobileOtp);
 
 router.post('/sellers',             requireAdmin, validate(createSellerSchema),      addSeller);
 router.get('/sellers',              requireAdmin,                                     getSellers);
