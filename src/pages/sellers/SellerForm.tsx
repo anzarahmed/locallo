@@ -3,7 +3,7 @@ const LocationPicker = lazy(() => import('../../components/LocationPicker'));
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, MapPin, Building2, Phone, FileText, Clock,
-  UserPlus, Store, AlertCircle,
+  UserPlus, Store, AlertCircle, Copy, Clipboard,
 } from 'lucide-react';
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
@@ -51,16 +51,21 @@ interface WorkingHoursRowProps {
   close: string;
   errors: DayFieldErrors;
   touched: DayFieldTouched;
+  isCopied: boolean;
+  canPaste: boolean;
   onToggleClosed: (checked: boolean) => void;
   onOpenChange: (val: string) => void;
   onCloseChange: (val: string) => void;
   onOpenBlur: () => void;
   onCloseBlur: () => void;
+  onCopy: () => void;
+  onPaste: () => void;
 }
 
 function WorkingHoursRow({
-  day, isClosed, open, close, errors, touched,
+  day, isClosed, open, close, errors, touched, isCopied, canPaste,
   onToggleClosed, onOpenChange, onCloseChange, onOpenBlur, onCloseBlur,
+  onCopy, onPaste,
 }: WorkingHoursRowProps): JSX.Element {
   const timeClass = (invalid: boolean): string =>
     `px-3 py-2 border rounded-lg text-sm transition-colors focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${
@@ -114,6 +119,33 @@ function WorkingHoursRow({
           </div>
         </div>
       )}
+
+      <div className="ml-auto flex items-center gap-0.5 shrink-0">
+        <button
+          type="button"
+          onClick={onCopy}
+          title={isCopied ? 'Copied — click to deselect' : 'Copy hours'}
+          className={`p-1.5 rounded-lg transition-colors ${
+            isCopied
+              ? 'text-indigo-600 bg-indigo-50'
+              : 'text-gray-300 hover:text-gray-500 hover:bg-gray-100'
+          }`}
+        >
+          <Copy className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={onPaste}
+          title="Paste copied hours"
+          className={`p-1.5 rounded-lg transition-colors ${
+            canPaste
+              ? 'text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50'
+              : 'invisible'
+          }`}
+        >
+          <Clipboard className="w-3.5 h-3.5" />
+        </button>
+      </div>
     </div>
   );
 }
@@ -162,6 +194,7 @@ export default function SellerForm(): JSX.Element {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(isEdit);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [copiedDay, setCopiedDay] = useState<Day | null>(null);
 
   useEffect((): void => {
     getCategories().then(setCategories).catch((): void => {});
@@ -221,6 +254,16 @@ export default function SellerForm(): JSX.Element {
     } finally {
       setSubmitting(false);
     }
+  }
+
+  function handleCopyDay(day: Day): void {
+    setCopiedDay(prev => (prev === day ? null : day));
+  }
+
+  function handlePasteDay(targetDay: Day): void {
+    if (!copiedDay) return;
+    const src = f.values.workingHours[copiedDay];
+    void f.setFieldValue(`workingHours.${targetDay}`, { ...src });
   }
 
   const f = useFormik<SellerFormValues>({
@@ -445,11 +488,15 @@ export default function SellerForm(): JSX.Element {
                   close={f.values.workingHours[day].close ?? ''}
                   errors={getDayErrors(f.errors, day)}
                   touched={getDayTouched(f.touched, day, f.submitCount > 0)}
+                  isCopied={copiedDay === day}
+                  canPaste={copiedDay !== null && copiedDay !== day}
                   onToggleClosed={(checked): void => { void f.setFieldValue(`workingHours.${day}.isClosed`, checked); }}
                   onOpenChange={(val): void => { void f.setFieldValue(`workingHours.${day}.open`, val); }}
                   onCloseChange={(val): void => { void f.setFieldValue(`workingHours.${day}.close`, val); }}
                   onOpenBlur={(): void => { void f.setFieldTouched(`workingHours.${day}.open`, true); }}
                   onCloseBlur={(): void => { void f.setFieldTouched(`workingHours.${day}.close`, true); }}
+                  onCopy={(): void => { handleCopyDay(day); }}
+                  onPaste={(): void => { handlePasteDay(day); }}
                 />
               ))}
             </SectionCard>
