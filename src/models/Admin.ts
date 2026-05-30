@@ -35,6 +35,10 @@ export class Admin extends Model {
   @Column(DataType.TEXT)
   declare role: AdminRole;
 
+  @AllowNull(true)
+  @Column(DataType.TEXT)
+  declare fullName: string | null;
+
   @ForeignKey(() => Admin)
   @Column(DataType.UUID)
   declare managedBy: string | null;
@@ -44,11 +48,6 @@ export class Admin extends Model {
 
   @HasMany(() => Admin, 'managedBy')
   declare subordinates: Admin[];
-
-  @Default({})
-  @AllowNull(false)
-  @Column(DataType.JSONB)
-  declare permissions: Record<string, unknown>;
 
   @Default(true)
   @AllowNull(false)

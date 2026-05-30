@@ -8,36 +8,63 @@ import {
   toggleProduct, deleteProduct,
 } from '../../controllers/admin/productController';
 import { requestOtp as requestMobileOtp, verifyOtp as verifyMobileOtp } from '../../controllers/admin/mobileVerificationController';
+import {
+  getSubAdmins, addSubAdmin, editSubAdmin, removeSubAdmin, patchSubAdminStatus,
+} from '../../controllers/admin/subAdminController';
+import {
+  fetchRolePermissions, saveRolePermissions, fetchMyPermissions,
+} from '../../controllers/admin/rolePermissionController';
 import { validate } from '../../middleware/validate';
-import { requireAdmin } from '../../middleware/auth';
+import { requireAdmin, requireSuperAdmin, requirePermission } from '../../middleware/auth';
 import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
 import { createSellerSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
 import { requestMobileOtpSchema, verifyMobileOtpSchema } from '../../validation/admin/mobileVerificationSchemas';
+import { createSubAdminSchema, updateSubAdminSchema } from '../../validation/admin/subAdminSchemas';
+import { updateRolePermissionsSchema } from '../../validation/admin/rolePermissionSchemas';
 
 const router = Router();
 
-router.post('/login',          validate(adminLoginSchema),        login);
+// Public auth
+router.post('/login',           validate(adminLoginSchema),       login);
 router.post('/forgot-password', validate(forgotPasswordSchema),   forgotPassword);
 router.post('/reset-password',  validate(resetPasswordSchema),    resetPassword);
 
+// Mobile OTP (admin-initiated, any admin role)
 router.post('/mobile/request-otp', requireAdmin, validate(requestMobileOtpSchema), requestMobileOtp);
 router.post('/mobile/verify-otp',  requireAdmin, validate(verifyMobileOtpSchema),  verifyMobileOtp);
 
-router.post('/sellers',             requireAdmin, validate(createSellerSchema),      addSeller);
-router.get('/sellers',              requireAdmin,                                     getSellers);
-router.get('/sellers/:id',          requireAdmin,                                     getSeller);
-router.put('/sellers/:id',          requireAdmin, validate(adminUpdateSellerSchema),  adminEditSeller);
-router.patch('/sellers/:id/status', requireAdmin,                                     patchSellerStatus);
+// My permissions (any authenticated admin)
+router.get('/me/permissions', requireAdmin, fetchMyPermissions);
 
-router.get('/categories',           getCategories);
-router.post('/categories',          requireAdmin, validate(createCategorySchema),   addCategory);
-router.put('/categories/:id',       requireAdmin, validate(updateCategorySchema),   editCategory);
-router.delete('/categories/:id',    requireAdmin,                                   removeCategory);
+// Sub-admin management (super_admin only)
+router.get   ('/sub-admins',          requireAdmin, requireSuperAdmin, getSubAdmins);
+router.post  ('/sub-admins',          requireAdmin, requireSuperAdmin, validate(createSubAdminSchema), addSubAdmin);
+router.put   ('/sub-admins/:id',      requireAdmin, requireSuperAdmin, validate(updateSubAdminSchema), editSubAdmin);
+router.delete('/sub-admins/:id',      requireAdmin, requireSuperAdmin, removeSubAdmin);
+router.patch ('/sub-admins/:id/status', requireAdmin, requireSuperAdmin, patchSubAdminStatus);
 
-router.get('/products',             requireAdmin, getAdminProducts);
-router.get('/products/:id',         requireAdmin, getAdminProduct);
-router.patch('/products/:id/toggle',requireAdmin, toggleProduct);
-router.delete('/products/:id',      requireAdmin, deleteProduct);
+// Role permissions (super_admin only)
+router.get('/roles/:role/permissions', requireAdmin, requireSuperAdmin, fetchRolePermissions);
+router.put('/roles/:role/permissions', requireAdmin, requireSuperAdmin, validate(updateRolePermissionsSchema), saveRolePermissions);
+
+// Sellers
+router.post  ('/sellers',             requireAdmin, requirePermission('sellers', 'add'),    validate(createSellerSchema),     addSeller);
+router.get   ('/sellers',             requireAdmin, requirePermission('sellers', 'list'),   getSellers);
+router.get   ('/sellers/:id',         requireAdmin, requirePermission('sellers', 'view'),   getSeller);
+router.put   ('/sellers/:id',         requireAdmin, requirePermission('sellers', 'edit'),   validate(adminUpdateSellerSchema), adminEditSeller);
+router.patch ('/sellers/:id/status',  requireAdmin, requirePermission('sellers', 'edit'),   patchSellerStatus);
+
+// Categories (GET is public — used for dropdowns in other UIs)
+router.get   ('/categories',          getCategories);
+router.post  ('/categories',          requireAdmin, requirePermission('categories', 'add'),    validate(createCategorySchema), addCategory);
+router.put   ('/categories/:id',      requireAdmin, requirePermission('categories', 'edit'),   validate(updateCategorySchema), editCategory);
+router.delete('/categories/:id',      requireAdmin, requirePermission('categories', 'delete'), removeCategory);
+
+// Products
+router.get   ('/products',              requireAdmin, requirePermission('products', 'list'),   getAdminProducts);
+router.get   ('/products/:id',          requireAdmin, requirePermission('products', 'view'),   getAdminProduct);
+router.patch ('/products/:id/toggle',   requireAdmin, requirePermission('products', 'edit'),   toggleProduct);
+router.delete('/products/:id',          requireAdmin, requirePermission('products', 'delete'), deleteProduct);
 
 export default router;

@@ -4,6 +4,8 @@ import jwt from 'jsonwebtoken';
 import { Admin } from '../models/Admin';
 import { User } from '../models/User';
 import { Session } from '../models/Session';
+import { RolePermission } from '../models/RolePermission';
+import type { PermissionModule, PermissionAction } from '../types';
 
 interface JwtPayload {
   id: string;
@@ -35,6 +37,37 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
 
   req.admin = admin;
   next();
+}
+
+export function requireSuperAdmin(req: Request, res: Response, next: NextFunction): void {
+  if (req.admin?.role !== 'super_admin') {
+    res.status(403).json({ success: false, message: 'Forbidden' });
+    return;
+  }
+  next();
+}
+
+export function requirePermission(module: PermissionModule, action: PermissionAction) {
+  return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
+    if (req.admin?.role === 'super_admin') {
+      next();
+      return;
+    }
+
+    const role = req.admin?.role;
+    if (!role) {
+      res.status(401).json({ success: false, message: 'Unauthorized' });
+      return;
+    }
+
+    const row = await RolePermission.findOne({ where: { role, module, action } });
+    if (!row) {
+      res.status(403).json({ success: false, message: 'Forbidden' });
+      return;
+    }
+
+    next();
+  };
 }
 
 export async function requireSeller(req: Request, res: Response, next: NextFunction): Promise<void> {

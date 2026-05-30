@@ -5,8 +5,8 @@ async function up(queryInterface: QueryInterface): Promise<void> {
   const passwordHash = await bcrypt.hash('Test@123', 10);
 
   await queryInterface.sequelize.query(
-    `INSERT INTO admins (id, email, password_hash, role, permissions, is_active, created_at, updated_at)
-     VALUES (gen_random_uuid(), 'superadmin@yopmail.com', :passwordHash, 'super_admin', '{}', true, now(), now())
+    `INSERT INTO admins (id, email, password_hash, role, is_active, created_at, updated_at)
+     VALUES (gen_random_uuid(), 'superadmin@yopmail.com', :passwordHash, 'super_admin', true, now(), now())
      ON CONFLICT (email) DO NOTHING`,
     { replacements: { passwordHash } },
   );
