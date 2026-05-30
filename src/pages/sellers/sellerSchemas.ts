@@ -40,7 +40,10 @@ export const sellerSchema = Yup.object({
     .trim()
     .matches(/^[0-9]{7,15}$/, 'Digits only, 7–15 characters')
     .required('Mobile number is required'),
-  categoryId: Yup.number().integer().positive().required('Category is required'),
+  categoryIds: Yup.array()
+    .of(Yup.number().integer().positive())
+    .min(1, 'At least one category is required')
+    .required('Category is required'),
   bio:      Yup.string().trim().max(500, 'Bio must be under 500 characters').default(''),
   workingHours: Yup.object({
     monday:    daySchema,

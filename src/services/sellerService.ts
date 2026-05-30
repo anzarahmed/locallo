@@ -20,8 +20,8 @@ export interface SellerProfile {
   city: string | null;
   state: string | null;
   pincode: string | null;
-  categoryId: number | null;
-  category: { id: number; name: string; slug: string } | null;
+  categoryIds: number[];
+  categories: { id: number; name: string; slug: string }[];
   bio: string | null;
   workingHours: WorkingHours | null;
 }
@@ -34,6 +34,7 @@ export interface Seller {
   businessName: string | null;
   email: string | null;
   isActive: boolean;
+  createdAt: string;
   profile: SellerProfile | null;
 }
 
@@ -59,7 +60,7 @@ export function createSeller(values: SellerFormValues): Promise<CreateSellerResp
     lat:          values.latitude,
     long:         values.longitude,
     address:      values.address ?? '',
-    categoryId:   values.categoryId,
+    categoryIds:  values.categoryIds,
     bio:          values.bio,
     workingHours: values.workingHours ?? null,
   });
@@ -114,7 +115,7 @@ export function updateSeller(id: string, values: SellerFormValues): Promise<Sell
     lat:          values.latitude,
     long:         values.longitude,
     address:      values.address ?? '',
-    categoryId:   values.categoryId,
+    categoryIds:  values.categoryIds,
     bio:          values.bio,
     workingHours: values.workingHours ?? null,
   });

@@ -127,8 +127,10 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
             <h2 className="text-sm font-semibold text-gray-900 truncate">
               {loading ? 'Loading…' : (seller?.businessName ?? seller?.fullName ?? 'Seller Detail')}
             </h2>
-            {!loading && seller?.profile?.category && (
-              <p className="text-xs text-gray-400 mt-0.5">{seller.profile.category.name}</p>
+            {!loading && seller?.profile?.categories && seller.profile.categories.length > 0 && (
+              <p className="text-xs text-gray-400 mt-0.5">
+                {seller.profile.categories.map(c => c.name).join(', ')}
+              </p>
             )}
           </div>
           <button
@@ -207,10 +209,14 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
                         {seller.businessName ?? seller.profile?.businessName ?? '—'}
                       </span>
                     </div>
-                    {seller.profile?.category && (
-                      <span className="ml-6 inline-block px-2.5 py-0.5 text-xs bg-indigo-50 text-indigo-600 rounded-full font-medium border border-indigo-100">
-                        {seller.profile.category.name}
-                      </span>
+                    {seller.profile?.categories && seller.profile.categories.length > 0 && (
+                      <div className="ml-6 flex flex-wrap gap-1.5 mt-1">
+                        {seller.profile.categories.map(c => (
+                          <span key={c.id} className="inline-block px-2.5 py-0.5 text-xs bg-indigo-50 text-indigo-600 rounded-full font-medium border border-indigo-100">
+                            {c.name}
+                          </span>
+                        ))}
+                      </div>
                     )}
                   </div>
                 </div>

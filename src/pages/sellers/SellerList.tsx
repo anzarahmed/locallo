@@ -50,7 +50,7 @@ export default function SellerList(): JSX.Element {
   const [pageSize, setPageSize]         = useState(DEFAULT_PAGE_SIZE);
   const [totalRecords, setTotalRecords] = useState(0);
 
-  const [sorting, setSorting]               = useState<SortingState>([]);
+  const [sorting, setSorting]               = useState<SortingState>([{ id: 'fullName', desc: false }]);
   const initialFilters: ColumnFiltersState  = [];
   const [columnFilters, setColumnFilters]   = useState<ColumnFiltersState>(initialFilters);
   const [debouncedFilters, setDebouncedFilters] = useState<ColumnFiltersState>(initialFilters);
@@ -167,10 +167,14 @@ export default function SellerList(): JSX.Element {
         return (
           <div>
             <p className="text-gray-700 font-medium">{s.businessName || 'N/A'}</p>
-            {s.profile?.category?.name && (
-              <span className="inline-block mt-1 px-2 py-0.5 text-xs bg-indigo-50 text-indigo-600 rounded-full font-medium">
-                {s.profile.category.name}
-              </span>
+            {s.profile?.categories && s.profile.categories.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {s.profile.categories.map(c => (
+                  <span key={c.id} className="inline-block px-2 py-0.5 text-xs bg-indigo-50 text-indigo-600 rounded-full font-medium">
+                    {c.name}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
         );
@@ -215,6 +219,18 @@ export default function SellerList(): JSX.Element {
           </span>
         );
       },
+    },
+    {
+      accessorKey: 'createdAt',
+      header: 'Joined',
+      enableSorting: true,
+      enableColumnFilter: false,
+      meta: { align: 'right', className: 'w-32' },
+      cell: ({ row }) => (
+        <span className="text-gray-500 text-sm">
+          {new Date(row.original.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+        </span>
+      ),
     },
     {
       id: 'actions',

@@ -8,7 +8,7 @@ import {
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
 import SelectField from '../../components/ui/SelectField';
-import ComboboxField from '../../components/ui/ComboboxField';
+import MultiComboboxField from '../../components/ui/MultiComboboxField';
 import * as sellerService from '../../services/sellerService';
 import type { Seller } from '../../services/sellerService';
 import { getCategories } from '../../services/categoryService';
@@ -180,7 +180,7 @@ export default function SellerForm(): JSX.Element {
     if (!seller) {
       return {
         shopName: '', ownerName: '', email: '', countryCode: '+91', mobile: '',
-        categoryId: 0, bio: '', workingHours: DEFAULT_WORKING_HOURS,
+        categoryIds: [], bio: '', workingHours: DEFAULT_WORKING_HOURS,
         latitude: 28.6139, longitude: 77.2090, address: '',
       };
     }
@@ -191,7 +191,7 @@ export default function SellerForm(): JSX.Element {
       email:        p?.email ?? '',
       countryCode:  seller.countryCode ?? '+91',
       mobile:       seller.mobile,
-      categoryId:   p?.categoryId ?? 0,
+      categoryIds:  p?.categoryIds ?? [],
       bio:          p?.bio ?? '',
       workingHours: p?.workingHours ?? DEFAULT_WORKING_HOURS,
       latitude:     Number(p?.lat ?? 28.6139),
@@ -364,16 +364,15 @@ export default function SellerForm(): JSX.Element {
                   value={f.values.email} onChange={f.handleChange} onBlur={f.handleBlur}
                   touched={f.touched.email} error={f.errors.email}
                 />
-                <ComboboxField
-                  label="Category" name="categoryId" required
-                  value={f.values.categoryId}
+                <MultiComboboxField
+                  label="Categories" name="categoryIds" required
+                  value={f.values.categoryIds as number[]}
                   options={categories.map(c => ({ label: c.name, value: c.id }))}
-                  onChange={(val): void => {
-                    void f.setFieldValue('categoryId', val ? Number(val) : 0);
-                  }}
-                  onBlur={(): void => { void f.setFieldTouched('categoryId', true); }}
-                  touched={f.touched.categoryId} error={f.errors.categoryId}
-                  placeholder="Select category"
+                  onChange={(vals): void => { void f.setFieldValue('categoryIds', vals); }}
+                  onBlur={(): void => { void f.setFieldTouched('categoryIds', true); }}
+                  touched={Boolean(f.touched.categoryIds)}
+                  error={typeof f.errors.categoryIds === 'string' ? f.errors.categoryIds : undefined}
+                  placeholder="Select categories…"
                 />
               </div>
             </SectionCard>
