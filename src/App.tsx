@@ -13,6 +13,8 @@ import SellerList from './pages/sellers/SellerList';
 import SellerForm from './pages/sellers/SellerForm';
 import CategoryList from './pages/categories/CategoryList';
 import ProductList from './pages/products/ProductList';
+import SubAdminList from './pages/sub-admins/SubAdminList';
+import RolePermissions from './pages/sub-admins/RolePermissions';
 
 export default function App(): JSX.Element {
   return (
@@ -34,8 +36,10 @@ export default function App(): JSX.Element {
             <Route path="/sellers" element={<SellerList />} />
             <Route path="/sellers/add" element={<SellerForm />} />
             <Route path="/sellers/:id/edit" element={<SellerForm />} />
-            <Route path="/products"   element={<ProductList />} />
-            <Route path="/categories" element={<CategoryList />} />
+            <Route path="/products"          element={<ProductList />} />
+            <Route path="/categories"       element={<CategoryList />} />
+            <Route path="/sub-admins"        element={<SubAdminList />} />
+            <Route path="/role-permissions"  element={<RolePermissions />} />
           </Route>
 
           <Route path="*" element={<Navigate to="/login" replace />} />

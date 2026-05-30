@@ -10,6 +10,7 @@ import { getAllSellers, type Seller } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import type { Category, Product } from '../../types';
 import { useToast } from '../../hooks/useToast';
+import { useAuth } from '../../hooks/useAuth';
 
 import { SkeletonThumbnailCell, SkeletonPriceCell } from '../../components/ui/SkeletonCells';
 import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
@@ -110,6 +111,7 @@ function DeleteModal({ product, onClose, onDeleted }: DeleteModalProps): JSX.Ele
 
 export default function ProductList(): JSX.Element {
   const toast = useToast();
+  const { hasPermission } = useAuth();
 
   const [products, setProducts]     = useState<Product[]>([]);
   const [total, setTotal]           = useState(0);
@@ -301,11 +303,19 @@ export default function ProductList(): JSX.Element {
         const p = row.original;
         return (
           <div className="flex justify-center">
-            <ToggleSwitch
-              active={p.isActive}
-              onToggle={toggling === p.id ? () => {} : () => { void handleToggle(p); }}
-              title={`${p.isActive ? 'Deactivate' : 'Activate'} product`}
-            />
+            {hasPermission('products', 'edit') ? (
+              <ToggleSwitch
+                active={p.isActive}
+                onToggle={toggling === p.id ? () => {} : () => { void handleToggle(p); }}
+                title={`${p.isActive ? 'Deactivate' : 'Activate'} product`}
+              />
+            ) : (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                p.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
+              }`}>
+                {p.isActive ? 'Active' : 'Inactive'}
+              </span>
+            )}
           </div>
         );
       },
@@ -320,25 +330,32 @@ export default function ProductList(): JSX.Element {
         const p = row.original;
         return (
           <div className="flex items-center justify-end gap-1">
-            <button
-              onClick={() => setDetailId(p.id)}
-              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-              title="View"
-            >
-              <Eye className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setDeleteTarget(p)}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {hasPermission('products', 'view') && (
+              <button
+                onClick={() => setDetailId(p.id)}
+                className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="View"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+            )}
+            {hasPermission('products', 'delete') && (
+              <button
+                onClick={() => setDeleteTarget(p)}
+                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         );
       },
     },
-  ], [categories, sellers, toggling]);
+  ].filter(col => {
+    if (!('id' in col) || col.id !== 'actions') return true;
+    return hasPermission('products', 'view') || hasPermission('products', 'delete');
+  }) as ColumnDef<Product, unknown>[], [categories, sellers, toggling, hasPermission]);
 
   if (error) {
     return (

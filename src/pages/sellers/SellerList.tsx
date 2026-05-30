@@ -7,6 +7,7 @@ import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import SellerDetail from './SellerDetail';
 import { getSellerList, toggleSellerStatus, type Seller } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
+import { useAuth } from '../../hooks/useAuth';
 
 const AVATAR_COLORS = [
   'bg-indigo-100 text-indigo-700',
@@ -42,6 +43,7 @@ import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
 export default function SellerList(): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
+  const { hasPermission } = useAuth();
 
   const [sellers, setSellers]           = useState<Seller[]>([]);
   const [loading, setLoading]           = useState(true);
@@ -242,37 +244,48 @@ export default function SellerList(): JSX.Element {
         const s = row.original;
         return (
           <div className="flex items-center justify-end gap-2">
-            <ToggleSwitch
-              active={s.isActive}
-              onToggle={() => { if (!toggling) setToggleId(s.id); }}
-            />
+            {hasPermission('sellers', 'edit') && (
+              <ToggleSwitch
+                active={s.isActive}
+                onToggle={() => { if (!toggling) setToggleId(s.id); }}
+              />
+            )}
             <div className="w-px h-4 bg-gray-200" />
-            <button
-              onClick={() => setViewId(s.id)}
-              className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-              title="View details"
-            >
-              <Eye className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => { navigate(`/sellers/${s.id}/edit`); }}
-              className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-              title="Edit"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setDeleteId(s.id)}
-              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {hasPermission('sellers', 'view') && (
+              <button
+                onClick={() => setViewId(s.id)}
+                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                title="View details"
+              >
+                <Eye className="w-4 h-4" />
+              </button>
+            )}
+            {hasPermission('sellers', 'edit') && (
+              <button
+                onClick={() => { navigate(`/sellers/${s.id}/edit`); }}
+                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                title="Edit"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            {hasPermission('sellers', 'delete') && (
+              <button
+                onClick={() => setDeleteId(s.id)}
+                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         );
       },
     },
-  ], [navigate, toggling]);
+  ].filter(col => {
+    if (!('id' in col) || col.id !== 'actions') return true;
+    return hasPermission('sellers', 'edit') || hasPermission('sellers', 'view') || hasPermission('sellers', 'delete');
+  }) as ColumnDef<Seller, unknown>[], [navigate, toggling, hasPermission]);
 
   if (error) {
     return <div className="p-8 text-center text-sm text-red-600">{error}</div>;
@@ -280,14 +293,16 @@ export default function SellerList(): JSX.Element {
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-end">
-        <button
-          onClick={() => { navigate('/sellers/add'); }}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> Add Seller
-        </button>
-      </div>
+      {hasPermission('sellers', 'add') && (
+        <div className="flex items-center justify-end">
+          <button
+            onClick={() => { navigate('/sellers/add'); }}
+            className="inline-flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> Add Seller
+          </button>
+        </div>
+      )}
 
       <DataGrid
         columns={columns}

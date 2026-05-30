@@ -17,6 +17,7 @@ import {
 import type { AttributeField, Category } from '../../types';
 import { categorySchema, type CategoryFormValues } from './categorySchemas';
 import { useToast } from '../../hooks/useToast';
+import { useAuth } from '../../hooks/useAuth';
 
 import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
 
@@ -211,6 +212,7 @@ function DeleteModal({ category, onClose, onDeleted }: DeleteModalProps): JSX.El
 
 export default function CategoryList(): JSX.Element {
   const toast = useToast();
+  const { hasPermission } = useAuth();
 
   const [categories, setCategories]       = useState<Category[]>([]);
   const [total, setTotal]                 = useState(0);
@@ -340,11 +342,19 @@ export default function CategoryList(): JSX.Element {
         const cat = row.original;
         return (
           <div className="flex justify-center">
-            <ToggleSwitch
-              active={cat.isActive}
-              onToggle={toggling === cat.id ? (): void => {} : (): void => { void handleToggleActive(cat); }}
-              title={`${cat.isActive ? 'Deactivate' : 'Activate'} ${cat.name}`}
-            />
+            {hasPermission('categories', 'edit') ? (
+              <ToggleSwitch
+                active={cat.isActive}
+                onToggle={toggling === cat.id ? (): void => {} : (): void => { void handleToggleActive(cat); }}
+                title={`${cat.isActive ? 'Deactivate' : 'Activate'} ${cat.name}`}
+              />
+            ) : (
+              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                cat.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
+              }`}>
+                {cat.isActive ? 'Active' : 'Inactive'}
+              </span>
+            )}
           </div>
         );
       },
@@ -359,25 +369,32 @@ export default function CategoryList(): JSX.Element {
         const cat = row.original;
         return (
           <div className="flex items-center justify-end gap-1">
-            <button
-              onClick={() => setModalCategory(cat)}
-              className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-              title="Edit"
-            >
-              <Pencil className="w-4 h-4" />
-            </button>
-            <button
-              onClick={() => setDeleteTarget(cat)}
-              className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-              title="Delete"
-            >
-              <Trash2 className="w-4 h-4" />
-            </button>
+            {hasPermission('categories', 'edit') && (
+              <button
+                onClick={() => setModalCategory(cat)}
+                className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                title="Edit"
+              >
+                <Pencil className="w-4 h-4" />
+              </button>
+            )}
+            {hasPermission('categories', 'delete') && (
+              <button
+                onClick={() => setDeleteTarget(cat)}
+                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                title="Delete"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
+            )}
           </div>
         );
       },
     },
-  ], [toggling]);
+  ].filter(col => {
+    if (!('id' in col) || col.id !== 'actions') return true;
+    return hasPermission('categories', 'edit') || hasPermission('categories', 'delete');
+  }) as ColumnDef<Category, unknown>[], [toggling, hasPermission]);
 
   if (error) {
     return (
@@ -394,13 +411,15 @@ export default function CategoryList(): JSX.Element {
           <h1 className="text-xl font-bold text-gray-900">Categories</h1>
           <p className="text-sm text-gray-500 mt-0.5">{total} total</p>
         </div>
-        <button
-          onClick={() => setModalCategory(null)}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Add Category
-        </button>
+        {hasPermission('categories', 'add') && (
+          <button
+            onClick={() => setModalCategory(null)}
+            className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
+          >
+            <Plus className="w-4 h-4" />
+            Add Category
+          </button>
+        )}
       </div>
 
       <DataGrid

@@ -23,4 +23,16 @@ export const PATHS = {
     REQUEST: '/api/admins/mobile/request-otp',
     VERIFY:  '/api/admins/mobile/verify-otp',
   },
+  ME: {
+    PERMISSIONS: '/api/admins/me/permissions',
+  },
+  SUB_ADMINS: {
+    LIST:   '/api/admins/sub-admins',
+    CREATE: '/api/admins/sub-admins',
+    BY_ID:  (id: string) => `/api/admins/sub-admins/${id}`,
+    STATUS: (id: string) => `/api/admins/sub-admins/${id}/status`,
+  },
+  ROLE_PERMISSIONS: {
+    BY_ROLE: (role: string) => `/api/admins/roles/${role}/permissions`,
+  },
 } as const;
