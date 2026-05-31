@@ -1,0 +1,234 @@
+import { useEffect, useState, type JSX } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Package, Tag, TrendingUp, Heart, BarChart2, Eye } from 'lucide-react';
+import { useAuth } from '../../hooks/useAuth';
+import { useToast } from '../../hooks/useToast';
+import { getProfile, getProducts } from '../../services/sellerService';
+import { ApiError } from '../../lib/axios';
+import type { ProfileResponse, Product } from '../../types';
+
+const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
+
+function resolveImage(url: string): string {
+  if (!url) return '';
+  if (url.startsWith('http')) return url;
+  return `${API_BASE}${url}`;
+}
+
+function initials(name: string | null): string {
+  if (!name) return 'S';
+  return name
+    .split(' ')
+    .slice(0, 2)
+    .map((w) => w[0])
+    .join('')
+    .toUpperCase();
+}
+
+export default function Dashboard(): JSX.Element {
+  const { seller } = useAuth();
+  const toast = useToast();
+  const navigate = useNavigate();
+
+  const [profile, setProfile] = useState<ProfileResponse | null>(null);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [totalProducts, setTotalProducts] = useState(0);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    async function load(): Promise<void> {
+      try {
+        const [profileData, allProds] = await Promise.all([
+          getProfile(),
+          getProducts({ page: 1, limit: 5 }),
+        ]);
+        setProfile(profileData);
+        setProducts(allProds.products);
+        setTotalProducts(allProds.total);
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : 'Failed to load dashboard');
+      } finally {
+        setLoading(false);
+      }
+    }
+    void load();
+  }, []);
+
+  const businessName = profile?.profile?.businessName ?? seller?.fullName ?? 'Seller';
+
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* ── Teal header ── */}
+      <div
+        className="relative px-5 pt-8 pb-28"
+        style={{
+          background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)',
+          borderRadius: '0 0 28px 28px',
+        }}
+      >
+        {/* Welcome + avatar */}
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-white/70 text-sm font-normal">Welcome back,</p>
+            <h1 className="text-white text-[22px] font-bold leading-tight mt-0.5">{businessName}</h1>
+          </div>
+          <div
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base border-2 border-white/30 shrink-0"
+            style={{ background: 'rgba(255,255,255,0.25)' }}
+          >
+            {initials(businessName)}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Content (overlaps header) ── */}
+      <div className="px-4 -mt-20 relative z-10">
+        {/* Stat cards 2×2 */}
+        <div className="grid grid-cols-2 gap-3 mb-5">
+          <StatCard
+            icon={<Eye size={20} className="text-teal-600" />}
+            iconBg="bg-teal-100"
+            value={loading ? null : '0'}
+            label="Total Views"
+            growth="+0"
+          />
+          <StatCard
+            icon={<Heart size={20} className="text-pink-400" />}
+            iconBg="bg-pink-50"
+            value={loading ? null : '0'}
+            label="Wishlist Saves"
+            growth="+0"
+          />
+          <StatCard
+            icon={<Package size={20} className="text-teal-600" />}
+            iconBg="bg-teal-50"
+            value={loading ? null : String(totalProducts)}
+            label="Products"
+            growth="+0"
+          />
+          <StatCard
+            icon={<TrendingUp size={20} className="text-amber-500" />}
+            iconBg="bg-amber-50"
+            value={loading ? null : '0%'}
+            label="Interest Rate"
+            growth="+0"
+          />
+        </div>
+
+        {/* Top Products */}
+        <div className="mb-6">
+          <h2 className="text-[16px] font-bold text-gray-800 mb-3">Top Products</h2>
+
+          <div className="flex flex-col gap-2.5">
+            {loading ? (
+              Array.from({ length: 3 }).map((_, i) => <ProductRowSkeleton key={i} />)
+            ) : products.length === 0 ? (
+              <div className="bg-white rounded-2xl py-12 text-center shadow-sm">
+                <Package size={36} className="text-gray-200 mx-auto mb-3" />
+                <p className="text-sm text-gray-400">No products yet</p>
+                <button
+                  onClick={() => navigate('/products/add')}
+                  className="mt-3 text-sm font-semibold text-teal-600 hover:text-teal-700"
+                >
+                  Add your first product
+                </button>
+              </div>
+            ) : (
+              products.map((product, i) => (
+                <ProductRow key={product.id} product={product} rank={i + 1} />
+              ))
+            )}
+          </div>
+
+          {!loading && totalProducts > 5 && (
+            <button
+              onClick={() => navigate('/products')}
+              className="w-full mt-3 py-3 text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
+            >
+              View all {totalProducts} products →
+            </button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Stat card ── */
+interface StatCardProps {
+  icon: JSX.Element;
+  iconBg: string;
+  value: string | null;
+  label: string;
+  growth: string;
+}
+
+function StatCard({ icon, iconBg, value, label, growth }: StatCardProps): JSX.Element {
+  return (
+    <div className="bg-white rounded-2xl px-4 py-4 shadow-sm">
+      <div className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center mb-3`}>
+        {icon}
+      </div>
+      {value === null ? (
+        <div className="h-8 w-16 bg-gray-100 rounded-lg animate-pulse mb-1" />
+      ) : (
+        <p className="text-[26px] font-bold text-gray-800 leading-tight">{value}</p>
+      )}
+      <p className="text-xs text-gray-400 mt-0.5 mb-2">{label}</p>
+      <p className="text-xs font-semibold text-teal-600">{growth}</p>
+    </div>
+  );
+}
+
+/* ── Product row ── */
+function ProductRow({ product, rank }: { product: Product; rank: number }): JSX.Element {
+  const imageUrl = product.images?.[0] ? resolveImage(product.images[0]) : null;
+
+  return (
+    <div className="bg-white rounded-2xl flex items-center gap-3 px-4 py-3.5 shadow-sm">
+      {/* Rank */}
+      <span className="text-xs font-bold text-gray-300 w-6 shrink-0">#{rank}</span>
+
+      {/* Circular image */}
+      <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center border border-gray-100">
+        {imageUrl ? (
+          <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" />
+        ) : (
+          <Package size={18} className="text-gray-300" />
+        )}
+      </div>
+
+      {/* Name + stock */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-800 truncate">{product.name}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{product.stock} in stock</p>
+      </div>
+
+      {/* Growth indicator */}
+      <div className="flex items-center gap-1 shrink-0">
+        <BarChart2 size={14} className="text-teal-500" />
+        <span
+          className={`text-xs font-semibold ${
+            product.isActive ? 'text-teal-600' : 'text-gray-400'
+          }`}
+        >
+          {product.isActive ? 'Active' : 'Inactive'}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+function ProductRowSkeleton(): JSX.Element {
+  return (
+    <div className="bg-white rounded-2xl flex items-center gap-3 px-4 py-3.5 shadow-sm animate-pulse">
+      <div className="w-6 h-3 bg-gray-100 rounded" />
+      <div className="w-12 h-12 rounded-full bg-gray-100 shrink-0" />
+      <div className="flex-1">
+        <div className="h-3.5 bg-gray-100 rounded w-3/4 mb-2" />
+        <div className="h-3 bg-gray-100 rounded w-1/3" />
+      </div>
+      <div className="h-4 w-14 bg-gray-100 rounded" />
+    </div>
+  );
+}
