@@ -1,5 +1,6 @@
 import { useState, useEffect, type JSX } from 'react';
-import { Loader2 } from 'lucide-react';
+import { useParams, useNavigate, Navigate } from 'react-router-dom';
+import { Loader2, ArrowLeft } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { getRolePermissions, saveRolePermissions } from '../../services/rolePermissionService';
 import type { PermissionModule, PermissionAction, PermissionMap } from '../../types';
@@ -27,6 +28,11 @@ function isNA(module: PermissionModule, action: PermissionAction): boolean {
   return NOT_APPLICABLE[module]?.includes(action) ?? false;
 }
 
+const ROLE_LABEL: Record<'manager' | 'operator', string> = {
+  manager:  'Manager',
+  operator: 'Operator',
+};
+
 // ── Permission Matrix ──────────────────────────────────────────────────────────
 
 interface MatrixProps {
@@ -35,9 +41,9 @@ interface MatrixProps {
 
 function PermissionMatrix({ role }: MatrixProps): JSX.Element {
   const toast = useToast();
-  const [map, setMap]           = useState<PermissionMap>({});
-  const [loading, setLoading]   = useState(true);
-  const [saving, setSaving]     = useState(false);
+  const [map, setMap]         = useState<PermissionMap>({});
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving]   = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -151,35 +157,33 @@ function PermissionMatrix({ role }: MatrixProps): JSX.Element {
 
 // ── RolePermissions page ───────────────────────────────────────────────────────
 
-type Tab = 'manager' | 'operator';
-
 export default function RolePermissions(): JSX.Element {
-  const [activeTab, setActiveTab] = useState<Tab>('manager');
+  const { role } = useParams<{ role: string }>();
+  const navigate = useNavigate();
+
+  if (role !== 'manager' && role !== 'operator') {
+    return <Navigate to="/role-permissions" replace />;
+  }
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Role Permissions</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Configure what each role can access</p>
+      <div className="flex items-center gap-3">
+        <button
+          onClick={() => navigate('/role-permissions')}
+          className="p-1.5 text-gray-400 hover:text-gray-700 rounded-lg hover:bg-gray-100 transition-colors"
+          title="Back to roles"
+        >
+          <ArrowLeft className="w-5 h-5" />
+        </button>
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">
+            {ROLE_LABEL[role]} Permissions
+          </h1>
+          <p className="text-sm text-gray-500 mt-0.5">Configure what the {ROLE_LABEL[role].toLowerCase()} role can access</p>
+        </div>
       </div>
 
-      <div className="flex gap-1 bg-gray-100 p-1 rounded-lg w-fit">
-        {(['manager', 'operator'] as Tab[]).map(tab => (
-          <button
-            key={tab}
-            onClick={() => setActiveTab(tab)}
-            className={`px-5 py-1.5 rounded-md text-sm font-medium transition-colors capitalize ${
-              activeTab === tab
-                ? 'bg-white text-gray-900 shadow-sm'
-                : 'text-gray-500 hover:text-gray-700'
-            }`}
-          >
-            {tab}
-          </button>
-        ))}
-      </div>
-
-      <PermissionMatrix key={activeTab} role={activeTab} />
+      <PermissionMatrix role={role} />
     </div>
   );
 }
