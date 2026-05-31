@@ -6,6 +6,7 @@ import {
   uploadImage, createProduct, getProducts,
   getProduct, updateProduct, toggleProduct, deleteProduct,
 } from '../../controllers/seller/productController';
+import { analyzeImage } from '../../controllers/seller/imageAnalysisController';
 import { getCategories } from '../../controllers/seller/categoryController';
 import { validate } from '../../middleware/validate';
 import upload from '../../middleware/upload';
@@ -25,7 +26,8 @@ router.get('/profile', requireSeller, getProfile);
 router.put('/profile', requireSeller, validate(updateSellerSchema),  updateSeller);
 router.put('/address', requireSeller, validate(updateAddressSchema), updateAddress);
 
-router.post('/products/images',       requireSeller, upload.single('image'), uploadImage);
+router.post('/products/images',          requireSeller, upload.single('image'), uploadImage);
+router.post('/products/analyze-image',   requireSeller, upload.single('image'), analyzeImage);
 router.post('/products',              requireSeller, validate(createProductSchema), createProduct);
 router.get('/products',               requireSeller, getProducts);
 router.get('/products/:id',           requireSeller, getProduct);
