@@ -1,21 +1,22 @@
-import { type JSX } from 'react';
+import { type JSX, lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
 import Toaster from './components/ui/Toaster';
 import DashboardLayout from './components/layout/DashboardLayout';
 import GuestLayout from './components/layout/GuestLayout';
-import Login from './pages/auth/Login';
-import ForgotPassword from './pages/auth/ForgotPassword';
-import ResetPassword from './pages/auth/ResetPassword';
-import Dashboard from './pages/dashboard/Dashboard';
-import SellerList from './pages/sellers/SellerList';
-import SellerForm from './pages/sellers/SellerForm';
-import CategoryList from './pages/categories/CategoryList';
-import ProductList from './pages/products/ProductList';
-import SubAdminList from './pages/sub-admins/SubAdminList';
-import RoleList from './pages/sub-admins/RoleList';
-import RolePermissions from './pages/sub-admins/RolePermissions';
+
+const Login = lazy(() => import('./pages/auth/Login'));
+const ForgotPassword = lazy(() => import('./pages/auth/ForgotPassword'));
+const ResetPassword = lazy(() => import('./pages/auth/ResetPassword'));
+const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
+const SellerList = lazy(() => import('./pages/sellers/SellerList'));
+const SellerForm = lazy(() => import('./pages/sellers/SellerForm'));
+const CategoryList = lazy(() => import('./pages/categories/CategoryList'));
+const ProductList = lazy(() => import('./pages/products/ProductList'));
+const SubAdminList = lazy(() => import('./pages/sub-admins/SubAdminList'));
+const RoleList = lazy(() => import('./pages/sub-admins/RoleList'));
+const RolePermissions = lazy(() => import('./pages/sub-admins/RolePermissions'));
 
 export default function App(): JSX.Element {
   return (
@@ -23,6 +24,7 @@ export default function App(): JSX.Element {
       <Toaster />
       <AuthProvider>
         <BrowserRouter>
+        <Suspense fallback={null}>
         <Routes>
           {/* Auth */}
           <Route element={<GuestLayout />}>
@@ -46,6 +48,7 @@ export default function App(): JSX.Element {
 
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </Suspense>
         </BrowserRouter>
       </AuthProvider>
     </ToastProvider>
