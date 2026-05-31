@@ -1,11 +1,13 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
+import { ModulePrefsProvider } from './hooks/useModulePrefs';
 import Toaster from './components/ui/Toaster';
 import AppLayout from './components/layout/AppLayout';
 import Login from './pages/auth/Login';
 import VerifyOtp from './pages/auth/VerifyOtp';
 import Dashboard from './pages/dashboard/Dashboard';
+import Profile from './pages/profile/Profile';
 import type { JSX } from 'react';
 
 function AuthGuard({ children }: { children: JSX.Element }): JSX.Element {
@@ -26,25 +28,16 @@ function AppRoutes(): JSX.Element {
   return (
     <Routes>
       {/* Guest routes */}
-      <Route
-        path="/login"
-        element={<GuestGuard><Login /></GuestGuard>}
-      />
-      <Route
-        path="/verify-otp"
-        element={<GuestGuard><VerifyOtp /></GuestGuard>}
-      />
+      <Route path="/login"      element={<GuestGuard><Login /></GuestGuard>} />
+      <Route path="/verify-otp" element={<GuestGuard><VerifyOtp /></GuestGuard>} />
 
-      {/* Authenticated routes inside AppLayout */}
-      <Route
-        element={<AuthGuard><AppLayout /></AuthGuard>}
-      >
-        <Route path="/dashboard" element={<Dashboard />} />
-        {/* Placeholder routes — pages to be built */}
+      {/* Authenticated routes */}
+      <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
+        <Route path="/dashboard"    element={<Dashboard />} />
+        <Route path="/profile"      element={<Profile />} />
         <Route path="/products"     element={<Placeholder title="Products" />} />
         <Route path="/products/add" element={<Placeholder title="Add Product" />} />
         <Route path="/pnl"          element={<Placeholder title="P&L" />} />
-        <Route path="/profile"      element={<Placeholder title="Profile" />} />
       </Route>
 
       <Route path="*" element={<Navigate to="/login" replace />} />
@@ -64,10 +57,12 @@ export default function App(): JSX.Element {
   return (
     <BrowserRouter>
       <ToastProvider>
-        <AuthProvider>
-          <AppRoutes />
-        </AuthProvider>
-        <Toaster />
+        <ModulePrefsProvider>
+          <AuthProvider>
+            <AppRoutes />
+          </AuthProvider>
+          <Toaster />
+        </ModulePrefsProvider>
       </ToastProvider>
     </BrowserRouter>
   );

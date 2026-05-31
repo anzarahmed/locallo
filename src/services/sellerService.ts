@@ -1,9 +1,21 @@
-import { apiGet } from '../lib/axios';
+import { apiGet, apiPut } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { ProfileResponse, ProductsResponse } from '../types';
+import type { ProfileResponse, ProductsResponse, SellerCategory } from '../types';
 
 export function getProfile(): Promise<ProfileResponse> {
   return apiGet(PATHS.PROFILE);
+}
+
+export function updateProfile(data: Record<string, unknown>): Promise<ProfileResponse> {
+  return apiPut(PATHS.PROFILE, data);
+}
+
+export function updateAddress(data: { address: string; lat: number; long: number }): Promise<unknown> {
+  return apiPut(PATHS.ADDRESS, data);
+}
+
+export function getCategories(): Promise<{ categories: SellerCategory[] }> {
+  return apiGet(PATHS.CATEGORIES);
 }
 
 export function getProducts(params?: {

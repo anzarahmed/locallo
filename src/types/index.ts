@@ -21,6 +21,7 @@ export interface SellerCategory {
 export interface SellerProfile {
   id: number;
   businessName: string | null;
+  email: string | null;
   bio: string | null;
   address: string | null;
   city: string | null;
@@ -30,6 +31,7 @@ export interface SellerProfile {
   long: number | null;
   categoryIds: number[];
   categories: SellerCategory[];
+  workingHours: Record<string, unknown> | null;
   isVerified: boolean;
   isActive: boolean;
 }
