@@ -3,6 +3,7 @@ export interface Seller {
   mobile: string;
   countryCode: string;
   fullName: string | null;
+  businessName?: string | null;
   isVerified: boolean;
   isActive: boolean;
 }

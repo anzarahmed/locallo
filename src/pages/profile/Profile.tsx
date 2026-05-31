@@ -39,7 +39,7 @@ const DEFAULT_LAT = 19.076;
 const DEFAULT_LNG = 72.8777;
 
 export default function Profile(): JSX.Element {
-  const { seller } = useAuth();
+  const { seller, updateSeller } = useAuth();
   const toast = useToast();
   const { showPnl, setShowPnl } = useModulePrefs();
 
@@ -74,6 +74,7 @@ export default function Profile(): JSX.Element {
 
         setCategories(p.categories ?? []);
         setCategoryIds(p.categoryIds ?? []);
+        updateSeller({ businessName: p.businessName });
 
         void profileForm.setValues({
           businessName: p.businessName ?? '',

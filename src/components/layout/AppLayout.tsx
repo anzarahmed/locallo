@@ -109,7 +109,7 @@ function ProfileMenu({ seller, logout, navigate }: ProfileMenuProps): JSX.Elemen
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
-  const initial = (seller?.fullName ?? seller?.mobile ?? 'S')[0].toUpperCase();
+  const initial = (seller?.businessName ?? seller?.fullName ?? seller?.mobile ?? 'S')[0].toUpperCase();
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent): void {
@@ -125,7 +125,7 @@ function ProfileMenu({ seller, logout, navigate }: ProfileMenuProps): JSX.Elemen
     <div ref={ref} className="relative">
       <button
         onClick={() => setOpen((v) => !v)}
-        className="flex items-center gap-1 group"
+        className="flex items-center gap-1 group cursor-pointer"
         aria-label="Profile menu"
       >
         <div
@@ -153,7 +153,7 @@ function ProfileMenu({ seller, logout, navigate }: ProfileMenuProps): JSX.Elemen
           {/* Menu items */}
           <button
             onClick={() => { setOpen(false); navigate('/profile'); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors"
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
           >
             <User size={15} className="text-gray-400" />
             Profile
@@ -162,7 +162,7 @@ function ProfileMenu({ seller, logout, navigate }: ProfileMenuProps): JSX.Elemen
           <div className="border-t border-gray-50 mt-1 pt-1">
             <button
               onClick={() => { setOpen(false); logout(); }}
-              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors"
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-red-500 hover:bg-red-50 transition-colors cursor-pointer"
             >
               <LogOut size={15} />
               Logout

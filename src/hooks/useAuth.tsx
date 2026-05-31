@@ -5,6 +5,7 @@ interface AuthContextValue extends AuthState {
   isRestoring: boolean;
   login: (token: string, seller: Seller) => void;
   logout: () => void;
+  updateSeller: (partial: Partial<Seller>) => void;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -39,8 +40,17 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setState({ token: null, seller: null });
   }
 
+  function updateSeller(partial: Partial<Seller>): void {
+    setState((prev) => {
+      if (!prev.seller) return prev;
+      const updated = { ...prev.seller, ...partial };
+      localStorage.setItem('seller_user', JSON.stringify(updated));
+      return { ...prev, seller: updated };
+    });
+  }
+
   return (
-    <AuthContext.Provider value={{ ...state, isRestoring, login, logout }}>
+    <AuthContext.Provider value={{ ...state, isRestoring, login, logout, updateSeller }}>
       {children}
     </AuthContext.Provider>
   );
