@@ -85,19 +85,48 @@ export async function createProduct(
   return product.reload({ include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }] });
 }
 
+type ProductFilter = 'all' | 'visible' | 'hidden';
+type ProductSortBy =
+  | 'sort_newest'
+  | 'sort_price_high_low'
+  | 'sort_price_low_high'
+  | 'sort_most_wishlisted'
+  | 'sort_top_rated'
+  | 'sort_stock_high_low'
+  | 'sort_stock_low_high'
+  | 'sort_visible_first'
+  | 'sort_hidden_first'
+  | 'sort_name_az';
+
+function resolveOrder(sortBy: ProductSortBy): [string, string][] {
+  switch (sortBy) {
+    case 'sort_price_high_low':  return [['sellingPrice', 'DESC']];
+    case 'sort_price_low_high':  return [['sellingPrice', 'ASC']];
+    case 'sort_stock_high_low':  return [['stock', 'DESC']];
+    case 'sort_stock_low_high':  return [['stock', 'ASC']];
+    case 'sort_visible_first':   return [['isActive', 'DESC'], ['createdAt', 'DESC']];
+    case 'sort_hidden_first':    return [['isActive', 'ASC'], ['createdAt', 'DESC']];
+    case 'sort_name_az':         return [['name', 'ASC']];
+    // sort_most_wishlisted and sort_top_rated fall back until those tables exist
+    default:                     return [['createdAt', 'DESC']];
+  }
+}
+
 export async function getSellerProducts(
   sellerId: string,
   page: number,
   limit: number,
-  isActive?: boolean,
+  filter: ProductFilter = 'all',
+  sortBy: ProductSortBy = 'sort_newest',
 ): Promise<{ rows: Product[]; count: number }> {
   const where: Record<string, unknown> = { sellerId };
-  if (isActive !== undefined) where.isActive = isActive;
+  if (filter === 'visible') where.isActive = true;
+  if (filter === 'hidden')  where.isActive = false;
 
   return Product.findAndCountAll({
     where,
     include: [{ model: Category, attributes: ['id', 'name', 'slug'] }],
-    order: [['createdAt', 'DESC']],
+    order: resolveOrder(sortBy),
     limit,
     offset: (page - 1) * limit,
   });

@@ -22,16 +22,28 @@ export async function createProduct(req: Request, res: Response): Promise<void> 
   }
 }
 
-export async function getProducts(req: Request, res: Response): Promise<void> {
-  const page  = Math.max(1, Number(req.query.page)  || 1);
-  const limit = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
-  const isActive = req.query.isActive === 'true'
-    ? true
-    : req.query.isActive === 'false'
-    ? false
-    : undefined;
+const VALID_FILTERS  = ['all', 'visible', 'hidden'] as const;
+const VALID_SORT_BY  = [
+  'sort_newest', 'sort_price_high_low', 'sort_price_low_high',
+  'sort_most_wishlisted', 'sort_top_rated',
+  'sort_stock_high_low', 'sort_stock_low_high',
+  'sort_visible_first', 'sort_hidden_first', 'sort_name_az',
+] as const;
 
-  const { rows, count } = await productService.getSellerProducts(req.seller!.id, page, limit, isActive);
+type ProductFilter = typeof VALID_FILTERS[number];
+type ProductSortBy = typeof VALID_SORT_BY[number];
+
+export async function getProducts(req: Request, res: Response): Promise<void> {
+  const page   = Math.max(1, Number(req.query.page) || 1);
+  const limit  = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+  const filter = (VALID_FILTERS.includes(req.query.filter as ProductFilter)
+    ? req.query.filter : 'all') as ProductFilter;
+  const sortBy = (VALID_SORT_BY.includes(req.query.sortBy as ProductSortBy)
+    ? req.query.sortBy : 'sort_newest') as ProductSortBy;
+
+  const { rows, count } = await productService.getSellerProducts(
+    req.seller!.id, page, limit, filter, sortBy,
+  );
   sendSuccess(res, { products: rows, total: count, page, limit }, 'Products fetched');
 }
 
