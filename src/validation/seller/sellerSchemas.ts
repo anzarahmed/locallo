@@ -1,5 +1,14 @@
 import * as Yup from 'yup';
 
+export const updateNotificationSettingsSchema = Yup.object({
+  pushNotifications:    Yup.boolean().required(),
+  emailUpdates:         Yup.boolean().required(),
+  smsAlerts:            Yup.boolean().required(),
+  offersAndPromotions:  Yup.boolean().required(),
+  wishlistPriceDrops:   Yup.boolean().required(),
+  sellerUpdates:        Yup.boolean().required(),
+});
+
 const dayScheduleSchema = Yup.object({
   isClosed: Yup.boolean().required(),
   open: Yup.string().ensure(),

@@ -3,6 +3,7 @@ import { Op, literal } from 'sequelize';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
+import type { NotificationSettings } from '../../types';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
 type CreateSellerInput       = InferType<typeof createSellerSchema>;
@@ -233,6 +234,26 @@ export async function adminUpdateSeller(
 
     return { user, profile };
   });
+}
+
+export async function getSellerSettings(userId: string): Promise<NotificationSettings> {
+  const profile = await SellerProfile.findOne({ where: { userId } });
+  if (!profile) {
+    throw Object.assign(new Error('Seller profile not found'), { status: 404 });
+  }
+  return profile.notificationSettings;
+}
+
+export async function updateSellerSettings(
+  userId: string,
+  settings: NotificationSettings,
+): Promise<NotificationSettings> {
+  const profile = await SellerProfile.findOne({ where: { userId } });
+  if (!profile) {
+    throw Object.assign(new Error('Seller profile not found'), { status: 404 });
+  }
+  await profile.update({ notificationSettings: settings });
+  return profile.notificationSettings;
 }
 
 export async function toggleSellerStatus(id: string): Promise<User> {

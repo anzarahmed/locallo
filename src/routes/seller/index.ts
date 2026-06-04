@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireSeller } from '../../middleware/auth';
-import { getProfile, updateSeller, updateAddress } from '../../controllers/seller/sellerController';
+import { getProfile, updateSeller, updateAddress, getSettings, updateSettings } from '../../controllers/seller/sellerController';
 import { requestOtp, verifyOtp, logout } from '../../controllers/seller/sellerAuthController';
 import {
   uploadImage, createProduct, getProducts,
@@ -10,7 +10,7 @@ import { analyzeImage } from '../../controllers/seller/imageAnalysisController';
 import { getCategories } from '../../controllers/seller/categoryController';
 import { validate } from '../../middleware/validate';
 import upload from '../../middleware/upload';
-import { updateSellerSchema, updateAddressSchema } from '../../validation/seller/sellerSchemas';
+import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema } from '../../validation/seller/sellerSchemas';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/sellerAuthSchemas';
 import { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 
@@ -25,6 +25,9 @@ router.get('/categories', requireSeller, getCategories);
 router.get('/profile', requireSeller, getProfile);
 router.put('/profile', requireSeller, validate(updateSellerSchema),  updateSeller);
 router.put('/address', requireSeller, validate(updateAddressSchema), updateAddress);
+
+router.get('/settings', requireSeller, getSettings);
+router.put('/settings', requireSeller, validate(updateNotificationSettingsSchema), updateSettings);
 
 router.post('/products/images',          requireSeller, upload.single('image'), uploadImage);
 router.post('/products/analyze-image',   requireSeller, upload.single('image'), analyzeImage);

@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus } from '../../services/seller/sellerService';
+import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, getSellerSettings, updateSellerSettings } from '../../services/seller/sellerService';
 import { sendSuccess, sendError } from '../../utils/response';
 import { Category } from '../../models/Category';
 
@@ -23,6 +23,32 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
       isActive: user.isActive,
       profile: { ...profile.toJSON(), categories },
     }, 'Profile fetched');
+  } catch (err: unknown) {
+    if ((err as { status?: number }).status === 404) {
+      sendError(res, (err as Error).message, 404);
+      return;
+    }
+    sendError(res, 'Internal server error');
+  }
+}
+
+export async function getSettings(req: Request, res: Response): Promise<void> {
+  try {
+    const notificationSettings = await getSellerSettings(req.seller!.id);
+    sendSuccess(res, { notificationSettings }, 'Settings fetched');
+  } catch (err: unknown) {
+    if ((err as { status?: number }).status === 404) {
+      sendError(res, (err as Error).message, 404);
+      return;
+    }
+    sendError(res, 'Internal server error');
+  }
+}
+
+export async function updateSettings(req: Request, res: Response): Promise<void> {
+  try {
+    const notificationSettings = await updateSellerSettings(req.seller!.id, req.body);
+    sendSuccess(res, { notificationSettings }, 'Settings updated');
   } catch (err: unknown) {
     if ((err as { status?: number }).status === 404) {
       sendError(res, (err as Error).message, 404);

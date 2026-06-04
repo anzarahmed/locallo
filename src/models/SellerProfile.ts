@@ -14,6 +14,7 @@ import {
 } from 'sequelize-typescript';
 import { Admin } from './Admin';
 import { User } from './User';
+import type { NotificationSettings } from '../types';
 
 @Table({ tableName: 'seller_profiles', timestamps: true, underscored: true })
 export class SellerProfile extends Model {
@@ -91,6 +92,18 @@ export class SellerProfile extends Model {
   @AllowNull(false)
   @Column(DataType.JSONB)
   declare workingHours: Record<string, unknown>;
+
+  @Default({
+    pushNotifications: false,
+    emailUpdates: false,
+    smsAlerts: false,
+    offersAndPromotions: false,
+    wishlistPriceDrops: false,
+    sellerUpdates: false,
+  })
+  @AllowNull(false)
+  @Column(DataType.JSONB)
+  declare notificationSettings: NotificationSettings;
 
   @Column(DataType.DATE)
   declare verifiedAt: Date | null;
