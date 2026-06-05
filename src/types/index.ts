@@ -13,10 +13,42 @@ export interface AuthState {
   token: string | null;
 }
 
+export type AttributeFieldType = 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'color';
+
+export interface AttributeFieldOption {
+  label: string;
+  value: string;
+  hex?: string;
+}
+
+export interface AttributeField {
+  key: string;
+  label: string;
+  type: AttributeFieldType;
+  required: boolean;
+  unit?: string;
+  options?: AttributeFieldOption[];
+}
+
 export interface SellerCategory {
   id: number;
   name: string;
   slug: string;
+  attributeSchema?: AttributeField[];
+}
+
+export interface ImageAnalysisResult {
+  imageUrl: string;
+  suggestions: {
+    name: string | null;
+    description: string | null;
+    categoryId: number | null;
+    categorySlug: string | null;
+    categoryName: string | null;
+    confidence: 'high' | 'medium' | 'low';
+    attributes: Record<string, unknown>;
+  } | null;
+  attributeSchema: AttributeField[];
 }
 
 export interface SellerProfile {
@@ -57,6 +89,8 @@ export interface Product {
   images: string[];
   isActive: boolean;
   categoryId: number;
+  category?: SellerCategory;
+  attributes?: Record<string, unknown>;
   createdAt: string;
 }
 
@@ -65,4 +99,16 @@ export interface ProductsResponse {
   total: number;
   page: number;
   limit: number;
+}
+
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  attributes: Record<string, unknown>;
+  images: string[];
+  stock: number;
+  sellingPrice: number;
+  mrp: number | null;
+  isActive: boolean;
+  createdAt: string;
 }

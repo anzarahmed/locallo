@@ -6,6 +6,8 @@ export const PATHS = {
   },
   PROFILE:    '/api/sellers/profile',
   ADDRESS:    '/api/sellers/address',
-  PRODUCTS:   '/api/sellers/products',
-  CATEGORIES: '/api/sellers/categories',
+  PRODUCTS:       '/api/sellers/products',
+  UPLOAD_IMAGE:   '/api/sellers/products/images',
+  ANALYZE_IMAGE:  '/api/sellers/products/analyze-image',
+  CATEGORIES:     '/api/sellers/categories',
 } as const;
