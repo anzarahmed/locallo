@@ -8,11 +8,13 @@ import {
   DataType,
   ForeignKey,
   BelongsTo,
+  HasMany,
   CreatedAt,
   UpdatedAt,
 } from 'sequelize-typescript';
 import { User } from './User';
 import { Category } from './Category';
+import { ProductVariant } from './ProductVariant';
 
 @Table({ tableName: 'products', timestamps: true, underscored: true })
 export class Product extends Model {
@@ -83,6 +85,9 @@ export class Product extends Model {
 
   @BelongsTo(() => Category)
   declare category: Category;
+
+  @HasMany(() => ProductVariant)
+  declare variants: ProductVariant[];
 
   @CreatedAt
   declare createdAt: Date;
