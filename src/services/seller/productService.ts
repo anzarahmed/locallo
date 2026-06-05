@@ -2,6 +2,7 @@ import type { InferType } from 'yup';
 import { Op } from 'sequelize';
 import { Product } from '../../models/Product';
 import { Category } from '../../models/Category';
+import { ProductVariant } from '../../models/ProductVariant';
 import type { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import type { AttributeField } from '../../types';
 
@@ -135,7 +136,10 @@ export async function getSellerProducts(
 export async function getSellerProduct(sellerId: string, productId: string): Promise<Product> {
   const product = await Product.findOne({
     where: { id: productId, sellerId },
-    include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }],
+    include: [
+      { model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] },
+      { model: ProductVariant, attributes: ['id'] },
+    ],
   });
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });
@@ -164,6 +168,8 @@ export async function updateSellerProduct(
     validateAttributes(mergedAttributes, category.attributeSchema);
   }
 
+  const hasVariants = await ProductVariant.count({ where: { productId: product.id } }) > 0;
+
   await product.update({
     ...(data.name          !== undefined && { name:          data.name }),
     ...(data.description   !== undefined && { description:   data.description }),
@@ -171,7 +177,7 @@ export async function updateSellerProduct(
     ...(data.mrp           !== undefined && { mrp:           data.mrp }),
     ...(data.costPrice     !== undefined && { costPrice:     data.costPrice }),
     ...(data.categoryId    !== undefined && { categoryId:    data.categoryId }),
-    ...(data.stock         !== undefined && { stock:         data.stock }),
+    ...(!hasVariants && data.stock !== undefined && { stock: data.stock }),
     ...(data.images        !== undefined && { images:        data.images }),
     ...(data.attributes    !== undefined && { attributes:    data.attributes }),
     ...(data.pickupAddress !== undefined && { pickupAddress: data.pickupAddress }),

@@ -4,6 +4,11 @@ import { ProductVariant } from '../../models/ProductVariant';
 import { Category } from '../../models/Category';
 import type { createVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
 
+async function syncProductStock(productId: string): Promise<void> {
+  const total = ((await ProductVariant.sum('stock', { where: { productId } })) as number | null) ?? 0;
+  await Product.update({ stock: total }, { where: { id: productId } });
+}
+
 type CreateVariantInput = InferType<typeof createVariantSchema>;
 type UpdateVariantInput = InferType<typeof updateVariantSchema>;
 
@@ -45,7 +50,7 @@ export async function createVariant(
 ): Promise<ProductVariant> {
   await requireOwnProduct(sellerId, productId);
 
-  return ProductVariant.create({
+  const variant = await ProductVariant.create({
     productId,
     attributes:   data.attributes,
     images:       data.images,
@@ -54,6 +59,8 @@ export async function createVariant(
     mrp:          data.mrp ?? null,
     isActive:     data.isActive ?? true,
   });
+  await syncProductStock(productId);
+  return variant;
 }
 
 export async function updateVariant(
@@ -74,6 +81,7 @@ export async function updateVariant(
     ...(data.isActive     !== undefined && { isActive:     data.isActive }),
   });
 
+  await syncProductStock(productId);
   return variant;
 }
 
@@ -85,6 +93,7 @@ export async function deleteVariant(
   await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
   await variant.destroy();
+  await syncProductStock(productId);
 }
 
 export async function toggleVariant(
@@ -97,3 +106,4 @@ export async function toggleVariant(
   await variant.update({ isActive: !variant.isActive });
   return variant;
 }
+
