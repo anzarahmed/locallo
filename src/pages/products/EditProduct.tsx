@@ -54,6 +54,7 @@ export default function EditProduct(): JSX.Element {
   const [attributeSchema, setAttributeSchema] = useState<AttributeField[]>([]);
   const [attributes, setAttributes] = useState<Record<string, AttrValue>>({});
   const [initialValues, setInitialValues] = useState<AddProductFormValues>(EMPTY_VALUES);
+  const [hasVariants, setHasVariants] = useState(false);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -64,6 +65,7 @@ export default function EditProduct(): JSX.Element {
         ]);
         setCategories(cats);
         setImages(product.images ?? []);
+        setHasVariants((product.variants?.length ?? 0) > 0);
         const schema = product.category?.attributeSchema ?? [];
         setAttributeSchema(schema);
         setAttributes(normalizeAttrValues(product.attributes ?? {}, schema));
@@ -157,7 +159,7 @@ export default function EditProduct(): JSX.Element {
         sellingPrice: Number(values.sellingPrice),
         mrp:          values.mrp      ? Number(values.mrp)      : undefined,
         costPrice:    values.costPrice ? Number(values.costPrice) : undefined,
-        stock:        Number(values.stock),
+        ...(hasVariants ? {} : { stock: Number(values.stock) }),
         images,
         attributes,
       });
@@ -353,17 +355,28 @@ export default function EditProduct(): JSX.Element {
           {/* Inventory */}
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-sm font-semibold text-gray-700 mb-4">Inventory</p>
-            <Field label="Stock Quantity" required error={form.touched.stock ? form.errors.stock as string : undefined}>
-              <input
-                name="stock"
-                type="number"
-                min={0}
-                step="1"
-                value={form.values.stock}
-                onChange={form.handleChange}
-                onBlur={form.handleBlur}
-                className={inputCls(!!form.touched.stock && !!form.errors.stock)}
-              />
+            <Field
+              label="Stock Quantity"
+              required={!hasVariants}
+              error={!hasVariants && form.touched.stock ? form.errors.stock as string : undefined}
+            >
+              {hasVariants ? (
+                <div className="w-full border border-gray-200 rounded-xl text-sm px-3 py-2.5 bg-gray-50 flex items-center justify-between">
+                  <span className="font-semibold text-gray-700">{form.values.stock}</span>
+                  <span className="text-xs text-gray-400">Sum of variants</span>
+                </div>
+              ) : (
+                <input
+                  name="stock"
+                  type="number"
+                  min={0}
+                  step="1"
+                  value={form.values.stock}
+                  onChange={form.handleChange}
+                  onBlur={form.handleBlur}
+                  className={inputCls(!!form.touched.stock && !!form.errors.stock)}
+                />
+              )}
             </Field>
           </div>
 

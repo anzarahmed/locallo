@@ -91,6 +91,7 @@ export interface Product {
   categoryId: number;
   category?: SellerCategory;
   attributes?: Record<string, unknown>;
+  variants?: Array<{ id: string }>;
   createdAt: string;
 }
 
