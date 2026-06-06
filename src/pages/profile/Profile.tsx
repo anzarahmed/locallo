@@ -315,7 +315,7 @@ export default function Profile(): JSX.Element {
             <button
               type="button"
               onClick={() =>
-                window.open(`https://www.google.com/maps?q=${mapLat},${mapLng}`, '_blank')
+                window.open(`https://maps.google.com/?q=${encodeURIComponent(address)}`, '_blank')
               }
               className="w-full py-3 rounded-xl border-2 border-teal-500 text-teal-600 font-semibold text-sm flex items-center justify-center gap-2 hover:bg-teal-50 transition-colors"
             >
