@@ -3,12 +3,12 @@ import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSe
 import { sendSuccess, sendError } from '../../utils/response';
 import { Category } from '../../models/Category';
 
-interface CategoryObj { id: number; name: string; slug: string }
+interface CategoryObj { id: number; name: string; slug: string; attributeSchema: unknown[] }
 
 async function resolveCats(ids: number[]): Promise<CategoryObj[]> {
   if (ids.length === 0) return [];
-  const rows = await Category.findAll({ where: { id: ids }, attributes: ['id', 'name', 'slug'] });
-  return rows.map(c => ({ id: c.id, name: c.name, slug: c.slug }));
+  const rows = await Category.findAll({ where: { id: ids }, attributes: ['id', 'name', 'slug', 'attributeSchema'] });
+  return rows.map(c => ({ id: c.id, name: c.name, slug: c.slug, attributeSchema: c.attributeSchema ?? [] }));
 }
 
 export async function getProfile(req: Request, res: Response): Promise<void> {
