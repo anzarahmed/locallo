@@ -77,7 +77,7 @@ export default function AddProduct(): JSX.Element {
       sellingPrice: '',
       mrp: '',
       costPrice: '',
-      stock: '',
+      stock: '0',
     },
     validationSchema: addProductSchema,
     validateOnBlur: true,

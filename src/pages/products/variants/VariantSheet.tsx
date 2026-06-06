@@ -236,7 +236,7 @@ export default function VariantSheet({
     initialValues: {
       sellingPrice: isEdit ? String(variant.sellingPrice) : String(product.sellingPrice),
       mrp:          isEdit && variant.mrp != null ? String(variant.mrp) : product.mrp != null ? String(product.mrp) : '',
-      stock:        isEdit ? String(variant.stock) : '',
+      stock:        isEdit ? String(variant.stock) : '0',
     },
     validationSchema: variantFormSchema,
     validateOnBlur: true,

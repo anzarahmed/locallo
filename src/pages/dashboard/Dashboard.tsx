@@ -183,6 +183,7 @@ function StatCard({ icon, iconBg, value, label, growth }: StatCardProps): JSX.El
 /* ── Product row ── */
 function ProductRow({ product, rank }: { product: Product; rank: number }): JSX.Element {
   const imageUrl = product.images?.[0] ? resolveImage(product.images[0]) : null;
+  const [imgError, setImgError] = useState(false);
 
   return (
     <div className="bg-white rounded-2xl flex items-center gap-3 px-4 py-3.5 shadow-sm">
@@ -191,8 +192,13 @@ function ProductRow({ product, rank }: { product: Product; rank: number }): JSX.
 
       {/* Circular image */}
       <div className="w-12 h-12 rounded-full bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center border border-gray-100">
-        {imageUrl ? (
-          <img src={imageUrl} alt={product.name} className="w-full h-full object-cover" />
+        {imageUrl && !imgError ? (
+          <img
+            src={imageUrl}
+            alt={product.name}
+            className="w-full h-full object-cover"
+            onError={() => setImgError(true)}
+          />
         ) : (
           <Package size={18} className="text-gray-300" />
         )}
