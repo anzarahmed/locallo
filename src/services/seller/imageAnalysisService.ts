@@ -1,5 +1,5 @@
 import { Category } from '../../models/Category';
-import { saveImage } from '../../utils/imageStorage';
+import { saveImage, getPresignedUrl } from '../../utils/imageStorage';
 import { analyzeProductImage, mapAnalysisToAttributes } from '../../utils/imageAnalyzer';
 import type { AttributeField } from '../../types';
 
@@ -21,7 +21,8 @@ export async function analyzeAndSaveImage(
   file: Express.Multer.File,
   sellerId: string,
 ): Promise<ImageAnalysisResponse> {
-  const imageUrl = await saveImage(file, sellerId);
+  const imageKey = await saveImage(file, sellerId);
+  const imageUrl = await getPresignedUrl(imageKey);
 
   if (!process.env.GEMINI_API_KEY) {
     return { imageUrl, suggestions: null, attributeSchema: [] };

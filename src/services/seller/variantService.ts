@@ -3,6 +3,7 @@ import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { Category } from '../../models/Category';
 import type { createVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
+import { normalizeImageKey } from '../../utils/imageStorage';
 
 async function syncProductStock(productId: string): Promise<void> {
   const total = ((await ProductVariant.sum('stock', { where: { productId } })) as number | null) ?? 0;
@@ -53,7 +54,7 @@ export async function createVariant(
   const variant = await ProductVariant.create({
     productId,
     attributes:   data.attributes,
-    images:       data.images,
+    images:       (data.images ?? []).map(normalizeImageKey),
     stock:        data.stock,
     sellingPrice: data.sellingPrice,
     mrp:          data.mrp ?? null,
@@ -74,7 +75,7 @@ export async function updateVariant(
 
   await variant.update({
     ...(data.attributes   !== undefined && { attributes:   data.attributes }),
-    ...(data.images       !== undefined && { images:       data.images }),
+    ...(data.images       !== undefined && { images:       data.images.map(normalizeImageKey) }),
     ...(data.stock        !== undefined && { stock:        data.stock }),
     ...(data.sellingPrice !== undefined && { sellingPrice: data.sellingPrice }),
     ...(data.mrp          !== undefined && { mrp:          data.mrp }),

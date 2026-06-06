@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, sendError } from '../../utils/response';
-import { saveImage } from '../../utils/imageStorage';
+import { saveImage, getPresignedUrl, withSignedImages } from '../../utils/imageStorage';
 import * as productService from '../../services/seller/productService';
 
 export async function uploadImage(req: Request, res: Response): Promise<void> {
@@ -9,7 +9,8 @@ export async function uploadImage(req: Request, res: Response): Promise<void> {
     return;
   }
   try {
-    const url = await saveImage(req.file, req.seller!.id);
+    const key = await saveImage(req.file, req.seller!.id);
+    const url = await getPresignedUrl(key);
     sendSuccess(res, { url }, 'Image uploaded', 201);
   } catch (err: unknown) {
     const e = err as { message?: string };
@@ -20,7 +21,8 @@ export async function uploadImage(req: Request, res: Response): Promise<void> {
 export async function createProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.createProduct(req.seller!.id, req.body);
-    sendSuccess(res, { product }, 'Product created', 201);
+    const signed = await withSignedImages(product.toJSON() as Record<string, unknown>);
+    sendSuccess(res, { product: signed }, 'Product created', 201);
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Failed to create product', e.status ?? 500);
@@ -49,13 +51,17 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
   const { rows, count } = await productService.getSellerProducts(
     req.seller!.id, page, limit, filter, sortBy,
   );
-  sendSuccess(res, { products: rows, total: count, page, limit }, 'Products fetched');
+  const products = await Promise.all(
+    rows.map(r => withSignedImages(r.toJSON() as Record<string, unknown>)),
+  );
+  sendSuccess(res, { products, total: count, page, limit }, 'Products fetched');
 }
 
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.getSellerProduct(req.seller!.id, String(req.params.id));
-    sendSuccess(res, { product }, 'Product fetched');
+    const signed = await withSignedImages(product.toJSON() as Record<string, unknown>);
+    sendSuccess(res, { product: signed }, 'Product fetched');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Product not found', e.status ?? 500);
@@ -65,7 +71,8 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
 export async function updateProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.updateSellerProduct(req.seller!.id, String(req.params.id), req.body);
-    sendSuccess(res, { product }, 'Product updated');
+    const signed = await withSignedImages(product.toJSON() as Record<string, unknown>);
+    sendSuccess(res, { product: signed }, 'Product updated');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
     sendError(res, e.message ?? 'Failed to update product', e.status ?? 500);

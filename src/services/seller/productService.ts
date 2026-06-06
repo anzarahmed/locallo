@@ -5,6 +5,7 @@ import { Category } from '../../models/Category';
 import { ProductVariant } from '../../models/ProductVariant';
 import type { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import type { AttributeField } from '../../types';
+import { normalizeImageKey } from '../../utils/imageStorage';
 
 type CreateProductInput = InferType<typeof createProductSchema>;
 type UpdateProductInput = InferType<typeof updateProductSchema>;
@@ -76,7 +77,7 @@ export async function createProduct(
     mrp:           data.mrp ?? null,
     costPrice:     data.costPrice ?? null,
     stock:         data.stock,
-    images:        data.images,
+    images:        (data.images ?? []).map(normalizeImageKey),
     attributes:    data.attributes ?? {},
     pickupAddress: data.pickupAddress ?? null,
     pickupLat:     data.pickupLat ?? null,
@@ -178,7 +179,7 @@ export async function updateSellerProduct(
     ...(data.costPrice     !== undefined && { costPrice:     data.costPrice }),
     ...(data.categoryId    !== undefined && { categoryId:    data.categoryId }),
     ...(!hasVariants && data.stock !== undefined && { stock: data.stock }),
-    ...(data.images        !== undefined && { images:        data.images }),
+    ...(data.images        !== undefined && { images:        data.images.map(normalizeImageKey) }),
     ...(data.attributes    !== undefined && { attributes:    data.attributes }),
     ...(data.pickupAddress !== undefined && { pickupAddress: data.pickupAddress }),
     ...(data.pickupLat     !== undefined && { pickupLat:     data.pickupLat }),
