@@ -2,7 +2,7 @@ import { useState, useEffect, type JSX } from 'react';
 import { X, Package, ToggleLeft, ToggleRight, Trash2, Loader2, Store, MapPin, Layers } from 'lucide-react';
 import { getProduct, toggleProduct, deleteProduct } from '../../services/productService';
 import { ApiError } from '../../lib/axios';
-import type { AttributeField, AttributeFieldOption, Product } from '../../types';
+import type { AttributeField, AttributeFieldOption, Product, ProductVariant } from '../../types';
 import { useToast } from '../../hooks/useToast';
 
 interface ProductDetailProps {
@@ -157,6 +157,93 @@ function ProductSkeleton(): JSX.Element {
         <div className="space-y-2">
           <Skeleton className="h-3 w-20 rounded" />
           <Skeleton className="h-14 rounded-xl" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function stockColor(stock: number): string {
+  if (stock === 0) return 'text-red-600';
+  if (stock <= 5) return 'text-amber-600';
+  return 'text-gray-900';
+}
+
+function variantLabel(variant: ProductVariant, schema: AttributeField[]): string {
+  if (schema.length === 0) return Object.values(variant.attributes).filter(Boolean).join(', ') || `Variant`;
+  return schema
+    .map(f => {
+      const v = variant.attributes[f.key];
+      if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) return null;
+      if ((f.type === 'select' || f.type === 'color') && f.options) {
+        const vals = Array.isArray(v) ? (v as string[]) : [v as string];
+        return vals.map(val => f.options?.find(o => o.value === val)?.label ?? val).join(', ');
+      }
+      if (f.type === 'multiselect' && Array.isArray(v) && f.options) {
+        return (v as string[]).map(val => f.options?.find(o => o.value === val)?.label ?? val).join(', ');
+      }
+      return String(v);
+    })
+    .filter(Boolean)
+    .join(' · ') || 'Variant';
+}
+
+interface VariantsSectionProps {
+  variants: ProductVariant[];
+  schema: AttributeField[];
+}
+
+function VariantsSection({ variants, schema }: VariantsSectionProps): JSX.Element {
+  const outOfStock  = variants.filter(v => v.stock === 0).length;
+  const lowStock    = variants.filter(v => v.stock > 0 && v.stock <= 5).length;
+  const totalStock  = variants.reduce((sum, v) => sum + v.stock, 0);
+
+  return (
+    <div>
+      <div className="flex items-center justify-between mb-2.5">
+        <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">
+          Variants
+          <span className="ml-1.5 text-gray-500 font-normal normal-case tracking-normal">({variants.length})</span>
+        </p>
+        <div className="flex items-center gap-2 text-xs text-gray-400">
+          {outOfStock > 0 && (
+            <span className="text-red-500 font-medium">{outOfStock} out</span>
+          )}
+          {lowStock > 0 && (
+            <span className="text-amber-500 font-medium">{lowStock} low</span>
+          )}
+          <span className="text-gray-500">{totalStock} total units</span>
+        </div>
+      </div>
+
+      <div className="rounded-xl border border-gray-100 overflow-hidden">
+        {/* Sticky header */}
+        <div className="flex items-center justify-between px-3.5 py-2 bg-gray-50 border-b border-gray-100">
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Variant</span>
+          <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Stock</span>
+        </div>
+
+        {/* Scrollable rows */}
+        <div className="overflow-y-auto divide-y divide-gray-50" style={{ maxHeight: '280px' }}>
+          {variants.map((v, i) => (
+            <div key={v.id} className="flex items-center justify-between px-3.5 py-2.5 bg-white hover:bg-gray-50 transition-colors">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <span className="shrink-0 w-5 h-5 rounded-full bg-gray-100 text-gray-400 text-xs font-medium flex items-center justify-center leading-none">
+                  {i + 1}
+                </span>
+                <span className="text-sm text-gray-700 truncate">{variantLabel(v, schema)}</span>
+                {!v.isActive && (
+                  <span className="shrink-0 text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">Inactive</span>
+                )}
+              </div>
+              <div className="shrink-0 ml-3 text-right">
+                <span className={`text-sm font-semibold ${stockColor(v.stock)}`}>{v.stock}</span>
+                <span className="text-xs text-gray-400 ml-1">units</span>
+                {v.stock === 0 && <span className="block text-xs font-medium text-red-400 leading-none mt-0.5">Out of stock</span>}
+                {v.stock > 0 && v.stock <= 5 && <span className="block text-xs font-medium text-amber-400 leading-none mt-0.5">Low stock</span>}
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>
@@ -375,7 +462,9 @@ export default function ProductDetail({ productId, onClose, onToggled, onDeleted
                 {/* Stock */}
                 <div className="flex items-center gap-2">
                   <Layers className="w-3.5 h-3.5 text-gray-400 shrink-0" />
-                  <span className="text-sm text-gray-500">Stock:</span>
+                  <span className="text-sm text-gray-500">
+                    {product.variants && product.variants.length > 0 ? 'Total stock:' : 'Stock:'}
+                  </span>
                   <span className={`text-sm font-semibold ${
                     product.stock === 0
                       ? 'text-red-600'
@@ -388,6 +477,14 @@ export default function ProductDetail({ productId, onClose, onToggled, onDeleted
                     {product.stock > 0 && product.stock <= 5 && <span className="ml-1 text-xs font-medium text-amber-500">(Low stock)</span>}
                   </span>
                 </div>
+
+                {/* Variants */}
+                {product.variants && product.variants.length > 0 && (
+                  <VariantsSection
+                    variants={product.variants}
+                    schema={product.category?.attributeSchema ?? []}
+                  />
+                )}
 
                 {/* Description */}
                 <div>

@@ -79,6 +79,19 @@ export interface ProductSeller {
   sellerProfile: { businessName: string } | null;
 }
 
+export interface ProductVariant {
+  id: string;
+  productId: string;
+  attributes: Record<string, unknown>;
+  images: string[];
+  stock: number;
+  sellingPrice: number | string | null;
+  mrp: number | string | null;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export interface Product {
   id: string;
   sellerId: string;
@@ -99,4 +112,5 @@ export interface Product {
   updatedAt: string;
   seller?: ProductSeller;
   category?: ProductCategory;
+  variants?: ProductVariant[];
 }
