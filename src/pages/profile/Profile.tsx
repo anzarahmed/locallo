@@ -1,10 +1,4 @@
-import 'leaflet/dist/leaflet.css';
-import L from 'leaflet';
-import markerIcon2x from 'leaflet/dist/images/marker-icon-2x.png';
-import markerIcon from 'leaflet/dist/images/marker-icon.png';
-import markerShadow from 'leaflet/dist/images/marker-shadow.png';
 import { useEffect, useState, type JSX } from 'react';
-import { MapContainer, TileLayer, Marker, useMapEvents } from 'react-leaflet';
 import { useFormik, type FormikErrors, type FormikTouched } from 'formik';
 import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
@@ -18,10 +12,7 @@ import {
 } from '../../validation/profileSchemas';
 import { ApiError } from '../../lib/axios';
 import type { SellerCategory } from '../../types';
-
-// Fix Leaflet marker icons in Vite
-delete (L.Icon.Default.prototype as unknown as Record<string, unknown>)._getIconUrl;
-L.Icon.Default.mergeOptions({ iconUrl: markerIcon, iconRetinaUrl: markerIcon2x, shadowUrl: markerShadow });
+import LocationDisplay from '../../components/LocationDisplay';
 
 type DayFieldErrors  = Partial<{ open: string; close: string }>;
 type DayFieldTouched = Partial<{ open: boolean; close: boolean }>;
@@ -307,27 +298,20 @@ export default function Profile(): JSX.Element {
 
         {/* ── Address card — read-only ── */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
-          {/* Map */}
-          <div className="h-52 w-full">
-            <MapContainer
-              center={[mapLat, mapLng]}
-              zoom={14}
-              style={{ height: '100%', width: '100%' }}
-              scrollWheelZoom={false}
-              dragging={false}
-              zoomControl={false}
-              doubleClickZoom={false}
-            >
-              <TileLayer
-                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
-                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-              />
-              <Marker position={[mapLat, mapLng]} />
-            </MapContainer>
+          {/* Card header */}
+          <div className="flex items-start gap-3 px-5 py-4 border-b border-gray-100">
+            <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+              <MapPin size={16} className="text-teal-600" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">Shop Location</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Your registered business address</p>
+            </div>
           </div>
 
-          <div className="p-5 flex flex-col gap-3">
-            {/* Open in maps */}
+          <div className="p-5 flex flex-col gap-4">
+            <LocationDisplay latitude={mapLat} longitude={mapLng} mapHeight="h-[260px]" />
+
             <button
               type="button"
               onClick={() =>
@@ -339,18 +323,14 @@ export default function Profile(): JSX.Element {
               Open in maps
             </button>
 
-            {/* Address display */}
             <div>
-              <div className="flex items-center gap-1 mb-1.5">
-                <MapPin size={13} className="text-teal-500" />
-                <span className="text-xs font-medium text-gray-500">Full business address</span>
-              </div>
+              <span className="text-xs font-medium text-gray-500">Full business address</span>
               {address ? (
-                <p className="text-sm text-gray-700 px-3 py-3 rounded-xl border border-gray-100 bg-gray-50 leading-relaxed">
+                <p className="mt-1.5 text-sm text-gray-700 px-3 py-3 rounded-xl border border-gray-100 bg-gray-50 leading-relaxed">
                   {address}
                 </p>
               ) : (
-                <p className="text-sm text-gray-400 italic px-1">No address set</p>
+                <p className="mt-1.5 text-sm text-gray-400 italic px-1">No address set</p>
               )}
             </div>
           </div>
