@@ -234,8 +234,8 @@ export default function VariantSheet({
 
   const form = useFormik<VariantFormValues>({
     initialValues: {
-      sellingPrice: isEdit ? String(variant.sellingPrice) : '',
-      mrp:          isEdit && variant.mrp != null ? String(variant.mrp) : '',
+      sellingPrice: isEdit ? String(variant.sellingPrice) : String(product.sellingPrice),
+      mrp:          isEdit && variant.mrp != null ? String(variant.mrp) : product.mrp != null ? String(product.mrp) : '',
       stock:        isEdit ? String(variant.stock) : '',
     },
     validationSchema: variantFormSchema,

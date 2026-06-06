@@ -294,8 +294,12 @@ interface VariantCardProps {
 }
 
 function VariantCard({ variant, schema, onToggle, onEdit, onDelete }: VariantCardProps): JSX.Element {
-  const [imgError, setImgError] = useState(false);
   const imageUrl = variant.images[0] ? resolveImage(variant.images[0]) : null;
+  const [imgError, setImgError] = useState(false);
+
+  useEffect(() => {
+    setImgError(false);
+  }, [imageUrl]);
   const attrEntries = Object.entries(variant.attributes);
   const hasDiscount = variant.mrp != null && variant.mrp > variant.sellingPrice;
 
