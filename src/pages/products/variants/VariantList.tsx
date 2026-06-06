@@ -181,16 +181,16 @@ export default function VariantList(): JSX.Element {
     : 0;
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Teal header */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Teal header — full width */}
       <div
-        className="px-5 pt-8 pb-20"
+        className="px-6 md:px-8 pt-8 pb-16"
         style={{
           background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)',
           borderRadius: '0 0 28px 28px',
         }}
       >
-        <div className="flex items-center justify-between max-w-2xl mx-auto">
+        <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <button
               type="button"
@@ -200,9 +200,9 @@ export default function VariantList(): JSX.Element {
               <ArrowLeft size={18} />
             </button>
             <div>
-              <h1 className="text-white text-[20px] font-bold leading-tight">Variants</h1>
+              <h1 className="text-white text-2xl font-bold leading-tight">Variants</h1>
               {product && (
-                <p className="text-white/70 text-xs mt-0.5 truncate max-w-[180px]">{product.name}</p>
+                <p className="text-white/70 text-sm mt-0.5 truncate max-w-xs">{product.name}</p>
               )}
             </div>
           </div>
@@ -213,7 +213,7 @@ export default function VariantList(): JSX.Element {
                 onClick={() => void handleAutoGenerate()}
                 disabled={autoGenerating}
                 title={`Auto-generate ${newCombosCount} new combination${newCombosCount === 1 ? '' : 's'}`}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors disabled:opacity-60"
+                className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors disabled:opacity-60"
               >
                 {autoGenerating
                   ? <Loader2 size={15} className="animate-spin" />
@@ -226,25 +226,25 @@ export default function VariantList(): JSX.Element {
             <button
               type="button"
               onClick={openAdd}
-              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors shrink-0"
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors shrink-0"
             >
               <Plus size={15} />
-              Add
+              Add Variant
             </button>
           </div>
         </div>
       </div>
 
-      {/* Content */}
-      <div className="px-4 -mt-12 relative z-10 max-w-2xl mx-auto pb-8">
+      {/* Content — full width, overlapping header */}
+      <div className="px-6 md:px-8 -mt-8 relative z-10 pb-8">
         {loading ? (
-          <div className="flex flex-col gap-3">
-            {Array.from({ length: 3 }).map((_, i) => <VariantCardSkeleton key={i} />)}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {Array.from({ length: 4 }).map((_, i) => <VariantCardSkeleton key={i} />)}
           </div>
         ) : variants.length === 0 ? (
           <EmptyState onAdd={openAdd} />
         ) : (
-          <div className="flex flex-col gap-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {variants.map(variant => (
               <VariantCard
                 key={variant.id}
@@ -303,7 +303,7 @@ function VariantCard({ variant, schema, onToggle, onEdit, onDelete }: VariantCar
     <div className="bg-white rounded-2xl shadow-sm p-4">
       <div className="flex gap-3">
         {/* Thumbnail */}
-        <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+        <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
           {imageUrl && !imgError ? (
             <img
               src={imageUrl}
@@ -403,7 +403,7 @@ function VariantCardSkeleton(): JSX.Element {
   return (
     <div className="bg-white rounded-2xl shadow-sm p-4 animate-pulse">
       <div className="flex gap-3">
-        <div className="w-16 h-16 rounded-xl bg-gray-100 shrink-0" />
+        <div className="w-20 h-20 rounded-xl bg-gray-100 shrink-0" />
         <div className="flex-1 pt-0.5">
           <div className="flex gap-1.5">
             <div className="h-5 w-16 bg-gray-100 rounded-full" />
@@ -451,7 +451,7 @@ interface DeleteModalProps {
 
 function DeleteModal({ loading, onConfirm, onCancel }: DeleteModalProps): JSX.Element {
   return (
-    <div className="fixed inset-0 md:left-60 z-50 flex items-center justify-center p-4 bg-black/40">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
       <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
         <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-4">
           <Trash2 size={20} className="text-rose-500" />

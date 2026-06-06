@@ -101,38 +101,39 @@ export default function ProductList(): JSX.Element {
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      {/* Teal header */}
+    <div className="min-h-screen bg-gray-50">
+      {/* Teal header — full width */}
       <div
-        className="px-5 pt-8 pb-20"
+        className="px-6 md:px-8 pt-8 pb-16"
         style={{
           background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)',
           borderRadius: '0 0 28px 28px',
         }}
       >
-        <div className="flex items-center justify-between max-w-2xl mx-auto">
+        <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-white text-[22px] font-bold leading-tight">My Products</h1>
+            <h1 className="text-white text-2xl font-bold leading-tight">My Products</h1>
             {!loading && (
-              <p className="text-white/70 text-sm mt-0.5">
+              <p className="text-white/70 text-sm mt-1">
                 {total} product{total !== 1 ? 's' : ''}
               </p>
             )}
           </div>
           <button
             onClick={() => navigate('/products/add')}
-            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors"
           >
-            + Add
+            + Add Product
           </button>
         </div>
       </div>
 
-      {/* Content overlapping header */}
-      <div className="px-4 -mt-12 relative z-10 max-w-2xl mx-auto">
+      {/* Content — full width, overlapping header */}
+      <div className="px-6 md:px-8 -mt-8 relative z-10 pb-8">
+
         {/* Filter + sort bar */}
-        <div className="bg-white rounded-2xl shadow-sm px-4 py-3 mb-3">
-          <div className="flex gap-2 mb-3">
+        <div className="bg-white rounded-2xl shadow-sm px-4 py-3 mb-4 flex flex-wrap items-center gap-3">
+          <div className="flex gap-2">
             {FILTER_TABS.map(tab => (
               <button
                 key={tab.value}
@@ -148,15 +149,17 @@ export default function ProductList(): JSX.Element {
             ))}
           </div>
 
-          <div className="flex items-center gap-2">
+          <div className="hidden md:block h-5 w-px bg-gray-200" />
+
+          <div className="flex items-center gap-2 ml-auto">
             <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide shrink-0">
               Sort
             </span>
-            <div className="relative flex-1">
+            <div className="relative">
               <select
                 value={sortBy}
                 onChange={e => handleSortChange(e.target.value)}
-                className="w-full appearance-none border border-gray-200 rounded-xl text-sm text-gray-700 px-3 py-2 pr-8 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 cursor-pointer"
+                className="appearance-none border border-gray-200 rounded-xl text-sm text-gray-700 px-3 py-2 pr-8 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 cursor-pointer"
               >
                 {SORT_OPTIONS.map(opt => (
                   <option key={opt.value} value={opt.value}>{opt.label}</option>
@@ -170,12 +173,14 @@ export default function ProductList(): JSX.Element {
           </div>
         </div>
 
-        {/* List */}
-        <div className="flex flex-col gap-3 mb-4">
+        {/* Product grid — 1 col mobile, 2 cols desktop */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
           {loading ? (
             Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />)
           ) : products.length === 0 ? (
-            <EmptyState filter={filter} onAdd={() => navigate('/products/add')} />
+            <div className="col-span-full">
+              <EmptyState filter={filter} onAdd={() => navigate('/products/add')} />
+            </div>
           ) : (
             products.map(product => (
               <ProductCard
@@ -192,7 +197,7 @@ export default function ProductList(): JSX.Element {
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 mb-6">
+          <div className="flex items-center justify-center gap-2">
             <button
               onClick={() => setPage(p => Math.max(1, p - 1))}
               disabled={page === 1}
@@ -329,7 +334,7 @@ function ProductCard({ product, onEdit, onVariants, onToggle, onDelete }: Produc
   );
 }
 
-/* ── Skeleton ── */
+/* ── Card skeleton (mobile) ── */
 function ProductCardSkeleton(): JSX.Element {
   return (
     <div className="bg-white rounded-2xl shadow-sm p-4 animate-pulse">
@@ -366,7 +371,7 @@ function EmptyState({ filter, onAdd }: EmptyStateProps): JSX.Element {
     : 'No products yet';
 
   return (
-    <div className="bg-white rounded-2xl shadow-sm py-14 text-center">
+    <div className="py-16 text-center">
       <Package size={40} className="text-gray-200 mx-auto mb-3" />
       <p className="text-sm font-semibold text-gray-500">{message}</p>
       {filter === 'all' && (

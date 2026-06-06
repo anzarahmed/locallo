@@ -315,17 +315,17 @@ export default function VariantSheet({
   }
 
   return (
-    <div className="fixed inset-0 md:left-60 z-50 flex flex-col justify-end">
+    <div className="fixed inset-0 md:left-60 z-50 flex flex-col justify-end md:justify-center md:items-center md:p-6">
       {/* Backdrop */}
       <div
         className={`absolute inset-0 bg-black/40 transition-opacity duration-300 ${visible ? 'opacity-100' : 'opacity-0'}`}
         onClick={onClose}
       />
 
-      {/* Sheet */}
+      {/* Sheet (mobile) / Dialog (desktop) */}
       <div
-        className={`relative bg-white rounded-t-3xl max-h-[85vh] flex flex-col shadow-2xl transition-transform duration-300 ${
-          visible ? 'translate-y-0' : 'translate-y-full'
+        className={`relative bg-white rounded-t-3xl md:rounded-3xl w-full md:max-w-lg max-h-[88vh] flex flex-col shadow-2xl transition-transform md:transition-none duration-300 ${
+          visible ? 'translate-y-0' : 'translate-y-full md:translate-y-0'
         }`}
       >
         {/* Header */}
