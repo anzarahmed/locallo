@@ -3,6 +3,7 @@ import { Product } from '../../models/Product';
 import { Category } from '../../models/Category';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
+import { ProductVariant } from '../../models/ProductVariant';
 
 const VALID_PRODUCT_SORT = new Set(['name', 'sellingPrice', 'stock', 'createdAt']);
 
@@ -53,7 +54,11 @@ export async function listAllProducts(
 
 export async function getProductById(id: string): Promise<Product> {
   const product = await Product.findByPk(id, {
-    include: [SELLER_INCLUDE, { model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }],
+    include: [
+      SELLER_INCLUDE,
+      { model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] },
+      { model: ProductVariant, order: [['createdAt', 'ASC']] },
+    ],
   });
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });

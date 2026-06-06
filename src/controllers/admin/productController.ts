@@ -32,7 +32,13 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.getProductById(String(req.params.id));
-    const signed = await withSignedImages(product.toJSON() as Record<string, unknown>);
+    const json = product.toJSON() as Record<string, unknown>;
+    const signed = await withSignedImages(json);
+    if (Array.isArray(signed.variants)) {
+      signed.variants = await Promise.all(
+        (signed.variants as Record<string, unknown>[]).map(v => withSignedImages(v)),
+      );
+    }
     sendSuccess(res, { product: signed }, 'Product fetched');
   } catch (err: unknown) {
     const e = err as { message?: string; status?: number };
