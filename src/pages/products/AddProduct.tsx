@@ -5,7 +5,7 @@ import {
   ArrowLeft, Camera, X, Plus, Sparkles, Loader2, ChevronDown,
 } from 'lucide-react';
 import {
-  getCategories, uploadProductImage, analyzeProductImage, createProduct,
+  getProfile, uploadProductImage, analyzeProductImage, createProduct,
 } from '../../services/sellerService';
 import { addProductSchema, type AddProductFormValues } from '../../validation/productSchemas';
 import { useToast } from '../../hooks/useToast';
@@ -20,6 +20,7 @@ type AttrValue = string | string[];
 interface AiHint {
   categoryName: string;
   confidence: 'high' | 'medium' | 'low';
+  categoryAvailable: boolean;
 }
 
 function resolveImage(url: string): string {
@@ -59,8 +60,8 @@ export default function AddProduct(): JSX.Element {
   useEffect(() => {
     async function load(): Promise<void> {
       try {
-        const { categories: cats } = await getCategories();
-        setCategories(cats);
+        const data = await getProfile();
+        setCategories(data.profile.categories);
       } catch {
         // silently ignore — user can still manually select when dropdown is populated
       }
@@ -98,25 +99,27 @@ export default function AddProduct(): JSX.Element {
 
       if (result.suggestions) {
         const s = result.suggestions;
+        const matchedCat = s.categoryId ? categories.find(c => c.id === s.categoryId) : undefined;
         void form.setValues({
           name:         s.name ?? '',
           description:  s.description ?? '',
-          categoryId:   s.categoryId ?? 0,
+          categoryId:   matchedCat ? s.categoryId! : 0,
           sellingPrice: form.values.sellingPrice,
           mrp:          form.values.mrp,
           costPrice:    form.values.costPrice,
           stock:        form.values.stock,
         });
-        if (s.categoryId) {
+        if (matchedCat) {
           const schema = result.attributeSchema.length > 0
             ? result.attributeSchema
-            : (categories.find(c => c.id === s.categoryId)?.attributeSchema ?? []);
+            : (matchedCat.attributeSchema ?? []);
           setAttributeSchema(schema);
           setAttributes(normalizeAttrValues(s.attributes, schema));
         }
         setAiHint({
           categoryName: s.categoryName ?? 'Unknown',
           confidence:   s.confidence,
+          categoryAvailable: !!matchedCat,
         });
       }
     } catch (err) {
@@ -301,7 +304,9 @@ export default function AddProduct(): JSX.Element {
                 }>
                   {aiHint.confidence} confidence
                 </span>
-                . Review and adjust as needed.
+                {aiHint.categoryAvailable
+                  ? '. Review and adjust as needed.'
+                  : '. This category isn\'t in your profile — please select one manually.'}
               </p>
             </div>
             <button

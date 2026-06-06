@@ -3,7 +3,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useFormik, type FormikHelpers } from 'formik';
 import { ArrowLeft, X, Plus, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import {
-  getCategories, getSellerProduct, updateProduct, uploadProductImage,
+  getProfile, getSellerProduct, updateProduct, uploadProductImage,
 } from '../../services/sellerService';
 import { addProductSchema, type AddProductFormValues } from '../../validation/productSchemas';
 import { useToast } from '../../hooks/useToast';
@@ -60,11 +60,11 @@ export default function EditProduct(): JSX.Element {
   useEffect(() => {
     async function load(): Promise<void> {
       try {
-        const [{ product }, { categories: cats }] = await Promise.all([
+        const [{ product }, profileData] = await Promise.all([
           getSellerProduct(id!),
-          getCategories(),
+          getProfile(),
         ]);
-        setCategories(cats);
+        setCategories(profileData.profile.categories);
         setImages(product.images ?? []);
         const count = product.variants?.length ?? 0;
         setHasVariants(count > 0);
