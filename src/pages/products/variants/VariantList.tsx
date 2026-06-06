@@ -1,10 +1,10 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Package, Pencil, Plus, Trash2 } from 'lucide-react';
-import { getProductVariants, toggleVariant, deleteVariant } from '../../../services/sellerService';
+import { ArrowLeft, Eye, EyeOff, Loader2, Package, Pencil, Plus, Trash2, Wand2 } from 'lucide-react';
+import { getProductVariants, toggleVariant, deleteVariant, createVariant } from '../../../services/sellerService';
 import { useToast } from '../../../hooks/useToast';
 import { ApiError } from '../../../lib/axios';
-import type { Product, ProductVariant } from '../../../types';
+import type { Product, ProductVariant, AttributeField } from '../../../types';
 import VariantSheet from './VariantSheet';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
@@ -12,6 +12,47 @@ const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 function resolveImage(url: string): string {
   if (url.startsWith('http')) return url;
   return `${API_BASE}${url}`;
+}
+
+function getVariantAxes(
+  schema: AttributeField[],
+  attrs: Record<string, unknown>,
+): Array<{ fieldKey: string; values: string[] }> {
+  return schema
+    .filter(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color')
+    .map(f => {
+      let values: string[];
+      if (f.type === 'multiselect' || f.type === 'color') {
+        const selected = attrs[f.key];
+        values = Array.isArray(selected) && selected.length > 0
+          ? selected.map(String)
+          : (f.options?.map(o => o.value) ?? []);
+      } else {
+        values = f.options?.map(o => o.value) ?? [];
+      }
+      return { fieldKey: f.key, values: values.filter(Boolean) };
+    })
+    .filter(axis => axis.values.length > 0);
+}
+
+function cartesianProduct(
+  axes: Array<{ fieldKey: string; values: string[] }>,
+): Record<string, string>[] {
+  if (axes.length === 0) return [];
+  return axes.reduce<Record<string, string>[]>(
+    (acc, axis) => acc.flatMap(prev => axis.values.map(val => ({ ...prev, [axis.fieldKey]: val }))),
+    [{}],
+  );
+}
+
+function isExistingCombination(
+  combo: Record<string, string>,
+  axisKeys: string[],
+  existing: ProductVariant[],
+): boolean {
+  return existing.some(ev =>
+    axisKeys.every(k => String(ev.attributes[k]) === combo[k]),
+  );
 }
 
 export default function VariantList(): JSX.Element {
@@ -26,6 +67,7 @@ export default function VariantList(): JSX.Element {
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProductVariant | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [autoGenerating, setAutoGenerating] = useState(false);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -42,6 +84,41 @@ export default function VariantList(): JSX.Element {
     }
     void load();
   }, [id]); // toast and navigate are stable
+
+  async function handleAutoGenerate(): Promise<void> {
+    if (!product) return;
+    const schema = product.category?.attributeSchema ?? [];
+    const axes = getVariantAxes(schema, product.attributes ?? {});
+    const allCombos = cartesianProduct(axes);
+    const axisKeys = axes.map(a => a.fieldKey);
+    const newCombos = allCombos.filter(c => !isExistingCombination(c, axisKeys, variants));
+
+    if (newCombos.length === 0) {
+      toast.info('All combinations already exist');
+      return;
+    }
+
+    setAutoGenerating(true);
+    try {
+      const created: ProductVariant[] = [];
+      for (const combo of newCombos) {
+        const result = await createVariant(id!, {
+          attributes: combo,
+          images: product.images ?? [],
+          sellingPrice: product.sellingPrice,
+          ...(product.mrp != null ? { mrp: product.mrp } : {}),
+          stock: 0,
+        });
+        created.push(result.variant);
+      }
+      setVariants(prev => [...prev, ...created]);
+      toast.success(`Generated ${created.length} variant${created.length === 1 ? '' : 's'} — update stock for each`);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to generate variants');
+    } finally {
+      setAutoGenerating(false);
+    }
+  }
 
   async function handleToggle(variant: ProductVariant): Promise<void> {
     try {
@@ -94,6 +171,15 @@ export default function VariantList(): JSX.Element {
     }
   }
 
+  const variantAxes = product
+    ? getVariantAxes(product.category?.attributeSchema ?? [], product.attributes ?? {})
+    : [];
+  const newCombosCount = !loading && product
+    ? cartesianProduct(variantAxes).filter(
+        c => !isExistingCombination(c, variantAxes.map(a => a.fieldKey), variants),
+      ).length
+    : 0;
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Teal header */}
@@ -120,14 +206,32 @@ export default function VariantList(): JSX.Element {
               )}
             </div>
           </div>
-          <button
-            type="button"
-            onClick={openAdd}
-            className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors shrink-0"
-          >
-            <Plus size={15} />
-            Add
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {newCombosCount > 0 && (
+              <button
+                type="button"
+                onClick={() => void handleAutoGenerate()}
+                disabled={autoGenerating}
+                title={`Auto-generate ${newCombosCount} new combination${newCombosCount === 1 ? '' : 's'}`}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors disabled:opacity-60"
+              >
+                {autoGenerating
+                  ? <Loader2 size={15} className="animate-spin" />
+                  : <Wand2 size={15} />
+                }
+                <span className="hidden sm:inline">Auto-generate</span>
+                <span className="text-white/70 text-xs">+{newCombosCount}</span>
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={openAdd}
+              className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors shrink-0"
+            >
+              <Plus size={15} />
+              Add
+            </button>
+          </div>
         </div>
       </div>
 
@@ -145,6 +249,7 @@ export default function VariantList(): JSX.Element {
               <VariantCard
                 key={variant.id}
                 variant={variant}
+                schema={product?.category?.attributeSchema ?? []}
                 onToggle={() => void handleToggle(variant)}
                 onEdit={() => openEdit(variant)}
                 onDelete={() => setDeleteTarget(variant)}
@@ -182,12 +287,13 @@ export default function VariantList(): JSX.Element {
 /* ── Variant card ── */
 interface VariantCardProps {
   variant: ProductVariant;
+  schema: AttributeField[];
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
 }
 
-function VariantCard({ variant, onToggle, onEdit, onDelete }: VariantCardProps): JSX.Element {
+function VariantCard({ variant, schema, onToggle, onEdit, onDelete }: VariantCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
   const imageUrl = variant.images[0] ? resolveImage(variant.images[0]) : null;
   const attrEntries = Object.entries(variant.attributes);
@@ -214,14 +320,28 @@ function VariantCard({ variant, onToggle, onEdit, onDelete }: VariantCardProps):
         <div className="flex-1 min-w-0 pt-0.5">
           {/* Attribute pills */}
           <div className="flex flex-wrap gap-1.5">
-            {attrEntries.map(([key, value]) => (
-              <span
-                key={key}
-                className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium"
-              >
-                {key}: {String(value)}
-              </span>
-            ))}
+            {attrEntries.map(([key, value]) => {
+              const field = schema.find(f => f.key === key);
+              if (field?.type === 'color') {
+                const opt = field.options?.find(o => o.value === String(value));
+                return (
+                  <div key={key} className="flex items-center gap-1.5 bg-gray-100 rounded-full pl-1.5 pr-2.5 py-0.5">
+                    <div
+                      className="w-3.5 h-3.5 rounded-full border border-white shadow-sm shrink-0"
+                      style={{ backgroundColor: opt?.hex ?? String(value) }}
+                    />
+                    <span className="text-xs text-gray-600 font-medium">{opt?.label ?? String(value)}</span>
+                  </div>
+                );
+              }
+              const fieldLabel = field?.label ?? key;
+              const displayVal = field?.options?.find(o => o.value === String(value))?.label ?? String(value);
+              return (
+                <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
+                  {fieldLabel}: {displayVal}
+                </span>
+              );
+            })}
             {attrEntries.length === 0 && (
               <span className="text-xs text-gray-400 italic">No attributes</span>
             )}

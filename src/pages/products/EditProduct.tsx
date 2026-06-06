@@ -55,6 +55,7 @@ export default function EditProduct(): JSX.Element {
   const [attributes, setAttributes] = useState<Record<string, AttrValue>>({});
   const [initialValues, setInitialValues] = useState<AddProductFormValues>(EMPTY_VALUES);
   const [hasVariants, setHasVariants] = useState(false);
+  const [variantCount, setVariantCount] = useState(0);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -65,7 +66,9 @@ export default function EditProduct(): JSX.Element {
         ]);
         setCategories(cats);
         setImages(product.images ?? []);
-        setHasVariants((product.variants?.length ?? 0) > 0);
+        const count = product.variants?.length ?? 0;
+        setHasVariants(count > 0);
+        setVariantCount(count);
         const schema = product.category?.attributeSchema ?? [];
         setAttributeSchema(schema);
         setAttributes(normalizeAttrValues(product.attributes ?? {}, schema));
@@ -380,18 +383,40 @@ export default function EditProduct(): JSX.Element {
             </Field>
           </div>
 
-          {/* Dynamic attributes */}
-          {attributeSchema.length > 0 && (
+          {/* Product Attributes — free-form descriptors (text / number / textarea) */}
+          {attributeSchema.some(f => f.type === 'text' || f.type === 'number' || f.type === 'textarea') && (
             <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-              <p className="text-sm font-semibold text-gray-700">Product Details</p>
-              {attributeSchema.map(field => (
-                <AttrInput
-                  key={field.key}
-                  field={field}
-                  value={attributes[field.key] ?? (field.type === 'multiselect' || field.type === 'color' ? [] : '')}
-                  onChange={v => setAttr(field.key, v)}
-                />
-              ))}
+              <p className="text-sm font-semibold text-gray-700">Product Attributes</p>
+              {attributeSchema
+                .filter(f => f.type === 'text' || f.type === 'number' || f.type === 'textarea')
+                .map(field => (
+                  <AttrInput
+                    key={field.key}
+                    field={field}
+                    value={attributes[field.key] ?? ''}
+                    onChange={v => setAttr(field.key, v)}
+                  />
+                ))}
+            </div>
+          )}
+
+          {/* Available Options — select / multiselect / color define which variants exist */}
+          {attributeSchema.some(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color') && (
+            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
+              <div>
+                <p className="text-sm font-semibold text-gray-700">Available Options</p>
+                <p className="text-xs text-gray-400 mt-0.5">Select all options this product is available in — e.g. all colors and sizes</p>
+              </div>
+              {attributeSchema
+                .filter(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color')
+                .map(field => (
+                  <AttrInput
+                    key={field.key}
+                    field={field}
+                    value={attributes[field.key] ?? (field.type === 'multiselect' || field.type === 'color' ? [] : '')}
+                    onChange={v => setAttr(field.key, v)}
+                  />
+                ))}
             </div>
           )}
 
@@ -403,7 +428,11 @@ export default function EditProduct(): JSX.Element {
           >
             <div>
               <p className="text-sm font-semibold text-gray-700">Variants</p>
-              <p className="text-xs text-gray-400 mt-0.5">Manage size, color & other options</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                {variantCount > 0
+                  ? `${variantCount} variant${variantCount === 1 ? '' : 's'} · tap to manage`
+                  : 'Add size, color & other options with separate stock'}
+              </p>
             </div>
             <ChevronRight size={18} className="text-gray-400 shrink-0" />
           </button>

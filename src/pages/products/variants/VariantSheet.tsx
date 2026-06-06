@@ -204,9 +204,12 @@ export default function VariantSheet({
   const toast = useToast();
   const isEdit = variant !== null;
 
-  const attributeSchema  = product.category?.attributeSchema ?? [];
-  const productAttrs     = product.attributes ?? {};
-  const fieldsWithOptions = attributeSchema.filter(f => getVariantOptions(f, productAttrs).length > 0);
+  const attributeSchema   = product.category?.attributeSchema ?? [];
+  const productAttrs      = product.attributes ?? {};
+  const variantAxisFields = attributeSchema.filter(
+    f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color',
+  );
+  const fieldsWithOptions = variantAxisFields.filter(f => getVariantOptions(f, productAttrs).length > 0);
 
   /* Slide-up animation */
   const [visible, setVisible] = useState(false);
@@ -264,8 +267,8 @@ export default function VariantSheet({
     values: VariantFormValues,
     helpers: FormikHelpers<VariantFormValues>,
   ): Promise<void> {
-    // All fields that have options to pick from must have a selection
-    const missingFields = attributeSchema.filter(f => {
+    // All variant-axis fields that have options must have a selection
+    const missingFields = variantAxisFields.filter(f => {
       const opts = getVariantOptions(f, productAttrs);
       return opts.length > 0 && !attrValues[f.key];
     });
@@ -348,12 +351,12 @@ export default function VariantSheet({
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
 
           {/* Dynamic attribute fields */}
-          {attributeSchema.length > 0 ? (
+          {variantAxisFields.length > 0 ? (
             <div className="space-y-4">
               <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                 Variant Attributes
               </p>
-              {attributeSchema.map(field => {
+              {variantAxisFields.map(field => {
                 const opts = getVariantOptions(field, productAttrs);
                 return (
                   <VAttrField
@@ -372,8 +375,8 @@ export default function VariantSheet({
             </div>
           ) : (
             <p className="text-xs text-gray-400 bg-gray-50 rounded-xl p-3.5 text-center leading-relaxed">
-              This category has no attribute schema defined.
-              Variants will be differentiated by price and stock.
+              No option-type attributes for this category.
+              Variants will be differentiated by price and stock only.
             </p>
           )}
 
