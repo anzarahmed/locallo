@@ -1,11 +1,11 @@
 import { useNavigate, type JSX } from 'react-router-dom';
 import { ShieldCheck, ChevronRight } from 'lucide-react';
+import { ROLE_BADGE_CLASSES } from '../../lib/constants';
 
 interface RoleRow {
   role: 'manager' | 'operator';
   label: string;
   description: string;
-  badge: string;
 }
 
 const ROLES: RoleRow[] = [
@@ -13,13 +13,11 @@ const ROLES: RoleRow[] = [
     role: 'manager',
     label: 'Manager',
     description: 'Can manage sellers, categories, and products based on assigned permissions.',
-    badge: 'bg-indigo-100 text-indigo-700',
   },
   {
     role: 'operator',
     label: 'Operator',
     description: 'Limited access role for day-to-day operations within permitted modules.',
-    badge: 'bg-violet-100 text-violet-700',
   },
 ];
 
@@ -34,7 +32,7 @@ export default function RoleList(): JSX.Element {
       </div>
 
       <div className="divide-y divide-gray-100 border border-gray-200 rounded-xl overflow-hidden bg-white">
-        {ROLES.map(({ role, label, description, badge }) => (
+        {ROLES.map(({ role, label, description }) => (
           <div
             key={role}
             className="flex items-center justify-between px-5 py-4 hover:bg-gray-50 transition-colors"
@@ -46,7 +44,7 @@ export default function RoleList(): JSX.Element {
               <div>
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-semibold text-gray-900">{label}</span>
-                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${badge}`}>
+                  <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${ROLE_BADGE_CLASSES[role] ?? ''}`}>
                     {label}
                   </span>
                 </div>

@@ -3,6 +3,7 @@ import { Package, Trash2, Eye, AlertCircle, Loader2 } from 'lucide-react';
 import { type ColumnDef, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
+import StatusBadge from '../../components/ui/StatusBadge';
 import ProductDetail from './ProductDetail';
 import { getProducts, toggleProduct, deleteProduct } from '../../services/productService';
 import { getCategories } from '../../services/categoryService';
@@ -11,9 +12,8 @@ import { ApiError } from '../../lib/axios';
 import type { Category, Product } from '../../types';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
-
 import { SkeletonThumbnailCell, SkeletonPriceCell } from '../../components/ui/SkeletonCells';
-import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
+import { DEFAULT_PAGE_SIZE, STATUS_FILTER_OPTIONS } from '../../lib/constants';
 
 function imgUrl(path: string): string {
   if (!path) return '';
@@ -293,10 +293,7 @@ export default function ProductList(): JSX.Element {
       enableColumnFilter: true,
       meta: {
         filterVariant: 'select',
-        filterOptions: [
-          { label: 'Active',   value: 'true'  },
-          { label: 'Inactive', value: 'false' },
-        ],
+        filterOptions: STATUS_FILTER_OPTIONS,
         align: 'center',
       },
       cell: ({ row }) => {
@@ -310,11 +307,7 @@ export default function ProductList(): JSX.Element {
                 title={`${p.isActive ? 'Deactivate' : 'Activate'} product`}
               />
             ) : (
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                p.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
-              }`}>
-                {p.isActive ? 'Active' : 'Inactive'}
-              </span>
+              <StatusBadge active={p.isActive} />
             )}
           </div>
         );

@@ -6,8 +6,9 @@ import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import AuthField from '../../components/ui/AuthField';
 import SelectField from '../../components/ui/SelectField';
+import RoleBadge from '../../components/ui/RoleBadge';
 import { ApiError } from '../../lib/axios';
-import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
+import { DEFAULT_PAGE_SIZE, SUB_ADMIN_ROLE_OPTIONS } from '../../lib/constants';
 import { useToast } from '../../hooks/useToast';
 import {
   listSubAdmins,
@@ -123,8 +124,9 @@ function AddModal({ onClose, onAdded }: AddModalProps): JSX.Element {
             required
           >
             <option value="">Select role</option>
-            <option value="manager">Manager</option>
-            <option value="operator">Operator</option>
+            {SUB_ADMIN_ROLE_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </SelectField>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50">
@@ -250,8 +252,9 @@ function EditModal({ admin, onClose, onSaved }: EditModalProps): JSX.Element {
             error={formik.errors.role}
             required
           >
-            <option value="manager">Manager</option>
-            <option value="operator">Operator</option>
+            {SUB_ADMIN_ROLE_OPTIONS.map(opt => (
+              <option key={opt.value} value={opt.value}>{opt.label}</option>
+            ))}
           </SelectField>
           <div className="flex justify-end gap-3 pt-2">
             <button type="button" onClick={onClose} className="px-4 py-2 text-sm text-gray-600 border rounded-lg hover:bg-gray-50">
@@ -321,11 +324,6 @@ function DeleteModal({ admin, onClose, onDeleted }: DeleteModalProps): JSX.Eleme
 }
 
 // ── SubAdminList ───────────────────────────────────────────────────────────────
-
-const ROLE_BADGE: Record<string, string> = {
-  manager:  'bg-indigo-100 text-indigo-700',
-  operator: 'bg-violet-100 text-violet-700',
-};
 
 export default function SubAdminList(): JSX.Element {
   const toast = useToast();
@@ -397,14 +395,7 @@ export default function SubAdminList(): JSX.Element {
       accessorKey: 'role',
       header: 'Role',
       meta: { align: 'center' },
-      cell: ({ getValue }) => {
-        const role = getValue<string>();
-        return (
-          <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium capitalize ${ROLE_BADGE[role] ?? ''}`}>
-            {role}
-          </span>
-        );
-      },
+      cell: ({ getValue }) => <RoleBadge role={getValue<string>()} />,
     },
     {
       accessorKey: 'isActive',

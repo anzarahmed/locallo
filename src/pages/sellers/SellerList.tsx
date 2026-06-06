@@ -4,30 +4,14 @@ import { Plus, Pencil, Trash2, Power, Eye } from 'lucide-react';
 import { type ColumnDef, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
+import StatusBadge from '../../components/ui/StatusBadge';
 import SellerDetail from './SellerDetail';
 import { getSellerList, toggleSellerStatus, type Seller } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
-
-const AVATAR_COLORS = [
-  'bg-indigo-100 text-indigo-700',
-  'bg-violet-100 text-violet-700',
-  'bg-sky-100 text-sky-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-amber-100 text-amber-700',
-  'bg-rose-100 text-rose-700',
-] as const;
-
-function getInitials(name: string | null): string {
-  if (!name) return '?';
-  return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
-}
-
-function getAvatarColor(name: string | null): string {
-  if (!name) return AVATAR_COLORS[0];
-  const sum = [...name].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  return AVATAR_COLORS[sum % AVATAR_COLORS.length];
-}
+import { SkeletonAvatarCell, SkeletonNameBadgeCell } from '../../components/ui/SkeletonCells';
+import { DEFAULT_PAGE_SIZE, STATUS_FILTER_OPTIONS } from '../../lib/constants';
+import { getInitials, getAvatarColor } from '../../lib/avatar';
 
 function SellerAvatar({ name }: { name: string | null }): JSX.Element {
   return (
@@ -36,9 +20,6 @@ function SellerAvatar({ name }: { name: string | null }): JSX.Element {
     </div>
   );
 }
-
-import { SkeletonAvatarCell, SkeletonNameBadgeCell } from '../../components/ui/SkeletonCells';
-import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
 
 export default function SellerList(): JSX.Element {
   const navigate = useNavigate();
@@ -204,23 +185,9 @@ export default function SellerList(): JSX.Element {
       enableColumnFilter: true,
       meta: {
         filterVariant: 'select',
-        filterOptions: [
-          { label: 'Active',   value: 'true'  },
-          { label: 'Inactive', value: 'false' },
-        ],
+        filterOptions: STATUS_FILTER_OPTIONS,
       },
-      cell: ({ row }) => {
-        const active = row.original.isActive;
-        return (
-          <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-            active
-              ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-              : 'bg-gray-100 text-gray-600 border-gray-200'
-          }`}>
-            {active ? 'Active' : 'Inactive'}
-          </span>
-        );
-      },
+      cell: ({ row }) => <StatusBadge active={row.original.isActive} />,
     },
     {
       accessorKey: 'createdAt',

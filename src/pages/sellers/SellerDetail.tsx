@@ -7,31 +7,13 @@ import {
 import { getSellerById, toggleSellerStatus, type Seller } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import type { WorkingHours } from '../../types';
+import StatusBadge from '../../components/ui/StatusBadge';
+import { getInitials, getAvatarColor } from '../../lib/avatar';
 
 interface SellerDetailProps {
   sellerId: string;
   onClose: () => void;
   onToggled: (seller: Seller) => void;
-}
-
-const AVATAR_COLORS = [
-  'bg-indigo-100 text-indigo-700',
-  'bg-violet-100 text-violet-700',
-  'bg-sky-100 text-sky-700',
-  'bg-emerald-100 text-emerald-700',
-  'bg-amber-100 text-amber-700',
-  'bg-rose-100 text-rose-700',
-] as const;
-
-function getInitials(name: string | null): string {
-  if (!name) return '?';
-  return name.split(' ').filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
-}
-
-function getAvatarColor(name: string | null): string {
-  if (!name) return AVATAR_COLORS[0];
-  const sum = [...name].reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-  return AVATAR_COLORS[sum % AVATAR_COLORS.length];
 }
 
 const DAYS = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'] as const;
@@ -159,14 +141,7 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
                       {seller.countryCode ? `(${seller.countryCode}) ` : ''}{seller.mobile}
                     </p>
                   </div>
-                  <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
-                    seller.isActive
-                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                      : 'bg-gray-100 text-gray-600 border-gray-200'
-                  }`}>
-                    <span className={`w-1.5 h-1.5 rounded-full ${seller.isActive ? 'bg-emerald-500' : 'bg-gray-400'}`} />
-                    {seller.isActive ? 'Active' : 'Inactive'}
-                  </span>
+                  <StatusBadge active={seller.isActive} dot />
                 </div>
 
                 <div className="space-y-2 pt-2">

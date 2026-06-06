@@ -4,6 +4,7 @@ import { useFormik, type FormikHelpers } from 'formik';
 import { type ColumnDef, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
+import StatusBadge from '../../components/ui/StatusBadge';
 import AuthField from '../../components/ui/AuthField';
 import AttributeSchemaEditor from '../../components/ui/AttributeSchemaEditor';
 import { ApiError } from '../../lib/axios';
@@ -18,8 +19,7 @@ import type { AttributeField, Category } from '../../types';
 import { categorySchema, type CategoryFormValues } from './categorySchemas';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
-
-import { DEFAULT_PAGE_SIZE } from '../../lib/constants';
+import { DEFAULT_PAGE_SIZE, STATUS_FILTER_OPTIONS } from '../../lib/constants';
 
 function toSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -331,10 +331,7 @@ export default function CategoryList(): JSX.Element {
       enableColumnFilter: true,
       meta: {
         filterVariant: 'select',
-        filterOptions: [
-          { label: 'Active',   value: 'true'  },
-          { label: 'Inactive', value: 'false' },
-        ],
+        filterOptions: STATUS_FILTER_OPTIONS,
         align: 'center',
         className: 'w-24',
       },
@@ -349,11 +346,7 @@ export default function CategoryList(): JSX.Element {
                 title={`${cat.isActive ? 'Deactivate' : 'Activate'} ${cat.name}`}
               />
             ) : (
-              <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                cat.isActive ? 'bg-emerald-50 text-emerald-700' : 'bg-gray-100 text-gray-500'
-              }`}>
-                {cat.isActive ? 'Active' : 'Inactive'}
-              </span>
+              <StatusBadge active={cat.isActive} />
             )}
           </div>
         );
