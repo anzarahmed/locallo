@@ -7,14 +7,7 @@ import { requestOtp } from '../../services/authService';
 import { ApiError } from '../../lib/axios';
 import { useToast } from '../../hooks/useToast';
 import type { JSX } from 'react';
-
-const COUNTRY_CODES = [
-  { code: '+91', label: '+91' },
-  { code: '+1',  label: '+1'  },
-  { code: '+44', label: '+44' },
-  { code: '+971',label: '+971'},
-  { code: '+65', label: '+65' },
-];
+import { COUNTRY_CODES } from '../../constants';
 
 const initialValues: RequestOtpValues = {
   countryCode: '+91',

@@ -2,24 +2,9 @@ import { useState, useEffect, type JSX } from 'react';
 import { X, Package, ChevronLeft, ChevronRight, Star, Heart, MapPin, Store, EyeOff, Loader2 } from 'lucide-react';
 import { getSellerProduct } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
+import { resolveImage } from '../../lib/imageUtils';
+import { formatPrice, discountPct } from '../../lib/formatters';
 import type { Product, AttributeField, AttributeFieldOption } from '../../types';
-
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-
-function resolveImage(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
-
-function formatPrice(val: number | null | undefined): string {
-  if (val == null) return '—';
-  return `₹${val.toLocaleString('en-IN')}`;
-}
-
-function discountPct(selling: number, mrp: number | null | undefined): number | null {
-  if (!mrp || mrp <= selling) return null;
-  return Math.round(((mrp - selling) / mrp) * 100);
-}
 
 function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
   if (raw === null || raw === undefined || raw === '') {

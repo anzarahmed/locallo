@@ -10,39 +10,18 @@ import {
 import { addProductSchema, type AddProductFormValues } from '../../validation/productSchemas';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
+import { resolveImage } from '../../lib/imageUtils';
+import { normalizeAttrValues, type AttrValue } from '../../lib/attributeUtils';
+import { inputCls } from '../../lib/classUtils';
+import { MAX_IMAGES } from '../../constants';
+import FormField from '../../components/ui/FormField';
+import AttrInput from '../../components/ui/AttrInput';
 import type { SellerCategory, AttributeField } from '../../types';
-
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-const MAX_IMAGES = 5;
-
-type AttrValue = string | string[];
 
 interface AiHint {
   categoryName: string;
   confidence: 'high' | 'medium' | 'low';
   categoryAvailable: boolean;
-}
-
-function resolveImage(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
-
-function normalizeAttrValues(
-  rawAttrs: Record<string, unknown>,
-  schema: AttributeField[],
-): Record<string, AttrValue> {
-  const out: Record<string, AttrValue> = {};
-  for (const field of schema) {
-    const val = rawAttrs[field.key];
-    if (val === undefined || val === null) continue;
-    if (field.type === 'multiselect' || field.type === 'color') {
-      out[field.key] = Array.isArray(val) ? (val as string[]) : [String(val)];
-    } else {
-      out[field.key] = String(val);
-    }
-  }
-  return out;
 }
 
 export default function AddProduct(): JSX.Element {
@@ -323,7 +302,7 @@ export default function AddProduct(): JSX.Element {
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
           <p className="text-sm font-semibold text-gray-700">Basic Info</p>
 
-          <Field label="Product Name" required error={form.touched.name ? form.errors.name : undefined}>
+          <FormField label="Product Name" required error={form.touched.name ? form.errors.name : undefined}>
             <input
               name="name"
               value={form.values.name}
@@ -332,9 +311,9 @@ export default function AddProduct(): JSX.Element {
               placeholder="e.g. Wireless Earbuds Pro"
               className={inputCls(!!form.touched.name && !!form.errors.name)}
             />
-          </Field>
+          </FormField>
 
-          <Field label="Description" required error={form.touched.description ? form.errors.description : undefined}>
+          <FormField label="Description" required error={form.touched.description ? form.errors.description : undefined}>
             <textarea
               name="description"
               value={form.values.description}
@@ -344,14 +323,14 @@ export default function AddProduct(): JSX.Element {
               rows={4}
               className={`${inputCls(!!form.touched.description && !!form.errors.description)} resize-none`}
             />
-          </Field>
+          </FormField>
         </div>
 
         {/* Category + Pricing */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
           <p className="text-sm font-semibold text-gray-700">Category & Pricing</p>
 
-          <Field label="Category" required error={form.touched.categoryId ? form.errors.categoryId as string : undefined}>
+          <FormField label="Category" required error={form.touched.categoryId ? form.errors.categoryId as string : undefined}>
             <div className="relative">
               <select
                 value={form.values.categoryId}
@@ -370,10 +349,10 @@ export default function AddProduct(): JSX.Element {
               </select>
               <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
-          </Field>
+          </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <Field label="Selling Price" required error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}>
+            <FormField label="Selling Price" required error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
                 <input
@@ -388,8 +367,8 @@ export default function AddProduct(): JSX.Element {
                   className={`${inputCls(!!form.touched.sellingPrice && !!form.errors.sellingPrice)} pl-7`}
                 />
               </div>
-            </Field>
-            <Field label="MRP" error={form.touched.mrp ? form.errors.mrp as string : undefined}>
+            </FormField>
+            <FormField label="MRP" error={form.touched.mrp ? form.errors.mrp as string : undefined}>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
                 <input
@@ -404,10 +383,10 @@ export default function AddProduct(): JSX.Element {
                   className={`${inputCls(!!form.touched.mrp && !!form.errors.mrp)} pl-7`}
                 />
               </div>
-            </Field>
+            </FormField>
           </div>
 
-          <Field label="Cost Price (optional)" error={form.touched.costPrice ? form.errors.costPrice as string : undefined}>
+          <FormField label="Cost Price (optional)" error={form.touched.costPrice ? form.errors.costPrice as string : undefined}>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
               <input
@@ -422,13 +401,13 @@ export default function AddProduct(): JSX.Element {
                 className={`${inputCls(!!form.touched.costPrice && !!form.errors.costPrice)} pl-7`}
               />
             </div>
-          </Field>
+          </FormField>
         </div>
 
         {/* Inventory */}
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <p className="text-sm font-semibold text-gray-700 mb-4">Inventory</p>
-          <Field label="Stock Quantity" required error={form.touched.stock ? form.errors.stock as string : undefined}>
+          <FormField label="Stock Quantity" required error={form.touched.stock ? form.errors.stock as string : undefined}>
             <input
               name="stock"
               type="number"
@@ -440,7 +419,7 @@ export default function AddProduct(): JSX.Element {
               placeholder="0"
               className={inputCls(!!form.touched.stock && !!form.errors.stock)}
             />
-          </Field>
+          </FormField>
         </div>
 
         {/* Product Attributes — free-form descriptors (text / number / textarea) */}
@@ -499,146 +478,6 @@ export default function AddProduct(): JSX.Element {
           </button>
         </div>
       </div>
-    </div>
-  );
-}
-
-/* ── Helpers ── */
-
-function inputCls(hasError: boolean): string {
-  return `w-full border rounded-xl text-sm text-gray-700 px-3 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 transition-colors ${
-    hasError
-      ? 'border-rose-300 focus:ring-rose-500/20'
-      : 'border-gray-200 focus:ring-teal-500/20'
-  }`;
-}
-
-/* ── Field wrapper ── */
-interface FieldProps {
-  label: string;
-  required?: boolean;
-  error?: string;
-  children: JSX.Element;
-}
-
-function Field({ label, required, error, children }: FieldProps): JSX.Element {
-  return (
-    <div>
-      <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-        {label}
-        {required && <span className="text-rose-400 ml-0.5">*</span>}
-      </label>
-      {children}
-      {error && <p className="text-xs text-rose-500 mt-1.5">{error}</p>}
-    </div>
-  );
-}
-
-/* ── Dynamic attribute field ── */
-interface AttrInputProps {
-  field: AttributeField;
-  value: AttrValue;
-  onChange: (v: AttrValue) => void;
-}
-
-function AttrInput({ field, value, onChange }: AttrInputProps): JSX.Element {
-  const str = Array.isArray(value) ? '' : (value as string);
-  const arr = Array.isArray(value) ? (value as string[]) : [];
-
-  function toggleChip(v: string): void {
-    onChange(arr.includes(v) ? arr.filter(x => x !== v) : [...arr, v]);
-  }
-
-  const labelEl = (
-    <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-      {field.label}
-      {field.required && <span className="text-rose-400 ml-0.5">*</span>}
-      {field.unit && <span className="text-gray-400 font-normal ml-1">({field.unit})</span>}
-    </label>
-  );
-
-  if (field.type === 'multiselect') {
-    return (
-      <div>
-        {labelEl}
-        <div className="flex flex-wrap gap-2">
-          {field.options?.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => toggleChip(opt.value)}
-              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                arr.includes(opt.value)
-                  ? 'bg-teal-600 border-teal-600 text-white'
-                  : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  if (field.type === 'color') {
-    return (
-      <div>
-        {labelEl}
-        <div className="flex flex-wrap gap-2">
-          {field.options?.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => toggleChip(opt.value)}
-              title={opt.label}
-              className={`w-8 h-8 rounded-full border-2 transition-all ${
-                arr.includes(opt.value)
-                  ? 'border-teal-500 scale-110 shadow-md'
-                  : 'border-gray-200 hover:scale-105'
-              }`}
-              style={{ backgroundColor: opt.hex ?? opt.value }}
-            />
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div>
-      {labelEl}
-      {field.type === 'textarea' ? (
-        <textarea
-          value={str}
-          onChange={e => onChange(e.target.value)}
-          rows={3}
-          placeholder={field.unit ?? ''}
-          className={`${inputCls(false)} resize-none`}
-        />
-      ) : field.type === 'select' ? (
-        <div className="relative">
-          <select
-            value={str}
-            onChange={e => onChange(e.target.value)}
-            className={`w-full appearance-none ${inputCls(false)} pr-8`}
-          >
-            <option value="">Select…</option>
-            {field.options?.map(opt => (
-              <option key={opt.value} value={opt.value}>{opt.label}</option>
-            ))}
-          </select>
-          <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-        </div>
-      ) : (
-        <input
-          type={field.type === 'number' ? 'number' : 'text'}
-          value={str}
-          onChange={e => onChange(e.target.value)}
-          placeholder={field.unit ?? ''}
-          className={inputCls(false)}
-        />
-      )}
     </div>
   );
 }

@@ -5,15 +5,8 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { getProfile, getProducts } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
+import { resolveImage } from '../../lib/imageUtils';
 import type { ProfileResponse, Product } from '../../types';
-
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-
-function resolveImage(url: string): string {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 function initials(name: string | null): string {
   if (!name) return 'S';

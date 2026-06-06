@@ -4,33 +4,12 @@ import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, Heart, ChevronDown,
 import { getProducts, toggleProduct, deleteProduct } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
+import { resolveImage } from '../../lib/imageUtils';
+import { hasDiscount } from '../../lib/formatters';
+import { FILTER_TABS, SORT_OPTIONS, PAGE_LIMIT, type FilterTab } from '../../constants';
+import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
 import type { Product } from '../../types';
 import ProductPreview from './ProductPreview';
-
-const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
-const PAGE_LIMIT = 20;
-
-type FilterTab = 'all' | 'visible' | 'hidden';
-
-const FILTER_TABS: { value: FilterTab; label: string }[] = [
-  { value: 'all',     label: 'All'     },
-  { value: 'visible', label: 'Visible' },
-  { value: 'hidden',  label: 'Hidden'  },
-];
-
-const SORT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'sort_newest',         label: 'Newest'            },
-  { value: 'sort_price_high_low', label: 'Price: High → Low' },
-  { value: 'sort_price_low_high', label: 'Price: Low → High' },
-  { value: 'sort_stock_high_low', label: 'Stock: High → Low' },
-  { value: 'sort_stock_low_high', label: 'Stock: Low → High' },
-  { value: 'sort_name_az',        label: 'Name: A–Z'         },
-];
-
-function resolveImage(url: string): string {
-  if (url.startsWith('http')) return url;
-  return `${API_BASE}${url}`;
-}
 
 export default function ProductList(): JSX.Element {
   const navigate = useNavigate();
@@ -221,8 +200,15 @@ export default function ProductList(): JSX.Element {
       </div>
 
       {deleteTarget && (
-        <DeleteModal
-          productName={deleteTarget.name}
+        <ConfirmDeleteModal
+          title="Delete Product"
+          message={
+            <>
+              Are you sure you want to delete{' '}
+              <span className="font-semibold text-gray-700">{deleteTarget.name}</span>?{' '}
+              This cannot be undone.
+            </>
+          }
           loading={deleting}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setDeleteTarget(null)}
@@ -252,7 +238,6 @@ interface ProductCardProps {
 function ProductCard({ product, onEdit, onVariants, onToggle, onDelete, onPreview }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
   const imageUrl = product.images?.[0] ? resolveImage(product.images[0]) : null;
-  const hasDiscount = product.mrp != null && product.mrp > product.sellingPrice;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-4">
@@ -303,7 +288,7 @@ function ProductCard({ product, onEdit, onVariants, onToggle, onDelete, onPrevie
           <span className="text-base font-bold text-teal-600">
             ₹{product.sellingPrice.toLocaleString('en-IN')}
           </span>
-          {hasDiscount && (
+          {hasDiscount(product.mrp, product.sellingPrice) && (
             <span className="text-xs text-gray-400 line-through">
               ₹{product.mrp!.toLocaleString('en-IN')}
             </span>
@@ -352,7 +337,7 @@ function ProductCard({ product, onEdit, onVariants, onToggle, onDelete, onPrevie
   );
 }
 
-/* ── Card skeleton (mobile) ── */
+/* ── Card skeleton ── */
 function ProductCardSkeleton(): JSX.Element {
   return (
     <div className="bg-white rounded-2xl shadow-sm p-4 animate-pulse">
@@ -400,48 +385,6 @@ function EmptyState({ filter, onAdd }: EmptyStateProps): JSX.Element {
           Add your first product
         </button>
       )}
-    </div>
-  );
-}
-
-/* ── Delete modal ── */
-interface DeleteModalProps {
-  productName: string;
-  loading: boolean;
-  onConfirm: () => void;
-  onCancel: () => void;
-}
-
-function DeleteModal({ productName, loading, onConfirm, onCancel }: DeleteModalProps): JSX.Element {
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
-      <div className="bg-white rounded-2xl p-6 max-w-sm w-full shadow-xl">
-        <div className="w-12 h-12 rounded-full bg-rose-100 flex items-center justify-center mx-auto mb-4">
-          <Trash2 size={20} className="text-rose-500" />
-        </div>
-        <h3 className="text-base font-bold text-gray-800 text-center mb-1">Delete Product</h3>
-        <p className="text-sm text-gray-500 text-center mb-6">
-          Are you sure you want to delete{' '}
-          <span className="font-semibold text-gray-700">{productName}</span>?{' '}
-          This cannot be undone.
-        </p>
-        <div className="flex gap-3">
-          <button
-            onClick={onCancel}
-            disabled={loading}
-            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-60"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={onConfirm}
-            disabled={loading}
-            className="flex-1 py-2.5 rounded-xl bg-rose-500 text-sm font-semibold text-white hover:bg-rose-600 transition-colors disabled:opacity-60"
-          >
-            {loading ? 'Deleting…' : 'Delete'}
-          </button>
-        </div>
-      </div>
     </div>
   );
 }
