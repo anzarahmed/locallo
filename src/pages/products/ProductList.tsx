@@ -1,10 +1,11 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, Heart, ChevronDown } from 'lucide-react';
+import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, Heart, ChevronDown, ScanEye } from 'lucide-react';
 import { getProducts, toggleProduct, deleteProduct } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import type { Product } from '../../types';
+import ProductPreview from './ProductPreview';
 
 const API_BASE = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 const PAGE_LIMIT = 20;
@@ -43,6 +44,7 @@ export default function ProductList(): JSX.Element {
   const [sortBy, setSortBy] = useState('sort_newest');
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -190,6 +192,7 @@ export default function ProductList(): JSX.Element {
                 onVariants={() => navigate(`/products/${product.id}/variants`)}
                 onToggle={() => void handleToggle(product)}
                 onDelete={() => setDeleteTarget(product)}
+                onPreview={() => setPreviewId(product.id)}
               />
             ))
           )}
@@ -225,6 +228,13 @@ export default function ProductList(): JSX.Element {
           onCancel={() => setDeleteTarget(null)}
         />
       )}
+
+      {previewId && (
+        <ProductPreview
+          productId={previewId}
+          onClose={() => setPreviewId(null)}
+        />
+      )}
     </div>
   );
 }
@@ -236,9 +246,10 @@ interface ProductCardProps {
   onVariants: () => void;
   onToggle: () => void;
   onDelete: () => void;
+  onPreview: () => void;
 }
 
-function ProductCard({ product, onEdit, onVariants, onToggle, onDelete }: ProductCardProps): JSX.Element {
+function ProductCard({ product, onEdit, onVariants, onToggle, onDelete, onPreview }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
   const imageUrl = product.images?.[0] ? resolveImage(product.images[0]) : null;
   const hasDiscount = product.mrp != null && product.mrp > product.sellingPrice;
@@ -300,6 +311,13 @@ function ProductCard({ product, onEdit, onVariants, onToggle, onDelete }: Produc
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={onPreview}
+            title="Customer preview"
+            className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition-colors"
+          >
+            <ScanEye size={15} />
+          </button>
           <button
             onClick={onToggle}
             title={product.isActive ? 'Hide product' : 'Show product'}
