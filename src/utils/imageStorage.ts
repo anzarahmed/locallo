@@ -1,28 +1,37 @@
-import fs from 'fs';
-import path from 'path';
+import { S3Client, PutObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { randomUUID } from 'crypto';
+import path from 'path';
 
-const UPLOADS_ROOT = path.join(__dirname, '../../uploads/products');
+const s3 = new S3Client({
+  region: process.env.AWS_REGION!,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID!,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY!,
+  },
+});
 
-export function saveImage(file: Express.Multer.File, sellerId: string): string {
-  const sellerDir = path.join(UPLOADS_ROOT, sellerId);
-  if (!fs.existsSync(sellerDir)) {
-    fs.mkdirSync(sellerDir, { recursive: true });
-  }
+const BUCKET = process.env.AWS_S3_BUCKET!;
 
+export async function saveImage(file: Express.Multer.File, sellerId: string): Promise<string> {
   const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-  const filename = `${randomUUID()}${ext}`;
-  const dest = path.join(sellerDir, filename);
+  const key = `uploads/products/${sellerId}/${randomUUID()}${ext}`;
 
-  fs.writeFileSync(dest, file.buffer);
+  await s3.send(new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    Body: file.buffer,
+    ContentType: file.mimetype,
+  }));
 
-  return `/uploads/products/${sellerId}/${filename}`;
+  return `https://${BUCKET}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 }
 
-export function deleteImage(url: string): void {
-  const rel = url.replace(/^\/uploads\//, '');
-  const abs = path.join(path.join(__dirname, '../../uploads'), rel);
-  if (fs.existsSync(abs)) {
-    fs.unlinkSync(abs);
-  }
+export async function deleteImage(url: string): Promise<void> {
+  const match = url.match(/amazonaws\.com\/(.+)$/);
+  if (!match) return;
+
+  await s3.send(new DeleteObjectCommand({
+    Bucket: BUCKET,
+    Key: match[1],
+  }));
 }

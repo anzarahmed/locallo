@@ -21,7 +21,7 @@ export async function analyzeAndSaveImage(
   file: Express.Multer.File,
   sellerId: string,
 ): Promise<ImageAnalysisResponse> {
-  const imageUrl = saveImage(file, sellerId);
+  const imageUrl = await saveImage(file, sellerId);
 
   if (!process.env.GEMINI_API_KEY) {
     return { imageUrl, suggestions: null, attributeSchema: [] };

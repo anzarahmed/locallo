@@ -8,8 +8,13 @@ export async function uploadImage(req: Request, res: Response): Promise<void> {
     sendError(res, 'No image file provided', 400);
     return;
   }
-  const url = saveImage(req.file, req.seller!.id);
-  sendSuccess(res, { url }, 'Image uploaded', 201);
+  try {
+    const url = await saveImage(req.file, req.seller!.id);
+    sendSuccess(res, { url }, 'Image uploaded', 201);
+  } catch (err: unknown) {
+    const e = err as { message?: string };
+    sendError(res, e.message ?? 'Failed to upload image', 500);
+  }
 }
 
 export async function createProduct(req: Request, res: Response): Promise<void> {
