@@ -123,6 +123,8 @@ export default function Profile(): JSX.Element {
   const mapLat = lat || DEFAULT_LAT;
   const mapLng = lng || DEFAULT_LNG;
 
+  if (loadingProfile) return <ProfileSkeleton mobile={seller?.mobile} />;
+
   return (
     <div className="min-h-screen bg-gray-100">
       {/* Teal header */}
@@ -301,7 +303,7 @@ export default function Profile(): JSX.Element {
             {/* Save profile button */}
             <button
               type="submit"
-              disabled={profileForm.isSubmitting || loadingProfile}
+              disabled={profileForm.isSubmitting}
               className="w-full py-4 rounded-2xl text-white font-semibold text-sm flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
               style={{ background: 'linear-gradient(135deg, #26B8B2 0%, #14817C 100%)' }}
             >
@@ -350,6 +352,124 @@ export default function Profile(): JSX.Element {
               ) : (
                 <p className="mt-1.5 text-sm text-gray-400 italic px-1">No address set</p>
               )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Profile skeleton ── */
+function Bone({ className }: { className: string }): JSX.Element {
+  return <div className={`animate-pulse bg-gray-200 rounded-xl ${className}`} />;
+}
+
+function SkeletonField({ half }: { half?: boolean }): JSX.Element {
+  return (
+    <div className={half ? 'flex-1' : ''}>
+      <Bone className="w-20 h-3 mb-2" />
+      <Bone className="w-full h-11" />
+    </div>
+  );
+}
+
+function ProfileSkeleton({ mobile }: { mobile?: string }): JSX.Element {
+  return (
+    <div className="min-h-screen bg-gray-100">
+      {/* Teal header */}
+      <div
+        className="px-5 pt-8 pb-16"
+        style={{
+          background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)',
+          borderRadius: '0 0 28px 28px',
+        }}
+      >
+        <h1 className="text-white text-xl font-bold">My Profile</h1>
+        <p className="text-white/60 text-sm mt-0.5">{mobile}</p>
+      </div>
+
+      <div className="px-4 -mt-10 relative z-10 pb-10">
+        {/* Shop Info card */}
+        <div className="bg-white rounded-2xl shadow-sm p-5 mb-4 flex flex-col gap-4">
+          {/* Shop name */}
+          <SkeletonField />
+          {/* Owner name */}
+          <SkeletonField />
+          {/* Email + Phone */}
+          <div className="flex gap-3">
+            <SkeletonField half />
+            <SkeletonField half />
+          </div>
+          {/* Category pills */}
+          <div>
+            <Bone className="w-16 h-3 mb-2" />
+            <div className="flex gap-2">
+              <Bone className="w-24 h-7" />
+              <Bone className="w-20 h-7" />
+              <Bone className="w-28 h-7" />
+            </div>
+          </div>
+          {/* Bio */}
+          <div>
+            <Bone className="w-16 h-3 mb-2" />
+            <Bone className="w-full h-20" />
+          </div>
+          {/* Working hours header */}
+          <div>
+            <Bone className="w-32 h-3 mb-3" />
+            <div className="rounded-xl border border-gray-100 overflow-hidden">
+              {Array.from({ length: 7 }).map((_, i) => (
+                <div key={i} className="flex items-center gap-3 px-3 py-3 border-b border-gray-50 last:border-0">
+                  <Bone className="w-16 h-3 shrink-0" />
+                  <Bone className="w-10 h-4 shrink-0" />
+                  <Bone className="flex-1 h-8" />
+                  <Bone className="w-14 h-8 shrink-0" />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Modules row */}
+          <div>
+            <Bone className="w-20 h-3 mb-3" />
+            <div className="flex items-center gap-3 py-3 px-4 bg-gray-50 rounded-xl">
+              <Bone className="w-9 h-9 shrink-0" />
+              <div className="flex-1 flex flex-col gap-1.5">
+                <Bone className="w-28 h-3" />
+                <Bone className="w-44 h-3" />
+              </div>
+              <Bone className="w-11 h-6 rounded-full shrink-0" />
+            </div>
+          </div>
+          {/* Settings row */}
+          <div className="flex items-center gap-3 py-3 px-4 bg-gray-50 rounded-xl">
+            <Bone className="w-9 h-9 shrink-0" />
+            <div className="flex-1 flex flex-col gap-1.5">
+              <Bone className="w-16 h-3" />
+              <Bone className="w-52 h-3" />
+            </div>
+            <Bone className="w-4 h-4 shrink-0" />
+          </div>
+          {/* Save button */}
+          <Bone className="w-full h-12 rounded-2xl" />
+        </div>
+
+        {/* Address card */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
+          {/* Card header */}
+          <div className="flex items-start gap-3 px-5 py-4 border-b border-gray-100">
+            <Bone className="w-9 h-9 shrink-0" />
+            <div className="flex flex-col gap-1.5 flex-1">
+              <Bone className="w-28 h-3" />
+              <Bone className="w-48 h-3" />
+            </div>
+          </div>
+          <div className="p-5 flex flex-col gap-4">
+            <Bone className="w-full h-[260px]" />
+            <Bone className="w-full h-11" />
+            <div>
+              <Bone className="w-36 h-3 mb-2" />
+              <Bone className="w-full h-16" />
             </div>
           </div>
         </div>
