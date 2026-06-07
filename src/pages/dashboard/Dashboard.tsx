@@ -80,31 +80,43 @@ export default function Dashboard(): JSX.Element {
         <div className="grid grid-cols-2 gap-3 mb-5">
           <StatCard
             icon={<Eye size={20} className="text-teal-600" />}
-            iconBg="bg-teal-100"
+            bgIcon={<Eye size={88} className="text-teal-500" />}
+            iconBg="bg-teal-50"
+            accentClass="bg-teal-500"
             value={loading ? null : '0'}
             label="Total Views"
             growth="+0"
+            sublabel="this month"
           />
           <StatCard
-            icon={<Heart size={20} className="text-pink-400" />}
+            icon={<Heart size={20} className="text-pink-500" />}
+            bgIcon={<Heart size={88} className="text-pink-400" />}
             iconBg="bg-pink-50"
+            accentClass="bg-pink-400"
             value={loading ? null : '0'}
             label="Wishlist Saves"
             growth="+0"
+            sublabel="this month"
           />
           <StatCard
             icon={<Package size={20} className="text-teal-600" />}
+            bgIcon={<Package size={88} className="text-teal-500" />}
             iconBg="bg-teal-50"
+            accentClass="bg-teal-500"
             value={loading ? null : String(totalProducts)}
             label="Products"
             growth="+0"
+            sublabel="this week"
           />
           <StatCard
             icon={<TrendingUp size={20} className="text-amber-500" />}
+            bgIcon={<TrendingUp size={88} className="text-amber-400" />}
             iconBg="bg-amber-50"
+            accentClass="bg-amber-400"
             value={loading ? null : '0%'}
             label="Interest Rate"
             growth="+0"
+            sublabel="this month"
           />
         </div>
 
@@ -150,25 +162,59 @@ export default function Dashboard(): JSX.Element {
 /* ── Stat card ── */
 interface StatCardProps {
   icon: JSX.Element;
+  bgIcon: JSX.Element;
   iconBg: string;
+  accentClass: string;
   value: string | null;
   label: string;
   growth: string;
+  sublabel: string;
 }
 
-function StatCard({ icon, iconBg, value, label, growth }: StatCardProps): JSX.Element {
+function StatCard({ icon, bgIcon, iconBg, accentClass, value, label, growth, sublabel }: StatCardProps): JSX.Element {
+  const isPositive = growth.startsWith('+') && growth !== '+0';
+  const isZero = growth === '+0';
+
   return (
-    <div className="bg-white rounded-2xl px-4 py-4 shadow-sm">
-      <div className={`w-10 h-10 rounded-full ${iconBg} flex items-center justify-center mb-3`}>
-        {icon}
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden relative">
+      {/* Top accent line */}
+      <div className={`h-1 ${accentClass}`} />
+
+      <div className="px-4 pt-3.5 pb-4 relative">
+        {/* Large decorative background icon */}
+        <div className="absolute right-1 bottom-1 opacity-[0.06] pointer-events-none select-none">
+          {bgIcon}
+        </div>
+
+        {/* Icon + growth badge row */}
+        <div className="flex items-center justify-between mb-3">
+          <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
+            {icon}
+          </div>
+          <span
+            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
+              isPositive
+                ? 'text-emerald-600 bg-emerald-50'
+                : isZero
+                  ? 'text-gray-400 bg-gray-100'
+                  : 'text-red-500 bg-red-50'
+            }`}
+          >
+            {growth}
+          </span>
+        </div>
+
+        {/* Value */}
+        {value === null ? (
+          <div className="h-7 w-16 bg-gray-100 rounded-lg animate-pulse mb-1.5" />
+        ) : (
+          <p className="text-[26px] font-bold text-gray-800 leading-tight">{value}</p>
+        )}
+
+        {/* Label + period */}
+        <p className="text-xs text-gray-500 mt-0.5 leading-tight">{label}</p>
+        <p className="text-[11px] text-gray-400 mt-0.5">{sublabel}</p>
       </div>
-      {value === null ? (
-        <div className="h-8 w-16 bg-gray-100 rounded-lg animate-pulse mb-1" />
-      ) : (
-        <p className="text-[26px] font-bold text-gray-800 leading-tight">{value}</p>
-      )}
-      <p className="text-xs text-gray-400 mt-0.5 mb-2">{label}</p>
-      <p className="text-xs font-semibold text-teal-600">{growth}</p>
     </div>
   );
 }
