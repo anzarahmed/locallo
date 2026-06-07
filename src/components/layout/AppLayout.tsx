@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Plus, LogOut, BarChart2, User, ChevronDown } from 'lucide-react';
+import { LayoutDashboard, Package, Plus, LogOut, BarChart2, User, ChevronDown, Settings } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
 import { useState, useRef, useEffect, type JSX } from 'react';
@@ -16,16 +16,17 @@ const BASE_NAV: NavItem[] = [
   { to: '/products',  icon: <Package size={20} />,         label: 'Products'  },
 ];
 
-const PNL_NAV: NavItem = { to: '/pnl', icon: <BarChart2 size={20} />, label: 'P&L' };
-const PROFILE_NAV: NavItem = { to: '/profile', icon: <User size={20} />, label: 'Profile' };
+const PNL_NAV:      NavItem = { to: '/pnl',      icon: <BarChart2 size={20} />, label: 'P&L'      };
+const PROFILE_NAV:  NavItem = { to: '/profile',  icon: <User size={20} />,     label: 'Profile'  };
+const SETTINGS_NAV: NavItem = { to: '/settings', icon: <Settings size={20} />, label: 'Settings' };
 
 export default function AppLayout(): JSX.Element {
   const { logout, seller } = useAuth();
   const { showPnl } = useModulePrefs();
   const navigate = useNavigate();
 
-  const sidebarNav = showPnl ? [...BASE_NAV, PNL_NAV] : BASE_NAV;
-  const mobileNav = [...BASE_NAV, ...(showPnl ? [PNL_NAV] : []), PROFILE_NAV];
+  const sidebarNav = [...BASE_NAV, ...(showPnl ? [PNL_NAV] : [])];
+  const mobileNav  = [...BASE_NAV, ...(showPnl ? [PNL_NAV] : []), PROFILE_NAV, SETTINGS_NAV];
 
   return (
     <div className="min-h-screen bg-gray-50 flex">
@@ -157,6 +158,14 @@ function ProfileMenu({ seller, logout, navigate }: ProfileMenuProps): JSX.Elemen
           >
             <User size={15} className="text-gray-400" />
             Profile
+          </button>
+
+          <button
+            onClick={() => { setOpen(false); navigate('/settings'); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <Settings size={15} className="text-gray-400" />
+            Settings
           </button>
 
           <div className="border-t border-gray-50 mt-1 pt-1">

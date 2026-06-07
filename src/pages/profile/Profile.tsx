@@ -1,6 +1,7 @@
 import { useEffect, useState, type JSX } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useFormik, type FormikErrors, type FormikTouched } from 'formik';
-import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag } from 'lucide-react';
+import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
@@ -33,6 +34,7 @@ export default function Profile(): JSX.Element {
   const { seller, updateSeller } = useAuth();
   const toast = useToast();
   const { showPnl, setShowPnl } = useModulePrefs();
+  const navigate = useNavigate();
 
   const [categories, setCategories] = useState<SellerCategory[]>([]);
   const [categoryIds, setCategoryIds] = useState<number[]>([]);
@@ -279,6 +281,22 @@ export default function Profile(): JSX.Element {
                 </button>
               </div>
             </div>
+
+            {/* Settings link */}
+            <button
+              type="button"
+              onClick={() => navigate('/settings')}
+              className="flex items-center gap-3 py-3 px-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors w-full text-left"
+            >
+              <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+                <Settings size={18} className="text-teal-600" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold text-gray-800">Settings</p>
+                <p className="text-xs text-gray-400">Manage notifications and preferences</p>
+              </div>
+              <ChevronRight size={16} className="text-gray-300 shrink-0" />
+            </button>
 
             {/* Save profile button */}
             <button

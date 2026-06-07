@@ -78,3 +78,20 @@ export function deleteVariant(productId: string, variantId: string): Promise<unk
 export function toggleVariant(productId: string, variantId: string): Promise<{ variant: ProductVariant }> {
   return apiPatch(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}/toggle`);
 }
+
+export interface NotificationSettings {
+  pushNotifications: boolean;
+  emailUpdates: boolean;
+  smsAlerts: boolean;
+  offersAndPromotions: boolean;
+  wishlistPriceDrops: boolean;
+  sellerUpdates: boolean;
+}
+
+export function getSettings(): Promise<{ notificationSettings: NotificationSettings | null }> {
+  return apiGet(PATHS.SETTINGS);
+}
+
+export function updateSettings(data: NotificationSettings): Promise<{ notificationSettings: NotificationSettings }> {
+  return apiPut(PATHS.SETTINGS, data);
+}

@@ -10,4 +10,5 @@ export const PATHS = {
   UPLOAD_IMAGE:   '/api/sellers/products/images',
   ANALYZE_IMAGE:  '/api/sellers/products/analyze-image',
   CATEGORIES:     '/api/sellers/categories',
+  SETTINGS:       '/api/sellers/settings',
 } as const;

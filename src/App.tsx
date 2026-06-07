@@ -12,6 +12,7 @@ import ProductList from './pages/products/ProductList';
 import AddProduct from './pages/products/AddProduct';
 import EditProduct from './pages/products/EditProduct';
 import VariantList from './pages/products/variants/VariantList';
+import Settings from './pages/settings/Settings';
 import type { JSX } from 'react';
 
 function AuthGuard({ children }: { children: JSX.Element }): JSX.Element {
@@ -43,6 +44,7 @@ function AppRoutes(): JSX.Element {
         <Route path="/products/add"      element={<AddProduct />} />
         <Route path="/products/:id/edit"     element={<EditProduct />} />
         <Route path="/products/:id/variants" element={<VariantList />} />
+        <Route path="/settings"     element={<Settings />} />
         <Route path="/pnl"          element={<Placeholder title="P&L" />} />
       </Route>
 
