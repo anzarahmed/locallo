@@ -57,6 +57,12 @@ export async function withSignedImages<T extends Record<string, unknown>>(obj: T
   return { ...obj, images: await signImages(images) };
 }
 
+export async function signModelRows(
+  rows: Array<{ toJSON(): unknown }>,
+): Promise<Record<string, unknown>[]> {
+  return Promise.all(rows.map(r => withSignedImages(r.toJSON() as Record<string, unknown>)));
+}
+
 export async function deleteImage(urlOrKey: string): Promise<void> {
   await s3.send(new DeleteObjectCommand({
     Bucket: BUCKET,

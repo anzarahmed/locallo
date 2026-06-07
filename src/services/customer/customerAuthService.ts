@@ -1,19 +1,12 @@
-import crypto from 'crypto';
-import jwt from 'jsonwebtoken';
 import type { InferType } from 'yup';
 import { User } from '../../models/User';
-import { Session } from '../../models/Session';
 import { sendOtp } from '../../utils/msg91';
+import { generateOtp, makeOtpExpiresAt } from '../../utils/otp';
+import { createUserSession } from '../../utils/session';
 import type { requestOtpSchema, verifyOtpSchema } from '../../validation/customer/customerAuthSchemas';
 
 type RequestOtpInput = InferType<typeof requestOtpSchema>;
 type VerifyOtpInput = InferType<typeof verifyOtpSchema>;
-
-const SESSION_TTL_DAYS = 30;
-
-function generateOtp(): string {
-  return String(Math.floor(1000 + Math.random() * 9000));
-}
 
 async function findOrCreateCustomer(phoneNumber: string, countryCode: string): Promise<User> {
   let user = await User.findOne({ where: { mobile: phoneNumber, role: 'CUSTOMER' } });
@@ -39,10 +32,7 @@ export async function requestCustomerOtp(data: RequestOtpInput): Promise<{ otp: 
   const user = await findOrCreateCustomer(data.phoneNumber, data.countryCode);
 
   const otp = generateOtp();
-  const ttl = parseInt(process.env.OTP_TTL_SECONDS ?? '300', 10);
-  const otpExpiresAt = new Date(Date.now() + ttl * 1000);
-
-  await user.update({ otpCode: otp, otpExpiresAt });
+  await user.update({ otpCode: otp, otpExpiresAt: makeOtpExpiresAt() });
   await sendOtp(data.countryCode, data.phoneNumber, otp);
   return { otp };
 }
@@ -73,23 +63,7 @@ export async function verifyCustomerOtp(
 
   await user.update({ otpCode: null, otpExpiresAt: null, isVerified: true });
 
-  const token = jwt.sign(
-    { id: user.id, role: 'CUSTOMER' },
-    process.env.JWT_SECRET as string,
-    { expiresIn: `${SESSION_TTL_DAYS}d` },
-  );
-
-  const expiresAt = new Date();
-  expiresAt.setDate(expiresAt.getDate() + SESSION_TTL_DAYS);
-
-  await Session.create({
-    actorType: 'user',
-    actorId: user.id,
-    tokenHash: crypto.createHash('sha256').update(token).digest('hex'),
-    deviceId: data.deviceId,
-    deviceType: data.deviceType,
-    expiresAt,
-  });
+  const token = await createUserSession(user.id, 'CUSTOMER', data.deviceId, data.deviceType);
 
   return {
     token,

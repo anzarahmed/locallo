@@ -11,6 +11,14 @@ type UpdateSellerInput       = InferType<typeof updateSellerSchema>;
 type UpdateAddressInput      = InferType<typeof updateAddressSchema>;
 type AdminUpdateSellerInput  = InferType<typeof adminUpdateSellerSchema>;
 
+async function requireSellerProfile(userId: string): Promise<SellerProfile> {
+  const profile = await SellerProfile.findOne({ where: { userId } });
+  if (!profile) {
+    throw Object.assign(new Error('Seller profile not found'), { status: 404 });
+  }
+  return profile;
+}
+
 export async function createSeller(
   data: CreateSellerInput,
   adminId: string,
@@ -107,11 +115,7 @@ export async function updateSellerAddress(
   userId: string,
   data: UpdateAddressInput,
 ): Promise<SellerProfile> {
-  const profile = await SellerProfile.findOne({ where: { userId } });
-  if (!profile) {
-    throw Object.assign(new Error('Seller profile not found'), { status: 404 });
-  }
-
+  const profile = await requireSellerProfile(userId);
   await profile.update({ address: data.address, lat: data.lat, long: data.long });
   return profile;
 }
@@ -237,10 +241,7 @@ export async function adminUpdateSeller(
 }
 
 export async function getSellerSettings(userId: string): Promise<NotificationSettings> {
-  const profile = await SellerProfile.findOne({ where: { userId } });
-  if (!profile) {
-    throw Object.assign(new Error('Seller profile not found'), { status: 404 });
-  }
+  const profile = await requireSellerProfile(userId);
   return profile.notificationSettings;
 }
 
@@ -248,10 +249,7 @@ export async function updateSellerSettings(
   userId: string,
   settings: NotificationSettings,
 ): Promise<NotificationSettings> {
-  const profile = await SellerProfile.findOne({ where: { userId } });
-  if (!profile) {
-    throw Object.assign(new Error('Seller profile not found'), { status: 404 });
-  }
+  const profile = await requireSellerProfile(userId);
   await profile.update({ notificationSettings: settings });
   return profile.notificationSettings;
 }

@@ -6,16 +6,16 @@ import {
   deleteSubAdmin,
   toggleSubAdminStatus,
 } from '../../services/admin/subAdminService';
-import { sendSuccess, sendError } from '../../utils/response';
+import { sendSuccess, handleServiceError } from '../../utils/response';
+import { parsePagination } from '../../utils/pagination';
 
 export async function getSubAdmins(req: Request, res: Response): Promise<void> {
   try {
-    const page = Math.max(1, parseInt(req.query['page'] as string) || 1);
-    const limit = Math.max(1, Math.min(100, parseInt(req.query['limit'] as string) || 10));
+    const { page, limit } = parsePagination(req, 100, 10);
     const result = await listSubAdmins(page, limit);
     sendSuccess(res, result);
-  } catch {
-    sendError(res, 'Internal server error');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
   }
 }
 
@@ -36,12 +36,7 @@ export async function addSubAdmin(req: Request, res: Response): Promise<void> {
     });
     sendSuccess(res, admin, 'Sub-admin created', 201);
   } catch (err: unknown) {
-    const status = (err as { status?: number }).status;
-    if (status === 409) {
-      sendError(res, (err as Error).message, 409);
-      return;
-    }
-    sendError(res, 'Internal server error');
+    handleServiceError(err, res);
   }
 }
 
@@ -57,10 +52,7 @@ export async function editSubAdmin(req: Request, res: Response): Promise<void> {
     const admin = await updateSubAdmin(id, { email, password: password ?? null, fullName: fullName ?? null, role });
     sendSuccess(res, admin, 'Sub-admin updated');
   } catch (err: unknown) {
-    const status = (err as { status?: number }).status;
-    if (status === 404) { sendError(res, (err as Error).message, 404); return; }
-    if (status === 409) { sendError(res, (err as Error).message, 409); return; }
-    sendError(res, 'Internal server error');
+    handleServiceError(err, res);
   }
 }
 
@@ -70,10 +62,7 @@ export async function removeSubAdmin(req: Request, res: Response): Promise<void>
     await deleteSubAdmin(id, req.admin!.id);
     sendSuccess(res, null, 'Sub-admin deleted');
   } catch (err: unknown) {
-    const status = (err as { status?: number }).status;
-    if (status === 404) { sendError(res, (err as Error).message, 404); return; }
-    if (status === 400) { sendError(res, (err as Error).message, 400); return; }
-    sendError(res, 'Internal server error');
+    handleServiceError(err, res);
   }
 }
 
@@ -83,9 +72,6 @@ export async function patchSubAdminStatus(req: Request, res: Response): Promise<
     const admin = await toggleSubAdminStatus(id, req.admin!.id);
     sendSuccess(res, admin, `Sub-admin ${admin.isActive ? 'activated' : 'deactivated'}`);
   } catch (err: unknown) {
-    const status = (err as { status?: number }).status;
-    if (status === 404) { sendError(res, (err as Error).message, 404); return; }
-    if (status === 400) { sendError(res, (err as Error).message, 400); return; }
-    sendError(res, 'Internal server error');
+    handleServiceError(err, res);
   }
 }

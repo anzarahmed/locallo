@@ -1,10 +1,10 @@
 import type { Request, Response } from 'express';
-import { sendSuccess, sendError } from '../../utils/response';
+import { sendSuccess, handleServiceError } from '../../utils/response';
+import { parsePagination } from '../../utils/pagination';
 import * as categoryService from '../../services/admin/categoryService';
 
 export async function getCategories(req: Request, res: Response): Promise<void> {
-  const page       = Math.max(1, Number(req.query.page)  || 1);
-  const limit      = Math.min(100, Math.max(1, Number(req.query.limit) || 20));
+  const { page, limit } = parsePagination(req, 100);
   const search     = req.query.search     ? String(req.query.search)     : undefined;
   const sortBy     = req.query.sortBy     ? String(req.query.sortBy)     : undefined;
   const sortOrder  = req.query.sortOrder  === 'asc' ? 'ASC' : 'DESC';
@@ -24,8 +24,7 @@ export async function addCategory(req: Request, res: Response): Promise<void> {
     const category = await categoryService.createCategory(req.body as Parameters<typeof categoryService.createCategory>[0]);
     sendSuccess(res, { category }, 'Category created', 201);
   } catch (err: unknown) {
-    const e = err as { message?: string; status?: number };
-    sendError(res, e.message ?? 'Failed to create category', e.status ?? 500);
+    handleServiceError(err, res, 'Failed to create category');
   }
 }
 
@@ -35,8 +34,7 @@ export async function editCategory(req: Request, res: Response): Promise<void> {
     const category = await categoryService.updateCategory(id, req.body as Parameters<typeof categoryService.updateCategory>[1]);
     sendSuccess(res, { category }, 'Category updated');
   } catch (err: unknown) {
-    const e = err as { message?: string; status?: number };
-    sendError(res, e.message ?? 'Failed to update category', e.status ?? 500);
+    handleServiceError(err, res, 'Failed to update category');
   }
 }
 
@@ -46,7 +44,6 @@ export async function removeCategory(req: Request, res: Response): Promise<void>
     await categoryService.deleteCategory(id);
     sendSuccess(res, null, 'Category deleted');
   } catch (err: unknown) {
-    const e = err as { message?: string; status?: number };
-    sendError(res, e.message ?? 'Failed to delete category', e.status ?? 500);
+    handleServiceError(err, res, 'Failed to delete category');
   }
 }

@@ -1,26 +1,30 @@
 import type { Request, Response } from 'express';
 import { getRolePermissions, setRolePermissions, getMyPermissions } from '../../services/admin/rolePermissionService';
-import { sendSuccess, sendError } from '../../utils/response';
+import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import type { PermissionModule, PermissionAction } from '../../types';
+
+function isValidRole(role: string): role is 'manager' | 'operator' {
+  return role === 'manager' || role === 'operator';
+}
 
 export async function fetchRolePermissions(req: Request, res: Response): Promise<void> {
   try {
     const { role } = req.params as { role: string };
-    if (role !== 'manager' && role !== 'operator') {
+    if (!isValidRole(role)) {
       sendError(res, 'Role must be manager or operator', 400);
       return;
     }
     const map = await getRolePermissions(role);
     sendSuccess(res, map);
-  } catch {
-    sendError(res, 'Internal server error');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
   }
 }
 
 export async function saveRolePermissions(req: Request, res: Response): Promise<void> {
   try {
     const { role } = req.params as { role: string };
-    if (role !== 'manager' && role !== 'operator') {
+    if (!isValidRole(role)) {
       sendError(res, 'Role must be manager or operator', 400);
       return;
     }
@@ -29,8 +33,8 @@ export async function saveRolePermissions(req: Request, res: Response): Promise<
     };
     const map = await setRolePermissions(role, permissions);
     sendSuccess(res, map, 'Permissions updated');
-  } catch {
-    sendError(res, 'Internal server error');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
   }
 }
 
@@ -38,7 +42,7 @@ export async function fetchMyPermissions(req: Request, res: Response): Promise<v
   try {
     const map = await getMyPermissions(req.admin!.role);
     sendSuccess(res, map);
-  } catch {
-    sendError(res, 'Internal server error');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
   }
 }

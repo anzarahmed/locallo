@@ -1,10 +1,10 @@
-import crypto from 'crypto';
 import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Admin } from '../models/Admin';
 import { User } from '../models/User';
 import { Session } from '../models/Session';
 import { RolePermission } from '../models/RolePermission';
+import { hashToken } from '../utils/session';
 import type { PermissionModule, PermissionAction } from '../types';
 
 interface JwtPayload {
@@ -92,7 +92,7 @@ export async function requireSeller(req: Request, res: Response, next: NextFunct
     return;
   }
 
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const tokenHash = hashToken(token);
   const session = await Session.findOne({ where: { tokenHash, actorType: 'user' } });
   if (!session) {
     res.status(401).json({ message: 'Session expired or logged out' });
@@ -131,7 +131,7 @@ export async function requireCustomer(req: Request, res: Response, next: NextFun
     return;
   }
 
-  const tokenHash = crypto.createHash('sha256').update(token).digest('hex');
+  const tokenHash = hashToken(token);
   const session = await Session.findOne({ where: { tokenHash, actorType: 'user' } });
   if (!session) {
     res.status(401).json({ message: 'Session expired or logged out' });

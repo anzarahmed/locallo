@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
-import { sendSuccess, sendError } from '../../utils/response';
-import { saveImage, getPresignedUrl, withSignedImages } from '../../utils/imageStorage';
+import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
+import { saveImage, getPresignedUrl, withSignedImages, signModelRows } from '../../utils/imageStorage';
+import { parsePagination } from '../../utils/pagination';
 import * as productService from '../../services/seller/productService';
 
 export async function uploadImage(req: Request, res: Response): Promise<void> {
@@ -13,8 +14,7 @@ export async function uploadImage(req: Request, res: Response): Promise<void> {
     const url = await getPresignedUrl(key);
     sendSuccess(res, { url }, 'Image uploaded', 201);
   } catch (err: unknown) {
-    const e = err as { message?: string };
-    sendError(res, e.message ?? 'Failed to upload image', 500);
+    handleServiceError(err, res, 'Failed to upload image');
   }
 }
 
@@ -24,8 +24,7 @@ export async function createProduct(req: Request, res: Response): Promise<void> 
     const signed = await withSignedImages(product.toJSON() as Record<string, unknown>);
     sendSuccess(res, { product: signed }, 'Product created', 201);
   } catch (err: unknown) {
-    const e = err as { message?: string; status?: number };
-    sendError(res, e.message ?? 'Failed to create product', e.status ?? 500);
+    handleServiceError(err, res, 'Failed to create product');
   }
 }
 
@@ -41,8 +40,7 @@ type ProductFilter = typeof VALID_FILTERS[number];
 type ProductSortBy = typeof VALID_SORT_BY[number];
 
 export async function getProducts(req: Request, res: Response): Promise<void> {
-  const page   = Math.max(1, Number(req.query.page) || 1);
-  const limit  = Math.min(50, Math.max(1, Number(req.query.limit) || 20));
+  const { page, limit } = parsePagination(req);
   const filter = (VALID_FILTERS.includes(req.query.filter as ProductFilter)
     ? req.query.filter : 'all') as ProductFilter;
   const sortBy = (VALID_SORT_BY.includes(req.query.sortBy as ProductSortBy)
@@ -51,9 +49,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
   const { rows, count } = await productService.getSellerProducts(
     req.seller!.id, page, limit, filter, sortBy,
   );
-  const products = await Promise.all(
-    rows.map(r => withSignedImages(r.toJSON() as Record<string, unknown>)),
-  );
+  const products = await signModelRows(rows);
   sendSuccess(res, { products, total: count, page, limit }, 'Products fetched');
 }
 
@@ -63,8 +59,7 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
     const signed = await withSignedImages(product.toJSON() as Record<string, unknown>);
     sendSuccess(res, { product: signed }, 'Product fetched');
   } catch (err: unknown) {
-    const e = err as { message?: string; status?: number };
-    sendError(res, e.message ?? 'Product not found', e.status ?? 500);
+    handleServiceError(err, res, 'Product not found');
   }
 }
 
@@ -74,8 +69,7 @@ export async function updateProduct(req: Request, res: Response): Promise<void> 
     const signed = await withSignedImages(product.toJSON() as Record<string, unknown>);
     sendSuccess(res, { product: signed }, 'Product updated');
   } catch (err: unknown) {
-    const e = err as { message?: string; status?: number };
-    sendError(res, e.message ?? 'Failed to update product', e.status ?? 500);
+    handleServiceError(err, res, 'Failed to update product');
   }
 }
 
@@ -84,8 +78,7 @@ export async function toggleProduct(req: Request, res: Response): Promise<void> 
     const product = await productService.toggleSellerProduct(req.seller!.id, String(req.params.id));
     sendSuccess(res, { product }, 'Product status updated');
   } catch (err: unknown) {
-    const e = err as { message?: string; status?: number };
-    sendError(res, e.message ?? 'Failed to toggle product', e.status ?? 500);
+    handleServiceError(err, res, 'Failed to toggle product');
   }
 }
 
@@ -94,7 +87,6 @@ export async function deleteProduct(req: Request, res: Response): Promise<void> 
     await productService.deleteSellerProduct(req.seller!.id, String(req.params.id));
     sendSuccess(res, null, 'Product deleted');
   } catch (err: unknown) {
-    const e = err as { message?: string; status?: number };
-    sendError(res, e.message ?? 'Failed to delete product', e.status ?? 500);
+    handleServiceError(err, res, 'Failed to delete product');
   }
 }

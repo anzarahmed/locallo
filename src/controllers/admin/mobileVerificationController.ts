@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { requestAdminMobileOtp, verifyAdminMobileOtp } from '../../services/admin/mobileVerificationService';
-import { sendSuccess, sendError } from '../../utils/response';
+import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 
 export async function requestOtp(req: Request, res: Response): Promise<void> {
   try {
@@ -24,15 +24,6 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
     verifyAdminMobileOtp(countryCode, mobile, otp);
     sendSuccess(res, { verified: true }, 'Mobile number verified');
   } catch (err: unknown) {
-    const status = (err as { status?: number }).status;
-    if (status === 410) {
-      sendError(res, (err as Error).message, 410);
-      return;
-    }
-    if (status === 422) {
-      sendError(res, (err as Error).message, 422);
-      return;
-    }
-    sendError(res, 'Verification failed');
+    handleServiceError(err, res, 'Verification failed');
   }
 }
