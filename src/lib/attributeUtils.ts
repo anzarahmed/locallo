@@ -1,6 +1,6 @@
 import type { AttributeField } from '../types';
 
-export type AttrValue = string | string[];
+export type AttrValue = string | number | string[];
 
 export function normalizeAttrValues(
   rawAttrs: Record<string, unknown>,
@@ -12,6 +12,8 @@ export function normalizeAttrValues(
     if (val === undefined || val === null) continue;
     if (field.type === 'multiselect' || field.type === 'color') {
       out[field.key] = Array.isArray(val) ? (val as string[]) : [String(val)];
+    } else if (field.type === 'number') {
+      out[field.key] = val === '' ? '' : Number(val);
     } else {
       out[field.key] = String(val);
     }

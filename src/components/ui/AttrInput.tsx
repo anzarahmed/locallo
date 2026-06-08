@@ -3,7 +3,7 @@ import { ChevronDown } from 'lucide-react';
 import { inputCls } from '../../lib/classUtils';
 import type { AttributeField } from '../../types';
 
-export type AttrValue = string | string[];
+export type AttrValue = string | number | string[];
 
 interface AttrInputProps {
   field: AttributeField;
@@ -12,7 +12,7 @@ interface AttrInputProps {
 }
 
 export default function AttrInput({ field, value, onChange }: AttrInputProps): JSX.Element {
-  const str = Array.isArray(value) ? '' : (value as string);
+  const str = Array.isArray(value) ? '' : String(value as string | number);
   const arr = Array.isArray(value) ? (value as string[]) : [];
 
   function toggleChip(v: string): void {
@@ -104,7 +104,11 @@ export default function AttrInput({ field, value, onChange }: AttrInputProps): J
         <input
           type={field.type === 'number' ? 'number' : 'text'}
           value={str}
-          onChange={e => onChange(e.target.value)}
+          onChange={e => onChange(
+            field.type === 'number'
+              ? (e.target.value === '' ? '' : Number(e.target.value))
+              : e.target.value
+          )}
           placeholder={field.unit ?? ''}
           className={inputCls(false)}
         />
