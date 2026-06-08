@@ -195,9 +195,7 @@ export default function VariantSheet({
 
   const attributeSchema   = product.category?.attributeSchema ?? [];
   const productAttrs      = product.attributes ?? {};
-  const variantAxisFields = attributeSchema.filter(
-    f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color',
-  );
+  const variantAxisFields = attributeSchema.filter(f => f.isVariant === true);
   const fieldsWithOptions = variantAxisFields.filter(f => getVariantOptions(f, productAttrs).length > 0);
 
   /* Slide-up animation */
@@ -256,10 +254,11 @@ export default function VariantSheet({
     values: VariantFormValues,
     helpers: FormikHelpers<VariantFormValues>,
   ): Promise<void> {
-    // All variant-axis fields that have options must have a selection
+    // Option-based variant fields must always have a selection; free-input fields only if required
     const missingFields = variantAxisFields.filter(f => {
       const opts = getVariantOptions(f, productAttrs);
-      return opts.length > 0 && !attrValues[f.key];
+      if (opts.length > 0) return !attrValues[f.key];
+      return f.required && !attrValues[f.key]?.trim();
     });
     if (missingFields.length > 0) {
       toast.error(`Please select: ${missingFields.map(f => f.label).join(', ')}`);
@@ -364,7 +363,7 @@ export default function VariantSheet({
             </div>
           ) : (
             <p className="text-xs text-gray-400 bg-gray-50 rounded-xl p-3.5 text-center leading-relaxed">
-              No option-type attributes for this category.
+              No variant attributes configured for this category.
               Variants will be differentiated by price and stock only.
             </p>
           )}

@@ -26,6 +26,7 @@ export interface AttributeField {
   label: string;
   type: AttributeFieldType;
   required: boolean;
+  isVariant?: boolean;
   unit?: string;
   options?: AttributeFieldOption[];
 }

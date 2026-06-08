@@ -149,6 +149,7 @@ export default function AddProduct(): JSX.Element {
     }
 
     const missingRequired = attributeSchema.filter(f => {
+      if (f.isVariant) return false;
       if (!f.required) return false;
       const v = attributes[f.key];
       return !v || (Array.isArray(v) && v.length === 0) || v === '';
@@ -423,11 +424,11 @@ export default function AddProduct(): JSX.Element {
         </div>
 
         {/* Product Attributes — free-form descriptors (text / number / textarea) */}
-        {attributeSchema.some(f => f.type === 'text' || f.type === 'number' || f.type === 'textarea') && (
+        {attributeSchema.some(f => !f.isVariant && (f.type === 'text' || f.type === 'number' || f.type === 'textarea')) && (
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
             <p className="text-sm font-semibold text-gray-700">Product Attributes</p>
             {attributeSchema
-              .filter(f => f.type === 'text' || f.type === 'number' || f.type === 'textarea')
+              .filter(f => !f.isVariant && (f.type === 'text' || f.type === 'number' || f.type === 'textarea'))
               .map(field => (
                 <AttrInput
                   key={field.key}
@@ -440,14 +441,14 @@ export default function AddProduct(): JSX.Element {
         )}
 
         {/* Available Options — select / multiselect / color define which variants exist */}
-        {attributeSchema.some(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color') && (
+        {attributeSchema.some(f => !f.isVariant && (f.type === 'select' || f.type === 'multiselect' || f.type === 'color')) && (
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
             <div>
               <p className="text-sm font-semibold text-gray-700">Available Options</p>
               <p className="text-xs text-gray-400 mt-0.5">Select all options this product is available in — e.g. all colors and sizes</p>
             </div>
             {attributeSchema
-              .filter(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color')
+              .filter(f => !f.isVariant && (f.type === 'select' || f.type === 'multiselect' || f.type === 'color'))
               .map(field => (
                 <AttrInput
                   key={field.key}
