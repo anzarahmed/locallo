@@ -12,6 +12,7 @@ interface DraftField {
   key: string;
   type: AttributeFieldType;
   required: boolean;
+  isVariant: boolean;
   unit: string;
   options: AttributeFieldOption[];
   newOptLabel: string;
@@ -20,7 +21,7 @@ interface DraftField {
 }
 
 const EMPTY_DRAFT: DraftField = {
-  label: '', key: '', type: 'text', required: false,
+  label: '', key: '', type: 'text', required: false, isVariant: false,
   unit: '', options: [],
   newOptLabel: '', newOptValue: '', newOptHex: '#000000',
 };
@@ -68,6 +69,12 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
     onChange(value.filter(f => f.key !== key));
   }
 
+  function toggleFieldVariant(key: string): void {
+    onChange(value.map(f =>
+      f.key === key ? { ...f, isVariant: f.isVariant ? undefined : true } : f,
+    ));
+  }
+
   function handleLabelChange(label: string): void {
     setDraft(d => ({
       ...d,
@@ -104,10 +111,11 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
     }
     setDraftError('');
     const field: AttributeField = {
-      key:      draft.key,
-      label:    draft.label,
-      type:     draft.type,
-      required: draft.required,
+      key:       draft.key,
+      label:     draft.label,
+      type:      draft.type,
+      required:  draft.required,
+      isVariant: draft.isVariant || undefined,
       ...(draft.unit ? { unit: draft.unit } : {}),
       ...(HAS_OPTIONS.includes(draft.type) ? { options: draft.options } : {}),
     };
@@ -148,6 +156,18 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                       <span className={`text-xs px-1.5 py-0.5 rounded font-mono ${TYPE_BADGE[field.type]}`}>
                         {field.type}
                       </span>
+                      <button
+                        type="button"
+                        onClick={(): void => toggleFieldVariant(field.key)}
+                        title={field.isVariant ? 'Click to remove variant attribute' : 'Click to mark as variant attribute'}
+                        className={`text-xs px-1.5 py-0.5 rounded transition-colors ${
+                          field.isVariant
+                            ? 'bg-teal-100 text-teal-700 hover:bg-teal-200'
+                            : 'bg-gray-100 text-gray-400 hover:bg-teal-50 hover:text-teal-600'
+                        }`}
+                      >
+                        variant
+                      </button>
                       {field.required && (
                         <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">req</span>
                       )}
@@ -250,15 +270,26 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                 </div>
               </div>
 
-              <label className="flex items-center gap-2 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={draft.required}
-                  onChange={e => setDraft(d => ({ ...d, required: e.target.checked }))}
-                  className="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <span className="text-xs text-gray-700">Required field</span>
-              </label>
+              <div className="flex items-center gap-5">
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={draft.required}
+                    onChange={e => setDraft(d => ({ ...d, required: e.target.checked }))}
+                    className="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                  />
+                  <span className="text-xs text-gray-700">Required field</span>
+                </label>
+                <label className="flex items-center gap-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={draft.isVariant}
+                    onChange={e => setDraft(d => ({ ...d, isVariant: e.target.checked }))}
+                    className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                  />
+                  <span className="text-xs text-gray-700">Variant attribute</span>
+                </label>
+              </div>
 
               {/* Options (select / multiselect / color) */}
               {HAS_OPTIONS.includes(draft.type) && (
