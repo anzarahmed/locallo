@@ -14,6 +14,18 @@ const s3 = new S3Client({
 const BUCKET = process.env.AWS_S3_BUCKET!;
 const SIGNED_URL_TTL = 60 * 60; // 1 hour
 
+export function resolveMimeType(buffer: Buffer, originalname: string, declaredMime: string): string {
+  if (declaredMime !== 'application/octet-stream') return declaredMime;
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
+  if (buffer[0] === 0x89 && buffer[1] === 0x50 && buffer[2] === 0x4e && buffer[3] === 0x47) return 'image/png';
+  if (buffer.length > 11 &&
+      buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
+      buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) return 'image/webp';
+  const ext = originalname.toLowerCase().slice(originalname.lastIndexOf('.'));
+  const extMap: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
+  return extMap[ext] ?? 'image/jpeg';
+}
+
 // Extracts the S3 key from a canonical URL, presigned URL, or plain key
 function toKey(urlOrKey: string): string {
   if (!urlOrKey.startsWith('http')) return urlOrKey.replace(/^\//, '');
@@ -23,12 +35,13 @@ function toKey(urlOrKey: string): string {
 export async function saveImage(file: Express.Multer.File, sellerId: string): Promise<string> {
   const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
   const key = `uploads/products/${sellerId}/${randomUUID()}${ext}`;
+  const contentType = resolveMimeType(file.buffer, file.originalname, file.mimetype);
 
   await s3.send(new PutObjectCommand({
     Bucket: BUCKET,
     Key: key,
     Body: file.buffer,
-    ContentType: file.mimetype,
+    ContentType: contentType,
   }));
 
   return key;

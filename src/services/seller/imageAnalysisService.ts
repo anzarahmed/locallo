@@ -1,5 +1,5 @@
 import { Category } from '../../models/Category';
-import { saveImage, getPresignedUrl } from '../../utils/imageStorage';
+import { saveImage, getPresignedUrl, resolveMimeType } from '../../utils/imageStorage';
 import { analyzeProductImage, mapAnalysisToAttributes } from '../../utils/imageAnalyzer';
 import type { AttributeField } from '../../types';
 
@@ -38,7 +38,7 @@ export async function analyzeAndSaveImage(
 
   let analysis;
   try {
-    analysis = await analyzeProductImage(file.buffer, file.mimetype, slugs);
+    analysis = await analyzeProductImage(file.buffer, resolveMimeType(file.buffer, file.originalname, file.mimetype), slugs);
   } catch (err) {
     console.error('[imageAnalysis] Gemini error:', err);
     return { imageUrl, suggestions: null, attributeSchema: [] };
