@@ -5,6 +5,7 @@ import {
   AdvancedMarker,
   useMapsLibrary,
   useMap,
+  type MapMouseEvent,
 } from '@vis.gl/react-google-maps';
 import { MapPin, Loader2 } from 'lucide-react';
 
@@ -117,10 +118,10 @@ function MapContent({ latitude, longitude, onChange, onAddress, mapHeight = 'h-7
   }, [onAddress]);
 
   const handleMapClick = useCallback(
-    (e: google.maps.MapMouseEvent): void => {
-      if (!e.latLng) return;
-      const lat = e.latLng.lat();
-      const lng = e.latLng.lng();
+    (e: MapMouseEvent): void => {
+      if (!e.detail.latLng) return;
+      const lat = e.detail.latLng.lat;
+      const lng = e.detail.latLng.lng;
       onChange(lat, lng);
       reverseGeocode(lat, lng);
     },

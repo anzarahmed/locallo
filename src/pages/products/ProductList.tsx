@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, type JSX } from 'react';
 import { Package, Trash2, Eye, AlertCircle, Loader2 } from 'lucide-react';
-import { type ColumnDef, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
+import { type ColumnDef, type Row, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -194,7 +194,7 @@ export default function ProductList(): JSX.Element {
     setDeleteTarget(null);
   }
 
-  const columns = useMemo<ColumnDef<Product, unknown>[]>(() => [
+  const columns = useMemo<ColumnDef<Product>[]>(() => [
     {
       accessorKey: 'name',
       header: 'Product',
@@ -204,7 +204,7 @@ export default function ProductList(): JSX.Element {
         filterPlaceholder: 'Search products…',
         skeletonCell: () => <SkeletonThumbnailCell />,
       },
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<Product> }) => {
         const p = row.original;
         return (
           <div className="flex items-center gap-3">
@@ -222,7 +222,7 @@ export default function ProductList(): JSX.Element {
     },
     {
       id: 'category',
-      accessorFn: row => row.category?.name ?? '',
+      accessorFn: (row: Product) => row.category?.name ?? '',
       header: 'Category',
       enableSorting: false,
       enableColumnFilter: true,
@@ -230,13 +230,13 @@ export default function ProductList(): JSX.Element {
         filterVariant: 'combobox',
         filterOptions: categories.map(c => ({ label: c.name, value: String(c.id) })),
       },
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<Product> }) => (
         <span className="text-gray-600">{row.original.category?.name ?? '—'}</span>
       ),
     },
     {
       id: 'seller',
-      accessorFn: row => row.seller?.sellerProfile?.businessName ?? row.seller?.fullName ?? '',
+      accessorFn: (row: Product) => row.seller?.sellerProfile?.businessName ?? row.seller?.fullName ?? '',
       header: 'Seller',
       enableSorting: false,
       enableColumnFilter: true,
@@ -247,7 +247,7 @@ export default function ProductList(): JSX.Element {
           value: s.id,
         })),
       },
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<Product> }) => (
         <span className="text-gray-600 max-w-36 truncate block">
           {row.original.seller?.sellerProfile?.businessName ?? row.original.seller?.fullName ?? '—'}
         </span>
@@ -262,7 +262,7 @@ export default function ProductList(): JSX.Element {
         skeletonCell: () => <SkeletonPriceCell />,
         align: 'right',
       },
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<Product> }) => {
         const p = row.original;
         return (
           <>
@@ -280,7 +280,7 @@ export default function ProductList(): JSX.Element {
       enableSorting: true,
       enableColumnFilter: false,
       meta: { align: 'center' },
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<Product> }) => (
         <span className={`text-sm font-medium ${row.original.stock === 0 ? 'text-red-500' : 'text-gray-700'}`}>
           {row.original.stock}
         </span>
@@ -296,7 +296,7 @@ export default function ProductList(): JSX.Element {
         filterOptions: STATUS_FILTER_OPTIONS,
         align: 'center',
       },
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<Product> }) => {
         const p = row.original;
         return (
           <div className="flex justify-center">
@@ -319,7 +319,7 @@ export default function ProductList(): JSX.Element {
       enableSorting: false,
       enableColumnFilter: false,
       meta: { hideFromVisibility: true, align: 'right' },
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<Product> }) => {
         const p = row.original;
         return (
           <div className="flex items-center justify-end gap-1">

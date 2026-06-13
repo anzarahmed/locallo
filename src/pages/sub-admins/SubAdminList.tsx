@@ -462,23 +462,20 @@ export default function SubAdminList(): JSX.Element {
       <DataGrid
         data={rows}
         columns={columns}
-        total={total}
-        page={page}
-        pageSize={limit}
         loading={loading}
         sorting={sorting}
         columnFilters={columnFilters}
-        onPageChange={setPage}
         onSortingChange={setSorting}
         onColumnFiltersChange={setColumnFilters}
         manualSorting={false}
         manualFiltering={false}
+        pagination={{ page, pageSize: limit, total, onPageChange: setPage }}
       />
 
       {showAdd && (
         <AddModal
           onClose={() => setShowAdd(false)}
-          onAdded={admin => {
+          onAdded={_admin => {
             setShowAdd(false);
             setFetchKey(k => k + 1);
           }}

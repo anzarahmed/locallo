@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, type JSX } from 'react';
 import { Plus, Pencil, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
-import { type ColumnDef, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
+import { type ColumnDef, type Row, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -291,14 +291,14 @@ export default function CategoryList(): JSX.Element {
     }
   }
 
-  const columns = useMemo<ColumnDef<Category, unknown>[]>(() => [
+  const columns = useMemo<ColumnDef<Category>[]>(() => [
     {
       accessorKey: 'name',
       header: 'Name',
       enableSorting: true,
       enableColumnFilter: true,
       meta: { filterPlaceholder: 'Search name…' },
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<Category> }) => (
         <span className="font-medium text-gray-900">{row.original.name}</span>
       ),
     },
@@ -307,7 +307,7 @@ export default function CategoryList(): JSX.Element {
       header: 'Slug',
       enableSorting: true,
       enableColumnFilter: false,
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<Category> }) => (
         <code className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
           {row.original.slug}
         </code>
@@ -315,12 +315,12 @@ export default function CategoryList(): JSX.Element {
     },
     {
       id: 'fields',
-      accessorFn: row => row.attributeSchema?.length ?? 0,
+      accessorFn: (row: Category) => row.attributeSchema?.length ?? 0,
       header: 'Fields',
       enableSorting: false,
       enableColumnFilter: false,
       meta: { align: 'center' },
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<Category> }) => (
         <span className="text-xs text-gray-500">{row.original.attributeSchema?.length ?? 0}</span>
       ),
     },
@@ -335,7 +335,7 @@ export default function CategoryList(): JSX.Element {
         align: 'center',
         className: 'w-24',
       },
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<Category> }) => {
         const cat = row.original;
         return (
           <div className="flex justify-center">
@@ -358,7 +358,7 @@ export default function CategoryList(): JSX.Element {
       enableSorting: false,
       enableColumnFilter: false,
       meta: { hideFromVisibility: true, align: 'right' },
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<Category> }) => {
         const cat = row.original;
         return (
           <div className="flex items-center justify-end gap-1">

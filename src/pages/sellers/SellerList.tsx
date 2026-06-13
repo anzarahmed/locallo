@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Power, Eye } from 'lucide-react';
-import { type ColumnDef, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
+import { type ColumnDef, type Row, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import StatusBadge from '../../components/ui/StatusBadge';
@@ -113,7 +113,7 @@ export default function SellerList(): JSX.Element {
     toast.success('Seller removed');
   }
 
-  const columns = useMemo<ColumnDef<Seller, unknown>[]>(() => [
+  const columns = useMemo<ColumnDef<Seller>[]>(() => [
     {
       accessorKey: 'fullName',
       header: 'Owner',
@@ -123,7 +123,7 @@ export default function SellerList(): JSX.Element {
         filterPlaceholder: 'Filter owner…',
         skeletonCell: () => <SkeletonAvatarCell />,
       },
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<Seller> }) => {
         const s = row.original;
         return (
           <div className="flex items-center gap-3">
@@ -145,7 +145,7 @@ export default function SellerList(): JSX.Element {
         filterPlaceholder: 'Filter shop…',
         skeletonCell: () => <SkeletonNameBadgeCell />,
       },
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<Seller> }) => {
         const s = row.original;
         return (
           <div>
@@ -169,7 +169,7 @@ export default function SellerList(): JSX.Element {
       enableSorting: true,
       enableColumnFilter: true,
       meta: { filterPlaceholder: 'Filter mobile…' },
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<Seller> }) => {
         const s = row.original;
         return (
           <span className="text-gray-600">
@@ -187,7 +187,7 @@ export default function SellerList(): JSX.Element {
         filterVariant: 'select',
         filterOptions: STATUS_FILTER_OPTIONS,
       },
-      cell: ({ row }) => <StatusBadge active={row.original.isActive} />,
+      cell: ({ row }: { row: Row<Seller> }) => <StatusBadge active={row.original.isActive} />,
     },
     {
       accessorKey: 'createdAt',
@@ -195,7 +195,7 @@ export default function SellerList(): JSX.Element {
       enableSorting: true,
       enableColumnFilter: false,
       meta: { align: 'right', className: 'w-32' },
-      cell: ({ row }) => (
+      cell: ({ row }: { row: Row<Seller> }) => (
         <span className="text-gray-500 text-sm">
           {new Date(row.original.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
         </span>
@@ -207,7 +207,7 @@ export default function SellerList(): JSX.Element {
       enableSorting: false,
       enableColumnFilter: false,
       meta: { hideFromVisibility: true, align: 'right' },
-      cell: ({ row }) => {
+      cell: ({ row }: { row: Row<Seller> }) => {
         const s = row.original;
         return (
           <div className="flex items-center justify-end gap-2">

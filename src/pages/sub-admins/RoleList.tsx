@@ -1,4 +1,5 @@
-import { useNavigate, type JSX } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
+import type { JSX } from 'react';
 import { ShieldCheck, ChevronRight } from 'lucide-react';
 import { ROLE_BADGE_CLASSES } from '../../lib/constants';
 
