@@ -69,7 +69,7 @@ function Placeholder({ title }: { title: string }): JSX.Element {
 
 export default function App(): JSX.Element {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename="/seller">
       <ToastProvider>
         <ModulePrefsProvider>
           <AuthProvider>
