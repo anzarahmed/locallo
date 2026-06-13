@@ -93,6 +93,7 @@ export interface Product {
   category?: SellerCategory;
   attributes?: Record<string, unknown>;
   variants?: Array<{ id: string }>;
+  pickupAddress?: string | null;
   createdAt: string;
 }
 

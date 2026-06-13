@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Tag, TrendingUp, Heart, BarChart2, Eye } from 'lucide-react';
+import { Package, TrendingUp, Heart, BarChart2, Eye } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { getProfile, getProducts } from '../../services/sellerService';
