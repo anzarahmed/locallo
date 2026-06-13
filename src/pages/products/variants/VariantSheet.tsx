@@ -1,7 +1,8 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useFormik, type FormikHelpers } from 'formik';
-import { X, Camera, Loader2 } from 'lucide-react';
+import { X, Camera, Plus, Loader2 } from 'lucide-react';
 import { uploadProductImage, createVariant, updateVariant } from '../../../services/sellerService';
+import { MAX_SECONDARY_IMAGES } from '../../../constants';
 import { variantFormSchema, type VariantFormValues } from '../../../validation/variantSchemas';
 import { useToast } from '../../../hooks/useToast';
 import { ApiError } from '../../../lib/axios';
@@ -235,19 +236,19 @@ export default function VariantSheet({
     setAttrValues(prev => ({ ...prev, [key]: value }));
   }
 
-  async function handleImageChange(e: ChangeEvent<HTMLInputElement>): Promise<void> {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function handleImageChange(e: ChangeEvent<HTMLInputElement>): void {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = '';
-    setIsUploading(true);
-    try {
-      const { url } = await uploadProductImage(file);
-      setImages(prev => [...prev, url]);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to upload image');
-    } finally {
-      setIsUploading(false);
-    }
+    if (files.length === 0) return;
+    const slots = MAX_SECONDARY_IMAGES - images.length;
+    const toUpload = files.slice(0, slots);
+    toUpload.forEach(file => {
+      setIsUploading(true);
+      uploadProductImage(file)
+        .then(({ url }) => setImages(prev => [...prev, url]))
+        .catch(err => toast.error(err instanceof ApiError ? err.message : 'Failed to upload image'))
+        .finally(() => setIsUploading(false));
+    });
   }
 
   async function handleSubmit(
@@ -370,45 +371,62 @@ export default function VariantSheet({
 
           {/* Images */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              Images<span className="text-rose-400 ml-0.5">*</span>
-            </p>
-            <div className="flex gap-2 flex-wrap">
-              {images.map((url, i) => (
-                <div key={url} className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                  <img
-                    src={resolveImage(url)}
-                    alt={`Variant ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setImages(prev => prev.filter(u => u !== url))}
-                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                  >
-                    <X size={9} />
-                  </button>
-                </div>
-              ))}
-              {images.length < 5 && (
-                <label
-                  className={`w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-teal-400 transition-colors shrink-0 ${
-                    isUploading ? 'pointer-events-none opacity-60' : ''
-                  }`}
-                >
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleImageChange}
-                    className="hidden"
-                  />
-                  {isUploading
-                    ? <Loader2 size={16} className="text-teal-400 animate-spin" />
-                    : <Camera size={18} className="text-gray-300" />
-                  }
-                </label>
-              )}
+            <div className="flex items-baseline gap-1.5 mb-2">
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
+                Images<span className="text-rose-400 ml-0.5">*</span>
+              </p>
+              <span className="text-xs text-gray-400 normal-case font-normal">up to {MAX_SECONDARY_IMAGES}</span>
             </div>
+
+            {images.length === 0 && !isUploading ? (
+              <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-6 cursor-pointer hover:border-teal-400 transition-colors">
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  multiple
+                  onChange={handleImageChange}
+                  className="hidden"
+                />
+                <div className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center">
+                  <Camera size={18} className="text-gray-400" />
+                </div>
+                <p className="text-xs text-gray-400">Upload variant images</p>
+              </label>
+            ) : (
+              <div className="flex gap-2 flex-wrap">
+                {images.map((url, i) => (
+                  <div key={url} className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                    <img
+                      src={resolveImage(url)}
+                      alt={`Variant ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setImages(prev => prev.filter(u => u !== url))}
+                      className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                    >
+                      <X size={9} />
+                    </button>
+                  </div>
+                ))}
+                {images.length < MAX_SECONDARY_IMAGES && (
+                  <label className={`w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-teal-400 transition-colors shrink-0 ${isUploading ? 'pointer-events-none opacity-60' : ''}`}>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                    {isUploading
+                      ? <Loader2 size={16} className="text-teal-400 animate-spin" />
+                      : <Plus size={16} className="text-gray-300" />
+                    }
+                  </label>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Pricing & Stock */}
