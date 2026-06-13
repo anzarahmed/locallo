@@ -1,4 +1,4 @@
-export const MAX_IMAGES = 5;
+export const MAX_SECONDARY_IMAGES = 3;
 
 export const PAGE_LIMIT = 20;
 

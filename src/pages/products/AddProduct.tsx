@@ -13,7 +13,7 @@ import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { normalizeAttrValues, type AttrValue } from '../../lib/attributeUtils';
 import { inputCls } from '../../lib/classUtils';
-import { MAX_IMAGES } from '../../constants';
+import { MAX_SECONDARY_IMAGES } from '../../constants';
 import FormField from '../../components/ui/FormField';
 import AttrInput from '../../components/ui/AttrInput';
 import type { SellerCategory, AttributeField } from '../../types';
@@ -29,7 +29,8 @@ export default function AddProduct(): JSX.Element {
   const toast = useToast();
 
   const [categories, setCategories] = useState<SellerCategory[]>([]);
-  const [images, setImages] = useState<string[]>([]);
+  const [primaryImage, setPrimaryImage] = useState<string | null>(null);
+  const [secondaryImages, setSecondaryImages] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [attributeSchema, setAttributeSchema] = useState<AttributeField[]>([]);
@@ -70,11 +71,11 @@ export default function AddProduct(): JSX.Element {
     setAttributes({});
   }
 
-  async function handleFirstImage(file: File): Promise<void> {
+  async function handlePrimaryUpload(file: File): Promise<void> {
     setIsAnalyzing(true);
     try {
       const result = await analyzeProductImage(file);
-      setImages([result.imageUrl]);
+      setPrimaryImage(result.imageUrl);
 
       if (result.suggestions) {
         const s = result.suggestions;
@@ -108,11 +109,18 @@ export default function AddProduct(): JSX.Element {
     }
   }
 
-  async function handleAddMore(file: File): Promise<void> {
+  function handlePrimaryChange(e: ChangeEvent<HTMLInputElement>): void {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    e.target.value = '';
+    void handlePrimaryUpload(file);
+  }
+
+  async function handleSecondaryUpload(file: File): Promise<void> {
     setIsUploading(true);
     try {
       const { url } = await uploadProductImage(file);
-      setImages(prev => [...prev, url]);
+      setSecondaryImages(prev => [...prev, url]);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to upload image');
     } finally {
@@ -120,18 +128,13 @@ export default function AddProduct(): JSX.Element {
     }
   }
 
-  function handleFileChange(e: ChangeEvent<HTMLInputElement>): void {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  function handleSecondaryChange(e: ChangeEvent<HTMLInputElement>): void {
+    const files = Array.from(e.target.files ?? []);
     e.target.value = '';
-    void handleFirstImage(file);
-  }
-
-  function handleAddMoreChange(e: ChangeEvent<HTMLInputElement>): void {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    e.target.value = '';
-    void handleAddMore(file);
+    if (files.length === 0) return;
+    const slots = MAX_SECONDARY_IMAGES - secondaryImages.length;
+    const toUpload = files.slice(0, slots);
+    toUpload.forEach(f => void handleSecondaryUpload(f));
   }
 
   function setAttr(key: string, value: AttrValue): void {
@@ -142,8 +145,8 @@ export default function AddProduct(): JSX.Element {
     values: AddProductFormValues,
     helpers: FormikHelpers<AddProductFormValues>,
   ): Promise<void> {
-    if (images.length === 0) {
-      toast.error('Please upload at least one product image');
+    if (!primaryImage) {
+      toast.error('Please upload a primary product image');
       helpers.setSubmitting(false);
       return;
     }
@@ -169,7 +172,7 @@ export default function AddProduct(): JSX.Element {
         mrp:          values.mrp      ? Number(values.mrp)      : undefined,
         costPrice:    values.costPrice ? Number(values.costPrice) : undefined,
         stock:        Number(values.stock),
-        images,
+        images:       [primaryImage, ...secondaryImages],
         attributes,
       });
       toast.success('Product added successfully');
@@ -202,19 +205,52 @@ export default function AddProduct(): JSX.Element {
       </div>
 
       <div className="px-4 pt-5 max-w-2xl mx-auto space-y-4">
-        {/* Images */}
+        {/* Primary Image */}
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <p className="text-sm font-semibold text-gray-700 mb-3">
-            Product Images
+            Primary Image
             <span className="text-rose-400 ml-0.5">*</span>
           </p>
 
-          {images.length === 0 ? (
+          {primaryImage ? (
+            <div className="flex items-center gap-3">
+              <div className="relative w-24 h-24 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                <img
+                  src={resolveImage(primaryImage)}
+                  alt="Primary product image"
+                  className="w-full h-full object-cover"
+                />
+                <button
+                  type="button"
+                  onClick={() => { setPrimaryImage(null); setAiHint(null); }}
+                  className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                >
+                  <X size={11} />
+                </button>
+              </div>
+              <div>
+                <p className="text-xs text-gray-400 mb-2">Main display image for your product</p>
+                <label className={`inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 cursor-pointer hover:text-teal-700 ${isAnalyzing ? 'pointer-events-none opacity-50' : ''}`}>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePrimaryChange}
+                    className="hidden"
+                  />
+                  {isAnalyzing ? (
+                    <><Loader2 size={12} className="animate-spin" /> Analyzing…</>
+                  ) : (
+                    'Replace image'
+                  )}
+                </label>
+              </div>
+            </div>
+          ) : (
             <label className={`flex flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed border-gray-200 py-10 cursor-pointer hover:border-teal-400 transition-colors ${isAnalyzing ? 'pointer-events-none opacity-70' : ''}`}>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
-                onChange={handleFileChange}
+                onChange={handlePrimaryChange}
                 className="hidden"
               />
               {isAnalyzing ? (
@@ -228,44 +264,11 @@ export default function AddProduct(): JSX.Element {
                   <div className="w-14 h-14 rounded-full bg-teal-50 flex items-center justify-center">
                     <Camera size={24} className="text-teal-500" />
                   </div>
-                  <p className="text-sm font-semibold text-gray-600">Upload product photo</p>
+                  <p className="text-sm font-semibold text-gray-600">Upload primary photo</p>
                   <p className="text-xs text-gray-400">AI will suggest name, category & details</p>
                 </>
               )}
             </label>
-          ) : (
-            <div className="flex gap-2 flex-wrap">
-              {images.map((url, i) => (
-                <div key={url} className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                  <img
-                    src={resolveImage(url)}
-                    alt={`Product ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setImages(prev => prev.filter(u => u !== url))}
-                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                  >
-                    <X size={11} />
-                  </button>
-                </div>
-              ))}
-              {images.length < MAX_IMAGES && (
-                <label className={`w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-teal-400 transition-colors shrink-0 ${isUploading ? 'pointer-events-none opacity-60' : ''}`}>
-                  <input
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    onChange={handleAddMoreChange}
-                    className="hidden"
-                  />
-                  {isUploading
-                    ? <Loader2 size={18} className="text-teal-400 animate-spin" />
-                    : <Plus size={20} className="text-gray-300" />
-                  }
-                </label>
-              )}
-            </div>
           )}
         </div>
 
@@ -298,6 +301,64 @@ export default function AddProduct(): JSX.Element {
             </button>
           </div>
         )}
+
+        {/* Secondary Images */}
+        <div className="bg-white rounded-2xl shadow-sm p-4">
+          <div className="flex items-baseline gap-1.5 mb-3">
+            <p className="text-sm font-semibold text-gray-700">Secondary Images</p>
+            <span className="text-xs text-gray-400 font-normal">up to {MAX_SECONDARY_IMAGES}</span>
+          </div>
+
+          {secondaryImages.length === 0 && !isUploading ? (
+            <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-7 cursor-pointer hover:border-teal-400 transition-colors">
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                onChange={handleSecondaryChange}
+                className="hidden"
+              />
+              <div className="w-10 h-10 rounded-full bg-gray-50 flex items-center justify-center">
+                <Plus size={20} className="text-gray-400" />
+              </div>
+              <p className="text-xs text-gray-400">Add extra photos of your product</p>
+            </label>
+          ) : (
+            <div className="flex gap-2 flex-wrap">
+              {secondaryImages.map((url, i) => (
+                <div key={url} className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                  <img
+                    src={resolveImage(url)}
+                    alt={`Secondary ${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setSecondaryImages(prev => prev.filter(u => u !== url))}
+                    className="absolute top-1 right-1 w-5 h-5 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                  >
+                    <X size={11} />
+                  </button>
+                </div>
+              ))}
+              {secondaryImages.length < MAX_SECONDARY_IMAGES && (
+                <label className={`w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-teal-400 transition-colors shrink-0 ${isUploading ? 'pointer-events-none opacity-60' : ''}`}>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={handleSecondaryChange}
+                    className="hidden"
+                  />
+                  {isUploading
+                    ? <Loader2 size={18} className="text-teal-400 animate-spin" />
+                    : <Plus size={20} className="text-gray-300" />
+                  }
+                </label>
+              )}
+            </div>
+          )}
+        </div>
 
         {/* Basic info */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
