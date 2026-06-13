@@ -23,7 +23,7 @@ export default function App(): JSX.Element {
     <ToastProvider>
       <Toaster />
       <AuthProvider>
-        <BrowserRouter>
+        <BrowserRouter basename="/admin">
         <Suspense fallback={null}>
         <Routes>
           {/* Auth */}

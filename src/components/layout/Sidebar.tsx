@@ -1,4 +1,5 @@
 import { NavLink, useNavigate } from 'react-router-dom';
+import logoUrl from '../../assets/logo.png';
 import {
   LayoutDashboard,
   Users,
@@ -78,7 +79,7 @@ export default function Sidebar(): JSX.Element {
       {/* Logo */}
       <div className={`flex items-center px-4 py-5 border-b border-gray-700 ${collapsed ? 'justify-center' : ''}`}>
         <img
-          src="/src/assets/logo.png"
+          src={logoUrl}
           alt="Localo"
           className={`object-contain ${collapsed ? 'h-8 w-8' : 'h-10 w-auto'}`}
         />
