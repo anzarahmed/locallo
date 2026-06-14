@@ -1,5 +1,6 @@
 import { Router } from 'express';
 import { requireSeller } from '../../middleware/auth';
+import { getDashboardStats } from '../../controllers/seller/dashboardController';
 import { getProfile, updateSeller, updateAddress, getSettings, updateSettings } from '../../controllers/seller/sellerController';
 import { requestOtp, verifyOtp, logout } from '../../controllers/seller/sellerAuthController';
 import {
@@ -21,6 +22,8 @@ const router = Router();
 router.post('/auth/request-otp', validate(requestOtpSchema), requestOtp);
 router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
 router.post('/auth/logout',      requireSeller,               logout);
+
+router.get('/dashboard/stats', requireSeller, getDashboardStats);
 
 router.get('/categories', requireSeller, getCategories);
 router.get('/my-categories', requireSeller, getMyCategories);
