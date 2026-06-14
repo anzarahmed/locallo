@@ -3,10 +3,10 @@ import { useNavigate } from 'react-router-dom';
 import { Package, TrendingUp, Heart, BarChart2, Eye } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
-import { getProfile, getProducts } from '../../services/sellerService';
+import { getProfile, getProducts, getDashboardStats } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
-import type { ProfileResponse, Product } from '../../types';
+import type { ProfileResponse, Product, DashboardStats } from '../../types';
 
 function initials(name: string | null): string {
   if (!name) return 'S';
@@ -25,19 +25,20 @@ export default function Dashboard(): JSX.Element {
 
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
   const [products, setProducts] = useState<Product[]>([]);
-  const [totalProducts, setTotalProducts] = useState(0);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     async function load(): Promise<void> {
       try {
-        const [profileData, allProds] = await Promise.all([
+        const [profileData, allProds, dashStats] = await Promise.all([
           getProfile(),
           getProducts({ page: 1, limit: 5 }),
+          getDashboardStats(),
         ]);
         setProfile(profileData);
         setProducts(allProds.products);
-        setTotalProducts(allProds.total);
+        setStats(dashStats);
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to load dashboard');
       } finally {
@@ -48,6 +49,16 @@ export default function Dashboard(): JSX.Element {
   }, []);
 
   const businessName = profile?.profile?.businessName ?? seller?.fullName ?? 'Seller';
+
+  function fmtGrowthPercent(val: number): string {
+    if (val === 0) return '+0%';
+    return (val > 0 ? '+' : '') + val.toFixed(1).replace(/\.0$/, '') + '%';
+  }
+
+  function fmtGrowthCount(val: number): string {
+    if (val === 0) return '+0';
+    return (val > 0 ? '+' : '') + val;
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -83,9 +94,9 @@ export default function Dashboard(): JSX.Element {
             bgIcon={<Eye size={88} className="text-teal-500" />}
             iconBg="bg-teal-50"
             accentClass="bg-teal-500"
-            value={loading ? null : '0'}
+            value={loading || !stats ? null : stats.totalViews.toLocaleString()}
             label="Total Views"
-            growth="+0"
+            growth={stats ? fmtGrowthPercent(stats.viewsGrowthPercent) : '+0%'}
             sublabel="this month"
           />
           <StatCard
@@ -93,9 +104,9 @@ export default function Dashboard(): JSX.Element {
             bgIcon={<Heart size={88} className="text-pink-400" />}
             iconBg="bg-pink-50"
             accentClass="bg-pink-400"
-            value={loading ? null : '0'}
+            value={loading || !stats ? null : stats.wishlistSaves.toLocaleString()}
             label="Wishlist Saves"
-            growth="+0"
+            growth={stats ? fmtGrowthPercent(stats.wishlistGrowthPercent) : '+0%'}
             sublabel="this month"
           />
           <StatCard
@@ -103,9 +114,9 @@ export default function Dashboard(): JSX.Element {
             bgIcon={<Package size={88} className="text-teal-500" />}
             iconBg="bg-teal-50"
             accentClass="bg-teal-500"
-            value={loading ? null : String(totalProducts)}
+            value={loading || !stats ? null : String(stats.totalProducts)}
             label="Products"
-            growth="+0"
+            growth={stats ? fmtGrowthCount(stats.productsAddedThisWeek) : '+0'}
             sublabel="this week"
           />
           <StatCard
@@ -113,9 +124,9 @@ export default function Dashboard(): JSX.Element {
             bgIcon={<TrendingUp size={88} className="text-amber-400" />}
             iconBg="bg-amber-50"
             accentClass="bg-amber-400"
-            value={loading ? null : '0%'}
+            value={loading || !stats ? null : stats.interestRate.toFixed(1) + '%'}
             label="Interest Rate"
-            growth="+0"
+            growth={stats ? fmtGrowthPercent(stats.interestRateGrowthPercent) : '+0%'}
             sublabel="this month"
           />
         </div>
@@ -145,12 +156,12 @@ export default function Dashboard(): JSX.Element {
             )}
           </div>
 
-          {!loading && totalProducts > 5 && (
+          {!loading && stats && stats.totalProducts > 5 && (
             <button
               onClick={() => navigate('/products')}
               className="w-full mt-3 py-3 text-sm font-semibold text-teal-600 hover:text-teal-700 transition-colors"
             >
-              View all {totalProducts} products →
+              View all {stats.totalProducts} products →
             </button>
           )}
         </div>
@@ -172,8 +183,8 @@ interface StatCardProps {
 }
 
 function StatCard({ icon, bgIcon, iconBg, accentClass, value, label, growth, sublabel }: StatCardProps): JSX.Element {
-  const isPositive = growth.startsWith('+') && growth !== '+0';
-  const isZero = growth === '+0';
+  const isPositive = growth.startsWith('+') && growth !== '+0' && growth !== '+0%';
+  const isZero = growth === '+0' || growth === '+0%';
 
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden relative">

@@ -1,6 +1,10 @@
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant } from '../types';
+import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats } from '../types';
+
+export function getDashboardStats(): Promise<DashboardStats> {
+  return apiGet(PATHS.DASHBOARD.STATS);
+}
 
 export function getProfile(): Promise<ProfileResponse> {
   return apiGet(PATHS.PROFILE);

@@ -4,6 +4,9 @@ export const PATHS = {
     VERIFY_OTP:  '/api/sellers/auth/verify-otp',
     LOGOUT:      '/api/sellers/auth/logout',
   },
+  DASHBOARD: {
+    STATS: '/api/sellers/dashboard/stats',
+  },
   PROFILE:    '/api/sellers/profile',
   ADDRESS:    '/api/sellers/address',
   PRODUCTS:       '/api/sellers/products',

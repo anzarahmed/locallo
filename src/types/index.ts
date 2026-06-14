@@ -104,6 +104,17 @@ export interface ProductsResponse {
   limit: number;
 }
 
+export interface DashboardStats {
+  totalViews: number;
+  viewsGrowthPercent: number;
+  wishlistSaves: number;
+  wishlistGrowthPercent: number;
+  totalProducts: number;
+  productsAddedThisWeek: number;
+  interestRate: number;
+  interestRateGrowthPercent: number;
+}
+
 export interface ProductVariant {
   id: string;
   productId: string;
