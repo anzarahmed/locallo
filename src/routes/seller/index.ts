@@ -7,7 +7,7 @@ import {
   getProduct, updateProduct, toggleProduct, deleteProduct,
 } from '../../controllers/seller/productController';
 import { analyzeImage } from '../../controllers/seller/imageAnalysisController';
-import { getCategories } from '../../controllers/seller/categoryController';
+import { getCategories, getMyCategories } from '../../controllers/seller/categoryController';
 import { getVariants, createVariant, updateVariant, deleteVariant, toggleVariant } from '../../controllers/seller/variantController';
 import { validate } from '../../middleware/validate';
 import upload from '../../middleware/upload';
@@ -23,6 +23,7 @@ router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
 router.post('/auth/logout',      requireSeller,               logout);
 
 router.get('/categories', requireSeller, getCategories);
+router.get('/my-categories', requireSeller, getMyCategories);
 
 router.get('/profile', requireSeller, getProfile);
 router.put('/profile', requireSeller, validate(updateSellerSchema),  updateSeller);
