@@ -5,7 +5,7 @@ import { Category } from '../../models/Category';
 import type { createVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
 import { normalizeImageKey } from '../../utils/imageStorage';
 
-async function syncProductStock(productId: string): Promise<void> {
+export async function syncProductStock(productId: string): Promise<void> {
   const total = ((await ProductVariant.sum('stock', { where: { productId } })) as number | null) ?? 0;
   await Product.update({ stock: total }, { where: { id: productId } });
 }

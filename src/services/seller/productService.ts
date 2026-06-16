@@ -1,5 +1,5 @@
 import type { InferType } from 'yup';
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
 import { Product } from '../../models/Product';
 import { Category } from '../../models/Category';
 import { ProductVariant } from '../../models/ProductVariant';
@@ -127,6 +127,14 @@ export async function getSellerProducts(
 
   return Product.findAndCountAll({
     where,
+    attributes: {
+      include: [
+        [
+          literal('(SELECT COUNT(*)::int FROM product_variants WHERE product_id = "Product".id)'),
+          'variantCount',
+        ],
+      ],
+    },
     include: [{ model: Category, attributes: ['id', 'name', 'slug'] }],
     order: resolveOrder(sortBy),
     limit,

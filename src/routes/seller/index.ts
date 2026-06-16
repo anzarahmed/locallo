@@ -10,12 +10,14 @@ import {
 import { analyzeImage } from '../../controllers/seller/imageAnalysisController';
 import { getCategories, getMyCategories } from '../../controllers/seller/categoryController';
 import { getVariants, createVariant, updateVariant, deleteVariant, toggleVariant } from '../../controllers/seller/variantController';
+import { markProductSold, markVariantSold, getSoldLogs } from '../../controllers/seller/soldController';
 import { validate } from '../../middleware/validate';
 import upload from '../../middleware/upload';
 import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema } from '../../validation/seller/sellerSchemas';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/sellerAuthSchemas';
 import { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import { createVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
+import { markSoldSchema } from '../../validation/seller/soldSchemas';
 
 const router = Router();
 
@@ -49,5 +51,10 @@ router.post('/products/:productId/variants',                    requireSeller, v
 router.put('/products/:productId/variants/:variantId',          requireSeller, validate(updateVariantSchema), updateVariant);
 router.delete('/products/:productId/variants/:variantId',       requireSeller, deleteVariant);
 router.patch('/products/:productId/variants/:variantId/toggle', requireSeller, toggleVariant);
+router.post('/products/:id/variants/:variantId/sell',           requireSeller, validate(markSoldSchema), markVariantSold);
+
+router.post('/products/:id/sell', requireSeller, validate(markSoldSchema), markProductSold);
+
+router.get('/sold-logs', requireSeller, getSoldLogs);
 
 export default router;
