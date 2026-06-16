@@ -16,6 +16,7 @@ const AddProduct  = lazy(() => import('./pages/products/AddProduct'));
 const EditProduct = lazy(() => import('./pages/products/EditProduct'));
 const VariantList = lazy(() => import('./pages/products/variants/VariantList'));
 const Settings    = lazy(() => import('./pages/settings/Settings'));
+const SoldLogs    = lazy(() => import('./pages/sold-logs/SoldLogs'));
 
 function AuthGuard({ children }: { children: JSX.Element }): JSX.Element {
   const { token, isRestoring } = useAuth();
@@ -50,6 +51,7 @@ function AppRoutes(): JSX.Element {
           <Route path="/products/:id/edit"     element={<EditProduct />} />
           <Route path="/products/:id/variants" element={<VariantList />} />
           <Route path="/settings"              element={<Settings />} />
+          <Route path="/sold-logs"             element={<SoldLogs />} />
           <Route path="/pnl"                   element={<Placeholder title="P&L" />} />
         </Route>
 

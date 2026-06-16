@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats } from '../types';
+import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse } from '../types';
 
 export function getDashboardStats(): Promise<DashboardStats> {
   return apiGet(PATHS.DASHBOARD.STATS);
@@ -98,4 +98,21 @@ export function getSettings(): Promise<{ notificationSettings: NotificationSetti
 
 export function updateSettings(data: NotificationSettings): Promise<{ notificationSettings: NotificationSettings }> {
   return apiPut(PATHS.SETTINGS, data);
+}
+
+export function markProductSold(productId: string, quantity: number): Promise<unknown> {
+  return apiPost(PATHS.PRODUCT_SELL(productId), { quantity });
+}
+
+export function markVariantSold(productId: string, variantId: string, quantity: number): Promise<unknown> {
+  return apiPost(PATHS.VARIANT_SELL(productId, variantId), { quantity });
+}
+
+export function getSoldLogs(params?: {
+  page?: number;
+  limit?: number;
+  from?: string;
+  to?: string;
+}): Promise<SoldLogsResponse> {
+  return apiGet(PATHS.SOLD_LOGS, params);
 }

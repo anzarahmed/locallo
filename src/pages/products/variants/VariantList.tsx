@@ -1,12 +1,13 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Eye, EyeOff, Loader2, Package, Pencil, Plus, Trash2, Wand2 } from 'lucide-react';
-import { getProductVariants, toggleVariant, deleteVariant, createVariant } from '../../../services/sellerService';
+import { ArrowLeft, Eye, EyeOff, Loader2, Package, Pencil, Plus, ShoppingBag, Trash2, Wand2 } from 'lucide-react';
+import { getProductVariants, toggleVariant, deleteVariant, createVariant, markVariantSold } from '../../../services/sellerService';
 import { useToast } from '../../../hooks/useToast';
 import { ApiError } from '../../../lib/axios';
 import { resolveImage } from '../../../lib/imageUtils';
 import { hasDiscount } from '../../../lib/formatters';
 import ConfirmDeleteModal from '../../../components/ui/ConfirmDeleteModal';
+import SellModal from '../../../components/ui/SellModal';
 import type { Product, ProductVariant, AttributeField } from '../../../types';
 import VariantSheet from './VariantSheet';
 
@@ -64,6 +65,8 @@ export default function VariantList(): JSX.Element {
   const [deleteTarget, setDeleteTarget] = useState<ProductVariant | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [autoGenerating, setAutoGenerating] = useState(false);
+  const [sellVariant, setSellVariant] = useState<ProductVariant | null>(null);
+  const [selling, setSelling] = useState(false);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -150,6 +153,26 @@ export default function VariantList(): JSX.Element {
     toast.success(isUpdate ? 'Variant updated' : 'Variant added');
     setSheetOpen(false);
     setEditingVariant(null);
+  }
+
+  async function handleSell(quantity: number): Promise<void> {
+    if (!sellVariant) return;
+    setSelling(true);
+    try {
+      await markVariantSold(id!, sellVariant.id, quantity);
+      const newVariants = variants.map(v =>
+        v.id === sellVariant.id ? { ...v, stock: v.stock - quantity } : v,
+      );
+      setVariants(newVariants);
+      const newProductStock = newVariants.reduce((sum, v) => sum + v.stock, 0);
+      setProduct(prev => prev ? { ...prev, stock: newProductStock } : prev);
+      toast.success(`Marked ${quantity} unit${quantity !== 1 ? 's' : ''} as sold`);
+      setSellVariant(null);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to record sale');
+    } finally {
+      setSelling(false);
+    }
   }
 
   async function confirmDelete(): Promise<void> {
@@ -249,6 +272,7 @@ export default function VariantList(): JSX.Element {
                 onToggle={() => void handleToggle(variant)}
                 onEdit={() => openEdit(variant)}
                 onDelete={() => setDeleteTarget(variant)}
+                onSell={() => setSellVariant(variant)}
               />
             ))}
           </div>
@@ -278,6 +302,19 @@ export default function VariantList(): JSX.Element {
           onCancel={() => setDeleteTarget(null)}
         />
       )}
+
+      {/* Sell modal */}
+      {sellVariant && (
+        <SellModal
+          itemName={
+            Object.values(sellVariant.attributes).join(' / ') || 'Variant'
+          }
+          currentStock={sellVariant.stock}
+          loading={selling}
+          onConfirm={(qty) => void handleSell(qty)}
+          onClose={() => setSellVariant(null)}
+        />
+      )}
     </div>
   );
 }
@@ -289,9 +326,10 @@ interface VariantCardProps {
   onToggle: () => void;
   onEdit: () => void;
   onDelete: () => void;
+  onSell: () => void;
 }
 
-function VariantCard({ variant, schema, onToggle, onEdit, onDelete }: VariantCardProps): JSX.Element {
+function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell }: VariantCardProps): JSX.Element {
   const imageUrl = variant.images[0] ? resolveImage(variant.images[0]) : null;
   const [imgError, setImgError] = useState(false);
 
@@ -370,6 +408,15 @@ function VariantCard({ variant, schema, onToggle, onEdit, onDelete }: VariantCar
 
       {/* Actions */}
       <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-50">
+        <button
+          type="button"
+          onClick={onSell}
+          disabled={variant.stock === 0}
+          title={variant.stock === 0 ? 'Out of stock' : 'Mark as sold'}
+          className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors disabled:opacity-40"
+        >
+          <ShoppingBag size={15} />
+        </button>
         <button
           type="button"
           onClick={onToggle}

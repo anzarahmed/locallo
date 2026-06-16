@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Plus, LogOut, BarChart2, User, ChevronDown, Settings } from 'lucide-react';
+import { LayoutDashboard, Package, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
 import { useState, useRef, useEffect, type JSX } from 'react';
@@ -12,8 +12,9 @@ interface NavItem {
 }
 
 const BASE_NAV: NavItem[] = [
-  { to: '/dashboard', icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-  { to: '/products',  icon: <Package size={20} />,         label: 'Products'  },
+  { to: '/dashboard',  icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
+  { to: '/products',   icon: <Package size={20} />,         label: 'Products'  },
+  { to: '/sold-logs',  icon: <Receipt size={20} />,         label: 'Sales Log' },
 ];
 
 const PNL_NAV:      NavItem = { to: '/pnl',      icon: <BarChart2 size={20} />, label: 'P&L'      };

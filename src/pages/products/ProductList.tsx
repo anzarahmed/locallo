@@ -1,14 +1,16 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, Heart, ChevronDown, ScanEye } from 'lucide-react';
-import { getProducts, toggleProduct, deleteProduct } from '../../services/sellerService';
+import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, Heart, ChevronDown, ScanEye, ShoppingBag, Loader2 } from 'lucide-react';
+import { getProducts, toggleProduct, deleteProduct, markProductSold, markVariantSold, getProductVariants } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { hasDiscount } from '../../lib/formatters';
 import { FILTER_TABS, SORT_OPTIONS, PAGE_LIMIT, type FilterTab } from '../../constants';
 import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
-import type { Product } from '../../types';
+import SellModal from '../../components/ui/SellModal';
+import VariantPickerModal from '../../components/ui/VariantPickerModal';
+import type { Product, ProductVariant, AttributeField } from '../../types';
 import ProductPreview from './ProductPreview';
 
 export default function ProductList(): JSX.Element {
@@ -24,6 +26,16 @@ export default function ProductList(): JSX.Element {
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
+
+  const [sellProduct, setSellProduct] = useState<Product | null>(null);
+  const [variantPickerData, setVariantPickerData] = useState<{
+    product: Product;
+    variants: ProductVariant[];
+    schema: AttributeField[];
+  } | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [loadingVariantsForId, setLoadingVariantsForId] = useState<string | null>(null);
+  const [selling, setSelling] = useState(false);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -76,6 +88,69 @@ export default function ProductList(): JSX.Element {
       toast.error(err instanceof ApiError ? err.message : 'Failed to delete product');
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function handleSellClick(product: Product): Promise<void> {
+    if ((product.variantCount ?? 0) > 0) {
+      setLoadingVariantsForId(product.id);
+      try {
+        const data = await getProductVariants(product.id);
+        setVariantPickerData({
+          product,
+          variants: data.variants,
+          schema: data.product.category?.attributeSchema ?? [],
+        });
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : 'Failed to load variants');
+      } finally {
+        setLoadingVariantsForId(null);
+      }
+    } else {
+      setSellProduct(product);
+    }
+  }
+
+  function handleVariantSelected(variant: ProductVariant): void {
+    setSelectedVariant(variant);
+    setVariantPickerData(null);
+  }
+
+  async function handleConfirmProductSell(quantity: number): Promise<void> {
+    if (!sellProduct) return;
+    setSelling(true);
+    try {
+      await markProductSold(sellProduct.id, quantity);
+      setProducts(prev =>
+        prev.map(p => p.id === sellProduct.id ? { ...p, stock: p.stock - quantity } : p),
+      );
+      toast.success(`Marked ${quantity} unit${quantity !== 1 ? 's' : ''} as sold`);
+      setSellProduct(null);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to record sale');
+    } finally {
+      setSelling(false);
+    }
+  }
+
+  async function handleConfirmVariantSell(quantity: number): Promise<void> {
+    if (!selectedVariant) return;
+    const productId = selectedVariant.productId;
+    setSelling(true);
+    try {
+      await markVariantSold(productId, selectedVariant.id, quantity);
+      setProducts(prev =>
+        prev.map(p => {
+          if (p.id !== productId) return p;
+          return { ...p, stock: Math.max(0, p.stock - quantity) };
+        }),
+      );
+      toast.success(`Marked ${quantity} unit${quantity !== 1 ? 's' : ''} as sold`);
+      setSelectedVariant(null);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to record sale');
+    } finally {
+      setSelling(false);
     }
   }
 
@@ -167,11 +242,13 @@ export default function ProductList(): JSX.Element {
               <ProductCard
                 key={product.id}
                 product={product}
+                loadingVariants={loadingVariantsForId === product.id}
                 onEdit={() => navigate(`/products/${product.id}/edit`)}
                 onVariants={() => navigate(`/products/${product.id}/variants`)}
                 onToggle={() => void handleToggle(product)}
                 onDelete={() => setDeleteTarget(product)}
                 onPreview={() => setPreviewId(product.id)}
+                onSell={() => void handleSellClick(product)}
               />
             ))
           )}
@@ -221,6 +298,38 @@ export default function ProductList(): JSX.Element {
           onClose={() => setPreviewId(null)}
         />
       )}
+
+      {variantPickerData && (
+        <VariantPickerModal
+          productName={variantPickerData.product.name}
+          variants={variantPickerData.variants}
+          schema={variantPickerData.schema}
+          onSelect={handleVariantSelected}
+          onClose={() => setVariantPickerData(null)}
+        />
+      )}
+
+      {selectedVariant && (
+        <SellModal
+          itemName={
+            Object.values(selectedVariant.attributes).join(' / ') || 'Variant'
+          }
+          currentStock={selectedVariant.stock}
+          loading={selling}
+          onConfirm={(qty) => void handleConfirmVariantSell(qty)}
+          onClose={() => setSelectedVariant(null)}
+        />
+      )}
+
+      {sellProduct && (
+        <SellModal
+          itemName={sellProduct.name}
+          currentStock={sellProduct.stock}
+          loading={selling}
+          onConfirm={(qty) => void handleConfirmProductSell(qty)}
+          onClose={() => setSellProduct(null)}
+        />
+      )}
     </div>
   );
 }
@@ -228,14 +337,16 @@ export default function ProductList(): JSX.Element {
 /* ── Product card ── */
 interface ProductCardProps {
   product: Product;
+  loadingVariants: boolean;
   onEdit: () => void;
   onVariants: () => void;
   onToggle: () => void;
   onDelete: () => void;
   onPreview: () => void;
+  onSell: () => void;
 }
 
-function ProductCard({ product, onEdit, onVariants, onToggle, onDelete, onPreview }: ProductCardProps): JSX.Element {
+function ProductCard({ product, loadingVariants, onEdit, onVariants, onToggle, onDelete, onPreview, onSell }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
   const imageUrl = product.images?.[0] ? resolveImage(product.images[0]) : null;
 
@@ -296,6 +407,14 @@ function ProductCard({ product, onEdit, onVariants, onToggle, onDelete, onPrevie
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={onSell}
+            disabled={loadingVariants || product.stock === 0}
+            title={product.stock === 0 ? 'Out of stock' : 'Mark as sold'}
+            className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors disabled:opacity-40"
+          >
+            {loadingVariants ? <Loader2 size={15} className="animate-spin" /> : <ShoppingBag size={15} />}
+          </button>
           <button
             onClick={onPreview}
             title="Customer preview"

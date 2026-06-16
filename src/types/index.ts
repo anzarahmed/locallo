@@ -93,8 +93,28 @@ export interface Product {
   category?: SellerCategory;
   attributes?: Record<string, unknown>;
   variants?: Array<{ id: string }>;
+  variantCount?: number;
   pickupAddress?: string | null;
   createdAt: string;
+}
+
+export interface SoldLog {
+  id: string;
+  productId: string | null;
+  variantId: string | null;
+  quantity: number;
+  stockBefore: number;
+  stockAfter: number;
+  productName: string;
+  variantInfo: Record<string, unknown> | null;
+  soldAt: string;
+}
+
+export interface SoldLogsResponse {
+  logs: SoldLog[];
+  total: number;
+  page: number;
+  limit: number;
 }
 
 export interface ProductsResponse {
