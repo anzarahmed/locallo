@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireSeller } from '../../middleware/auth';
 import { getDashboardStats } from '../../controllers/seller/dashboardController';
-import { getProfile, updateSeller, updateAddress, getSettings, updateSettings } from '../../controllers/seller/sellerController';
+import { getProfile, updateSeller, updateAddress, getSettings, updateSettings, getCustomDayOverride, setCustomDayOverride, clearCustomDayOverride } from '../../controllers/seller/sellerController';
 import { requestOtp, verifyOtp, logout } from '../../controllers/seller/sellerAuthController';
 import {
   uploadImage, createProduct, getProducts,
@@ -13,7 +13,7 @@ import { getVariants, createVariant, updateVariant, deleteVariant, toggleVariant
 import { markProductSold, markVariantSold, getSoldLogs } from '../../controllers/seller/soldController';
 import { validate } from '../../middleware/validate';
 import upload from '../../middleware/upload';
-import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema } from '../../validation/seller/sellerSchemas';
+import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema, setCustomDaySchema } from '../../validation/seller/sellerSchemas';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/sellerAuthSchemas';
 import { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import { createVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
@@ -36,6 +36,10 @@ router.put('/address', requireSeller, validate(updateAddressSchema), updateAddre
 
 router.get('/settings', requireSeller, getSettings);
 router.put('/settings', requireSeller, validate(updateNotificationSettingsSchema), updateSettings);
+
+router.get('/custom-day',    requireSeller, getCustomDayOverride);
+router.put('/custom-day',    requireSeller, validate(setCustomDaySchema), setCustomDayOverride);
+router.delete('/custom-day', requireSeller, clearCustomDayOverride);
 
 router.post('/products/images',          requireSeller, upload.single('image'), uploadImage);
 router.post('/products/analyze-image',   requireSeller, upload.single('image'), analyzeImage);

@@ -1,5 +1,25 @@
 import * as Yup from 'yup';
 
+export const setCustomDaySchema = Yup.object({
+  date: Yup.string()
+    .required('Date is required')
+    .matches(/^\d{4}-\d{2}-\d{2}$/, 'Date must be YYYY-MM-DD'),
+  time: Yup.object({
+    isClosed: Yup.boolean().required(),
+    open: Yup.string()
+      .when('isClosed', { is: false, then: (s) => s.required('Opening time required') })
+      .default(''),
+    close: Yup.string()
+      .when('isClosed', { is: false, then: (s) => s.required('Closing time required') })
+      .test('close-after-open', 'Close time must be after open time', function (close) {
+        const { isClosed, open } = this.parent as { isClosed: boolean; open: string };
+        if (isClosed || !open || !close) return true;
+        return close > open;
+      })
+      .default(''),
+  }).required(),
+});
+
 export const updateNotificationSettingsSchema = Yup.object({
   pushNotifications:    Yup.boolean().required(),
   emailUpdates:         Yup.boolean().required(),

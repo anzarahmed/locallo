@@ -32,3 +32,14 @@ export interface NotificationSettings {
   wishlistPriceDrops: boolean;
   sellerUpdates: boolean;
 }
+
+export interface CustomDayTime {
+  open: string;
+  close: string;
+  isClosed: boolean;
+}
+
+export interface CustomDayOverride {
+  date: string;
+  time: CustomDayTime;
+}

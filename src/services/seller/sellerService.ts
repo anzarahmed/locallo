@@ -3,7 +3,7 @@ import { Op, literal } from 'sequelize';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
-import type { NotificationSettings } from '../../types';
+import type { NotificationSettings, CustomDayOverride } from '../../types';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
 type CreateSellerInput       = InferType<typeof createSellerSchema>;
@@ -252,6 +252,39 @@ export async function updateSellerSettings(
   const profile = await requireSellerProfile(userId);
   await profile.update({ notificationSettings: settings });
   return profile.notificationSettings;
+}
+
+function isTodayOrFuture(dateStr: string): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const d = new Date(dateStr);
+  d.setHours(0, 0, 0, 0);
+  return d >= today;
+}
+
+export async function getCustomDay(userId: string): Promise<CustomDayOverride | null> {
+  const profile = await requireSellerProfile(userId);
+  const override = profile.customDayOverride as CustomDayOverride | null;
+  if (!override) return null;
+  if (!isTodayOrFuture(override.date)) {
+    await profile.update({ customDayOverride: null });
+    return null;
+  }
+  return override;
+}
+
+export async function setCustomDay(userId: string, data: CustomDayOverride): Promise<CustomDayOverride> {
+  if (!isTodayOrFuture(data.date)) {
+    throw Object.assign(new Error('Date must be today or in the future'), { status: 400 });
+  }
+  const profile = await requireSellerProfile(userId);
+  await profile.update({ customDayOverride: data });
+  return data;
+}
+
+export async function clearCustomDay(userId: string): Promise<void> {
+  const profile = await requireSellerProfile(userId);
+  await profile.update({ customDayOverride: null });
 }
 
 export async function toggleSellerStatus(id: string): Promise<User> {

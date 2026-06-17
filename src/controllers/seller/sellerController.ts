@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, getSellerSettings, updateSellerSettings } from '../../services/seller/sellerService';
+import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay } from '../../services/seller/sellerService';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import { Category } from '../../models/Category';
@@ -97,6 +97,33 @@ export async function getSeller(req: Request, res: Response): Promise<void> {
     const { user, profile } = await getSellerById(req.params.id as string);
     const categories = await resolveCats(profile.categoryIds ?? []);
     sendSuccess(res, buildSellerResponse(user, profile, categories), 'Seller fetched');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function getCustomDayOverride(req: Request, res: Response): Promise<void> {
+  try {
+    const customDayOverride = await getCustomDay(req.seller!.id);
+    sendSuccess(res, { customDayOverride }, 'Custom day fetched');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function setCustomDayOverride(req: Request, res: Response): Promise<void> {
+  try {
+    const customDayOverride = await setCustomDay(req.seller!.id, req.body);
+    sendSuccess(res, { customDayOverride }, 'Custom day saved');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function clearCustomDayOverride(req: Request, res: Response): Promise<void> {
+  try {
+    await clearCustomDay(req.seller!.id);
+    sendSuccess(res, { customDayOverride: null }, 'Custom day cleared');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }

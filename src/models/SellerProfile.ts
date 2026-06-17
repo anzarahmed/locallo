@@ -105,6 +105,9 @@ export class SellerProfile extends Model {
   @Column(DataType.JSONB)
   declare notificationSettings: NotificationSettings;
 
+  @Column(DataType.JSONB)
+  declare customDayOverride: { date: string; time: { open: string; close: string; isClosed: boolean } } | null;
+
   @Column(DataType.DATE)
   declare verifiedAt: Date | null;
 
