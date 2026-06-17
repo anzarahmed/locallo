@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse } from '../types';
+import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse, CustomDayOverride } from '../types';
 
 export function getDashboardStats(): Promise<DashboardStats> {
   return apiGet(PATHS.DASHBOARD.STATS);
@@ -90,6 +90,18 @@ export interface NotificationSettings {
   offersAndPromotions: boolean;
   wishlistPriceDrops: boolean;
   sellerUpdates: boolean;
+}
+
+export function getCustomDay(): Promise<{ customDayOverride: CustomDayOverride | null }> {
+  return apiGet(PATHS.CUSTOM_DAY);
+}
+
+export function setCustomDay(data: CustomDayOverride): Promise<{ customDayOverride: CustomDayOverride }> {
+  return apiPut(PATHS.CUSTOM_DAY, data);
+}
+
+export function clearCustomDay(): Promise<{ customDayOverride: null }> {
+  return apiDelete(PATHS.CUSTOM_DAY);
 }
 
 export function getSettings(): Promise<{ notificationSettings: NotificationSettings | null }> {

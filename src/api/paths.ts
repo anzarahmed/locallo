@@ -14,6 +14,7 @@ export const PATHS = {
   ANALYZE_IMAGE:  '/api/sellers/products/analyze-image',
   CATEGORIES:     '/api/sellers/categories',
   SETTINGS:       '/api/sellers/settings',
+  CUSTOM_DAY:     '/api/sellers/custom-day',
   SOLD_LOGS:      '/api/sellers/sold-logs',
   PRODUCT_SELL:   (id: string): string => `/api/sellers/products/${id}/sell`,
   VARIANT_SELL:   (id: string, vid: string): string => `/api/sellers/products/${id}/variants/${vid}/sell`,

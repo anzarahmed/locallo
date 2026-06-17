@@ -1,18 +1,19 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useFormik, type FormikErrors, type FormikTouched } from 'formik';
-import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight } from 'lucide-react';
+import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
+import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight, CalendarDays, Pencil, X } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
-import { getProfile, updateProfile } from '../../services/sellerService';
+import { getProfile, updateProfile, getCustomDay, setCustomDay, clearCustomDay } from '../../services/sellerService';
 import {
   profileSchema,
+  customDaySchema,
   DAYS, DEFAULT_WORKING_HOURS,
-  type ProfileFormValues, type Day,
+  type ProfileFormValues, type Day, type CustomDayFormValues,
 } from '../../validation/profileSchemas';
 import { ApiError } from '../../lib/axios';
-import type { SellerCategory } from '../../types';
+import type { SellerCategory, CustomDayOverride } from '../../types';
 import LocationDisplay from '../../components/LocationDisplay';
 
 type DayFieldErrors  = Partial<{ open: string; close: string }>;
@@ -43,6 +44,9 @@ export default function Profile(): JSX.Element {
   const [lng, setLng] = useState(DEFAULT_LNG);
   const [loadingProfile, setLoadingProfile] = useState(true);
   const [copiedDay, setCopiedDay] = useState<Day | null>(null);
+  const [workingHours, setWorkingHours] = useState<ProfileFormValues['workingHours']>(DEFAULT_WORKING_HOURS);
+  const [customDayOverride, setCustomDayOverride] = useState<CustomDayOverride | null>(null);
+  const [loadingCustomDay, setLoadingCustomDay] = useState(true);
 
   const profileForm = useFormik<ProfileFormValues>({
     initialValues: {
@@ -62,28 +66,41 @@ export default function Profile(): JSX.Element {
   useEffect(() => {
     async function load(): Promise<void> {
       try {
-        const profileData = await getProfile();
-        const p = profileData.profile;
+        const [profileData, cdResult] = await Promise.allSettled([
+          getProfile(),
+          getCustomDay(),
+        ]);
 
-        setCategories(p.categories ?? []);
-        setCategoryIds(p.categoryIds ?? []);
-        updateSeller({ businessName: p.businessName });
+        if (profileData.status === 'fulfilled') {
+          const p = profileData.value.profile;
+          const wh = (p.workingHours as ProfileFormValues['workingHours']) ?? DEFAULT_WORKING_HOURS;
 
-        void profileForm.setValues({
-          businessName: p.businessName ?? '',
-          fullName:     profileData.fullName ?? '',
-          email:        p.email ?? '',
-          bio:          p.bio ?? '',
-          workingHours: (p.workingHours as ProfileFormValues['workingHours']) ?? DEFAULT_WORKING_HOURS,
-        });
+          setCategories(p.categories ?? []);
+          setCategoryIds(p.categoryIds ?? []);
+          setWorkingHours(wh);
+          updateSeller({ businessName: p.businessName });
 
-        setAddress(p.address ?? '');
-        setLat(p.lat ?? DEFAULT_LAT);
-        setLng(p.long ?? DEFAULT_LNG);
-      } catch (err) {
-        toast.error(err instanceof ApiError ? err.message : 'Failed to load profile');
+          void profileForm.setValues({
+            businessName: p.businessName ?? '',
+            fullName:     profileData.value.fullName ?? '',
+            email:        p.email ?? '',
+            bio:          p.bio ?? '',
+            workingHours: wh,
+          });
+
+          setAddress(p.address ?? '');
+          setLat(p.lat ?? DEFAULT_LAT);
+          setLng(p.long ?? DEFAULT_LNG);
+        } else {
+          toast.error('Failed to load profile');
+        }
+
+        if (cdResult.status === 'fulfilled') {
+          setCustomDayOverride(cdResult.value.customDayOverride);
+        }
       } finally {
         setLoadingProfile(false);
+        setLoadingCustomDay(false);
       }
     }
     void load();
@@ -316,6 +333,15 @@ export default function Profile(): JSX.Element {
           </form>
         </div>
 
+        {/* ── Special Hours card ── */}
+        <SpecialHoursCard
+          override={customDayOverride}
+          loading={loadingCustomDay}
+          workingHours={workingHours}
+          onSaved={(override) => setCustomDayOverride(override)}
+          onCleared={() => setCustomDayOverride(null)}
+        />
+
         {/* ── Address card — read-only ── */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
           {/* Card header */}
@@ -473,6 +499,289 @@ function ProfileSkeleton({ mobile }: { mobile?: string }): JSX.Element {
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+/* ── Special Hours card ── */
+interface SpecialHoursCardProps {
+  override: CustomDayOverride | null;
+  loading: boolean;
+  workingHours: ProfileFormValues['workingHours'];
+  onSaved: (o: CustomDayOverride) => void;
+  onCleared: () => void;
+}
+
+function todayDateString(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+
+function dayOfWeekFromDate(dateStr: string): Day {
+  const days: Day[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
+  return days[new Date(dateStr + 'T00:00:00').getDay()];
+}
+
+function formatDate(dateStr: string): string {
+  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', {
+    weekday: 'long', year: 'numeric', month: 'short', day: 'numeric',
+  });
+}
+
+function formatTime(t: string): string {
+  if (!t) return '';
+  const [h, m] = t.split(':').map(Number);
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  const h12 = h % 12 === 0 ? 12 : h % 12;
+  return `${h12}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+function SpecialHoursCard({ override, loading, workingHours, onSaved, onCleared }: SpecialHoursCardProps): JSX.Element {
+  const toast = useToast();
+  const [editing, setEditing] = useState(false);
+
+  function getInitialValues(dateStr: string): CustomDayFormValues {
+    const dow = dayOfWeekFromDate(dateStr);
+    const reg = workingHours[dow];
+    return {
+      date: dateStr,
+      isClosed: reg?.isClosed ?? false,
+      open: reg?.open ?? '09:00',
+      close: reg?.close ?? '18:00',
+    };
+  }
+
+  const customDayForm = useFormik<CustomDayFormValues>({
+    initialValues: getInitialValues(todayDateString()),
+    validationSchema: customDaySchema,
+    validateOnBlur: true,
+    validateOnChange: false,
+    enableReinitialize: true,
+    onSubmit: handleSave,
+  });
+
+  async function handleSave(
+    values: CustomDayFormValues,
+    helpers: FormikHelpers<CustomDayFormValues>,
+  ): Promise<void> {
+    try {
+      const result = await setCustomDay({
+        date: values.date,
+        time: { open: values.open, close: values.close, isClosed: values.isClosed },
+      });
+      onSaved(result.customDayOverride);
+      setEditing(false);
+      toast.success('Special hours saved');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to save special hours');
+    } finally {
+      helpers.setSubmitting(false);
+    }
+  }
+
+  async function handleClear(): Promise<void> {
+    try {
+      await clearCustomDay();
+      onCleared();
+      toast.success('Special hours cleared');
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to clear special hours');
+    }
+  }
+
+  function handleEdit(): void {
+    if (override) {
+      const dow = dayOfWeekFromDate(override.date);
+      const reg = workingHours[dow];
+      void customDayForm.setValues({
+        date: override.date,
+        isClosed: override.time.isClosed,
+        open: override.time.open || reg?.open || '09:00',
+        close: override.time.close || reg?.close || '18:00',
+      });
+    } else {
+      const today = todayDateString();
+      void customDayForm.setValues(getInitialValues(today));
+    }
+    setEditing(true);
+  }
+
+  function handleDateChange(dateStr: string): void {
+    void customDayForm.setFieldValue('date', dateStr);
+    if (dateStr) {
+      const dow = dayOfWeekFromDate(dateStr);
+      const reg = workingHours[dow];
+      void customDayForm.setFieldValue('isClosed', reg?.isClosed ?? false);
+      void customDayForm.setFieldValue('open', reg?.open ?? '09:00');
+      void customDayForm.setFieldValue('close', reg?.close ?? '18:00');
+    }
+  }
+
+  function handleCancel(): void {
+    setEditing(false);
+    customDayForm.resetForm();
+  }
+
+  const timeCls = (invalid: boolean): string =>
+    `px-2.5 py-2 border rounded-xl text-xs outline-none focus:ring-2 focus:ring-teal-400 focus:border-transparent w-full ${
+      invalid ? 'border-red-400 bg-red-50' : 'border-gray-200 bg-white'
+    }`;
+
+  const showForm = editing || !override;
+
+  return (
+    <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
+      {/* Card header */}
+      <div className="flex items-start gap-3 px-5 py-4 border-b border-gray-100">
+        <div className="w-9 h-9 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
+          <CalendarDays size={16} className="text-teal-600" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-semibold text-gray-800">Special Hours</h3>
+          <p className="text-xs text-gray-400 mt-0.5">Override your hours for one specific date</p>
+        </div>
+      </div>
+
+      <div className="p-5">
+        {loading ? (
+          <div className="flex flex-col gap-3">
+            <div className="animate-pulse bg-gray-200 rounded-xl w-48 h-4" />
+            <div className="animate-pulse bg-gray-200 rounded-xl w-32 h-4" />
+          </div>
+        ) : !showForm ? (
+          /* ── Active override view ── */
+          <div className="flex flex-col gap-3">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex flex-col gap-1">
+                <span className="text-xs font-medium text-gray-500">Date</span>
+                <span className="text-sm font-semibold text-gray-800">{formatDate(override!.date)}</span>
+              </div>
+              <div className="flex gap-2 shrink-0">
+                <button
+                  type="button"
+                  onClick={handleEdit}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-teal-600 bg-teal-50 hover:bg-teal-100 transition-colors"
+                >
+                  <Pencil size={12} /> Edit
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { void handleClear(); }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-medium text-red-500 bg-red-50 hover:bg-red-100 transition-colors"
+                >
+                  <X size={12} /> Clear
+                </button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2 px-3 py-3 bg-gray-50 rounded-xl">
+              <Clock size={14} className="text-gray-400 shrink-0" />
+              {override!.time.isClosed ? (
+                <span className="text-sm text-gray-500 italic">Closed all day</span>
+              ) : (
+                <span className="text-sm text-gray-700 font-medium">
+                  {formatTime(override!.time.open)} &ndash; {formatTime(override!.time.close)}
+                </span>
+              )}
+            </div>
+          </div>
+        ) : (
+          /* ── Add / Edit form ── */
+          <form noValidate onSubmit={customDayForm.handleSubmit} className="flex flex-col gap-4">
+            {/* Date */}
+            <div>
+              <label className="text-xs font-medium text-gray-500 block mb-1.5">Date</label>
+              <input
+                type="date"
+                name="date"
+                min={todayDateString()}
+                value={customDayForm.values.date}
+                onChange={(e) => handleDateChange(e.target.value)}
+                onBlur={customDayForm.handleBlur}
+                className={`w-full px-3 py-3 text-sm rounded-xl border outline-none transition-colors ${
+                  customDayForm.touched.date && customDayForm.errors.date
+                    ? 'border-red-400 bg-red-50'
+                    : 'border-gray-200 bg-white focus:border-teal-400'
+                }`}
+              />
+              {customDayForm.touched.date && customDayForm.errors.date && (
+                <p className="mt-1 text-xs text-red-500">{customDayForm.errors.date}</p>
+              )}
+            </div>
+
+            {/* Close for the day */}
+            <label className="flex items-center gap-2 cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={customDayForm.values.isClosed}
+                onChange={(e) => void customDayForm.setFieldValue('isClosed', e.target.checked)}
+                className="w-4 h-4 rounded border-gray-300 text-teal-600 accent-teal-600 cursor-pointer"
+              />
+              <span className="text-sm text-gray-700">Close for the entire day</span>
+            </label>
+
+            {/* Time pickers */}
+            {!customDayForm.values.isClosed && (
+              <div className="flex items-start gap-3">
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-gray-500 block mb-1.5">Opens at</label>
+                  <input
+                    type="time"
+                    value={customDayForm.values.open}
+                    onChange={(e) => void customDayForm.setFieldValue('open', e.target.value)}
+                    onBlur={() => void customDayForm.setFieldTouched('open', true)}
+                    className={timeCls(customDayForm.touched.open === true && Boolean(customDayForm.errors.open))}
+                  />
+                  {customDayForm.touched.open === true && customDayForm.errors.open && (
+                    <p className="mt-1 text-[10px] text-red-500">{customDayForm.errors.open}</p>
+                  )}
+                </div>
+                <span className="text-gray-300 text-sm mt-8 shrink-0">–</span>
+                <div className="flex-1">
+                  <label className="text-xs font-medium text-gray-500 block mb-1.5">Closes at</label>
+                  <input
+                    type="time"
+                    value={customDayForm.values.close}
+                    onChange={(e) => void customDayForm.setFieldValue('close', e.target.value)}
+                    onBlur={() => void customDayForm.setFieldTouched('close', true)}
+                    className={timeCls(customDayForm.touched.close === true && Boolean(customDayForm.errors.close))}
+                  />
+                  {customDayForm.touched.close === true && customDayForm.errors.close && (
+                    <p className="mt-1 text-[10px] text-red-500">{customDayForm.errors.close}</p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div className="flex gap-2 pt-1">
+              <button
+                type="submit"
+                disabled={customDayForm.isSubmitting}
+                className="flex-1 py-3 rounded-xl text-white text-sm font-semibold flex items-center justify-center gap-2 transition-opacity disabled:opacity-60"
+                style={{ background: 'linear-gradient(135deg, #26B8B2 0%, #14817C 100%)' }}
+              >
+                {customDayForm.isSubmitting ? (
+                  <span className="w-4 h-4 border-2 border-white/40 border-t-white rounded-full animate-spin" />
+                ) : (
+                  <><CalendarDays size={14} /> Save Special Hours</>
+                )}
+              </button>
+              {override && (
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  className="px-4 py-3 rounded-xl border border-gray-200 text-sm font-medium text-gray-500 hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+            </div>
+          </form>
+        )}
       </div>
     </div>
   );

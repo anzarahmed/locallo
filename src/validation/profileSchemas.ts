@@ -52,3 +52,28 @@ export const addressSchema = Yup.object({
 });
 
 export type AddressFormValues = Yup.InferType<typeof addressSchema>;
+
+export const customDaySchema = Yup.object({
+  date: Yup.string()
+    .required('Date is required')
+    .test('is-today-or-future', 'Date must be today or in the future', (val) => {
+      if (!val) return false;
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      return new Date(val) >= today;
+    }),
+  isClosed: Yup.boolean().required().default(false),
+  open: Yup.string()
+    .when('isClosed', { is: false, then: (s) => s.required('Opening time required') })
+    .default(''),
+  close: Yup.string()
+    .when('isClosed', { is: false, then: (s) => s.required('Closing time required') })
+    .test('close-after-open', 'Close time must be after open time', function (close) {
+      const { isClosed, open } = this.parent as { isClosed: boolean; open: string };
+      if (isClosed || !open || !close) return true;
+      return close > open;
+    })
+    .default(''),
+});
+
+export type CustomDayFormValues = Yup.InferType<typeof customDaySchema>;

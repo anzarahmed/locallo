@@ -135,6 +135,17 @@ export interface DashboardStats {
   interestRateGrowthPercent: number;
 }
 
+export interface CustomDayTime {
+  open: string;
+  close: string;
+  isClosed: boolean;
+}
+
+export interface CustomDayOverride {
+  date: string;
+  time: CustomDayTime;
+}
+
 export interface ProductVariant {
   id: string;
   productId: string;
