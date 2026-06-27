@@ -2,7 +2,7 @@ import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFormik, type FormikHelpers } from 'formik';
 import {
-  ArrowLeft, Camera, X, Plus, Sparkles, Loader2, ChevronDown,
+  ArrowLeft, Camera, X, Plus, Sparkles, Loader2, ChevronDown, Check,
 } from 'lucide-react';
 import {
   getProfile, uploadProductImage, analyzeProductImage, createProduct,
@@ -14,9 +14,13 @@ import { resolveImage } from '../../lib/imageUtils';
 import { normalizeAttrValues, type AttrValue } from '../../lib/attributeUtils';
 import { inputCls } from '../../lib/classUtils';
 import { MAX_SECONDARY_IMAGES } from '../../constants';
+import {
+  generateCombinations, getCombinationKey, hasStockDependentAttr,
+  buildProductVariantAttrs, type VariantSelections,
+} from '../../lib/variantUtils';
 import FormField from '../../components/ui/FormField';
 import AttrInput from '../../components/ui/AttrInput';
-import type { SellerCategory, AttributeField } from '../../types';
+import type { SellerCategory, AttributeField, AttributeFieldOption } from '../../types';
 
 interface AiHint {
   categoryName: string;
@@ -36,6 +40,13 @@ export default function AddProduct(): JSX.Element {
   const [attributeSchema, setAttributeSchema] = useState<AttributeField[]>([]);
   const [attributes, setAttributes] = useState<Record<string, AttrValue>>({});
   const [aiHint, setAiHint] = useState<AiHint | null>(null);
+  const [variantSelections, setVariantSelections] = useState<VariantSelections>({});
+  const [comboStocks, setComboStocks] = useState<Record<string, string>>({});
+
+  const variantFields = attributeSchema.filter(f => f.isVariant === true);
+  const nonVariantFields = attributeSchema.filter(f => !f.isVariant);
+  const stockDependent = hasStockDependentAttr(variantFields);
+  const combinations = generateCombinations(variantFields, variantSelections);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -69,6 +80,14 @@ export default function AddProduct(): JSX.Element {
     const cat = categories.find(c => c.id === id);
     setAttributeSchema(cat?.attributeSchema ?? []);
     setAttributes({});
+    setVariantSelections({});
+    setComboStocks({});
+  }
+
+  function setVariantSelection(key: string, value: string | string[]): void {
+    setVariantSelections(prev => ({ ...prev, [key]: value }));
+    // Reset stock when selections change
+    setComboStocks({});
   }
 
   async function handlePrimaryUpload(file: File): Promise<void> {
@@ -95,6 +114,8 @@ export default function AddProduct(): JSX.Element {
             : (matchedCat.attributeSchema ?? []);
           setAttributeSchema(schema);
           setAttributes(normalizeAttrValues(s.attributes, schema));
+          setVariantSelections({});
+          setComboStocks({});
         }
         setAiHint({
           categoryName: s.categoryName ?? 'Unknown',
@@ -151,7 +172,7 @@ export default function AddProduct(): JSX.Element {
       return;
     }
 
-    const missingRequired = attributeSchema.filter(f => {
+    const missingRequired = nonVariantFields.filter(f => {
       if (!f.required) return false;
       const v = attributes[f.key];
       return !v || (Array.isArray(v) && v.length === 0) || v === '';
@@ -162,6 +183,45 @@ export default function AddProduct(): JSX.Element {
       return;
     }
 
+    const hasCombinations = combinations.length > 0;
+
+    const productAttrs: Record<string, unknown> = { ...attributes, ...buildProductVariantAttrs(variantFields, variantSelections) };
+
+    // Build grouped variant payload — one group per non-SD attr value (e.g. colour),
+    // rows inside each group hold the SD attr value (e.g. size) + its stock.
+    type VRow   = { attributes: Record<string, string>; stock: number };
+    type VGroup = { attributes: Record<string, string>; images: string[]; sellingPrice: number; mrp?: number; rows: VRow[] };
+
+    let variantGroups: VGroup[] | undefined;
+    if (hasCombinations) {
+      const sdField     = variantFields.find(f => f.isStockDependent);
+      const nonSdFields = variantFields.filter(f => !f.isStockDependent);
+      const groupMap    = new Map<string, VGroup>();
+
+      for (const combo of combinations) {
+        const nonSdAttrs: Record<string, string> = {};
+        for (const f of nonSdFields) {
+          if (combo[f.key]) nonSdAttrs[f.key] = combo[f.key];
+        }
+        const gKey = Object.entries(nonSdAttrs).sort().map(([k, v]) => `${k}:${v}`).join('|') || '__all__';
+
+        if (!groupMap.has(gKey)) {
+          groupMap.set(gKey, {
+            attributes:   nonSdAttrs,
+            images:       [primaryImage!, ...secondaryImages],
+            sellingPrice: Number(values.sellingPrice),
+            ...(values.mrp ? { mrp: Number(values.mrp) } : {}),
+            rows: [],
+          });
+        }
+        const sdAttr: Record<string, string> = {};
+        if (sdField && combo[sdField.key]) sdAttr[sdField.key] = combo[sdField.key];
+        const stock = sdField ? Number(comboStocks[getCombinationKey(combo)] ?? 0) : Number(values.stock);
+        groupMap.get(gKey)!.rows.push({ attributes: sdAttr, stock });
+      }
+      variantGroups = Array.from(groupMap.values());
+    }
+
     try {
       await createProduct({
         name:         values.name,
@@ -170,10 +230,12 @@ export default function AddProduct(): JSX.Element {
         sellingPrice: Number(values.sellingPrice),
         mrp:          values.mrp      ? Number(values.mrp)      : undefined,
         costPrice:    values.costPrice ? Number(values.costPrice) : undefined,
-        stock:        Number(values.stock),
-        images:       [primaryImage, ...secondaryImages],
-        attributes,
+        ...(!hasCombinations && { stock: Number(values.stock) }),
+        images:       [primaryImage!, ...secondaryImages],
+        attributes:   productAttrs,
+        ...(variantGroups && { variants: variantGroups }),
       });
+
       toast.success('Product added successfully');
       navigate('/products');
     } catch (err) {
@@ -465,29 +527,11 @@ export default function AddProduct(): JSX.Element {
           </FormField>
         </div>
 
-        {/* Inventory */}
-        <div className="bg-white rounded-2xl shadow-sm p-4">
-          <p className="text-sm font-semibold text-gray-700 mb-4">Inventory</p>
-          <FormField label="Stock Quantity" required error={form.touched.stock ? form.errors.stock as string : undefined}>
-            <input
-              name="stock"
-              type="number"
-              min={0}
-              step="1"
-              value={form.values.stock}
-              onChange={form.handleChange}
-              onBlur={form.handleBlur}
-              placeholder="0"
-              className={inputCls(!!form.touched.stock && !!form.errors.stock)}
-            />
-          </FormField>
-        </div>
-
-        {/* Product Attributes — free-form descriptors (text / number / textarea) */}
-        {attributeSchema.some(f => f.type === 'text' || f.type === 'number' || f.type === 'textarea') && (
+        {/* Product Attributes — non-variant text / number / textarea */}
+        {nonVariantFields.some(f => f.type === 'text' || f.type === 'number' || f.type === 'textarea') && (
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
             <p className="text-sm font-semibold text-gray-700">Product Attributes</p>
-            {attributeSchema
+            {nonVariantFields
               .filter(f => f.type === 'text' || f.type === 'number' || f.type === 'textarea')
               .map(field => (
                 <AttrInput
@@ -500,14 +544,14 @@ export default function AddProduct(): JSX.Element {
           </div>
         )}
 
-        {/* Available Options — select / multiselect / color define which variants exist */}
-        {attributeSchema.some(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color') && (
+        {/* Available Options — non-variant select / multiselect / color */}
+        {nonVariantFields.some(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color') && (
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
             <div>
               <p className="text-sm font-semibold text-gray-700">Available Options</p>
-              <p className="text-xs text-gray-400 mt-0.5">Select all options this product is available in — e.g. all colors and sizes</p>
+              <p className="text-xs text-gray-400 mt-0.5">Select all options this product is available in</p>
             </div>
-            {attributeSchema
+            {nonVariantFields
               .filter(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color')
               .map(field => (
                 <AttrInput
@@ -517,6 +561,64 @@ export default function AddProduct(): JSX.Element {
                   onChange={v => setAttr(field.key, v)}
                 />
               ))}
+          </div>
+        )}
+
+        {/* Variant Options — isVariant fields drive combination generation */}
+        {variantFields.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
+            <div>
+              <p className="text-sm font-semibold text-gray-700">Variant Options</p>
+              <p className="text-xs text-gray-400 mt-0.5">
+                Select options for this variant — add more colors from the Variants page
+              </p>
+            </div>
+            {variantFields.map(field => (
+              <VariantOptionField
+                key={field.key}
+                field={field}
+                value={variantSelections[field.key]}
+                onChange={v => setVariantSelection(field.key, v)}
+              />
+            ))}
+          </div>
+        )}
+
+        {/* Stock per combination — only when stock-dependent and combinations exist */}
+        {stockDependent && combinations.length > 0 && (
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <p className="text-sm font-semibold text-gray-700 mb-4">Stock Quantities</p>
+            <div className="space-y-2">
+              {combinations.map(combo => (
+                <CombinationStockRow
+                  key={getCombinationKey(combo)}
+                  combo={combo}
+                  variantFields={variantFields}
+                  stock={comboStocks[getCombinationKey(combo)] ?? '0'}
+                  onChange={v => setComboStocks(prev => ({ ...prev, [getCombinationKey(combo)]: v }))}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Inventory — shown when not stock-dependent or no combinations yet */}
+        {(!stockDependent || combinations.length === 0) && (
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <p className="text-sm font-semibold text-gray-700 mb-4">Inventory</p>
+            <FormField label="Stock Quantity" required error={form.touched.stock ? form.errors.stock as string : undefined}>
+              <input
+                name="stock"
+                type="number"
+                min={0}
+                step="1"
+                value={form.values.stock}
+                onChange={form.handleChange}
+                onBlur={form.handleBlur}
+                placeholder="0"
+                className={inputCls(!!form.touched.stock && !!form.errors.stock)}
+              />
+            </FormField>
           </div>
         )}
 
@@ -539,6 +641,206 @@ export default function AddProduct(): JSX.Element {
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Variant option field — drives combination generation ── */
+interface VariantOptionFieldProps {
+  field: AttributeField;
+  value: string | string[] | undefined;
+  onChange: (v: string | string[]) => void;
+}
+
+function VariantOptionField({ field, onChange, value }: VariantOptionFieldProps): JSX.Element {
+  const labelEl = (
+    <div className="mb-1.5">
+      <span className="text-xs font-semibold text-gray-500">{field.label}</span>
+      {field.type === 'color' && (
+        <span className="text-gray-400 text-xs ml-1.5">(select one)</span>
+      )}
+      {field.type === 'multiselect' && (
+        <span className="text-gray-400 text-xs ml-1.5">(select all that apply)</span>
+      )}
+    </div>
+  );
+
+  if (field.type === 'color' && field.options && field.options.length > 0) {
+    const selected = typeof value === 'string' ? value : '';
+    return (
+      <div>
+        {labelEl}
+        <div className="flex flex-wrap gap-2">
+          {field.options.map((opt: AttributeFieldOption) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(selected === opt.value ? '' : opt.value)}
+              title={opt.label}
+              className={`w-9 h-9 rounded-full border-2 transition-all relative flex items-center justify-center ${
+                selected === opt.value
+                  ? 'border-teal-500 scale-110 shadow-md ring-2 ring-teal-200'
+                  : 'border-gray-200 hover:scale-105'
+              }`}
+              style={{ backgroundColor: opt.hex ?? opt.value }}
+            >
+              {selected === opt.value && (
+                <span className="w-5 h-5 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
+                  <Check size={11} className="text-teal-600" strokeWidth={3} />
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
+        {selected && (
+          <p className="text-xs text-gray-400 mt-1.5">
+            Selected: {field.options.find(o => o.value === selected)?.label ?? selected}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (field.type === 'multiselect' && field.options && field.options.length > 0) {
+    const selected = Array.isArray(value) ? value : [];
+    return (
+      <div>
+        {labelEl}
+        <div className="flex flex-wrap gap-2">
+          {field.options.map((opt: AttributeFieldOption) => {
+            const active = selected.includes(opt.value);
+            return (
+              <button
+                key={opt.value}
+                type="button"
+                onClick={() => onChange(active ? selected.filter(v => v !== opt.value) : [...selected, opt.value])}
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                  active
+                    ? 'bg-teal-600 border-teal-600 text-white'
+                    : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
+                }`}
+              >
+                {opt.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (field.type === 'select' && field.options && field.options.length > 0) {
+    if (field.isStockDependent) {
+      // SD field (e.g. sizes): allow multiple selections so all sizes can be added at once
+      const selected = Array.isArray(value) ? value : (typeof value === 'string' && value ? [value] : []);
+      return (
+        <div>
+          {labelEl}
+          <div className="flex flex-wrap gap-2">
+            {field.options.map((opt: AttributeFieldOption) => {
+              const active = selected.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onChange(active ? selected.filter(v => v !== opt.value) : [...selected, opt.value])}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                    active
+                      ? 'bg-teal-600 border-teal-600 text-white'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      );
+    }
+    const selected = typeof value === 'string' ? value : '';
+    return (
+      <div>
+        {labelEl}
+        <div className="flex flex-wrap gap-2">
+          {field.options.map((opt: AttributeFieldOption) => (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(selected === opt.value ? '' : opt.value)}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                selected === opt.value
+                  ? 'bg-teal-600 border-teal-600 text-white'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
+              }`}
+            >
+              {opt.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // text / number / textarea
+  const strVal = typeof value === 'string' ? value : '';
+  return (
+    <div>
+      {labelEl}
+      <input
+        type={field.type === 'number' ? 'number' : 'text'}
+        value={strVal}
+        onChange={e => onChange(e.target.value)}
+        placeholder={field.unit ? `e.g. ${field.unit}` : `Enter ${field.label}`}
+        className={inputCls(false)}
+      />
+    </div>
+  );
+}
+
+/* ── Stock row per combination ── */
+interface CombinationStockRowProps {
+  combo: Record<string, string>;
+  variantFields: AttributeField[];
+  stock: string;
+  onChange: (v: string) => void;
+}
+
+function CombinationStockRow({ combo, variantFields, stock, onChange }: CombinationStockRowProps): JSX.Element {
+  return (
+    <div className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
+      <div className="flex-1 flex flex-wrap gap-1.5">
+        {Object.entries(combo).map(([key, val]) => {
+          const field = variantFields.find(f => f.key === key);
+          if (field?.type === 'color') {
+            const opt = field.options?.find(o => o.value === val);
+            return (
+              <div key={key} className="flex items-center gap-1.5 bg-gray-100 rounded-full pl-1.5 pr-2.5 py-0.5">
+                <div
+                  className="w-3 h-3 rounded-full border border-white shadow-sm shrink-0"
+                  style={{ backgroundColor: opt?.hex ?? val }}
+                />
+                <span className="text-xs text-gray-600 font-medium">{opt?.label ?? val}</span>
+              </div>
+            );
+          }
+          const opt = field?.options?.find(o => o.value === val);
+          return (
+            <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
+              {opt?.label ?? val}
+            </span>
+          );
+        })}
+      </div>
+      <input
+        type="number"
+        min={0}
+        step="1"
+        value={stock}
+        onChange={e => onChange(e.target.value)}
+        placeholder="0"
+        className="w-20 border border-gray-200 rounded-xl text-sm text-gray-700 px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-right"
+      />
     </div>
   );
 }
