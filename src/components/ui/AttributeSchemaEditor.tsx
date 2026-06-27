@@ -13,6 +13,7 @@ interface DraftField {
   type: AttributeFieldType;
   required: boolean;
   isVariant: boolean;
+  isStockDependent: boolean;
   unit: string;
   options: AttributeFieldOption[];
   newOptLabel: string;
@@ -21,7 +22,7 @@ interface DraftField {
 }
 
 const EMPTY_DRAFT: DraftField = {
-  label: '', key: '', type: 'text', required: false, isVariant: false,
+  label: '', key: '', type: 'text', required: false, isVariant: false, isStockDependent: false,
   unit: '', options: [],
   newOptLabel: '', newOptValue: '', newOptHex: '#000000',
 };
@@ -75,6 +76,17 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
     ));
   }
 
+  function toggleFieldStockDependent(key: string): void {
+    const field = value.find(f => f.key === key);
+    if (!field || field.type === 'color') return;
+    const turningOn = !field.isStockDependent;
+    onChange(value.map(f => {
+      if (f.key === key) return { ...f, isStockDependent: turningOn ? true : undefined };
+      if (turningOn && f.isStockDependent) return { ...f, isStockDependent: undefined };
+      return f;
+    }));
+  }
+
   function handleLabelChange(label: string): void {
     setDraft(d => ({
       ...d,
@@ -84,7 +96,12 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
   }
 
   function handleTypeChange(type: AttributeFieldType): void {
-    setDraft(d => ({ ...d, type, options: HAS_OPTIONS.includes(type) ? d.options : [] }));
+    setDraft(d => ({
+      ...d,
+      type,
+      options: HAS_OPTIONS.includes(type) ? d.options : [],
+      ...(type === 'color' ? { isStockDependent: false } : {}),
+    }));
   }
 
   function addOption(): void {
@@ -111,11 +128,12 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
     }
     setDraftError('');
     const field: AttributeField = {
-      key:       draft.key,
-      label:     draft.label,
-      type:      draft.type,
-      required:  draft.required,
-      isVariant: draft.isVariant || undefined,
+      key:              draft.key,
+      label:            draft.label,
+      type:             draft.type,
+      required:         draft.required,
+      isVariant:        draft.isVariant || undefined,
+      isStockDependent: draft.isStockDependent || undefined,
       ...(draft.unit ? { unit: draft.unit } : {}),
       ...(HAS_OPTIONS.includes(draft.type) ? { options: draft.options } : {}),
     };
@@ -149,6 +167,7 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
               {value.map(field => {
                 const hasOpts = field.options && field.options.length > 0;
                 const optsOpen = expandedOpts.has(field.key);
+                const stockBlocked = field.type === 'color';
                 return (
                   <li key={field.key} className="rounded-lg bg-gray-50 border border-gray-100">
                     <div className="flex items-center gap-2 py-1.5 px-2">
@@ -167,6 +186,27 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                         }`}
                       >
                         variant
+                      </button>
+                      <button
+                        type="button"
+                        onClick={(): void => toggleFieldStockDependent(field.key)}
+                        disabled={stockBlocked}
+                        title={
+                          field.type === 'color'
+                            ? 'Color cannot be stock dependent'
+                            : field.isStockDependent
+                              ? 'Click to remove stock dependent'
+                              : 'Click to mark as stock dependent'
+                        }
+                        className={`text-xs px-1.5 py-0.5 rounded transition-colors ${
+                          stockBlocked
+                            ? 'bg-gray-50 text-gray-300 cursor-not-allowed'
+                            : field.isStockDependent
+                              ? 'bg-amber-100 text-amber-700 hover:bg-amber-200'
+                              : 'bg-gray-100 text-gray-400 hover:bg-amber-50 hover:text-amber-600'
+                        }`}
+                      >
+                        stock
                       </button>
                       {field.required && (
                         <span className="text-xs px-1.5 py-0.5 rounded bg-amber-100 text-amber-700">req</span>
@@ -270,7 +310,7 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                 </div>
               </div>
 
-              <div className="flex items-center gap-5">
+              <div className="flex items-center gap-5 flex-wrap">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -287,7 +327,18 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                     onChange={e => setDraft(d => ({ ...d, isVariant: e.target.checked }))}
                     className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
                   />
-                  <span className="text-xs text-gray-700">Variant attribute</span>
+                  <span className="text-xs text-gray-700">Is Variant</span>
+                </label>
+                <label className={`flex items-center gap-2 ${draft.type === 'color' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                  <input
+                    type="checkbox"
+                    checked={draft.isStockDependent}
+                    disabled={draft.type === 'color'}
+                    onChange={e => setDraft(d => ({ ...d, isStockDependent: e.target.checked }))}
+                    className="w-3.5 h-3.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 disabled:cursor-not-allowed"
+                    title={draft.type === 'color' ? 'Color cannot be stock dependent' : undefined}
+                  />
+                  <span className="text-xs text-gray-700">Stock Dependent</span>
                 </label>
               </div>
 
