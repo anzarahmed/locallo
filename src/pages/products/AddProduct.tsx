@@ -187,39 +187,14 @@ export default function AddProduct(): JSX.Element {
 
     const productAttrs: Record<string, unknown> = { ...attributes, ...buildProductVariantAttrs(variantFields, variantSelections) };
 
-    // Build grouped variant payload — one group per non-SD attr value (e.g. colour),
-    // rows inside each group hold the SD attr value (e.g. size) + its stock.
-    type VRow   = { attributes: Record<string, string>; stock: number };
-    type VGroup = { attributes: Record<string, string>; images: string[]; sellingPrice: number; mrp?: number; rows: VRow[] };
-
-    let variantGroups: VGroup[] | undefined;
+    type VRow = { attributes: Record<string, string>; stock: number };
+    let productRows: VRow[] | undefined;
     if (hasCombinations) {
-      const sdField     = variantFields.find(f => f.isStockDependent);
-      const nonSdFields = variantFields.filter(f => !f.isStockDependent);
-      const groupMap    = new Map<string, VGroup>();
-
-      for (const combo of combinations) {
-        const nonSdAttrs: Record<string, string> = {};
-        for (const f of nonSdFields) {
-          if (combo[f.key]) nonSdAttrs[f.key] = combo[f.key];
-        }
-        const gKey = Object.entries(nonSdAttrs).sort().map(([k, v]) => `${k}:${v}`).join('|') || '__all__';
-
-        if (!groupMap.has(gKey)) {
-          groupMap.set(gKey, {
-            attributes:   nonSdAttrs,
-            images:       [primaryImage!, ...secondaryImages],
-            sellingPrice: Number(values.sellingPrice),
-            ...(values.mrp ? { mrp: Number(values.mrp) } : {}),
-            rows: [],
-          });
-        }
-        const sdAttr: Record<string, string> = {};
-        if (sdField && combo[sdField.key]) sdAttr[sdField.key] = combo[sdField.key];
-        const stock = sdField ? Number(comboStocks[getCombinationKey(combo)] ?? 0) : Number(values.stock);
-        groupMap.get(gKey)!.rows.push({ attributes: sdAttr, stock });
-      }
-      variantGroups = Array.from(groupMap.values());
+      const sdField = variantFields.find(f => f.isStockDependent);
+      productRows = combinations.map(combo => ({
+        attributes: { ...combo },
+        stock: sdField ? Number(comboStocks[getCombinationKey(combo)] ?? 0) : Number(values.stock),
+      }));
     }
 
     try {
@@ -233,7 +208,7 @@ export default function AddProduct(): JSX.Element {
         ...(!hasCombinations && { stock: Number(values.stock) }),
         images:       [primaryImage!, ...secondaryImages],
         attributes:   productAttrs,
-        ...(variantGroups && { variants: variantGroups }),
+        ...(productRows && { rows: productRows }),
       });
 
       toast.success('Product added successfully');
