@@ -69,9 +69,9 @@ export async function createProduct(
     validateAttributes(data.attributes as Record<string, unknown> ?? {}, category.attributeSchema);
   }
 
-  const hasVariants = Array.isArray(data.variants) && data.variants.length > 0;
-  const variantStock = hasVariants
-    ? data.variants!.reduce((sum, group) => sum + group.rows.reduce((s, r) => s + r.stock, 0), 0)
+  const hasRows = Array.isArray(data.rows) && data.rows.length > 0;
+  const variantStock = hasRows
+    ? data.rows!.reduce((sum, row) => sum + row.stock, 0)
     : undefined;
 
   const product = await sequelize.transaction(async (t) => {
@@ -91,19 +91,17 @@ export async function createProduct(
       pickupLong:    data.pickupLong ?? null,
     }, { transaction: t });
 
-    if (hasVariants) {
-      const rows = data.variants!.flatMap(group =>
-        group.rows.map(row => ({
-          productId:    created.id,
-          attributes:   { ...(group.attributes as Record<string, unknown>), ...(row.attributes as Record<string, unknown>) },
-          images:       group.images.map(normalizeImageKey),
-          stock:        row.stock,
-          sellingPrice: group.sellingPrice,
-          mrp:          group.mrp ?? null,
-          isActive:     group.isActive ?? true,
-        })),
-      );
-      await ProductVariant.bulkCreate(rows, { transaction: t });
+    if (hasRows) {
+      const variants = data.rows!.map(row => ({
+        productId:    created.id,
+        attributes:   row.attributes as Record<string, unknown> ?? {},
+        images:       (data.images ?? []).map(normalizeImageKey),
+        stock:        row.stock,
+        sellingPrice: data.sellingPrice,
+        mrp:          data.mrp ?? null,
+        isActive:     true,
+      }));
+      await ProductVariant.bulkCreate(variants, { transaction: t });
     }
 
     return created;
