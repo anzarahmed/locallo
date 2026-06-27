@@ -3,11 +3,36 @@ import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { Category } from '../../models/Category';
 import type { createVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
+import type { AttributeField } from '../../types';
 import { normalizeImageKey } from '../../utils/imageStorage';
 
 export async function syncProductStock(productId: string): Promise<void> {
   const total = ((await ProductVariant.sum('stock', { where: { productId } })) as number | null) ?? 0;
   await Product.update({ stock: total }, { where: { id: productId } });
+}
+
+async function syncProductVariantAttrs(productId: string): Promise<void> {
+  const product = await Product.findByPk(productId);
+  if (!product) return;
+
+  const category = await Category.findByPk(product.categoryId as number);
+  const schema = (category?.attributeSchema as AttributeField[] | undefined) ?? [];
+  const variantFields = schema.filter(f => f.isVariant);
+  if (variantFields.length === 0) return;
+
+  const variants = await ProductVariant.findAll({ where: { productId } });
+  const attrs = { ...(product.attributes as Record<string, unknown>) };
+
+  for (const field of variantFields) {
+    const seen = new Set<string>();
+    for (const v of variants) {
+      const val = (v.attributes as Record<string, unknown>)[field.key];
+      if (val !== undefined && val !== null && val !== '') seen.add(String(val));
+    }
+    attrs[field.key] = Array.from(seen);
+  }
+
+  await product.update({ attributes: attrs });
 }
 
 type CreateVariantInput = InferType<typeof createVariantSchema>;
@@ -61,6 +86,7 @@ export async function createVariant(
     isActive:     data.isActive ?? true,
   });
   await syncProductStock(productId);
+  await syncProductVariantAttrs(productId);
   return variant;
 }
 
@@ -95,6 +121,7 @@ export async function deleteVariant(
   const variant = await requireOwnVariant(productId, variantId);
   await variant.destroy();
   await syncProductStock(productId);
+  await syncProductVariantAttrs(productId);
 }
 
 export async function toggleVariant(

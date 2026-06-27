@@ -16,7 +16,7 @@ const CATEGORIES: CategorySeed[] = [
     sortOrder: 1,
     attributeSchema: [
       { key: 'brand',           label: 'Brand',                type: 'text',        required: false },
-      { key: 'weight',          label: 'Weight / Volume',      type: 'text',        required: true,  unit: 'g / ml', isVariant: true },
+      { key: 'weight',          label: 'Weight / Volume',      type: 'text',        required: true,  unit: 'g / ml', isVariant: true, isStockDependent: true },
       { key: 'quantity_per_pack', label: 'Quantity per Pack',  type: 'number',      required: false, unit: 'pcs', isVariant: true },
       { key: 'organic',         label: 'Organic',              type: 'select',      required: false,
         options: [{ label: 'Yes', value: 'yes' }, { label: 'No', value: 'no' }] },
@@ -82,7 +82,7 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Low-Calorie',  value: 'low_calorie' },
           { label: 'Keto',         value: 'keto' },
         ] },
-      { key: 'portion',      label: 'Portion / Weight', type: 'text',      required: false, unit: 'g / ml', isVariant: true },
+      { key: 'portion',      label: 'Portion / Weight', type: 'text',      required: false, unit: 'g / ml', isVariant: true, isStockDependent: true },
       { key: 'prep_time',    label: 'Prep Time',        type: 'number',    required: false, unit: 'mins' },
       { key: 'ingredients',  label: 'Ingredients',      type: 'textarea',  required: false },
       { key: 'allergens',    label: 'Allergens',         type: 'text',     required: false },
@@ -128,6 +128,15 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Green',      value: 'green',      hex: '#10B981' },
           { label: 'Red',        value: 'red',        hex: '#DC2626' },
         ] },
+      { key: 'storage_capacity', label: 'Storage / Capacity', type: 'select', required: false, isVariant: true, isStockDependent: true,
+        options: [
+          { label: '64 GB',         value: '64gb' },
+          { label: '128 GB',        value: '128gb' },
+          { label: '256 GB',        value: '256gb' },
+          { label: '512 GB',        value: '512gb' },
+          { label: '1 TB',          value: '1tb' },
+          { label: 'Not Applicable',value: 'na' },
+        ] },
       { key: 'voltage',      label: 'Voltage / Power',  type: 'select',     required: false,
         options: [
           { label: '110V',                 value: '110v' },
@@ -154,7 +163,7 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Boys',   value: 'boys' },
           { label: 'Girls',  value: 'girls' },
         ] },
-      { key: 'sizes',       label: 'Available Sizes',    type: 'multiselect', required: true, isVariant: true,
+      { key: 'sizes',       label: 'Available Sizes',    type: 'multiselect', required: true, isVariant: true, isStockDependent: true,
         options: [
           { label: 'XS',        value: 'XS' },  { label: 'S',         value: 'S' },
           { label: 'M',         value: 'M' },   { label: 'L',         value: 'L' },
@@ -227,7 +236,7 @@ const CATEGORIES: CategorySeed[] = [
         ] },
       { key: 'composition',   label: 'Salt / Composition',    type: 'textarea', required: false },
       { key: 'dosage',        label: 'Dosage / Strength',     type: 'text',     required: false, isVariant: true },
-      { key: 'pack_size',     label: 'Pack Size',             type: 'number',   required: false, unit: 'units', isVariant: true },
+      { key: 'pack_size',     label: 'Pack Size',             type: 'number',   required: false, unit: 'units', isVariant: true, isStockDependent: true },
       { key: 'storage',       label: 'Storage',               type: 'select',   required: false,
         options: [
           { label: 'Room Temperature',     value: 'room_temp' },
@@ -247,7 +256,7 @@ const CATEGORIES: CategorySeed[] = [
     sortOrder: 6,
     attributeSchema: [
       { key: 'brand',            label: 'Brand',               type: 'text',        required: true },
-      { key: 'volume',           label: 'Volume / Weight',     type: 'text',        required: true, unit: 'ml / g', isVariant: true },
+      { key: 'volume',           label: 'Volume / Weight',     type: 'text',        required: true, unit: 'ml / g', isVariant: true, isStockDependent: true },
       { key: 'skin_type',        label: 'Suitable Skin Type',  type: 'multiselect', required: false,
         options: [
           { label: 'Normal',       value: 'normal' },
@@ -289,7 +298,7 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Grey',     value: 'grey',     hex: '#6B7280' }, { label: 'Red',      value: 'red',      hex: '#DC2626' },
           { label: 'Blue',     value: 'blue',     hex: '#2563EB' }, { label: 'Green',    value: 'green',    hex: '#16A34A' },
         ] },
-      { key: 'capacity',          label: 'Capacity / Quantity', type: 'text',        required: false, unit: 'L / pcs', isVariant: true },
+      { key: 'capacity',          label: 'Capacity / Quantity', type: 'text',        required: false, unit: 'L / pcs', isVariant: true, isStockDependent: true },
       { key: 'suitable_for',      label: 'Suitable For',        type: 'multiselect', required: false,
         options: [
           { label: 'Gas Stove',    value: 'gas' },
@@ -326,7 +335,7 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Men',    value: 'men' },   { label: 'Women', value: 'women' },
           { label: 'Kids',   value: 'kids' },  { label: 'Unisex',value: 'unisex' },
         ] },
-      { key: 'size',         label: 'Size',           type: 'text',        required: false, isVariant: true },
+      { key: 'size',         label: 'Size',           type: 'text',        required: false, isVariant: true, isStockDependent: true },
       { key: 'color',        label: 'Color',          type: 'color',       required: false, isVariant: true,
         options: [
           { label: 'Black',  value: 'black',  hex: '#000000' }, { label: 'White',  value: 'white',  hex: '#FFFFFF' },
@@ -359,7 +368,7 @@ const CATEGORIES: CategorySeed[] = [
       { key: 'author',     label: 'Author',          type: 'text',     required: false },
       { key: 'publisher',  label: 'Publisher',       type: 'text',     required: false },
       { key: 'isbn',       label: 'ISBN',            type: 'text',     required: false },
-      { key: 'language',   label: 'Language',        type: 'select',   required: false, isVariant: true,
+      { key: 'language',   label: 'Language',        type: 'select',   required: false, isVariant: true, isStockDependent: true,
         options: [
           { label: 'English',   value: 'english' },   { label: 'Hindi',     value: 'hindi' },
           { label: 'Marathi',   value: 'marathi' },   { label: 'Tamil',     value: 'tamil' },
@@ -380,7 +389,7 @@ const CATEGORIES: CategorySeed[] = [
     slug: 'furniture-decor',
     sortOrder: 10,
     attributeSchema: [
-      { key: 'material',          label: 'Material',            type: 'select',      required: true, isVariant: true,
+      { key: 'material',          label: 'Material',            type: 'select',      required: true, isVariant: true, isStockDependent: true,
         options: [
           { label: 'Solid Wood',             value: 'solid_wood' },
           { label: 'Engineered Wood / MDF',  value: 'mdf' },
@@ -471,6 +480,7 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Silver',  value: 'silver', hex: '#9CA3AF' }, { label: 'Chrome', value: 'chrome', hex: '#D1D5DB' },
           { label: 'Red',     value: 'red',    hex: '#DC2626' }, { label: 'Blue',   value: 'blue',   hex: '#2563EB' },
         ] },
+      { key: 'fitment_size', label: 'Size / Fitment',         type: 'text',        required: false, isVariant: true, isStockDependent: true },
       { key: 'compatible_models', label: 'Compatible Models',  type: 'textarea',    required: false },
       { key: 'warranty',     label: 'Warranty',                type: 'number',      required: false, unit: 'months' },
     ],
@@ -516,6 +526,13 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Yellow',      value: 'yellow', hex: '#EAB308' }, { label: 'Green',   value: 'green',  hex: '#22C55E' },
           { label: 'Pink',        value: 'pink',   hex: '#EC4899' }, { label: 'Purple',  value: 'purple', hex: '#A855F7' },
           { label: 'Orange',      value: 'orange', hex: '#F97316' }, { label: 'Multi',   value: 'multi',  hex: '#8B5CF6' },
+        ] },
+      { key: 'size',           label: 'Size',                    type: 'select',      required: false, isVariant: true, isStockDependent: true,
+        options: [
+          { label: 'Small',    value: 'small' },
+          { label: 'Medium',   value: 'medium' },
+          { label: 'Large',    value: 'large' },
+          { label: 'One Size', value: 'one_size' },
         ] },
       { key: 'material',       label: 'Material',                type: 'text',        required: false },
       { key: 'battery_required', label: 'Battery Required',      type: 'select',      required: false,
@@ -563,7 +580,7 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Copper',    value: 'copper',    hex: '#B45309' },
         ] },
       { key: 'stone',      label: 'Stone / Gemstone',type: 'text',       required: false },
-      { key: 'size',       label: 'Size',            type: 'text',        required: false, isVariant: true },
+      { key: 'size',       label: 'Size',            type: 'text',        required: false, isVariant: true, isStockDependent: true },
       { key: 'gender',     label: 'Gender',          type: 'select',      required: false,
         options: [
           { label: 'Men', value: 'men' }, { label: 'Women', value: 'women' },
@@ -616,7 +633,7 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Senior',           value: 'senior' },
           { label: 'All Life Stages',  value: 'all' },
         ] },
-      { key: 'weight',        label: 'Weight / Volume',   type: 'text',     required: false, unit: 'g / ml', isVariant: true },
+      { key: 'weight',        label: 'Weight / Volume',   type: 'text',     required: false, unit: 'g / ml', isVariant: true, isStockDependent: true },
       { key: 'flavor',        label: 'Flavor / Variant',  type: 'text',     required: false, isVariant: true },
       { key: 'ingredients',   label: 'Key Ingredients',   type: 'textarea', required: false },
     ],
@@ -660,7 +677,7 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Peach',  value: 'peach',  hex: '#FDDCBA' }, { label: 'Multi',  value: 'multi',  hex: '#8B5CF6' },
         ] },
       { key: 'material',         label: 'Material',          type: 'text',        required: false },
-      { key: 'size',             label: 'Size',              type: 'text',        required: false, isVariant: true },
+      { key: 'size',             label: 'Size',              type: 'text',        required: false, isVariant: true, isStockDependent: true },
       { key: 'safety_certified', label: 'Safety Certified',  type: 'select',      required: false,
         options: [
           { label: 'Yes – BIS / IS Certified', value: 'bis' },

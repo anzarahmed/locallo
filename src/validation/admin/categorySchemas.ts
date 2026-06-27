@@ -7,12 +7,14 @@ const attributeFieldOptionSchema = Yup.object({
 });
 
 const attributeFieldSchema = Yup.object({
-  key:      Yup.string().required(),
-  label:    Yup.string().required(),
-  type:     Yup.string().oneOf(['text', 'textarea', 'number', 'select', 'multiselect', 'color']).required(),
-  required: Yup.boolean().required(),
-  unit:     Yup.string().optional(),
-  options:  Yup.array(attributeFieldOptionSchema).optional(),
+  key:             Yup.string().required(),
+  label:           Yup.string().required(),
+  type:            Yup.string().oneOf(['text', 'textarea', 'number', 'select', 'multiselect', 'color']).required(),
+  required:        Yup.boolean().required(),
+  isVariant:       Yup.boolean().optional(),
+  isStockDependent: Yup.boolean().optional(),
+  unit:            Yup.string().optional(),
+  options:         Yup.array(attributeFieldOptionSchema).optional(),
 });
 
 export const createCategorySchema = Yup.object({

@@ -20,6 +20,7 @@ export interface AttributeField {
   type: AttributeFieldType;
   required: boolean;
   isVariant?: boolean;
+  isStockDependent?: boolean;
   unit?: string;
   options?: AttributeFieldOption[];
 }

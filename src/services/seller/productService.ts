@@ -6,6 +6,7 @@ import { ProductVariant } from '../../models/ProductVariant';
 import type { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import type { AttributeField } from '../../types';
 import { normalizeImageKey } from '../../utils/imageStorage';
+import sequelize from '../../config/database';
 
 type CreateProductInput = InferType<typeof createProductSchema>;
 type UpdateProductInput = InferType<typeof updateProductSchema>;
@@ -68,20 +69,44 @@ export async function createProduct(
     validateAttributes(data.attributes as Record<string, unknown> ?? {}, category.attributeSchema);
   }
 
-  const product = await Product.create({
-    sellerId,
-    categoryId:    data.categoryId,
-    name:          data.name,
-    description:   data.description,
-    sellingPrice:  data.sellingPrice,
-    mrp:           data.mrp ?? null,
-    costPrice:     data.costPrice ?? null,
-    stock:         data.stock,
-    images:        (data.images ?? []).map(normalizeImageKey),
-    attributes:    data.attributes ?? {},
-    pickupAddress: data.pickupAddress ?? null,
-    pickupLat:     data.pickupLat ?? null,
-    pickupLong:    data.pickupLong ?? null,
+  const hasVariants = Array.isArray(data.variants) && data.variants.length > 0;
+  const variantStock = hasVariants
+    ? data.variants!.reduce((sum, group) => sum + group.rows.reduce((s, r) => s + r.stock, 0), 0)
+    : undefined;
+
+  const product = await sequelize.transaction(async (t) => {
+    const created = await Product.create({
+      sellerId,
+      categoryId:    data.categoryId,
+      name:          data.name,
+      description:   data.description,
+      sellingPrice:  data.sellingPrice,
+      mrp:           data.mrp ?? null,
+      costPrice:     data.costPrice ?? null,
+      stock:         variantStock ?? data.stock ?? 0,
+      images:        (data.images ?? []).map(normalizeImageKey),
+      attributes:    data.attributes ?? {},
+      pickupAddress: data.pickupAddress ?? null,
+      pickupLat:     data.pickupLat ?? null,
+      pickupLong:    data.pickupLong ?? null,
+    }, { transaction: t });
+
+    if (hasVariants) {
+      const rows = data.variants!.flatMap(group =>
+        group.rows.map(row => ({
+          productId:    created.id,
+          attributes:   { ...(group.attributes as Record<string, unknown>), ...(row.attributes as Record<string, unknown>) },
+          images:       group.images.map(normalizeImageKey),
+          stock:        row.stock,
+          sellingPrice: group.sellingPrice,
+          mrp:          group.mrp ?? null,
+          isActive:     group.isActive ?? true,
+        })),
+      );
+      await ProductVariant.bulkCreate(rows, { transaction: t });
+    }
+
+    return created;
   });
 
   return product.reload({ include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }] });
