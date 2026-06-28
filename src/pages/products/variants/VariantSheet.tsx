@@ -158,7 +158,6 @@ export default function VariantSheet({
       /* Edit mode: update price, stock, images for single variant */
       try {
         const result = await updateVariant(productId, variant.id, {
-          attributes:   variant.attributes,
           images:       images.length > 0 ? images : (product.images ?? []),
           sellingPrice: Number(values.sellingPrice),
           ...(values.mrp ? { mrp: Number(values.mrp) } : {}),
