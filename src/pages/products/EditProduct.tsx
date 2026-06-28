@@ -178,8 +178,11 @@ export default function EditProduct(): JSX.Element {
 
     const hasCombinations = !hasVariants && combinations.length > 0;
     const usePerComboStock = hasCombinations && stockDependent;
+    const nonVariantAttrs = Object.fromEntries(
+      nonVariantFields.flatMap(f => f.key in attributes ? [[f.key, attributes[f.key]]] : []),
+    );
     const productAttrs: Record<string, unknown> = {
-      ...attributes,
+      ...nonVariantAttrs,
       ...(hasCombinations ? buildProductVariantAttrs(variantFields, variantSelections) : {}),
     };
 
@@ -187,7 +190,6 @@ export default function EditProduct(): JSX.Element {
       await updateProduct(id!, {
         name:         values.name,
         description:  values.description,
-        categoryId:   Number(values.categoryId),
         sellingPrice: Number(values.sellingPrice),
         mrp:          values.mrp      ? Number(values.mrp)      : undefined,
         costPrice:    values.costPrice ? Number(values.costPrice) : undefined,
@@ -412,24 +414,19 @@ export default function EditProduct(): JSX.Element {
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
             <p className="text-sm font-semibold text-gray-700">Category & Pricing</p>
 
-            <FormField label="Category" required error={form.touched.categoryId ? form.errors.categoryId as string : undefined}>
+            <FormField label="Category">
               <div className="relative">
                 <select
                   value={form.values.categoryId}
-                  onChange={e => {
-                    const catId = Number(e.target.value);
-                    void form.setFieldValue('categoryId', catId);
-                    applyCategory(catId);
-                  }}
-                  onBlur={() => void form.setFieldTouched('categoryId')}
-                  className={`w-full appearance-none ${inputCls(!!form.touched.categoryId && !!form.errors.categoryId)} pr-8`}
+                  disabled
+                  className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-500 cursor-not-allowed pr-8"
                 >
                   <option value={0} disabled>Select a category</option>
                   {categories.map(cat => (
                     <option key={cat.id} value={cat.id}>{cat.name}</option>
                   ))}
                 </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
               </div>
             </FormField>
 
