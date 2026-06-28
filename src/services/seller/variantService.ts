@@ -2,7 +2,7 @@ import type { InferType } from 'yup';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { Category } from '../../models/Category';
-import type { createVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
+import type { createVariantSchema, updateVariantSchema, createBatchVariantSchema } from '../../validation/seller/variantSchemas';
 import type { AttributeField } from '../../types';
 import { normalizeImageKey } from '../../utils/imageStorage';
 
@@ -37,6 +37,7 @@ async function syncProductVariantAttrs(productId: string): Promise<void> {
 
 type CreateVariantInput = InferType<typeof createVariantSchema>;
 type UpdateVariantInput = InferType<typeof updateVariantSchema>;
+type CreateBatchVariantInput = InferType<typeof createBatchVariantSchema>;
 
 async function requireOwnProduct(sellerId: string, productId: string): Promise<Product> {
   const product = await Product.findOne({
@@ -88,6 +89,34 @@ export async function createVariant(
   await syncProductStock(productId);
   await syncProductVariantAttrs(productId);
   return variant;
+}
+
+export async function createBatchVariants(
+  productId: string,
+  sellerId: string,
+  data: CreateBatchVariantInput,
+): Promise<ProductVariant[]> {
+  await requireOwnProduct(sellerId, productId);
+
+  const images = (data.images ?? []).map(normalizeImageKey);
+
+  const variants = await Promise.all(
+    data.rows.map(row =>
+      ProductVariant.create({
+        productId,
+        attributes:   row.attributes,
+        images,
+        stock:        row.stock,
+        sellingPrice: data.sellingPrice,
+        mrp:          data.mrp ?? null,
+        isActive:     data.isActive ?? true,
+      }),
+    ),
+  );
+
+  await syncProductStock(productId);
+  await syncProductVariantAttrs(productId);
+  return variants;
 }
 
 export async function updateVariant(

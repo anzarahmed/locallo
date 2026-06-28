@@ -9,14 +9,14 @@ import {
 } from '../../controllers/seller/productController';
 import { analyzeImage } from '../../controllers/seller/imageAnalysisController';
 import { getCategories, getMyCategories } from '../../controllers/seller/categoryController';
-import { getVariants, createVariant, updateVariant, deleteVariant, toggleVariant } from '../../controllers/seller/variantController';
+import { getVariants, createVariant, createBatchVariants, updateVariant, deleteVariant, toggleVariant } from '../../controllers/seller/variantController';
 import { markProductSold, markVariantSold, getSoldLogs } from '../../controllers/seller/soldController';
 import { validate } from '../../middleware/validate';
 import upload from '../../middleware/upload';
 import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema, setCustomDaySchema } from '../../validation/seller/sellerSchemas';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/sellerAuthSchemas';
 import { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
-import { createVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
+import { createVariantSchema, createBatchVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
 import { markSoldSchema } from '../../validation/seller/soldSchemas';
 
 const router = Router();
@@ -52,6 +52,7 @@ router.delete('/products/:id',        requireSeller, deleteProduct);
 
 router.get('/products/:productId/variants',                     requireSeller, getVariants);
 router.post('/products/:productId/variants',                    requireSeller, validate(createVariantSchema), createVariant);
+router.post('/products/:productId/variants/batch',              requireSeller, validate(createBatchVariantSchema), createBatchVariants);
 router.put('/products/:productId/variants/:variantId',          requireSeller, validate(updateVariantSchema), updateVariant);
 router.delete('/products/:productId/variants/:variantId',       requireSeller, deleteVariant);
 router.patch('/products/:productId/variants/:variantId/toggle', requireSeller, toggleVariant);

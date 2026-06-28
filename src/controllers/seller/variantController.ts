@@ -38,6 +38,20 @@ export async function createVariant(req: Request, res: Response): Promise<void> 
   }
 }
 
+export async function createBatchVariants(req: Request, res: Response): Promise<void> {
+  try {
+    const variants = await variantService.createBatchVariants(
+      String(req.params.productId),
+      req.seller!.id,
+      req.body,
+    );
+    const signed = await Promise.all(variants.map(v => signVariant(v.toJSON())));
+    sendSuccess(res, { variants: signed }, 'Variants created', 201);
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to create variants');
+  }
+}
+
 export async function updateVariant(req: Request, res: Response): Promise<void> {
   try {
     const variant = await variantService.updateVariant(

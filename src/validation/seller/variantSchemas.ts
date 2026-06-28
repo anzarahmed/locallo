@@ -9,6 +9,19 @@ export const createVariantSchema = Yup.object({
   isActive:     Yup.boolean().optional(),
 });
 
+export const createBatchVariantSchema = Yup.object({
+  images:       Yup.array(Yup.string().required()).min(1, 'At least one image is required').required(),
+  sellingPrice: Yup.number().positive('Selling price must be positive').required('Selling price is required'),
+  mrp:          Yup.number().positive('MRP must be positive').optional(),
+  isActive:     Yup.boolean().optional(),
+  rows:         Yup.array(
+    Yup.object({
+      attributes: Yup.object().unknown(true).required(),
+      stock:      Yup.number().integer().min(0).required(),
+    }).required(),
+  ).min(1, 'At least one variant row is required').required(),
+});
+
 export const updateVariantSchema = Yup.object({
   attributes:   Yup.object().unknown(true).optional(),
   images:       Yup.array(Yup.string().required()).min(1, 'At least one image is required').optional(),
