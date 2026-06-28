@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useFormik, type FormikHelpers } from 'formik';
 import { X, Camera, Plus, Loader2, Check } from 'lucide-react';
-import { uploadProductImage, createVariant, updateVariant } from '../../../services/sellerService';
+import { uploadProductImage, createBatchVariants, updateVariant } from '../../../services/sellerService';
 import { MAX_SECONDARY_IMAGES } from '../../../constants';
 import { variantFormSchema, type VariantFormValues } from '../../../validation/variantSchemas';
 import { useToast } from '../../../hooks/useToast';
@@ -188,20 +188,18 @@ export default function VariantSheet({
     const variantImages = images.length > 0 ? images : (product.images ?? []);
 
     try {
-      let lastSaved: ProductVariant | null = null;
-      for (const combo of combinations) {
-        const key = getCombinationKey(combo);
-        const result = await createVariant(productId, {
-          attributes:   combo,
-          images:       variantImages,
-          sellingPrice,
-          ...(mrp !== undefined ? { mrp } : {}),
-          stock:        stockDependent ? Number(comboStocks[key] ?? 0) : 0,
-        });
-        lastSaved = result.variant;
-      }
-      if (lastSaved) onSaved(lastSaved);
-      toast.success(`Created ${combinations.length} variant${combinations.length === 1 ? '' : 's'}`);
+      const rows = combinations.map(combo => ({
+        attributes: combo,
+        stock: stockDependent ? Number(comboStocks[getCombinationKey(combo)] ?? 0) : Number(values.stock),
+      }));
+      const result = await createBatchVariants(productId, {
+        images:       variantImages,
+        sellingPrice,
+        ...(mrp !== undefined ? { mrp } : {}),
+        rows,
+      });
+      onSaved(result.variants[0]!);
+      toast.success(`Created ${result.variants.length} variant${result.variants.length === 1 ? '' : 's'}`);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to save variant');
     }

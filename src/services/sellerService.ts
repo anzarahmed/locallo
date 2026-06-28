@@ -71,6 +71,10 @@ export function createVariant(productId: string, data: Record<string, unknown>):
   return apiPost(`${PATHS.PRODUCTS}/${productId}/variants`, data);
 }
 
+export function createBatchVariants(productId: string, data: Record<string, unknown>): Promise<{ variants: ProductVariant[] }> {
+  return apiPost(`${PATHS.PRODUCTS}/${productId}/variants/batch`, data);
+}
+
 export function updateVariant(productId: string, variantId: string, data: Record<string, unknown>): Promise<{ variant: ProductVariant }> {
   return apiPut(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}`, data);
 }
