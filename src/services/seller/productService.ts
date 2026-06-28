@@ -215,14 +215,26 @@ export async function updateSellerProduct(
     throw Object.assign(new Error('Category not found'), { status: 404 });
   }
 
-  const mergedAttributes = data.attributes !== undefined
-    ? (data.attributes as Record<string, unknown>)
-    : (product.attributes as Record<string, unknown>);
-
   const hasVariants = await ProductVariant.count({ where: { productId: product.id } }) > 0;
 
-  if (category.attributeSchema && category.attributeSchema.length > 0) {
-    validateAttributes(mergedAttributes, category.attributeSchema, hasVariants);
+  const schema = (category.attributeSchema as AttributeField[]) ?? [];
+  const variantKeys = new Set(schema.filter(f => f.isVariant).map(f => f.key));
+  const existingAttrs = (product.attributes as Record<string, unknown>) ?? {};
+
+  let mergedAttributes: Record<string, unknown> = existingAttrs;
+  if (data.attributes !== undefined) {
+    mergedAttributes = { ...existingAttrs };
+    for (const [key, val] of Object.entries(data.attributes as Record<string, unknown>)) {
+      if (!variantKeys.has(key)) mergedAttributes[key] = val;
+    }
+  }
+  console.log('[updateProduct] existingAttrs:', JSON.stringify(existingAttrs));
+  console.log('[updateProduct] data.attributes:', JSON.stringify(data.attributes));
+  console.log('[updateProduct] variantKeys:', [...variantKeys]);
+  console.log('[updateProduct] mergedAttributes:', JSON.stringify(mergedAttributes));
+
+  if (schema.length > 0) {
+    validateAttributes(mergedAttributes, schema, hasVariants);
   }
 
   await product.update({
@@ -234,7 +246,7 @@ export async function updateSellerProduct(
 
     ...(!hasVariants && data.stock !== undefined && { stock: data.stock }),
     ...(data.images        !== undefined && { images:        data.images.map(normalizeImageKey) }),
-    ...(data.attributes    !== undefined && { attributes:    data.attributes }),
+    ...(data.attributes    !== undefined && { attributes:    mergedAttributes }),
     ...(data.pickupAddress !== undefined && { pickupAddress: data.pickupAddress }),
     ...(data.pickupLat     !== undefined && { pickupLat:     data.pickupLat }),
     ...(data.pickupLong    !== undefined && { pickupLong:    data.pickupLong }),
