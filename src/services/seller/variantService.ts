@@ -130,7 +130,6 @@ export async function updateVariant(
   const variant = await requireOwnVariant(productId, variantId);
 
   await variant.update({
-    ...(data.attributes   !== undefined && { attributes:   data.attributes }),
     ...(data.images       !== undefined && { images:       data.images.map(normalizeImageKey) }),
     ...(data.stock        !== undefined && { stock:        data.stock }),
     ...(data.sellingPrice !== undefined && { sellingPrice: data.sellingPrice }),

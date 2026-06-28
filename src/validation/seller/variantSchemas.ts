@@ -24,7 +24,6 @@ export const createBatchVariantSchema = Yup.object({
 });
 
 export const updateVariantSchema = Yup.object({
-  attributes:   Yup.object().unknown(true).optional(),
   images:       Yup.array(Yup.string().required()).min(1, 'At least one image is required').optional(),
   stock:        Yup.number().integer().min(0).optional(),
   sellingPrice: Yup.number().positive().optional(),
