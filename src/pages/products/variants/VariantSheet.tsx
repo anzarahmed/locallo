@@ -188,11 +188,27 @@ export default function VariantSheet({
     const variantImages = images.length > 0 ? images : (product.images ?? []);
 
     try {
+      const sdFieldKeys = new Set(variantFields.filter(f => f.isStockDependent).map(f => f.key));
+      const hasSdFields = sdFieldKeys.size > 0;
+
+      // Shared non-SD variant attrs (e.g. colors: "white") — sent once, not repeated per row
+      const sharedAttrs: Record<string, string> = {};
+      if (hasSdFields) {
+        for (const field of variantFields) {
+          if (field.isStockDependent) continue;
+          const sel = variantSelections[field.key];
+          if (typeof sel === 'string' && sel) sharedAttrs[field.key] = sel;
+        }
+      }
+
       const rows = combinations.map(combo => ({
-        attributes: combo,
+        attributes: hasSdFields
+          ? Object.fromEntries(Object.entries(combo).filter(([k]) => sdFieldKeys.has(k)))
+          : { ...combo },
         stock: stockDependent ? Number(comboStocks[getCombinationKey(combo)] ?? 0) : Number(values.stock),
       }));
       const result = await createBatchVariants(productId, {
+        ...(hasSdFields && Object.keys(sharedAttrs).length > 0 && { attributes: sharedAttrs }),
         images:       variantImages,
         sellingPrice,
         ...(mrp !== undefined ? { mrp } : {}),

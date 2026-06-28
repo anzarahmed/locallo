@@ -190,10 +190,18 @@ export default function AddProduct(): JSX.Element {
     type VRow = { attributes: Record<string, string>; stock: number };
     let productRows: VRow[] | undefined;
     if (hasCombinations) {
-      const sdField = variantFields.find(f => f.isStockDependent);
+      const sdFieldKeys = new Set(variantFields.filter(f => f.isStockDependent).map(f => f.key));
+      const hasSdFields = sdFieldKeys.size > 0;
       productRows = combinations.map(combo => ({
-        attributes: { ...combo },
-        stock: sdField ? Number(comboStocks[getCombinationKey(combo)] ?? 0) : Number(values.stock),
+        // When there's an SD field, rows only carry the SD-specific attr — non-SD attrs
+        // (e.g. colors) are already in the top-level attributes and the backend merges them.
+        // When there's no SD field every combo is unique, so include all attrs.
+        attributes: hasSdFields
+          ? Object.fromEntries(Object.entries(combo).filter(([k]) => sdFieldKeys.has(k)))
+          : { ...combo },
+        stock: hasSdFields
+          ? Number(comboStocks[getCombinationKey(combo)] ?? 0)
+          : Number(values.stock),
       }));
     }
 
