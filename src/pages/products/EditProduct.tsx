@@ -98,14 +98,6 @@ export default function EditProduct(): JSX.Element {
     onSubmit: handleSubmit,
   });
 
-  function applyCategory(catId: number): void {
-    const cat = categories.find(c => c.id === catId);
-    setAttributeSchema(cat?.attributeSchema ?? []);
-    setAttributes({});
-    setVariantSelections({});
-    setComboStocks({});
-  }
-
   function setVariantSelection(key: string, value: string | string[]): void {
     setVariantSelections(prev => ({ ...prev, [key]: value }));
     setComboStocks({});
