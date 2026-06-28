@@ -102,10 +102,24 @@ export async function createProduct(
     }, { transaction: t });
 
     if (hasRows) {
+      // Extract non-SD variant attrs from the top-level attributes so the backend
+      // can merge them into each row (rows only carry the SD-specific value).
+      const schema = (category.attributeSchema as AttributeField[]) ?? [];
+      const sdKeys = new Set(schema.filter(f => f.isVariant && f.isStockDependent).map(f => f.key));
+      const topAttrs = (data.attributes as Record<string, unknown>) ?? {};
+      const sharedAttrs: Record<string, string> = {};
+      for (const field of schema) {
+        if (!field.isVariant || sdKeys.has(field.key)) continue;
+        const val = topAttrs[field.key];
+        if (Array.isArray(val) && val.length === 1) sharedAttrs[field.key] = String(val[0]);
+        else if (typeof val === 'string' && val)    sharedAttrs[field.key] = val;
+      }
+
+      const images = (data.images ?? []).map(normalizeImageKey);
       const variants = data.rows!.map(row => ({
         productId:    created.id,
-        attributes:   row.attributes as Record<string, unknown> ?? {},
-        images:       (data.images ?? []).map(normalizeImageKey),
+        attributes:   { ...sharedAttrs, ...(row.attributes as Record<string, string>) },
+        images,
         stock:        row.stock,
         sellingPrice: data.sellingPrice,
         mrp:          data.mrp ?? null,

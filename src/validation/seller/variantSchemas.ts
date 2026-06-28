@@ -10,6 +10,7 @@ export const createVariantSchema = Yup.object({
 });
 
 export const createBatchVariantSchema = Yup.object({
+  attributes:   Yup.object().unknown(true).optional().default({}),
   images:       Yup.array(Yup.string().required()).min(1, 'At least one image is required').required(),
   sellingPrice: Yup.number().positive('Selling price must be positive').required('Selling price is required'),
   mrp:          Yup.number().positive('MRP must be positive').optional(),

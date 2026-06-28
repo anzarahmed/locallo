@@ -99,12 +99,13 @@ export async function createBatchVariants(
   await requireOwnProduct(sellerId, productId);
 
   const images = (data.images ?? []).map(normalizeImageKey);
+  const sharedAttrs = (data.attributes as Record<string, string>) ?? {};
 
   const variants = await Promise.all(
     data.rows.map(row =>
       ProductVariant.create({
         productId,
-        attributes:   row.attributes,
+        attributes:   { ...sharedAttrs, ...(row.attributes as Record<string, string>) },
         images,
         stock:        row.stock,
         sellingPrice: data.sellingPrice,
