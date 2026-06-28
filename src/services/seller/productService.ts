@@ -3,6 +3,7 @@ import { Op, literal } from 'sequelize';
 import { Product } from '../../models/Product';
 import { Category } from '../../models/Category';
 import { ProductVariant } from '../../models/ProductVariant';
+import { SellerProfile } from '../../models/SellerProfile';
 import type { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import type { AttributeField } from '../../types';
 import { normalizeImageKey } from '../../utils/imageStorage';
@@ -14,10 +15,13 @@ type UpdateProductInput = InferType<typeof updateProductSchema>;
 function validateAttributes(
   attributes: Record<string, unknown>,
   schema: AttributeField[],
+  skipVariantFields = false,
 ): void {
   const errors: string[] = [];
 
   for (const field of schema) {
+    if (skipVariantFields && field.isVariant) continue;
+
     const value = attributes[field.key];
     const isEmpty = value === undefined || value === null || value === '' ||
       (Array.isArray(value) && value.length === 0);
@@ -60,6 +64,12 @@ export async function createProduct(
   sellerId: string,
   data: CreateProductInput,
 ): Promise<Product> {
+  const profile = await SellerProfile.findOne({ where: { userId: sellerId } });
+  const assignedIds: number[] = (profile?.categoryIds as number[] | null) ?? [];
+  if (!assignedIds.includes(data.categoryId)) {
+    throw Object.assign(new Error('Category not assigned to your profile'), { status: 403 });
+  }
+
   const category = await Category.findByPk(data.categoryId);
   if (!category || !category.isActive) {
     throw Object.assign(new Error('Category not found'), { status: 404 });
@@ -186,8 +196,7 @@ export async function updateSellerProduct(
 ): Promise<Product> {
   const product = await requireOwnProduct(sellerId, productId);
 
-  const categoryId = data.categoryId ?? product.categoryId;
-  const category = await Category.findByPk(categoryId);
+  const category = await Category.findByPk(product.categoryId);
   if (!category || !category.isActive) {
     throw Object.assign(new Error('Category not found'), { status: 404 });
   }
@@ -196,11 +205,11 @@ export async function updateSellerProduct(
     ? (data.attributes as Record<string, unknown>)
     : (product.attributes as Record<string, unknown>);
 
-  if (category.attributeSchema && category.attributeSchema.length > 0) {
-    validateAttributes(mergedAttributes, category.attributeSchema);
-  }
-
   const hasVariants = await ProductVariant.count({ where: { productId: product.id } }) > 0;
+
+  if (category.attributeSchema && category.attributeSchema.length > 0) {
+    validateAttributes(mergedAttributes, category.attributeSchema, hasVariants);
+  }
 
   await product.update({
     ...(data.name          !== undefined && { name:          data.name }),
@@ -208,7 +217,7 @@ export async function updateSellerProduct(
     ...(data.sellingPrice  !== undefined && { sellingPrice:  data.sellingPrice }),
     ...(data.mrp           !== undefined && { mrp:           data.mrp }),
     ...(data.costPrice     !== undefined && { costPrice:     data.costPrice }),
-    ...(data.categoryId    !== undefined && { categoryId:    data.categoryId }),
+
     ...(!hasVariants && data.stock !== undefined && { stock: data.stock }),
     ...(data.images        !== undefined && { images:        data.images.map(normalizeImageKey) }),
     ...(data.attributes    !== undefined && { attributes:    data.attributes }),
