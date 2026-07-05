@@ -540,7 +540,7 @@ export default function AddProduct(): JSX.Element {
                 <AttrInput
                   key={field.key}
                   field={field}
-                  value={attributes[field.key] ?? (field.type === 'multiselect' || field.type === 'color' ? [] : '')}
+                  value={attributes[field.key] ?? (field.type === 'multiselect' ? [] : '')}
                   onChange={v => setAttr(field.key, v)}
                 />
               ))}

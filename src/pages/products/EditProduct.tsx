@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormik, type FormikHelpers } from 'formik';
-import { ArrowLeft, Camera, X, Plus, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Camera, Check, X, Plus, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   getProfile, getSellerProduct, updateProduct, uploadProductImage, createVariant,
 } from '../../services/sellerService';
@@ -499,7 +499,7 @@ export default function EditProduct(): JSX.Element {
                   <AttrInput
                     key={field.key}
                     field={field}
-                    value={attributes[field.key] ?? (field.type === 'multiselect' || field.type === 'color' ? [] : '')}
+                    value={attributes[field.key] ?? (field.type === 'multiselect' ? [] : '')}
                     onChange={v => setAttr(field.key, v)}
                   />
                 ))}
@@ -647,13 +647,19 @@ function VariantOptionField({ field, onChange, value }: VariantOptionFieldProps)
               type="button"
               onClick={() => onChange(selected === opt.value ? '' : opt.value)}
               title={opt.label}
-              className={`w-9 h-9 rounded-full border-2 transition-all ${
+              className={`w-9 h-9 rounded-full border-2 transition-all relative flex items-center justify-center ${
                 selected === opt.value
                   ? 'border-teal-500 scale-110 shadow-md ring-2 ring-teal-200'
                   : 'border-gray-200 hover:scale-105'
               }`}
               style={{ backgroundColor: opt.hex ?? opt.value }}
-            />
+            >
+              {selected === opt.value && (
+                <span className="w-5 h-5 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
+                  <Check size={11} className="text-teal-600" strokeWidth={3} />
+                </span>
+              )}
+            </button>
           ))}
         </div>
         {selected && (
