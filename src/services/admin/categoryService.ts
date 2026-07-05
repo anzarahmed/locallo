@@ -62,7 +62,7 @@ export async function deleteCategory(id: number): Promise<void> {
   if (!category) {
     throw Object.assign(new Error('Category not found'), { status: 404 });
   }
-  const usageCount = await SellerProfile.count({ where: { categoryId: id } });
+  const usageCount = await SellerProfile.count({ where: { categoryIds: { [Op.contains]: [id] } } });
   if (usageCount > 0) {
     throw Object.assign(
       new Error(`Cannot delete — ${usageCount} seller${usageCount === 1 ? ' is' : 's are'} using this category`),
