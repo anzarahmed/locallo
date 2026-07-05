@@ -438,18 +438,15 @@ export default function EditProduct(): JSX.Element {
                   />
                 </div>
               </FormField>
-              <FormField label="MRP" error={form.touched.mrp ? form.errors.mrp as string : undefined}>
+              <FormField label="MRP">
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
                   <input
                     name="mrp"
                     type="number"
-                    min={0}
-                    step="0.01"
                     value={form.values.mrp}
-                    onChange={form.handleChange}
-                    onBlur={form.handleBlur}
-                    className={`${inputCls(!!form.touched.mrp && !!form.errors.mrp)} pl-7`}
+                    readOnly
+                    className={`${inputCls(false)} pl-7 bg-gray-50 text-gray-500 cursor-not-allowed`}
                   />
                 </div>
               </FormField>

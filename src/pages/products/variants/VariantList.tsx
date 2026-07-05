@@ -636,12 +636,10 @@ function GroupEditSheet({
                         <span className="absolute left-2.5 top-1/2 -translate-y-1/2 text-gray-400 text-xs select-none">₹</span>
                         <input
                           type="number"
-                          min={0}
-                          step="0.01"
                           value={row.mrp}
-                          onChange={e => updateRow(i, 'mrp', e.target.value)}
+                          readOnly
                           placeholder="—"
-                          className="w-full border border-gray-200 rounded-lg text-xs text-gray-700 pl-6 pr-2 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+                          className="w-full border border-gray-200 rounded-lg text-xs text-gray-500 pl-6 pr-2 py-2 bg-gray-100 cursor-not-allowed"
                         />
                       </div>
                     </div>

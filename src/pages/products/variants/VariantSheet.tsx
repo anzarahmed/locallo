@@ -419,6 +419,7 @@ export default function VariantSheet({
                 onChange={form.handleChange}
                 onBlur={form.handleBlur}
                 hasError={!!form.touched.mrp && !!form.errors.mrp}
+                readOnly
               />
             </div>
 
@@ -666,11 +667,12 @@ interface PriceFieldProps {
   error?: string;
   hasError: boolean;
   required?: boolean;
+  readOnly?: boolean;
   onChange: React.ChangeEventHandler<HTMLInputElement>;
   onBlur: React.FocusEventHandler<HTMLInputElement>;
 }
 
-function PriceField({ label, name, value, error, hasError, required, onChange, onBlur }: PriceFieldProps): JSX.Element {
+function PriceField({ label, name, value, error, hasError, required, readOnly, onChange, onBlur }: PriceFieldProps): JSX.Element {
   return (
     <div>
       <label className="block text-xs font-semibold text-gray-500 mb-1.5">
@@ -687,7 +689,8 @@ function PriceField({ label, name, value, error, hasError, required, onChange, o
           onChange={onChange}
           onBlur={onBlur}
           placeholder="0"
-          className={`${inputCls(hasError)} pl-7`}
+          readOnly={readOnly}
+          className={`${inputCls(hasError)} pl-7${readOnly ? ' bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`}
         />
       </div>
       {error && <p className="text-xs text-rose-500 mt-1.5">{error}</p>}
