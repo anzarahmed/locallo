@@ -1,5 +1,5 @@
 import { useState, type JSX } from 'react';
-import { Plus, X, ChevronDown, ChevronUp, Trash2, Pencil, Sparkles } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronUp, Trash2, Pencil, Sparkles, GripVertical } from 'lucide-react';
 import type { AttributeField, AttributeFieldOption, AttributeFieldType } from '../../types';
 
 type ShadeCount = 3 | 5 | 7;
@@ -147,6 +147,10 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [editDraft, setEditDraft]   = useState<DraftField>(EMPTY_DRAFT);
   const [editError, setEditError]   = useState('');
+  const [draftDragFrom, setDraftDragFrom] = useState<number | null>(null);
+  const [draftDragOver, setDraftDragOver] = useState<number | null>(null);
+  const [editDragFrom, setEditDragFrom]   = useState<number | null>(null);
+  const [editDragOver, setEditDragOver]   = useState<number | null>(null);
 
   function toggleOpts(key: string): void {
     setExpandedOpts(prev => {
@@ -222,7 +226,10 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
       value: editDraft.newOptValue.trim() || toKey(editDraft.newOptLabel),
       ...(editDraft.type === 'color' ? { hex: editDraft.newOptHex } : {}),
     };
-    setEditDraft(d => ({ ...d, options: [...d.options, option], newOptLabel: '', newOptValue: '', newOptHex: '#000000' }));
+    setEditDraft(d => {
+      const sorted = [...d.options, option].sort((a, b) => a.label.localeCompare(b.label));
+      return { ...d, options: sorted, newOptLabel: '', newOptValue: '', newOptHex: '#000000' };
+    });
   }
 
   function removeEditOption(optValue: string): void {
@@ -292,7 +299,10 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
       value: draft.newOptValue.trim() || toKey(draft.newOptLabel),
       ...(draft.type === 'color' ? { hex: draft.newOptHex } : {}),
     };
-    setDraft(d => ({ ...d, options: [...d.options, option], newOptLabel: '', newOptValue: '', newOptHex: '#000000' }));
+    setDraft(d => {
+      const sorted = [...d.options, option].sort((a, b) => a.label.localeCompare(b.label));
+      return { ...d, options: sorted, newOptLabel: '', newOptValue: '', newOptHex: '#000000' };
+    });
   }
 
   function removeOption(optValue: string): void {
@@ -340,34 +350,81 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
     onAddOption: () => void,
     onRemoveOption: (v: string) => void,
     onApplyShades: () => void,
+    dragFrom: number | null,
+    setDragFrom: (i: number | null) => void,
+    dragOver: number | null,
+    setDragOver: (i: number | null) => void,
   ): JSX.Element {
     const previewShades  = buildShades(d.shadeGenHex, d.shadeGenName, d.shadeGenCount);
     const canGenerate    = d.shadeGenName.trim().length > 0 && isValidHex(d.shadeGenHex);
     const selectedCount  = previewShades.filter((_, i) => !d.shadeGenExcluded.includes(i)).length;
+
+    function dropOnto(toIdx: number): void {
+      if (dragFrom === null || dragFrom === toIdx) return;
+      setD(prev => {
+        const opts = [...prev.options];
+        const [moved] = opts.splice(dragFrom, 1);
+        opts.splice(toIdx, 0, moved);
+        return { ...prev, options: opts };
+      });
+      setDragFrom(null);
+      setDragOver(null);
+    }
 
     return (
       <div className="space-y-2">
         <p className="text-xs font-medium text-gray-600">Options</p>
 
         {d.options.length > 0 && (
-          <ul className="space-y-1.5 max-h-36 overflow-y-auto">
-            {d.options.map(opt => (
-              <li key={opt.value} className="flex items-center gap-2 text-xs text-gray-700">
-                {d.type === 'color' && opt.hex && (
-                  <span
-                    className="w-5 h-5 rounded border border-gray-200 shrink-0"
-                    style={{ backgroundColor: opt.hex }}
-                    title={opt.hex}
-                  />
-                )}
-                <span className="flex-1">{opt.label}</span>
-                <code className="text-gray-400">{opt.value}</code>
-                <button type="button" onClick={(): void => onRemoveOption(opt.value)} className="text-gray-300 hover:text-red-500">
-                  <X className="w-3 h-3" />
+          <>
+            {d.options.length >= 2 && (
+              <div className="flex items-center justify-end">
+                <button
+                  type="button"
+                  onClick={(): void => setD(prev => ({
+                    ...prev,
+                    options: [...prev.options].sort((a, b) => a.label.localeCompare(b.label)),
+                  }))}
+                  className="text-[11px] text-indigo-500 hover:text-indigo-700 transition-colors"
+                >
+                  Sort A–Z
                 </button>
-              </li>
-            ))}
-          </ul>
+              </div>
+            )}
+            <ul className="space-y-1 max-h-48 overflow-y-auto">
+              {d.options.map((opt, idx) => (
+                <li
+                  key={opt.value}
+                  draggable
+                  onDragStart={(): void => setDragFrom(idx)}
+                  onDragOver={(e): void => { e.preventDefault(); setDragOver(idx); }}
+                  onDrop={(): void => dropOnto(idx)}
+                  onDragEnd={(): void => { setDragFrom(null); setDragOver(null); }}
+                  className={`flex items-center gap-1.5 text-xs text-gray-700 rounded transition-colors ${
+                    dragOver === idx && dragFrom !== idx
+                      ? 'bg-indigo-50 ring-1 ring-indigo-300'
+                      : dragFrom === idx
+                        ? 'opacity-40'
+                        : ''
+                  }`}
+                >
+                  <GripVertical className="w-3.5 h-3.5 text-gray-300 cursor-grab shrink-0 active:cursor-grabbing" />
+                  {d.type === 'color' && opt.hex && (
+                    <span
+                      className="w-5 h-5 rounded border border-gray-200 shrink-0"
+                      style={{ backgroundColor: opt.hex }}
+                      title={opt.hex}
+                    />
+                  )}
+                  <span className="flex-1">{opt.label}</span>
+                  <code className="text-gray-400">{opt.value}</code>
+                  <button type="button" onClick={(): void => onRemoveOption(opt.value)} className="text-gray-300 hover:text-red-500">
+                    <X className="w-3 h-3" />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          </>
         )}
 
         {/* Manual add row */}
@@ -667,6 +724,10 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                         addEditOption,
                         removeEditOption,
                         applyEditShades,
+                        editDragFrom,
+                        setEditDragFrom,
+                        editDragOver,
+                        setEditDragOver,
                       )}
 
                       <div className="flex gap-2 pt-1">
@@ -884,6 +945,10 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                 addOption,
                 removeOption,
                 applyDraftShades,
+                draftDragFrom,
+                setDraftDragFrom,
+                draftDragOver,
+                setDraftDragOver,
               )}
 
               <div className="flex gap-2 pt-1">
