@@ -1,5 +1,5 @@
 import { useState, type JSX } from 'react';
-import { Plus, X, ChevronDown, ChevronUp, Trash2 } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronUp, Trash2, Pencil } from 'lucide-react';
 import type { AttributeField, AttributeFieldOption, AttributeFieldType } from '../../types';
 
 interface AttributeSchemaEditorProps {
@@ -57,6 +57,9 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
   const [draft, setDraft]           = useState<DraftField>(EMPTY_DRAFT);
   const [draftError, setDraftError] = useState('');
   const [expandedOpts, setExpandedOpts] = useState<Set<string>>(new Set());
+  const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [editDraft, setEditDraft]   = useState<DraftField>(EMPTY_DRAFT);
+  const [editError, setEditError]   = useState('');
 
   function toggleOpts(key: string): void {
     setExpandedOpts(prev => {
@@ -85,6 +88,80 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
       if (turningOn && f.isStockDependent) return { ...f, isStockDependent: undefined };
       return f;
     }));
+  }
+
+  function startEdit(field: AttributeField): void {
+    setEditingKey(field.key);
+    setEditDraft({
+      label:            field.label,
+      key:              field.key,
+      type:             field.type,
+      required:         field.required ?? false,
+      isVariant:        field.isVariant ?? false,
+      isStockDependent: field.isStockDependent ?? false,
+      unit:             field.unit ?? '',
+      options:          field.options ? [...field.options] : [],
+      newOptLabel: '',
+      newOptValue: '',
+      newOptHex:   '#000000',
+    });
+    setEditError('');
+  }
+
+  function cancelEdit(): void {
+    setEditingKey(null);
+    setEditDraft(EMPTY_DRAFT);
+    setEditError('');
+  }
+
+  function handleEditTypeChange(type: AttributeFieldType): void {
+    setEditDraft(d => ({
+      ...d,
+      type,
+      options: HAS_OPTIONS.includes(type) ? d.options : [],
+      ...(type === 'color' ? { isStockDependent: false } : {}),
+    }));
+  }
+
+  function addEditOption(): void {
+    if (!editDraft.newOptLabel.trim()) return;
+    const option: AttributeFieldOption = {
+      label: editDraft.newOptLabel.trim(),
+      value: editDraft.newOptValue.trim() || toKey(editDraft.newOptLabel),
+      ...(editDraft.type === 'color' ? { hex: editDraft.newOptHex } : {}),
+    };
+    setEditDraft(d => ({ ...d, options: [...d.options, option], newOptLabel: '', newOptValue: '', newOptHex: '#000000' }));
+  }
+
+  function removeEditOption(optValue: string): void {
+    setEditDraft(d => ({ ...d, options: d.options.filter(o => o.value !== optValue) }));
+  }
+
+  function saveEdit(): void {
+    if (!editDraft.label.trim()) { setEditError('Label is required'); return; }
+    if (!editDraft.key.trim())   { setEditError('Key is required'); return; }
+    if (value.some(f => f.key === editDraft.key && f.key !== editingKey)) {
+      setEditError('Key already exists');
+      return;
+    }
+    if (HAS_OPTIONS.includes(editDraft.type) && editDraft.options.length === 0) {
+      setEditError('Add at least one option');
+      return;
+    }
+    const updated: AttributeField = {
+      key:              editDraft.key,
+      label:            editDraft.label,
+      type:             editDraft.type,
+      required:         editDraft.required,
+      isVariant:        editDraft.isVariant || undefined,
+      isStockDependent: editDraft.isStockDependent || undefined,
+      ...(editDraft.unit ? { unit: editDraft.unit } : {}),
+      ...(HAS_OPTIONS.includes(editDraft.type) ? { options: editDraft.options } : {}),
+    };
+    onChange(value.map(f => f.key === editingKey ? updated : f));
+    setEditingKey(null);
+    setEditDraft(EMPTY_DRAFT);
+    setEditError('');
   }
 
   function handleLabelChange(label: string): void {
@@ -165,6 +242,170 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
           {value.length > 0 && (
             <ul className="space-y-1.5">
               {value.map(field => {
+                if (editingKey === field.key) {
+                  return (
+                    <li key={field.key} className="border border-indigo-200 rounded-lg p-3 space-y-3 bg-white">
+                      {editError && <p className="text-xs text-red-600">{editError}</p>}
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Label *</label>
+                          <input
+                            type="text"
+                            value={editDraft.label}
+                            onChange={e => setEditDraft(d => ({ ...d, label: e.target.value }))}
+                            className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Key *</label>
+                          <input
+                            type="text"
+                            value={editDraft.key}
+                            onChange={e => setEditDraft(d => ({ ...d, key: e.target.value }))}
+                            className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Type</label>
+                          <select
+                            value={editDraft.type}
+                            onChange={e => handleEditTypeChange(e.target.value as AttributeFieldType)}
+                            className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          >
+                            {TYPE_OPTIONS.map(t => (
+                              <option key={t.value} value={t.value}>{t.label}</option>
+                            ))}
+                          </select>
+                        </div>
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">
+                            Unit <span className="text-gray-400 font-normal">(optional)</span>
+                          </label>
+                          <input
+                            type="text"
+                            value={editDraft.unit}
+                            onChange={e => setEditDraft(d => ({ ...d, unit: e.target.value }))}
+                            placeholder="e.g. cm, kg"
+                            className="w-full px-2.5 py-1.5 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-5 flex-wrap">
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editDraft.required}
+                            onChange={e => setEditDraft(d => ({ ...d, required: e.target.checked }))}
+                            className="w-3.5 h-3.5 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                          />
+                          <span className="text-xs text-gray-700">Required field</span>
+                        </label>
+                        <label className="flex items-center gap-2 cursor-pointer">
+                          <input
+                            type="checkbox"
+                            checked={editDraft.isVariant}
+                            onChange={e => setEditDraft(d => ({ ...d, isVariant: e.target.checked }))}
+                            className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                          />
+                          <span className="text-xs text-gray-700">Is Variant</span>
+                        </label>
+                        <label className={`flex items-center gap-2 ${editDraft.type === 'color' ? 'cursor-not-allowed opacity-50' : 'cursor-pointer'}`}>
+                          <input
+                            type="checkbox"
+                            checked={editDraft.isStockDependent}
+                            disabled={editDraft.type === 'color'}
+                            onChange={e => setEditDraft(d => ({ ...d, isStockDependent: e.target.checked }))}
+                            className="w-3.5 h-3.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 disabled:cursor-not-allowed"
+                          />
+                          <span className="text-xs text-gray-700">Stock Dependent</span>
+                        </label>
+                      </div>
+
+                      {HAS_OPTIONS.includes(editDraft.type) && (
+                        <div className="space-y-2">
+                          <p className="text-xs font-medium text-gray-600">Options</p>
+
+                          {editDraft.options.length > 0 && (
+                            <ul className="space-y-1 max-h-32 overflow-y-auto">
+                              {editDraft.options.map(opt => (
+                                <li key={opt.value} className="flex items-center gap-2 text-xs text-gray-700">
+                                  {editDraft.type === 'color' && opt.hex && (
+                                    <span className="w-3.5 h-3.5 rounded-full border border-gray-200 shrink-0" style={{ backgroundColor: opt.hex }} />
+                                  )}
+                                  <span className="flex-1">{opt.label}</span>
+                                  <code className="text-gray-400">{opt.value}</code>
+                                  <button type="button" onClick={(): void => removeEditOption(opt.value)} className="text-gray-300 hover:text-red-500">
+                                    <X className="w-3 h-3" />
+                                  </button>
+                                </li>
+                              ))}
+                            </ul>
+                          )}
+
+                          <div className="flex gap-1.5">
+                            {editDraft.type === 'color' && (
+                              <input
+                                type="color"
+                                value={editDraft.newOptHex}
+                                onChange={e => setEditDraft(d => ({ ...d, newOptHex: e.target.value }))}
+                                className="w-8 h-7 p-0.5 border border-gray-300 rounded cursor-pointer"
+                                title="Pick colour"
+                              />
+                            )}
+                            <input
+                              type="text"
+                              value={editDraft.newOptLabel}
+                              onChange={e => setEditDraft(d => ({
+                                ...d,
+                                newOptLabel: e.target.value,
+                                newOptValue: d.newOptValue || toKey(e.target.value),
+                              }))}
+                              placeholder="Label"
+                              className="flex-1 px-2 py-1 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                            <input
+                              type="text"
+                              value={editDraft.newOptValue}
+                              onChange={e => setEditDraft(d => ({ ...d, newOptValue: e.target.value }))}
+                              placeholder="Value"
+                              className="w-20 px-2 py-1 border border-gray-300 rounded-md text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                            />
+                            <button
+                              type="button"
+                              onClick={addEditOption}
+                              className="px-2 py-1 bg-gray-100 hover:bg-gray-200 text-gray-600 rounded-md text-xs font-medium transition-colors"
+                            >
+                              Add
+                            </button>
+                          </div>
+                        </div>
+                      )}
+
+                      <div className="flex gap-2 pt-1">
+                        <button
+                          type="button"
+                          onClick={cancelEdit}
+                          className="flex-1 px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-md transition-colors"
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          type="button"
+                          onClick={saveEdit}
+                          className="flex-1 px-3 py-1.5 text-xs font-semibold text-white bg-indigo-600 hover:bg-indigo-700 rounded-md transition-colors"
+                        >
+                          Save Field
+                        </button>
+                      </div>
+                    </li>
+                  );
+                }
+
                 const hasOpts = field.options && field.options.length > 0;
                 const optsOpen = expandedOpts.has(field.key);
                 const stockBlocked = field.type === 'color';
@@ -225,6 +466,14 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                           {optsOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                         </button>
                       )}
+                      <button
+                        type="button"
+                        onClick={(): void => startEdit(field)}
+                        className="p-0.5 text-gray-400 hover:text-indigo-600 transition-colors"
+                        title="Edit field"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </button>
                       <button
                         type="button"
                         onClick={(): void => removeField(field.key)}
