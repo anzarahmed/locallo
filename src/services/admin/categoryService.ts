@@ -45,7 +45,7 @@ export async function createCategory(data: CreateCategoryInput): Promise<Categor
   if (slugExists) {
     throw Object.assign(new Error('Category slug already exists'), { status: 409 });
   }
-  return Category.create({ name: data.name, slug: data.slug });
+  return Category.create({ name: data.name, slug: data.slug, attributeSchema: data.attributeSchema ?? [] });
 }
 
 export async function updateCategory(id: number, data: UpdateCategoryInput): Promise<Category> {
