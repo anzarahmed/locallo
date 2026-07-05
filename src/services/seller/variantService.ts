@@ -4,7 +4,7 @@ import { ProductVariant } from '../../models/ProductVariant';
 import { Category } from '../../models/Category';
 import type { createVariantSchema, updateVariantSchema, createBatchVariantSchema } from '../../validation/seller/variantSchemas';
 import type { AttributeField } from '../../types';
-import { normalizeImageKey } from '../../utils/imageStorage';
+import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
 
 export async function syncProductStock(productId: string): Promise<void> {
   const total = ((await ProductVariant.sum('stock', { where: { productId } })) as number | null) ?? 0;
@@ -80,7 +80,7 @@ export async function createVariant(
   const variant = await ProductVariant.create({
     productId,
     attributes:   data.attributes,
-    images:       (data.images ?? []).map(normalizeImageKey),
+    images:       await commitImages((data.images ?? []).map(normalizeImageKey)),
     stock:        data.stock,
     sellingPrice: data.sellingPrice,
     mrp:          data.mrp ?? null,
@@ -98,7 +98,7 @@ export async function createBatchVariants(
 ): Promise<ProductVariant[]> {
   await requireOwnProduct(sellerId, productId);
 
-  const images = (data.images ?? []).map(normalizeImageKey);
+  const images = await commitImages((data.images ?? []).map(normalizeImageKey));
   const sharedAttrs = (data.attributes as Record<string, string>) ?? {};
 
   const variants = await Promise.all(
@@ -130,7 +130,7 @@ export async function updateVariant(
   const variant = await requireOwnVariant(productId, variantId);
 
   await variant.update({
-    ...(data.images       !== undefined && { images:       data.images.map(normalizeImageKey) }),
+    ...(data.images       !== undefined && { images:       await commitImages(data.images.map(normalizeImageKey)) }),
     ...(data.stock        !== undefined && { stock:        data.stock }),
     ...(data.sellingPrice !== undefined && { sellingPrice: data.sellingPrice }),
     ...(data.mrp          !== undefined && { mrp:          data.mrp }),

@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import path from 'path';
@@ -34,7 +34,7 @@ function toKey(urlOrKey: string): string {
 
 export async function saveImage(file: Express.Multer.File, sellerId: string): Promise<string> {
   const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
-  const key = `uploads/products/${sellerId}/${randomUUID()}${ext}`;
+  const key = `uploads/temp/${sellerId}/${randomUUID()}${ext}`;
   const contentType = resolveMimeType(file.buffer, file.originalname, file.mimetype);
 
   await s3.send(new PutObjectCommand({
@@ -81,4 +81,22 @@ export async function deleteImage(urlOrKey: string): Promise<void> {
     Bucket: BUCKET,
     Key: toKey(urlOrKey),
   }));
+}
+
+export async function commitImage(tempKey: string): Promise<string> {
+  const permanentKey = tempKey.replace('uploads/temp/', 'uploads/products/');
+  await s3.send(new CopyObjectCommand({
+    Bucket: BUCKET,
+    CopySource: `${BUCKET}/${tempKey}`,
+    Key: permanentKey,
+  }));
+  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: tempKey }));
+  return permanentKey;
+}
+
+export async function commitImages(keys: string[]): Promise<string[]> {
+  if (!keys.length) return [];
+  return Promise.all(
+    keys.map(key => key.startsWith('uploads/temp/') ? commitImage(key) : key),
+  );
 }

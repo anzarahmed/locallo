@@ -6,7 +6,7 @@ import { ProductVariant } from '../../models/ProductVariant';
 import { SellerProfile } from '../../models/SellerProfile';
 import type { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import type { AttributeField } from '../../types';
-import { normalizeImageKey } from '../../utils/imageStorage';
+import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
 import sequelize from '../../config/database';
 
 type CreateProductInput = InferType<typeof createProductSchema>;
@@ -84,6 +84,8 @@ export async function createProduct(
     ? data.rows!.reduce((sum, row) => sum + row.stock, 0)
     : undefined;
 
+  const committedImages = await commitImages((data.images ?? []).map(normalizeImageKey));
+
   const product = await sequelize.transaction(async (t) => {
     const created = await Product.create({
       sellerId,
@@ -94,7 +96,7 @@ export async function createProduct(
       mrp:           data.mrp ?? null,
       costPrice:     data.costPrice ?? null,
       stock:         variantStock ?? data.stock ?? 0,
-      images:        (data.images ?? []).map(normalizeImageKey),
+      images:        committedImages,
       attributes:    data.attributes ?? {},
       pickupAddress: data.pickupAddress ?? null,
       pickupLat:     data.pickupLat ?? null,
@@ -115,7 +117,7 @@ export async function createProduct(
         else if (typeof val === 'string' && val)    sharedAttrs[field.key] = val;
       }
 
-      const images = (data.images ?? []).map(normalizeImageKey);
+      const images = committedImages;
       const variants = data.rows!.map(row => ({
         productId:    created.id,
         attributes:   { ...sharedAttrs, ...(row.attributes as Record<string, string>) },
@@ -245,7 +247,7 @@ export async function updateSellerProduct(
     ...(data.costPrice     !== undefined && { costPrice:     data.costPrice }),
 
     ...(!hasVariants && data.stock !== undefined && { stock: data.stock }),
-    ...(data.images        !== undefined && { images:        data.images.map(normalizeImageKey) }),
+    ...(data.images        !== undefined && { images:        await commitImages(data.images.map(normalizeImageKey)) }),
     ...(data.attributes    !== undefined && { attributes:    mergedAttributes }),
     ...(data.pickupAddress !== undefined && { pickupAddress: data.pickupAddress }),
     ...(data.pickupLat     !== undefined && { pickupLat:     data.pickupLat }),
