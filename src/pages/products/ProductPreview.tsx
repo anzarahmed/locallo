@@ -1,10 +1,10 @@
 import { useState, useEffect, type JSX } from 'react';
 import { X, Package, ChevronLeft, ChevronRight, Star, Heart, MapPin, Store, EyeOff, Loader2 } from 'lucide-react';
-import { getSellerProduct } from '../../services/sellerService';
+import { getSellerProduct, getProductVariants } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { formatPrice, discountPct } from '../../lib/formatters';
-import type { Product, AttributeField, AttributeFieldOption } from '../../types';
+import type { Product, ProductVariant, AttributeField, AttributeFieldOption } from '../../types';
 
 function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
   if (raw === null || raw === undefined || raw === '') {
@@ -119,34 +119,78 @@ interface ProductPreviewProps {
 
 export default function ProductPreview({ productId, onClose }: ProductPreviewProps): JSX.Element {
   const [product, setProduct] = useState<Product | null>(null);
+  const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState(0);
+  const [selectedAttrs, setSelectedAttrs] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setLoading(true);
     setError(null);
-    getSellerProduct(productId)
-      .then(res => { setProduct(res.product); setActiveImg(0); })
+    setSelectedAttrs({});
+    setVariants([]);
+    Promise.all([
+      getSellerProduct(productId),
+      getProductVariants(productId).catch(() => ({ variants: [] as ProductVariant[], product: null })),
+    ])
+      .then(([productRes, variantRes]) => {
+        setProduct(productRes.product);
+        setVariants(variantRes.variants);
+        setActiveImg(0);
+      })
       .catch(err => {
         setError(err instanceof ApiError ? err.message : 'Failed to load product');
       })
       .finally(() => setLoading(false));
   }, [productId]);
 
+  const variantFields = product?.category?.attributeSchema?.filter(f => f.isVariant === true) ?? [];
+  const colorField = variantFields.find(f => f.type === 'color');
+
+  // Images to display: when a color is selected and a matching variant has images, use those
+  const displayImages = (() => {
+    if (!product) return [];
+    if (colorField && selectedAttrs[colorField.key]) {
+      const match = variants.find(v => {
+        const attrs = v.attributes as Record<string, string>;
+        return String(attrs[colorField.key]) === selectedAttrs[colorField.key] && v.images.length > 0;
+      });
+      if (match) return match.images;
+    }
+    return product.images;
+  })();
+
+  // Fully matched variant (all variant fields selected)
+  const selectedVariant = variantFields.length > 0 && variantFields.every(f => selectedAttrs[f.key])
+    ? variants.find(v =>
+        variantFields.every(f =>
+          String((v.attributes as Record<string, string>)[f.key]) === selectedAttrs[f.key],
+        ),
+      )
+    : undefined;
+
+  const displayPrice = selectedVariant?.sellingPrice ?? product?.sellingPrice ?? 0;
+  const displayMrp = selectedVariant !== undefined ? selectedVariant.mrp : (product?.mrp ?? null);
+  const displayStock = selectedVariant?.stock ?? product?.stock ?? 0;
+
+  function selectAttr(key: string, value: string): void {
+    setSelectedAttrs(prev => ({ ...prev, [key]: value }));
+    setActiveImg(0);
+  }
+
   function prevImage(): void {
-    if (!product) return;
-    setActiveImg(i => (i - 1 + product.images.length) % product.images.length);
+    setActiveImg(i => (i - 1 + displayImages.length) % displayImages.length);
   }
 
   function nextImage(): void {
-    if (!product) return;
-    setActiveImg(i => (i + 1) % product.images.length);
+    setActiveImg(i => (i + 1) % displayImages.length);
   }
 
-  const discount = product ? discountPct(product.sellingPrice, product.mrp) : null;
+  const discount = discountPct(displayPrice, displayMrp);
 
   const visibleAttrs = product?.category?.attributeSchema?.filter(f => {
+    if (f.isVariant) return false;
     const v = product.attributes?.[f.key];
     return v !== undefined && v !== null && v !== '' && !(Array.isArray(v) && v.length === 0);
   }) ?? [];
@@ -196,13 +240,13 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
 
               {/* Image gallery */}
               <div className="relative w-full aspect-square bg-gray-100">
-                {product.images.length > 0 ? (
+                {displayImages.length > 0 ? (
                   <>
                     <ProductImage
-                      src={resolveImage(product.images[activeImg])}
+                      src={resolveImage(displayImages[activeImg])}
                       alt={product.name}
                     />
-                    {product.images.length > 1 && (
+                    {displayImages.length > 1 && (
                       <>
                         <button
                           onClick={prevImage}
@@ -217,7 +261,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                           <ChevronRight size={16} />
                         </button>
                         <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                          {product.images.map((_, i) => (
+                          {displayImages.map((_, i) => (
                             <button
                               key={i}
                               onClick={() => setActiveImg(i)}
@@ -246,9 +290,9 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
               </div>
 
               {/* Thumbnail strip */}
-              {product.images.length > 1 && (
+              {displayImages.length > 1 && (
                 <div className="flex gap-2 px-4 pt-3 overflow-x-auto pb-1">
-                  {product.images.map((img, i) => (
+                  {displayImages.map((img, i) => (
                     <button
                       key={i}
                       onClick={() => setActiveImg(i)}
@@ -289,14 +333,87 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                   </div>
                 </div>
 
+                {/* Variant selectors */}
+                {variantFields.length > 0 && variants.length > 0 && (
+                  <div className="space-y-3">
+                    {variantFields.map(field => {
+                      if (!field.options) return null;
+                      const usedValues = new Set(
+                        variants.map(v => String((v.attributes as Record<string, string>)[field.key])),
+                      );
+                      const availableOptions = field.options.filter(o => usedValues.has(o.value));
+                      if (availableOptions.length === 0) return null;
+
+                      if (field.type === 'color') {
+                        return (
+                          <div key={field.key}>
+                            <p className="text-xs font-semibold text-gray-500 mb-2">
+                              {field.label}
+                              {selectedAttrs[field.key] && (
+                                <span className="font-normal text-gray-400 ml-1.5">
+                                  — {availableOptions.find(o => o.value === selectedAttrs[field.key])?.label}
+                                </span>
+                              )}
+                            </p>
+                            <div className="flex gap-2.5 flex-wrap">
+                              {availableOptions.map(opt => {
+                                const isSelected = selectedAttrs[field.key] === opt.value;
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    onClick={() => selectAttr(field.key, opt.value)}
+                                    title={opt.label}
+                                    className={`w-8 h-8 rounded-full border-2 transition-all shrink-0 ${
+                                      isSelected
+                                        ? 'border-teal-500 ring-2 ring-teal-200 scale-110'
+                                        : 'border-transparent ring-1 ring-gray-200 hover:ring-gray-300'
+                                    }`}
+                                    style={{ backgroundColor: opt.hex ?? opt.value }}
+                                  />
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
+                      if (field.type === 'select' || field.type === 'multiselect') {
+                        return (
+                          <div key={field.key}>
+                            <p className="text-xs font-semibold text-gray-500 mb-2">{field.label}</p>
+                            <div className="flex gap-2 flex-wrap">
+                              {availableOptions.map(opt => {
+                                const isSelected = selectedAttrs[field.key] === opt.value;
+                                return (
+                                  <button
+                                    key={opt.value}
+                                    onClick={() => selectAttr(field.key, opt.value)}
+                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
+                                      isSelected
+                                        ? 'border-teal-500 bg-teal-50 text-teal-700'
+                                        : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                                    }`}
+                                  >
+                                    {opt.label}
+                                  </button>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
+                      return null;
+                    })}
+                  </div>
+                )}
+
                 {/* Pricing */}
                 <div className="flex items-baseline gap-3 flex-wrap">
                   <span className="text-2xl font-bold text-gray-900">
-                    {formatPrice(product.sellingPrice)}
+                    {formatPrice(displayPrice)}
                   </span>
-                  {product.mrp != null && product.mrp > product.sellingPrice && (
+                  {displayMrp != null && displayMrp > displayPrice && (
                     <span className="text-sm text-gray-400 line-through">
-                      {formatPrice(product.mrp)}
+                      {formatPrice(displayMrp)}
                     </span>
                   )}
                   {discount !== null && (
@@ -308,13 +425,13 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
 
                 {/* Stock */}
                 <div>
-                  {product.stock === 0 ? (
+                  {displayStock === 0 ? (
                     <span className="inline-flex items-center text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full">
                       Out of stock
                     </span>
-                  ) : product.stock <= 5 ? (
+                  ) : displayStock <= 5 ? (
                     <span className="inline-flex items-center text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-                      Only {product.stock} left
+                      Only {displayStock} left
                     </span>
                   ) : (
                     <span className="inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
@@ -379,12 +496,12 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                 <button
                   disabled
                   className={`w-full py-3.5 rounded-2xl text-sm font-bold tracking-wide transition-colors ${
-                    product.stock === 0
+                    displayStock === 0
                       ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
                       : 'bg-teal-600 text-white opacity-80 cursor-not-allowed'
                   }`}
                 >
-                  {product.stock === 0 ? 'Out of stock' : 'Add to Cart'}
+                  {displayStock === 0 ? 'Out of stock' : 'Add to Cart'}
                 </button>
 
                 <p className="text-center text-xs text-gray-300">
