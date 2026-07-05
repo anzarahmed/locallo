@@ -25,6 +25,7 @@ export interface GetCategoriesPaginatedResponse {
 interface CategoryPayload {
   name: string;
   slug: string;
+  attributeSchema?: AttributeField[];
 }
 
 interface UpdateCategoryPayload {

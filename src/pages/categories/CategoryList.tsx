@@ -50,7 +50,7 @@ function CategoryModal({ category, onClose, onSaved }: CategoryModalProps): JSX.
     try {
       const saved = isEdit && category
         ? await updateCategory(category.id, values)
-        : await createCategory({ name: values.name, slug: values.slug });
+        : await createCategory({ name: values.name, slug: values.slug, attributeSchema: values.attributeSchema });
       toast.success(isEdit ? 'Category updated' : 'Category added');
       onSaved(saved);
     } catch (err: unknown) {
