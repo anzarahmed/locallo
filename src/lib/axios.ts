@@ -34,6 +34,9 @@ http.interceptors.response.use(
     const data = axiosError.response?.data;
     const status = axiosError.response?.status ?? 500;
     const message = data?.message ?? 'Something went wrong. Please try again.';
+    if (status === 401) {
+      window.dispatchEvent(new Event('admin:unauthorized'));
+    }
     return Promise.reject(new ApiError(message, status, data?.errors));
   },
 );

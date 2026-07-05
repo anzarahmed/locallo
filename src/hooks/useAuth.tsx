@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode, type JSX } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode, type JSX } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { Admin, AuthState, PermissionMap, PermissionModule, PermissionAction } from '../types';
 import * as authService from '../services/authService';
 import { apiGet } from '../lib/axios';
@@ -27,6 +28,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [state, setState] = useState<AuthState>({ admin: null, token: null });
   const [permissions, setPermissions] = useState<PermissionMap>({});
   const [isRestoring, setIsRestoring] = useState<boolean>(true);
+  const navigate = useNavigate();
+  const logoutRef = useRef<() => void>(() => undefined);
 
   // On mount: restore session and fetch permissions fresh from API (no localStorage cache)
   useEffect((): void => {
@@ -75,6 +78,17 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setState({ token: null, admin: null });
     setPermissions({});
   }
+
+  logoutRef.current = logout;
+
+  useEffect((): (() => void) => {
+    function onUnauthorized(): void {
+      logoutRef.current();
+      navigate('/login', { replace: true });
+    }
+    window.addEventListener('admin:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('admin:unauthorized', onUnauthorized);
+  }, [navigate]);
 
   function hasPermission(module: PermissionModule, action: PermissionAction): boolean {
     if (state.admin?.role === 'super_admin') return true;

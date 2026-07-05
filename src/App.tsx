@@ -22,8 +22,8 @@ export default function App(): JSX.Element {
   return (
     <ToastProvider>
       <Toaster />
+      <BrowserRouter basename="/admin">
       <AuthProvider>
-        <BrowserRouter basename="/admin">
         <Suspense fallback={null}>
         <Routes>
           {/* Auth */}
@@ -49,8 +49,8 @@ export default function App(): JSX.Element {
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
         </Suspense>
-        </BrowserRouter>
       </AuthProvider>
+      </BrowserRouter>
     </ToastProvider>
   );
 }
