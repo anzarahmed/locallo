@@ -109,6 +109,7 @@ export interface SoldLog {
   productName: string;
   variantInfo: Record<string, unknown> | null;
   soldAt: string;
+  productImage: string | null;
 }
 
 export interface SoldLogsResponse {

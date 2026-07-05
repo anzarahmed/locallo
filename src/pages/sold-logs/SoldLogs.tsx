@@ -158,6 +158,31 @@ export default function SoldLogs(): JSX.Element {
   );
 }
 
+/* ── Product thumbnail with fallback ── */
+function LogThumb({ src }: { src: string | null }): JSX.Element {
+  const [err, setErr] = useState(false);
+
+  if (!src || err) {
+    return (
+      <div
+        className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
+        style={{ background: 'linear-gradient(135deg, #26B8B2 0%, #14817C 100%)' }}
+      >
+        <ShoppingBag size={15} className="text-white" />
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt=""
+      onError={() => setErr(true)}
+      className="w-9 h-9 rounded-xl object-cover shrink-0 mt-0.5"
+    />
+  );
+}
+
 /* ── Log card ── */
 function LogCard({ log }: { log: SoldLog }): JSX.Element {
   const variantPills = log.variantInfo
@@ -168,12 +193,7 @@ function LogCard({ log }: { log: SoldLog }): JSX.Element {
     <div className="bg-white rounded-2xl shadow-sm p-4">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3 flex-1 min-w-0">
-          <div
-            className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 mt-0.5"
-            style={{ background: 'linear-gradient(135deg, #26B8B2 0%, #14817C 100%)' }}
-          >
-            <ShoppingBag size={15} className="text-white" />
-          </div>
+          <LogThumb src={log.productImage} />
 
           <div className="flex-1 min-w-0">
             <p className="text-sm font-semibold text-gray-800 truncate">{log.productName}</p>
