@@ -4,6 +4,7 @@ import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { SoldLog } from '../../models/SoldLog';
 import { syncProductStock } from './variantService';
+import { getPresignedUrl } from '../../utils/imageStorage';
 
 export async function markProductSold(
   sellerId: string,
@@ -86,13 +87,26 @@ export async function markVariantSold(
   });
 }
 
+export interface SoldLogRow {
+  id: string;
+  productId: string | null;
+  variantId: string | null;
+  quantity: number;
+  stockBefore: number;
+  stockAfter: number;
+  productName: string;
+  variantInfo: Record<string, unknown> | null;
+  soldAt: Date;
+  productImage: string | null;
+}
+
 export async function getSoldLogs(
   sellerId: string,
   page: number,
   limit: number,
   from?: string,
   to?: string,
-): Promise<{ rows: SoldLog[]; count: number }> {
+): Promise<{ rows: SoldLogRow[]; count: number }> {
   const dateWhere = (from || to) ? {
     soldAt: {
       ...(from && { [Op.gte]: new Date(from) }),
@@ -102,10 +116,33 @@ export async function getSoldLogs(
 
   const where: WhereOptions = { sellerId, ...dateWhere };
 
-  return SoldLog.findAndCountAll({
+  const { rows, count } = await SoldLog.findAndCountAll({
     where,
+    include: [{ model: Product, attributes: ['images'], required: false }],
     order: [['soldAt', 'DESC']],
     limit,
     offset: (page - 1) * limit,
   });
+
+  const signed = await Promise.all(
+    rows.map(async (log): Promise<SoldLogRow> => {
+      const json = log.toJSON() as SoldLog & { product?: { images?: string[] } };
+      const firstKey = json.product?.images?.[0] ?? null;
+      const productImage = firstKey ? await getPresignedUrl(firstKey) : null;
+      return {
+        id:          json.id,
+        productId:   json.productId,
+        variantId:   json.variantId,
+        quantity:    json.quantity,
+        stockBefore: json.stockBefore,
+        stockAfter:  json.stockAfter,
+        productName: json.productName,
+        variantInfo: json.variantInfo,
+        soldAt:      json.soldAt,
+        productImage,
+      };
+    }),
+  );
+
+  return { rows: signed, count };
 }
