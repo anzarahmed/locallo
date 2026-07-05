@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, useEffect, type ReactNode, type JSX } from 'react';
+import { createContext, useContext, useState, useEffect, useRef, type ReactNode, type JSX } from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { AuthState, Seller } from '../types';
 
 interface AuthContextValue extends AuthState {
@@ -13,6 +14,8 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: ReactNode }): JSX.Element {
   const [isRestoring, setIsRestoring] = useState(true);
   const [state, setState] = useState<AuthState>({ seller: null, token: null });
+  const navigate = useNavigate();
+  const logoutRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     const token = localStorage.getItem('seller_token');
@@ -39,6 +42,17 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     localStorage.removeItem('seller_user');
     setState({ token: null, seller: null });
   }
+
+  logoutRef.current = logout;
+
+  useEffect((): (() => void) => {
+    function onUnauthorized(): void {
+      logoutRef.current();
+      navigate('/login', { replace: true });
+    }
+    window.addEventListener('seller:unauthorized', onUnauthorized);
+    return () => window.removeEventListener('seller:unauthorized', onUnauthorized);
+  }, [navigate]);
 
   function updateSeller(partial: Partial<Seller>): void {
     setState((prev) => {

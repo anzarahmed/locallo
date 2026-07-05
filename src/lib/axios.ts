@@ -24,6 +24,9 @@ async function request<T>(fn: () => Promise<{ data: { success: boolean; message:
     return res.data.data;
   } catch (err: unknown) {
     if (axios.isAxiosError(err) && err.response) {
+      if (err.response.status === 401) {
+        window.dispatchEvent(new Event('seller:unauthorized'));
+      }
       throw new ApiError(err.response.status, err.response.data?.message ?? 'Request failed');
     }
     throw err;
