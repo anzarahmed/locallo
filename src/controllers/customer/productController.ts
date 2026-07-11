@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 import { withSignedImages, getPresignedUrl } from '../../utils/imageStorage';
 import * as productService from '../../services/customer/productService';
+import * as wishlistService from '../../services/customer/wishlistService';
 
 interface ProductListItem {
   id: string;
@@ -10,6 +11,7 @@ interface ProductListItem {
   mrp: number | null;
   sellingPrice: number;
   rating: number;
+  isWishlisted: boolean;
   distanceKm?: number;
 }
 
@@ -28,6 +30,10 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
     limit,
   );
 
+  const wishlistedIds = req.customer
+    ? await wishlistService.getWishlistedProductIds(req.customer.id, rows.map((p) => p.id))
+    : new Set<string>();
+
   const products: ProductListItem[] = await Promise.all(
     rows.map(async (p) => {
       const item: ProductListItem = {
@@ -37,6 +43,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
         mrp: p.mrp,
         sellingPrice: p.sellingPrice,
         rating: 0,
+        isWishlisted: wishlistedIds.has(p.id),
       };
       if (hasLocation) item.distanceKm = Number((p.get('distanceKm') as string | number));
       return item;
@@ -49,15 +56,22 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.getProductDetail(String(req.params.id));
+    const isWishlisted = req.customer
+      ? await wishlistService.isProductWishlisted(req.customer.id, product.id)
+      : false;
     const signed = await withSignedImages(product.toJSON() as Record<string, unknown>);
-    sendSuccess(res, { product: signed }, 'Product fetched');
+    sendSuccess(res, { product: { ...signed, isWishlisted } }, 'Product fetched');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Product not found');
   }
 }
 
-export async function getTrendingProducts(_req: Request, res: Response): Promise<void> {
+export async function getTrendingProducts(req: Request, res: Response): Promise<void> {
   const rows = await productService.getTrendingProducts();
+
+  const wishlistedIds = req.customer
+    ? await wishlistService.getWishlistedProductIds(req.customer.id, rows.map((p) => p.id))
+    : new Set<string>();
 
   const products: ProductListItem[] = await Promise.all(
     rows.map(async (p) => ({
@@ -67,6 +81,7 @@ export async function getTrendingProducts(_req: Request, res: Response): Promise
       mrp: p.mrp,
       sellingPrice: p.sellingPrice,
       rating: 0,
+      isWishlisted: wishlistedIds.has(p.id),
     })),
   );
 

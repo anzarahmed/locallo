@@ -147,3 +147,39 @@ export async function requireCustomer(req: Request, res: Response, next: NextFun
   req.customer = user;
   next();
 }
+
+export async function optionalCustomer(req: Request, res: Response, next: NextFunction): Promise<void> {
+  const header = req.headers.authorization;
+  if (!header?.startsWith('Bearer ')) {
+    next();
+    return;
+  }
+
+  const token = header.slice(7);
+  let payload: JwtPayload;
+
+  try {
+    payload = jwt.verify(token, process.env.JWT_SECRET as string) as JwtPayload;
+  } catch {
+    next();
+    return;
+  }
+
+  if (payload.role !== 'CUSTOMER') {
+    next();
+    return;
+  }
+
+  const tokenHash = hashToken(token);
+  const session = await Session.findOne({ where: { tokenHash, actorType: 'user' } });
+  if (!session) {
+    next();
+    return;
+  }
+
+  const user = await User.findByPk(payload.id);
+  if (user?.isActive) {
+    req.customer = user;
+  }
+  next();
+}
