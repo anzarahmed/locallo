@@ -23,12 +23,11 @@ async function findOrCreateCustomer(phoneNumber: string, countryCode: string): P
       });
     } catch (err: unknown) {
       if (err instanceof UniqueConstraintError) {
-        throw Object.assign(
-          new Error('This mobile number is already registered under a different account type'),
-          { status: 409 },
-        );
+        user = await User.findOne({ where: { mobile: phoneNumber, role: 'CUSTOMER' } });
+        if (!user) throw err;
+      } else {
+        throw err;
       }
-      throw err;
     }
   }
 

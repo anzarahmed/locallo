@@ -23,7 +23,7 @@ export class User extends Model {
   @Column(DataType.UUID)
   declare id: string;
 
-  @Unique
+  @Unique('users_mobile_role_key')
   @AllowNull(false)
   @Column(DataType.TEXT)
   declare mobile: string;
@@ -31,6 +31,7 @@ export class User extends Model {
   @Column(DataType.TEXT)
   declare countryCode: string | null;
 
+  @Unique('users_mobile_role_key')
   @AllowNull(false)
   @Column(DataType.ENUM('CUSTOMER', 'SELLER'))
   declare role: UserRole;

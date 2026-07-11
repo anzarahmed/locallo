@@ -24,7 +24,7 @@ export async function createSeller(
   adminId: string,
 ): Promise<{ user: User; profile: SellerProfile }> {
   return sequelize.transaction(async (t) => {
-    const existing = await User.findOne({ where: { mobile: data.mobile }, transaction: t });
+    const existing = await User.findOne({ where: { mobile: data.mobile, role: 'SELLER' }, transaction: t });
     if (existing) {
       throw Object.assign(new Error('Mobile number already registered'), { status: 409 });
     }
@@ -211,7 +211,7 @@ export async function adminUpdateSeller(
     }
 
     if (data.mobile !== user.mobile) {
-      const conflict = await User.findOne({ where: { mobile: data.mobile }, transaction: t });
+      const conflict = await User.findOne({ where: { mobile: data.mobile, role: 'SELLER' }, transaction: t });
       if (conflict) {
         throw Object.assign(new Error('Mobile number already registered'), { status: 409 });
       }
