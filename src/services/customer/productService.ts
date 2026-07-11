@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
 import { Product } from '../../models/Product';
 import { Category } from '../../models/Category';
 import { User } from '../../models/User';
@@ -7,6 +7,8 @@ import { SellerProfile } from '../../models/SellerProfile';
 interface BrowseFilter {
   categoryId?: number;
   search?: string;
+  lat?: number;
+  lng?: number;
 }
 
 const TRENDING_LIMIT = 15;
@@ -19,6 +21,17 @@ const SAFE_PRODUCT_ATTRIBUTES = [
   'createdAt', 'updatedAt',
 ];
 
+const SELLER_LAT_SUBQUERY = '(SELECT lat FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id")';
+const SELLER_LONG_SUBQUERY = '(SELECT long FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id")';
+
+function distanceExpression(lat: number, lng: number): ReturnType<typeof literal> {
+  return literal(
+    `6371 * acos(least(1, greatest(-1, ` +
+    `cos(radians(${lat})) * cos(radians(${SELLER_LAT_SUBQUERY})) * cos(radians(${SELLER_LONG_SUBQUERY}) - radians(${lng})) ` +
+    `+ sin(radians(${lat})) * sin(radians(${SELLER_LAT_SUBQUERY})))))`,
+  );
+}
+
 export async function browseProducts(
   filters: BrowseFilter,
   page: number,
@@ -29,11 +42,20 @@ export async function browseProducts(
   if (filters.categoryId !== undefined) where.categoryId = filters.categoryId;
   if (filters.search)                   where.name       = { [Op.iLike]: `%${filters.search}%` };
 
+  const hasLocation = filters.lat !== undefined && filters.lng !== undefined;
+
+  const attributes = hasLocation
+    ? [...TRENDING_ATTRIBUTES, [distanceExpression(filters.lat as number, filters.lng as number), 'distanceKm']]
+    : TRENDING_ATTRIBUTES;
+
+  const order = hasLocation
+    ? [[literal('"distanceKm"'), 'ASC'], ['createdAt', 'DESC']]
+    : [['createdAt', 'DESC']];
+
   return Product.findAndCountAll({
-    attributes: SAFE_PRODUCT_ATTRIBUTES,
+    attributes: attributes as never,
     where,
-    include: [{ model: Category, attributes: ['id', 'name', 'slug'] }],
-    order: [['createdAt', 'DESC']],
+    order: order as never,
     limit,
     offset: (page - 1) * limit,
   });
