@@ -13,6 +13,7 @@ export const PATHS = {
   CATEGORIES: {
     LIST:   '/api/admins/categories',
     BY_ID:  (id: number) => `/api/admins/categories/${id}`,
+    ICON:   '/api/admins/categories/icon',
   },
   PRODUCTS: {
     LIST:   '/api/admins/products',

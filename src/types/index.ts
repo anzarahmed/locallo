@@ -28,6 +28,7 @@ export interface Category {
   slug: string;
   isActive: boolean;
   attributeSchema?: AttributeField[] | null;
+  icon?: string | null;
 }
 
 export interface Admin {

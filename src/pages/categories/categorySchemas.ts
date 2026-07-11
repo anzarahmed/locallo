@@ -12,4 +12,5 @@ export const categorySchema = Yup.object({
 
 export type CategoryFormValues = Yup.InferType<typeof categorySchema> & {
   attributeSchema: AttributeField[];
+  icon: string | null;
 };

@@ -26,6 +26,7 @@ interface CategoryPayload {
   name: string;
   slug: string;
   attributeSchema?: AttributeField[];
+  icon?: string | null;
 }
 
 interface UpdateCategoryPayload {
@@ -33,6 +34,7 @@ interface UpdateCategoryPayload {
   slug?: string;
   isActive?: boolean;
   attributeSchema?: AttributeField[];
+  icon?: string | null;
 }
 
 export function getCategories(includeInactive = false): Promise<Category[]> {
@@ -54,6 +56,12 @@ export function getCategoriesPaginated(
   if (params.sortOrder) q.set('sortOrder', params.sortOrder);
   const url = q.toString() ? `${PATHS.CATEGORIES.LIST}?${q}` : PATHS.CATEGORIES.LIST;
   return apiGet<GetCategoriesPaginatedResponse>(url);
+}
+
+export function uploadCategoryIcon(file: File): Promise<{ url: string }> {
+  const form = new FormData();
+  form.append('icon', file);
+  return apiPost<{ url: string }>(PATHS.CATEGORIES.ICON, form);
 }
 
 export function createCategory(data: CategoryPayload): Promise<Category> {
