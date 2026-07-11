@@ -14,6 +14,7 @@ const SellerList = lazy(() => import('./pages/sellers/SellerList'));
 const SellerForm = lazy(() => import('./pages/sellers/SellerForm'));
 const CategoryList = lazy(() => import('./pages/categories/CategoryList'));
 const ProductList = lazy(() => import('./pages/products/ProductList'));
+const CustomerList = lazy(() => import('./pages/customers/CustomerList'));
 const SubAdminList = lazy(() => import('./pages/sub-admins/SubAdminList'));
 const RoleList = lazy(() => import('./pages/sub-admins/RoleList'));
 const RolePermissions = lazy(() => import('./pages/sub-admins/RolePermissions'));
@@ -41,6 +42,7 @@ export default function App(): JSX.Element {
             <Route path="/sellers/:id/edit" element={<SellerForm />} />
             <Route path="/products"          element={<ProductList />} />
             <Route path="/categories"       element={<CategoryList />} />
+            <Route path="/customers"        element={<CustomerList />} />
             <Route path="/sub-admins"                element={<SubAdminList />} />
             <Route path="/role-permissions"          element={<RoleList />} />
             <Route path="/role-permissions/:role"    element={<RolePermissions />} />

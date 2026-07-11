@@ -6,6 +6,11 @@ export const STATUS_FILTER_OPTIONS = [
   { label: 'Inactive', value: 'false' },
 ] as const;
 
+export const VERIFIED_FILTER_OPTIONS = [
+  { label: 'Verified',   value: 'true'  },
+  { label: 'Unverified', value: 'false' },
+] as const;
+
 export const SUB_ADMIN_ROLE_OPTIONS: Array<{ value: 'manager' | 'operator'; label: string }> = [
   { value: 'manager',  label: 'Manager'  },
   { value: 'operator', label: 'Operator' },

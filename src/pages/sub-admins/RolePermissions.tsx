@@ -9,6 +9,7 @@ const MODULES: { key: PermissionModule; label: string }[] = [
   { key: 'sellers',    label: 'Sellers'    },
   { key: 'categories', label: 'Categories' },
   { key: 'products',   label: 'Products'   },
+  { key: 'customers',  label: 'Customers'  },
 ];
 
 const ACTIONS: { key: PermissionAction; label: string }[] = [
@@ -20,8 +21,10 @@ const ACTIONS: { key: PermissionAction; label: string }[] = [
 ];
 
 // Products can't be created by admin — disable that cell
+// Customers self-register via OTP and are never created/deleted by admin
 const NOT_APPLICABLE: Partial<Record<PermissionModule, PermissionAction[]>> = {
   products: ['add'],
+  customers: ['add', 'delete'],
 };
 
 function isNA(module: PermissionModule, action: PermissionAction): boolean {

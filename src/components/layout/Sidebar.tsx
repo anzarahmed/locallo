@@ -10,6 +10,7 @@ import {
   ChevronRight,
   ShieldCheck,
   UserCog,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react';
 import { useState, type JSX } from 'react';
@@ -28,6 +29,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/sellers',    icon: Users,            label: 'Sellers',    permission: { module: 'sellers',    action: 'list' } },
   { to: '/products',   icon: Package,          label: 'Products',   permission: { module: 'products',   action: 'list' } },
   { to: '/categories', icon: Tag,              label: 'Categories', permission: { module: 'categories', action: 'list' } },
+  { to: '/customers',  icon: UserRound,        label: 'Customers',  permission: { module: 'customers',  action: 'list' } },
 ];
 
 const TEAM_ITEMS: NavItem[] = [
