@@ -25,4 +25,27 @@ const upload = multer({
   },
 });
 
+const ALLOWED_ICON_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/svg+xml'];
+const ALLOWED_ICON_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.svg'];
+
+function isAllowedIconFile(file: Express.Multer.File): boolean {
+  if (file.mimetype !== 'application/octet-stream') {
+    return ALLOWED_ICON_MIME_TYPES.includes(file.mimetype);
+  }
+  const ext = file.originalname.toLowerCase().slice(file.originalname.lastIndexOf('.'));
+  return ALLOWED_ICON_EXTENSIONS.includes(ext);
+}
+
+export const uploadIcon = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_SIZE_BYTES },
+  fileFilter: (_req: Request, file, cb) => {
+    if (isAllowedIconFile(file)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, and SVG icons are allowed'));
+    }
+  },
+});
+
 export default upload;

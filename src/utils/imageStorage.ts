@@ -22,7 +22,7 @@ export function resolveMimeType(buffer: Buffer, originalname: string, declaredMi
       buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
       buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) return 'image/webp';
   const ext = originalname.toLowerCase().slice(originalname.lastIndexOf('.'));
-  const extMap: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp' };
+  const extMap: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
   return extMap[ext] ?? 'image/jpeg';
 }
 
@@ -53,6 +53,11 @@ export async function getPresignedUrl(keyOrUrl: string, expiresIn = SIGNED_URL_T
     new GetObjectCommand({ Bucket: BUCKET, Key: toKey(keyOrUrl) }),
     { expiresIn },
   );
+}
+
+export async function getPresignedUrlOrNull(keyOrUrl: string | null | undefined, expiresIn = SIGNED_URL_TTL): Promise<string | null> {
+  if (!keyOrUrl) return null;
+  return getPresignedUrl(keyOrUrl, expiresIn);
 }
 
 export async function signImages(images: string[]): Promise<string[]> {
@@ -99,4 +104,17 @@ export async function commitImages(keys: string[]): Promise<string[]> {
   return Promise.all(
     keys.map(key => key.startsWith('uploads/temp/') ? commitImage(key) : key),
   );
+}
+
+export async function commitCategoryIcon(tempKeyOrKey: string): Promise<string> {
+  const TEMP_PREFIX = 'uploads/temp/categories/';
+  if (!tempKeyOrKey.startsWith(TEMP_PREFIX)) return tempKeyOrKey;
+  const permanentKey = tempKeyOrKey.replace(TEMP_PREFIX, 'uploads/categories/');
+  await s3.send(new CopyObjectCommand({
+    Bucket: BUCKET,
+    CopySource: `${BUCKET}/${tempKeyOrKey}`,
+    Key: permanentKey,
+  }));
+  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: tempKeyOrKey }));
+  return permanentKey;
 }

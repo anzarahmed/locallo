@@ -2,6 +2,7 @@ import { Op } from 'sequelize';
 import type { InferType } from 'yup';
 import { Category } from '../../models/Category';
 import { SellerProfile } from '../../models/SellerProfile';
+import { normalizeImageKey, commitCategoryIcon, deleteImage } from '../../utils/imageStorage';
 import type { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
 
 type CreateCategoryInput = InferType<typeof createCategorySchema>;
@@ -45,7 +46,8 @@ export async function createCategory(data: CreateCategoryInput): Promise<Categor
   if (slugExists) {
     throw Object.assign(new Error('Category slug already exists'), { status: 409 });
   }
-  return Category.create({ name: data.name, slug: data.slug, attributeSchema: data.attributeSchema ?? [] });
+  const icon = data.icon ? await commitCategoryIcon(normalizeImageKey(data.icon)) : null;
+  return Category.create({ name: data.name, slug: data.slug, attributeSchema: data.attributeSchema ?? [], icon });
 }
 
 export async function updateCategory(id: number, data: UpdateCategoryInput): Promise<Category> {
@@ -53,7 +55,18 @@ export async function updateCategory(id: number, data: UpdateCategoryInput): Pro
   if (!category) {
     throw Object.assign(new Error('Category not found'), { status: 404 });
   }
-  await category.update(data);
+
+  const updates: Partial<UpdateCategoryInput> = { ...data };
+  if (data.icon !== undefined) {
+    const previousIcon = category.icon;
+    const newIcon = data.icon ? await commitCategoryIcon(normalizeImageKey(data.icon)) : null;
+    updates.icon = newIcon;
+    if (previousIcon && previousIcon !== newIcon) {
+      await deleteImage(previousIcon).catch(() => {});
+    }
+  }
+
+  await category.update(updates);
   return category;
 }
 

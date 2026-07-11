@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
 import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus } from '../../controllers/seller/sellerController';
-import { getCategories, addCategory, editCategory, removeCategory } from '../../controllers/admin/categoryController';
+import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import {
   getProducts as getAdminProducts,
   getProduct  as getAdminProduct,
@@ -16,6 +16,7 @@ import {
   fetchRolePermissions, saveRolePermissions, fetchMyPermissions,
 } from '../../controllers/admin/rolePermissionController';
 import { validate } from '../../middleware/validate';
+import { uploadIcon } from '../../middleware/upload';
 import { requireAdmin, requireSuperAdmin, requirePermission } from '../../middleware/auth';
 import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
 import { createSellerSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
@@ -63,6 +64,7 @@ router.patch ('/customers/:id/status',requireAdmin, requirePermission('customers
 
 // Categories (GET is public — used for dropdowns in other UIs)
 router.get   ('/categories',          getCategories);
+router.post  ('/categories/icon',     requireAdmin, uploadIcon.single('icon'), uploadCategoryIcon);
 router.post  ('/categories',          requireAdmin, requirePermission('categories', 'add'),    validate(createCategorySchema), addCategory);
 router.put   ('/categories/:id',      requireAdmin, requirePermission('categories', 'edit'),   validate(updateCategorySchema), editCategory);
 router.delete('/categories/:id',      requireAdmin, requirePermission('categories', 'delete'), removeCategory);

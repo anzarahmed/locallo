@@ -38,6 +38,9 @@ export class Category extends Model {
   @Column(DataType.JSONB)
   declare attributeSchema: AttributeField[] | null;
 
+  @Column(DataType.STRING(500))
+  declare icon: string | null;
+
   @CreatedAt
   declare createdAt: Date;
 

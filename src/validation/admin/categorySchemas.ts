@@ -21,6 +21,7 @@ export const createCategorySchema = Yup.object({
   name:            Yup.string().max(100).required('Name is required'),
   slug:            Yup.string().max(100).matches(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers and hyphens').required('Slug is required'),
   attributeSchema: Yup.array(attributeFieldSchema).optional(),
+  icon:            Yup.string().max(1000).nullable().optional(),
 });
 
 export const updateCategorySchema = Yup.object({
@@ -28,4 +29,5 @@ export const updateCategorySchema = Yup.object({
   slug:            Yup.string().max(100).matches(/^[a-z0-9-]+$/, 'Slug must be lowercase letters, numbers and hyphens'),
   isActive:        Yup.boolean(),
   attributeSchema: Yup.array(attributeFieldSchema).optional(),
+  icon:            Yup.string().max(1000).nullable().optional(),
 });
