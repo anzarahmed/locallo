@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { sendSuccess } from '../../utils/response';
-import { getDashboardCategories } from '../../services/customer/dashboardService';
+import { getDashboardCategories, getDashboardBanners } from '../../services/customer/dashboardService';
 
 interface DashboardCategory {
   id: number;
@@ -15,6 +15,7 @@ export async function getDashboard(_req: Request, res: Response): Promise<void> 
     title: c.name,
     icon: '',
   }));
+  const banners = getDashboardBanners();
 
-  sendSuccess(res, { banners: [], categories, offers: [] }, 'Dashboard data fetched');
+  sendSuccess(res, { banners, categories, offers: [] }, 'Dashboard data fetched');
 }
