@@ -9,6 +9,9 @@ interface BrowseFilter {
   search?: string;
 }
 
+const TRENDING_LIMIT = 15;
+const TRENDING_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images'];
+
 const SAFE_PRODUCT_ATTRIBUTES = [
   'id', 'sellerId', 'categoryId', 'name', 'description',
   'sellingPrice', 'mrp', 'stock', 'images', 'attributes',
@@ -61,4 +64,13 @@ export async function getProductDetail(id: string): Promise<Product> {
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
   return product;
+}
+
+export async function getTrendingProducts(): Promise<Product[]> {
+  return Product.findAll({
+    attributes: TRENDING_ATTRIBUTES,
+    where: { isActive: true },
+    order: [['createdAt', 'DESC']],
+    limit: TRENDING_LIMIT,
+  });
 }
