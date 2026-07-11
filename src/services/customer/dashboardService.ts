@@ -16,7 +16,7 @@ const STATIC_BANNERS: DashboardBanner[] = [
 
 export async function getDashboardCategories(): Promise<Category[]> {
   return Category.findAll({
-    attributes: ['id', 'name'],
+    attributes: ['id', 'name', 'icon'],
     where: { isActive: true },
     order: [['name', 'ASC']],
   });
