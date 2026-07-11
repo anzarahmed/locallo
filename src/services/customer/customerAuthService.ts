@@ -1,4 +1,5 @@
 import type { InferType } from 'yup';
+import { UniqueConstraintError } from 'sequelize';
 import { User } from '../../models/User';
 import { sendOtp } from '../../utils/msg91';
 import { generateOtp, makeOtpExpiresAt } from '../../utils/otp';
@@ -12,13 +13,23 @@ async function findOrCreateCustomer(phoneNumber: string, countryCode: string): P
   let user = await User.findOne({ where: { mobile: phoneNumber, role: 'CUSTOMER' } });
 
   if (!user) {
-    user = await User.create({
-      mobile: phoneNumber,
-      countryCode,
-      role: 'CUSTOMER',
-      isVerified: false,
-      isActive: true,
-    });
+    try {
+      user = await User.create({
+        mobile: phoneNumber,
+        countryCode,
+        role: 'CUSTOMER',
+        isVerified: false,
+        isActive: true,
+      });
+    } catch (err: unknown) {
+      if (err instanceof UniqueConstraintError) {
+        throw Object.assign(
+          new Error('This mobile number is already registered under a different account type'),
+          { status: 409 },
+        );
+      }
+      throw err;
+    }
   }
 
   if (!user.isActive) {
