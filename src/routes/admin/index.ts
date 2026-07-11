@@ -8,6 +8,7 @@ import {
   toggleProduct, deleteProduct,
 } from '../../controllers/admin/productController';
 import { requestOtp as requestMobileOtp, verifyOtp as verifyMobileOtp } from '../../controllers/admin/mobileVerificationController';
+import { getCustomers, getCustomer, patchCustomerStatus } from '../../controllers/admin/customerController';
 import {
   getSubAdmins, addSubAdmin, editSubAdmin, removeSubAdmin, patchSubAdminStatus,
 } from '../../controllers/admin/subAdminController';
@@ -54,6 +55,11 @@ router.get   ('/sellers',             requireAdmin, requirePermission('sellers',
 router.get   ('/sellers/:id',         requireAdmin, requirePermission('sellers', 'view'),   getSeller);
 router.put   ('/sellers/:id',         requireAdmin, requirePermission('sellers', 'edit'),   validate(adminUpdateSellerSchema), adminEditSeller);
 router.patch ('/sellers/:id/status',  requireAdmin, requirePermission('sellers', 'edit'),   patchSellerStatus);
+
+// Customers
+router.get   ('/customers',           requireAdmin, requirePermission('customers', 'list'),   getCustomers);
+router.get   ('/customers/:id',       requireAdmin, requirePermission('customers', 'view'),   getCustomer);
+router.patch ('/customers/:id/status',requireAdmin, requirePermission('customers', 'edit'),   patchCustomerStatus);
 
 // Categories (GET is public — used for dropdowns in other UIs)
 router.get   ('/categories',          getCategories);
