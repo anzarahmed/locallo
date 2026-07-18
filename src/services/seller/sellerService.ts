@@ -3,7 +3,8 @@ import { Op, literal } from 'sequelize';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
-import type { NotificationSettings, CustomDayOverride } from '../../types';
+import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments } from '../../types';
+import { saveKycDocument } from '../../utils/imageStorage';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
 type CreateSellerInput       = InferType<typeof createSellerSchema>;
@@ -314,4 +315,35 @@ export async function getSellerById(
   }
 
   return { user, profile };
+}
+
+export async function uploadSellerKycDocument(
+  sellerId: string,
+  documentType: KycDocumentType,
+  file: Express.Multer.File,
+): Promise<KycDocuments> {
+  const profile = await requireSellerProfile(sellerId);
+  const key = await saveKycDocument(file, sellerId, documentType);
+  const kycDocuments: KycDocuments = { ...profile.kycDocuments, [documentType]: key };
+  await profile.update({ kycDocuments });
+  return kycDocuments;
+}
+
+export async function setSellerKycVerification(
+  sellerId: string,
+  verified: boolean,
+  adminId: string,
+): Promise<SellerProfile> {
+  const profile = await requireSellerProfile(sellerId);
+
+  if (verified) {
+    if (!profile.kycDocuments.aadhar || !profile.kycDocuments.pan) {
+      throw Object.assign(new Error('Aadhar and PAN documents are required before verification'), { status: 400 });
+    }
+    await profile.update({ isVerified: true, verifiedBy: adminId, verifiedAt: new Date() });
+  } else {
+    await profile.update({ isVerified: false, verifiedBy: null, verifiedAt: null });
+  }
+
+  return profile;
 }

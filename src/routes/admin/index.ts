@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
-import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus } from '../../controllers/seller/sellerController';
+import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, uploadKycDocument, setKycVerification } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import {
   getProducts as getAdminProducts,
@@ -16,7 +16,7 @@ import {
   fetchRolePermissions, saveRolePermissions, fetchMyPermissions,
 } from '../../controllers/admin/rolePermissionController';
 import { validate } from '../../middleware/validate';
-import { uploadIcon } from '../../middleware/upload';
+import upload, { uploadIcon } from '../../middleware/upload';
 import { requireAdmin, requireSuperAdmin, requirePermission } from '../../middleware/auth';
 import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
 import { createSellerSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
@@ -56,6 +56,8 @@ router.get   ('/sellers',             requireAdmin, requirePermission('sellers',
 router.get   ('/sellers/:id',         requireAdmin, requirePermission('sellers', 'view'),   getSeller);
 router.put   ('/sellers/:id',         requireAdmin, requirePermission('sellers', 'edit'),   validate(adminUpdateSellerSchema), adminEditSeller);
 router.patch ('/sellers/:id/status',  requireAdmin, requirePermission('sellers', 'edit'),   patchSellerStatus);
+router.post  ('/sellers/:id/kyc/documents', requireAdmin, requirePermission('sellers', 'edit'), upload.single('document'), uploadKycDocument);
+router.patch ('/sellers/:id/kyc/verify',    requireAdmin, requirePermission('sellers', 'edit'), setKycVerification);
 
 // Customers
 router.get   ('/customers',           requireAdmin, requirePermission('customers', 'list'),   getCustomers);

@@ -14,7 +14,7 @@ import {
 } from 'sequelize-typescript';
 import { Admin } from './Admin';
 import { User } from './User';
-import type { NotificationSettings } from '../types';
+import type { NotificationSettings, KycDocuments } from '../types';
 
 @Table({ tableName: 'seller_profiles', timestamps: true, underscored: true })
 export class SellerProfile extends Model {
@@ -110,6 +110,11 @@ export class SellerProfile extends Model {
 
   @Column(DataType.DATE)
   declare verifiedAt: Date | null;
+
+  @Default({ aadhar: null, pan: null, registrationCertificate: null, other: null })
+  @AllowNull(false)
+  @Column(DataType.JSONB)
+  declare kycDocuments: KycDocuments;
 
   @CreatedAt
   declare createdAt: Date;

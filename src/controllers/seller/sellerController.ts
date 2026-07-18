@@ -1,10 +1,21 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay } from '../../services/seller/sellerService';
-import { sendSuccess, handleServiceError } from '../../utils/response';
+import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, setSellerKycVerification } from '../../services/seller/sellerService';
+import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import { Category } from '../../models/Category';
 import type { User } from '../../models/User';
 import type { SellerProfile } from '../../models/SellerProfile';
+import type { KycDocumentType, KycDocuments } from '../../types';
+import { getPresignedUrl } from '../../utils/imageStorage';
+
+const KYC_DOCUMENT_TYPES: KycDocumentType[] = ['aadhar', 'pan', 'registrationCertificate', 'other'];
+
+async function signKycDocuments(docs: KycDocuments): Promise<KycDocuments> {
+  const entries = await Promise.all(
+    (Object.keys(docs) as KycDocumentType[]).map(async (type) => [type, docs[type] ? await getPresignedUrl(docs[type] as string) : null] as const),
+  );
+  return Object.fromEntries(entries) as unknown as KycDocuments;
+}
 
 interface CategoryObj { id: number; name: string; slug: string; attributeSchema: unknown[] }
 
@@ -96,7 +107,42 @@ export async function getSeller(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await getSellerById(req.params.id as string);
     const categories = await resolveCats(profile.categoryIds ?? []);
-    sendSuccess(res, buildSellerResponse(user, profile, categories), 'Seller fetched');
+    const response = buildSellerResponse(user, profile, categories);
+    response.profile.kycDocuments = await signKycDocuments(profile.kycDocuments);
+    sendSuccess(res, response, 'Seller fetched');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function uploadKycDocument(req: Request, res: Response): Promise<void> {
+  try {
+    const documentType = req.body.documentType as string;
+    if (!KYC_DOCUMENT_TYPES.includes(documentType as KycDocumentType)) {
+      sendError(res, 'Invalid document type', 422);
+      return;
+    }
+    if (!req.file) {
+      sendError(res, 'Document file is required', 422);
+      return;
+    }
+
+    const kycDocuments = await uploadSellerKycDocument(req.params.id as string, documentType as KycDocumentType, req.file);
+    sendSuccess(res, { kycDocuments: await signKycDocuments(kycDocuments) }, 'Document uploaded');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function setKycVerification(req: Request, res: Response): Promise<void> {
+  try {
+    const verified = Boolean(req.body.verified);
+    const profile = await setSellerKycVerification(req.params.id as string, verified, req.admin!.id);
+    sendSuccess(res, {
+      isVerified: profile.isVerified,
+      verifiedBy: profile.verifiedBy,
+      verifiedAt: profile.verifiedAt,
+    }, verified ? 'Seller verified' : 'Verification revoked');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }

@@ -43,3 +43,12 @@ export interface CustomDayOverride {
   date: string;
   time: CustomDayTime;
 }
+
+export type KycDocumentType = 'aadhar' | 'pan' | 'registrationCertificate' | 'other';
+
+export interface KycDocuments {
+  aadhar: string | null;
+  pan: string | null;
+  registrationCertificate: string | null;
+  other: string | null;
+}
