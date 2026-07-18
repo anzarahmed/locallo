@@ -20,6 +20,11 @@ async function findActiveSeller(phoneNumber: string): Promise<User> {
     throw Object.assign(new Error('Account is not active'), { status: 403 });
   }
 
+  const profile = await SellerProfile.findOne({ where: { userId: user.id } });
+  if (!profile?.isVerified) {
+    throw Object.assign(new Error('KYC verification pending. Contact support to complete verification.'), { status: 403 });
+  }
+
   return user;
 }
 
@@ -47,11 +52,6 @@ export async function verifySellerOtp(data: VerifyOtpInput): Promise<{ token: st
   }
   if (user.otpCode !== data.otp) {
     throw Object.assign(new Error('Invalid OTP'), { status: 422 });
-  }
-
-  const profile = await SellerProfile.findOne({ where: { userId: user.id } });
-  if (!profile?.isVerified) {
-    throw Object.assign(new Error('KYC verification pending. Contact support to complete verification.'), { status: 403 });
   }
 
   await user.update({ otpCode: null, otpExpiresAt: null, isVerified: true });
