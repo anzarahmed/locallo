@@ -1,5 +1,5 @@
 import type { JSX } from 'react';
-import { Check, ChevronDown } from 'lucide-react';
+import { ChevronDown } from 'lucide-react';
 import { inputCls } from '../../lib/classUtils';
 import type { AttributeField } from '../../types';
 
@@ -47,42 +47,6 @@ export default function AttrInput({ field, value, onChange }: AttrInputProps): J
             </button>
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (field.type === 'color') {
-    const selected = typeof value === 'string' ? value : '';
-    return (
-      <div>
-        {labelEl}
-        <div className="flex flex-wrap gap-2">
-          {field.options?.map(opt => (
-            <button
-              key={opt.value}
-              type="button"
-              onClick={() => onChange(selected === opt.value ? '' : opt.value)}
-              title={opt.label}
-              className={`w-9 h-9 rounded-full border-2 transition-all relative flex items-center justify-center ${
-                selected === opt.value
-                  ? 'border-teal-500 scale-110 shadow-md ring-2 ring-teal-200'
-                  : 'border-gray-200 hover:scale-105'
-              }`}
-              style={{ backgroundColor: opt.hex ?? opt.value }}
-            >
-              {selected === opt.value && (
-                <span className="w-5 h-5 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
-                  <Check size={11} className="text-teal-600" strokeWidth={3} />
-                </span>
-              )}
-            </button>
-          ))}
-        </div>
-        {selected && (
-          <p className="text-xs text-gray-400 mt-1.5">
-            Selected: {field.options?.find(o => o.value === selected)?.label ?? selected}
-          </p>
-        )}
       </div>
     );
   }

@@ -325,18 +325,6 @@ function GroupedVariantCard({
             <div className="flex flex-wrap gap-1.5">
               {nonSdEntries.map(([key, val]) => {
                 const field = schema.find(f => f.key === key);
-                if (field?.type === 'color') {
-                  const opt = field.options?.find(o => o.value === val);
-                  return (
-                    <div key={key} className="flex items-center gap-1.5 bg-gray-100 rounded-full pl-1.5 pr-2.5 py-0.5">
-                      <div
-                        className="w-3.5 h-3.5 rounded-full border border-white shadow-sm shrink-0"
-                        style={{ backgroundColor: opt?.hex ?? val }}
-                      />
-                      <span className="text-xs text-gray-600 font-medium">{opt?.label ?? val}</span>
-                    </div>
-                  );
-                }
                 const opt = field?.options?.find(o => o.value === val);
                 return (
                   <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
@@ -532,18 +520,6 @@ function GroupEditSheet({
             <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
               {nonSdEntries.length > 0 ? nonSdEntries.map(([key, val]) => {
                 const field = schema.find(f => f.key === key);
-                if (field?.type === 'color') {
-                  const opt = field.options?.find(o => o.value === val);
-                  return (
-                    <div key={key} className="flex items-center gap-1 text-xs text-gray-400">
-                      <div
-                        className="w-2.5 h-2.5 rounded-full border border-gray-200 shrink-0"
-                        style={{ backgroundColor: opt?.hex ?? val }}
-                      />
-                      <span>{opt?.label ?? val}</span>
-                    </div>
-                  );
-                }
                 const opt = field?.options?.find(o => o.value === val);
                 return <span key={key} className="text-xs text-gray-400">{opt?.label ?? val}</span>;
               }) : (
@@ -716,18 +692,6 @@ function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell }: Va
           <div className="flex flex-wrap gap-1.5">
             {attrEntries.map(([key, value]) => {
               const field = schema.find(f => f.key === key);
-              if (field?.type === 'color') {
-                const opt = field.options?.find(o => o.value === String(value));
-                return (
-                  <div key={key} className="flex items-center gap-1.5 bg-gray-100 rounded-full pl-1.5 pr-2.5 py-0.5">
-                    <div
-                      className="w-3.5 h-3.5 rounded-full border border-white shadow-sm shrink-0"
-                      style={{ backgroundColor: opt?.hex ?? String(value) }}
-                    />
-                    <span className="text-xs text-gray-600 font-medium">{opt?.label ?? String(value)}</span>
-                  </div>
-                );
-              }
               const fieldLabel = field?.label ?? key;
               const displayVal = field?.options?.find(o => o.value === String(value))?.label ?? String(value);
               return (

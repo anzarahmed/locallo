@@ -4,31 +4,18 @@ import { getSellerProduct, getProductVariants } from '../../services/sellerServi
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { formatPrice, discountPct } from '../../lib/formatters';
-import type { Product, ProductVariant, AttributeField, AttributeFieldOption } from '../../types';
+import type { Product, ProductVariant, AttributeField } from '../../types';
 
 function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
   if (raw === null || raw === undefined || raw === '') {
     return <span className="text-gray-400">—</span>;
   }
 
-  if (field.type === 'color' && Array.isArray(raw) && field.options) {
-    const matched = (raw as string[])
-      .map(v => field.options?.find(o => o.value === v))
-      .filter((o): o is AttributeFieldOption => Boolean(o));
+  if (field.type === 'color') {
     return (
-      <div className="flex flex-wrap gap-1.5">
-        {matched.map(o => (
-          <span key={o.value} className="flex items-center gap-1.5 text-xs bg-white border border-gray-200 rounded-full px-2.5 py-1 text-gray-700">
-            {o.hex && (
-              <span
-                className="w-3 h-3 rounded-full border border-gray-200 shrink-0"
-                style={{ backgroundColor: o.hex }}
-              />
-            )}
-            {o.label}
-          </span>
-        ))}
-      </div>
+      <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">
+        {String(raw)}
+      </span>
     );
   }
 
@@ -337,45 +324,49 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                 {variantFields.length > 0 && variants.length > 0 && (
                   <div className="space-y-3">
                     {variantFields.map(field => {
-                      if (!field.options) return null;
                       const usedValues = new Set(
                         variants.map(v => String((v.attributes as Record<string, string>)[field.key])),
                       );
-                      const availableOptions = field.options.filter(o => usedValues.has(o.value));
-                      if (availableOptions.length === 0) return null;
 
                       if (field.type === 'color') {
+                        const availableValues = [...usedValues].filter(Boolean);
+                        if (availableValues.length === 0) return null;
                         return (
                           <div key={field.key}>
                             <p className="text-xs font-semibold text-gray-500 mb-2">
                               {field.label}
                               {selectedAttrs[field.key] && (
                                 <span className="font-normal text-gray-400 ml-1.5">
-                                  — {availableOptions.find(o => o.value === selectedAttrs[field.key])?.label}
+                                  — {selectedAttrs[field.key]}
                                 </span>
                               )}
                             </p>
-                            <div className="flex gap-2.5 flex-wrap">
-                              {availableOptions.map(opt => {
-                                const isSelected = selectedAttrs[field.key] === opt.value;
+                            <div className="flex gap-2 flex-wrap">
+                              {availableValues.map(val => {
+                                const isSelected = selectedAttrs[field.key] === val;
                                 return (
                                   <button
-                                    key={opt.value}
-                                    onClick={() => selectAttr(field.key, opt.value)}
-                                    title={opt.label}
-                                    className={`w-8 h-8 rounded-full border-2 transition-all shrink-0 ${
+                                    key={val}
+                                    onClick={() => selectAttr(field.key, val)}
+                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
                                       isSelected
-                                        ? 'border-teal-500 ring-2 ring-teal-200 scale-110'
-                                        : 'border-transparent ring-1 ring-gray-200 hover:ring-gray-300'
+                                        ? 'border-teal-500 bg-teal-50 text-teal-700'
+                                        : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
                                     }`}
-                                    style={{ backgroundColor: opt.hex ?? opt.value }}
-                                  />
+                                  >
+                                    {val}
+                                  </button>
                                 );
                               })}
                             </div>
                           </div>
                         );
                       }
+
+                      if (!field.options) return null;
+                      const availableOptions = field.options.filter(o => usedValues.has(o.value));
+                      if (availableOptions.length === 0) return null;
+
                       if (field.type === 'select' || field.type === 'multiselect') {
                         return (
                           <div key={field.key}>

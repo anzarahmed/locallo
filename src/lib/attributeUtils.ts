@@ -10,7 +10,7 @@ export function normalizeAttrValues(
   for (const field of schema) {
     const val = rawAttrs[field.key];
     if (val === undefined || val === null) continue;
-    if (field.type === 'multiselect' || field.type === 'color') {
+    if (field.type === 'multiselect') {
       out[field.key] = Array.isArray(val) ? (val as string[]) : [String(val)];
     } else if (field.type === 'number') {
       out[field.key] = val === '' ? '' : Number(val);

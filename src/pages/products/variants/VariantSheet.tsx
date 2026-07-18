@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useFormik, type FormikHelpers } from 'formik';
-import { X, Camera, Plus, Loader2, Check } from 'lucide-react';
+import { X, Camera, Plus, Loader2 } from 'lucide-react';
 import { uploadProductImage, createBatchVariants, updateVariant } from '../../../services/sellerService';
 import { MAX_SECONDARY_IMAGES } from '../../../constants';
 import { variantFormSchema, type VariantFormValues } from '../../../validation/variantSchemas';
@@ -266,15 +266,6 @@ export default function VariantSheet({
                 <div className="flex flex-wrap gap-1.5">
                   {Object.entries(variant.attributes).map(([key, val]) => {
                     const field = attributeSchema.find(f => f.key === key);
-                    if (field?.type === 'color') {
-                      const opt = field.options?.find(o => o.value === String(val));
-                      return (
-                        <div key={key} className="flex items-center gap-1.5 bg-gray-100 rounded-full pl-1.5 pr-2.5 py-0.5">
-                          <div className="w-3.5 h-3.5 rounded-full border border-white shadow-sm shrink-0" style={{ backgroundColor: opt?.hex ?? String(val) }} />
-                          <span className="text-xs text-gray-600 font-medium">{opt?.label ?? String(val)}</span>
-                        </div>
-                      );
-                    }
                     const opt = field?.options?.find(o => o.value === String(val));
                     return (
                       <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
@@ -487,55 +478,11 @@ function SheetVariantOptionField({ field, value, usedValues, onChange }: SheetVa
         {field.label}
         <span className="text-rose-400 ml-0.5">*</span>
       </span>
-      {field.type === 'color' && (
-        <span className="text-gray-400 text-xs ml-1.5">(select one)</span>
-      )}
       {field.type === 'multiselect' && (
         <span className="text-gray-400 text-xs ml-1.5">(select all that apply)</span>
       )}
     </div>
   );
-
-  if (field.type === 'color' && field.options && field.options.length > 0) {
-    const selected = typeof value === 'string' ? value : '';
-    return (
-      <div>
-        {labelEl}
-        <div className="flex flex-wrap gap-2">
-          {field.options.map((opt: AttributeFieldOption) => {
-            const used = usedValues.has(opt.value);
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => !used && onChange(selected === opt.value ? '' : opt.value)}
-                title={used ? 'All sizes used for this colour' : opt.label}
-                className={`w-9 h-9 rounded-full border-2 transition-all relative flex items-center justify-center ${
-                  used
-                    ? 'opacity-35 cursor-not-allowed'
-                    : selected === opt.value
-                      ? 'border-teal-500 scale-110 shadow-md ring-2 ring-teal-200'
-                      : 'border-gray-200 hover:scale-105'
-                }`}
-                style={{ backgroundColor: opt.hex ?? opt.value }}
-              >
-                {!used && selected === opt.value && (
-                  <span className="w-5 h-5 rounded-full bg-white/90 flex items-center justify-center shadow-sm">
-                    <Check size={11} className="text-teal-600" strokeWidth={3} />
-                  </span>
-                )}
-              </button>
-            );
-          })}
-        </div>
-        {selected && (
-          <p className="text-xs text-gray-400 mt-1.5">
-            Selected: {field.options.find(o => o.value === selected)?.label ?? selected}
-          </p>
-        )}
-      </div>
-    );
-  }
 
   if (field.type === 'multiselect' && field.options && field.options.length > 0) {
     const selected = Array.isArray(value) ? value : [];
@@ -629,15 +576,6 @@ function SheetStockRow({ combo, variantFields, stock, onChange }: SheetStockRowP
       <div className="flex-1 flex flex-wrap gap-1.5">
         {Object.entries(combo).map(([key, val]) => {
           const field = variantFields.find(f => f.key === key);
-          if (field?.type === 'color') {
-            const opt = field.options?.find(o => o.value === val);
-            return (
-              <div key={key} className="flex items-center gap-1.5 bg-gray-100 rounded-full pl-1.5 pr-2.5 py-0.5">
-                <div className="w-3 h-3 rounded-full border border-white shadow-sm shrink-0" style={{ backgroundColor: opt?.hex ?? val }} />
-                <span className="text-xs text-gray-600 font-medium">{opt?.label ?? val}</span>
-              </div>
-            );
-          }
           const opt = field?.options?.find(o => o.value === val);
           return (
             <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">

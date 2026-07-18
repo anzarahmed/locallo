@@ -39,7 +39,7 @@ export function buildProductVariantAttrs(
   for (const field of variantFields) {
     const sel = selections[field.key];
     if (!sel || sel === '' || (Array.isArray(sel) && sel.length === 0)) continue;
-    if (field.type === 'color' || field.type === 'select') {
+    if (field.type === 'select') {
       result[field.key] = [sel as string];
     } else if (field.type === 'multiselect') {
       result[field.key] = sel as string[];

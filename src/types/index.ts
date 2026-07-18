@@ -18,7 +18,6 @@ export type AttributeFieldType = 'text' | 'textarea' | 'number' | 'select' | 'mu
 export interface AttributeFieldOption {
   label: string;
   value: string;
-  hex?: string;
 }
 
 export interface AttributeField {

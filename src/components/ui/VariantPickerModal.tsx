@@ -68,18 +68,6 @@ export default function VariantPickerModal({
                   <div className="flex flex-wrap gap-1">
                     {Object.entries(variant.attributes).map(([key, value]) => {
                       const field = schema.find(f => f.key === key);
-                      if (field?.type === 'color') {
-                        const opt = field.options?.find(o => o.value === String(value));
-                        return (
-                          <div key={key} className="flex items-center gap-1 bg-gray-100 rounded-full pl-1.5 pr-2 py-0.5">
-                            <div
-                              className="w-3 h-3 rounded-full border border-white shadow-sm shrink-0"
-                              style={{ backgroundColor: opt?.hex ?? String(value) }}
-                            />
-                            <span className="text-[11px] text-gray-600 font-medium">{opt?.label ?? String(value)}</span>
-                          </div>
-                        );
-                      }
                       const displayVal = field?.options?.find(o => o.value === String(value))?.label ?? String(value);
                       const fieldLabel = field?.label ?? key;
                       return (
