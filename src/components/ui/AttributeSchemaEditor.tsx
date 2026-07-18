@@ -1,8 +1,6 @@
 import { useState, type JSX } from 'react';
-import { Plus, X, ChevronDown, ChevronUp, Trash2, Pencil, Sparkles, GripVertical } from 'lucide-react';
+import { Plus, X, ChevronDown, ChevronUp, Trash2, Pencil, GripVertical } from 'lucide-react';
 import type { AttributeField, AttributeFieldOption, AttributeFieldType } from '../../types';
-
-type ShadeCount = 3 | 5 | 7;
 
 interface AttributeSchemaEditorProps {
   value: AttributeField[];
@@ -20,19 +18,12 @@ interface DraftField {
   options: AttributeFieldOption[];
   newOptLabel: string;
   newOptValue: string;
-  newOptHex: string;
-  shadeGenOpen: boolean;
-  shadeGenName: string;
-  shadeGenHex: string;
-  shadeGenCount: ShadeCount;
-  shadeGenExcluded: number[];
 }
 
 const EMPTY_DRAFT: DraftField = {
   label: '', key: '', type: 'text', required: false, isVariant: false, isStockDependent: false,
   unit: '', options: [],
-  newOptLabel: '', newOptValue: '', newOptHex: '#000000',
-  shadeGenOpen: false, shadeGenName: '', shadeGenHex: '#FF69B4', shadeGenCount: 5, shadeGenExcluded: [],
+  newOptLabel: '', newOptValue: '',
 };
 
 const TYPE_OPTIONS: { value: AttributeFieldType; label: string }[] = [
@@ -41,7 +32,7 @@ const TYPE_OPTIONS: { value: AttributeFieldType; label: string }[] = [
   { value: 'number',      label: 'Number' },
   { value: 'select',      label: 'Select (single)' },
   { value: 'multiselect', label: 'Multi-select' },
-  { value: 'color',       label: 'Color swatches' },
+  { value: 'color',       label: 'Color' },
 ];
 
 const TYPE_BADGE: Record<AttributeFieldType, string> = {
@@ -53,89 +44,10 @@ const TYPE_BADGE: Record<AttributeFieldType, string> = {
   color:       'bg-pink-100 text-pink-700',
 };
 
-const HAS_OPTIONS: AttributeFieldType[] = ['select', 'multiselect', 'color'];
-
-const SHADE_STEPS: Record<ShadeCount, { suffix: string; lightness: number }[]> = {
-  3: [
-    { suffix: ' Light', lightness: 80 },
-    { suffix: '',       lightness: 50 },
-    { suffix: ' Dark',  lightness: 25 },
-  ],
-  5: [
-    { suffix: ' 100', lightness: 90 },
-    { suffix: ' 300', lightness: 70 },
-    { suffix: ' 500', lightness: 50 },
-    { suffix: ' 700', lightness: 30 },
-    { suffix: ' 900', lightness: 15 },
-  ],
-  7: [
-    { suffix: ' 100', lightness: 93 },
-    { suffix: ' 200', lightness: 82 },
-    { suffix: ' 300', lightness: 70 },
-    { suffix: ' 500', lightness: 50 },
-    { suffix: ' 600', lightness: 38 },
-    { suffix: ' 700', lightness: 27 },
-    { suffix: ' 900', lightness: 12 },
-  ],
-};
+const HAS_OPTIONS: AttributeFieldType[] = ['select', 'multiselect'];
 
 function toKey(label: string): string {
   return label.trim().toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-}
-
-function hexToHsl(hex: string): [number, number, number] {
-  const r = parseInt(hex.slice(1, 3), 16) / 255;
-  const g = parseInt(hex.slice(3, 5), 16) / 255;
-  const b = parseInt(hex.slice(5, 7), 16) / 255;
-  const max = Math.max(r, g, b), min = Math.min(r, g, b);
-  const l = (max + min) / 2;
-  if (max === min) return [0, 0, l * 100];
-  const d = max - min;
-  const s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
-  let h: number;
-  switch (max) {
-    case r:  h = ((g - b) / d + (g < b ? 6 : 0)) / 6; break;
-    case g:  h = ((b - r) / d + 2) / 6; break;
-    default: h = ((r - g) / d + 4) / 6;
-  }
-  return [h * 360, s * 100, l * 100];
-}
-
-function hslToHex(h: number, s: number, l: number): string {
-  h /= 360; s /= 100; l /= 100;
-  const hue2rgb = (p: number, q: number, t: number): number => {
-    if (t < 0) t += 1;
-    if (t > 1) t -= 1;
-    if (t < 1 / 6) return p + (q - p) * 6 * t;
-    if (t < 1 / 2) return q;
-    if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
-    return p;
-  };
-  let r: number, g: number, b: number;
-  if (s === 0) {
-    r = g = b = l;
-  } else {
-    const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
-    const p = 2 * l - q;
-    r = hue2rgb(p, q, h + 1 / 3);
-    g = hue2rgb(p, q, h);
-    b = hue2rgb(p, q, h - 1 / 3);
-  }
-  const toHex = (x: number): string => Math.round(x * 255).toString(16).padStart(2, '0');
-  return `#${toHex(r)}${toHex(g)}${toHex(b)}`;
-}
-
-function buildShades(baseHex: string, name: string, count: ShadeCount): AttributeFieldOption[] {
-  if (!name.trim() || !/^#[0-9a-fA-F]{6}$/.test(baseHex)) return [];
-  const [h, s] = hexToHsl(baseHex);
-  return SHADE_STEPS[count].map(({ suffix, lightness }) => {
-    const label = `${name.trim()}${suffix}`;
-    return { label, value: toKey(label), hex: hslToHex(h, s, lightness) };
-  });
-}
-
-function isValidHex(hex: string): boolean {
-  return /^#[0-9a-fA-F]{6}$/.test(hex);
 }
 
 export default function AttributeSchemaEditor({ value, onChange }: AttributeSchemaEditorProps): JSX.Element {
@@ -194,12 +106,6 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
       options:          field.options ? [...field.options] : [],
       newOptLabel: '',
       newOptValue: '',
-      newOptHex:   '#000000',
-      shadeGenOpen:     false,
-      shadeGenName:     field.label,
-      shadeGenHex:      '#FF69B4',
-      shadeGenCount:    5,
-      shadeGenExcluded: [],
     });
     setEditError('');
   }
@@ -224,27 +130,15 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
     const option: AttributeFieldOption = {
       label: editDraft.newOptLabel.trim(),
       value: editDraft.newOptValue.trim() || toKey(editDraft.newOptLabel),
-      ...(editDraft.type === 'color' ? { hex: editDraft.newOptHex } : {}),
     };
     setEditDraft(d => {
       const sorted = [...d.options, option].sort((a, b) => a.label.localeCompare(b.label));
-      return { ...d, options: sorted, newOptLabel: '', newOptValue: '', newOptHex: '#000000' };
+      return { ...d, options: sorted, newOptLabel: '', newOptValue: '' };
     });
   }
 
   function removeEditOption(optValue: string): void {
     setEditDraft(d => ({ ...d, options: d.options.filter(o => o.value !== optValue) }));
-  }
-
-  function applyEditShades(): void {
-    const shades = buildShades(editDraft.shadeGenHex, editDraft.shadeGenName, editDraft.shadeGenCount);
-    const selected = shades.filter((_, i) => !editDraft.shadeGenExcluded.includes(i));
-    if (selected.length === 0) return;
-    setEditDraft(d => {
-      const existing = new Set(d.options.map(o => o.value));
-      const newOpts = selected.filter(s => !existing.has(s.value));
-      return { ...d, options: [...d.options, ...newOpts], shadeGenOpen: false };
-    });
   }
 
   function saveEdit(): void {
@@ -279,7 +173,6 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
       ...d,
       label,
       key: d.key === toKey(d.label) || d.key === '' ? toKey(label) : d.key,
-      shadeGenName: d.shadeGenName === d.label || d.shadeGenName === '' ? label : d.shadeGenName,
     }));
   }
 
@@ -297,27 +190,15 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
     const option: AttributeFieldOption = {
       label: draft.newOptLabel.trim(),
       value: draft.newOptValue.trim() || toKey(draft.newOptLabel),
-      ...(draft.type === 'color' ? { hex: draft.newOptHex } : {}),
     };
     setDraft(d => {
       const sorted = [...d.options, option].sort((a, b) => a.label.localeCompare(b.label));
-      return { ...d, options: sorted, newOptLabel: '', newOptValue: '', newOptHex: '#000000' };
+      return { ...d, options: sorted, newOptLabel: '', newOptValue: '' };
     });
   }
 
   function removeOption(optValue: string): void {
     setDraft(d => ({ ...d, options: d.options.filter(o => o.value !== optValue) }));
-  }
-
-  function applyDraftShades(): void {
-    const shades = buildShades(draft.shadeGenHex, draft.shadeGenName, draft.shadeGenCount);
-    const selected = shades.filter((_, i) => !draft.shadeGenExcluded.includes(i));
-    if (selected.length === 0) return;
-    setDraft(d => {
-      const existing = new Set(d.options.map(o => o.value));
-      const newOpts = selected.filter(s => !existing.has(s.value));
-      return { ...d, options: [...d.options, ...newOpts], shadeGenOpen: false };
-    });
   }
 
   function addField(): void {
@@ -344,21 +225,16 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
     setAdding(false);
   }
 
-  function renderColorOptionsSection(
+  function renderOptionsSection(
     d: DraftField,
     setD: (fn: (prev: DraftField) => DraftField) => void,
     onAddOption: () => void,
     onRemoveOption: (v: string) => void,
-    onApplyShades: () => void,
     dragFrom: number | null,
     setDragFrom: (i: number | null) => void,
     dragOver: number | null,
     setDragOver: (i: number | null) => void,
   ): JSX.Element {
-    const previewShades  = buildShades(d.shadeGenHex, d.shadeGenName, d.shadeGenCount);
-    const canGenerate    = d.shadeGenName.trim().length > 0 && isValidHex(d.shadeGenHex);
-    const selectedCount  = previewShades.filter((_, i) => !d.shadeGenExcluded.includes(i)).length;
-
     function dropOnto(toIdx: number): void {
       if (dragFrom === null || dragFrom === toIdx) return;
       setD(prev => {
@@ -409,13 +285,6 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                   }`}
                 >
                   <GripVertical className="w-3.5 h-3.5 text-gray-300 cursor-grab shrink-0 active:cursor-grabbing" />
-                  {d.type === 'color' && opt.hex && (
-                    <span
-                      className="w-5 h-5 rounded border border-gray-200 shrink-0"
-                      style={{ backgroundColor: opt.hex }}
-                      title={opt.hex}
-                    />
-                  )}
                   <span className="flex-1">{opt.label}</span>
                   <code className="text-gray-400">{opt.value}</code>
                   <button type="button" onClick={(): void => onRemoveOption(opt.value)} className="text-gray-300 hover:text-red-500">
@@ -429,29 +298,6 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
 
         {/* Manual add row */}
         <div className="flex gap-1.5 items-center">
-          {d.type === 'color' && (
-            <>
-              <input
-                type="color"
-                value={isValidHex(d.newOptHex) ? d.newOptHex : '#000000'}
-                onChange={e => setD(prev => ({ ...prev, newOptHex: e.target.value }))}
-                className="w-7 h-7 p-0.5 border border-gray-300 rounded cursor-pointer shrink-0"
-                title="Pick colour"
-              />
-              <input
-                type="text"
-                value={d.newOptHex}
-                onChange={e => {
-                  let v = e.target.value.trim();
-                  if (v && !v.startsWith('#')) v = '#' + v;
-                  setD(prev => ({ ...prev, newOptHex: v }));
-                }}
-                className="w-[76px] px-2 py-1 border border-gray-300 rounded-md text-xs font-mono focus:outline-none focus:ring-2 focus:ring-indigo-500 shrink-0"
-                placeholder="#000000"
-                maxLength={7}
-              />
-            </>
-          )}
           <input
             type="text"
             value={d.newOptLabel}
@@ -478,135 +324,6 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
             Add
           </button>
         </div>
-
-        {/* Shade generator (color type only) */}
-        {d.type === 'color' && (
-          <div className="border border-gray-200 rounded-md overflow-hidden">
-            <button
-              type="button"
-              onClick={(): void => setD(prev => ({ ...prev, shadeGenOpen: !prev.shadeGenOpen }))}
-              className="w-full flex items-center justify-between px-3 py-1.5 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
-            >
-              <span className="flex items-center gap-1.5 text-xs font-medium text-gray-600">
-                <Sparkles className="w-3.5 h-3.5 text-pink-500" />
-                Generate shades
-              </span>
-              {d.shadeGenOpen
-                ? <ChevronUp className="w-3 h-3 text-gray-400" />
-                : <ChevronDown className="w-3 h-3 text-gray-400" />
-              }
-            </button>
-
-            {d.shadeGenOpen && (
-              <div className="p-3 space-y-3 bg-white">
-                <div className="flex gap-2 items-end">
-                  <div className="flex-1 min-w-0">
-                    <label className="block text-[11px] text-gray-500 mb-1">Color name</label>
-                    <input
-                      type="text"
-                      value={d.shadeGenName}
-                      onChange={e => setD(prev => ({ ...prev, shadeGenName: e.target.value }))}
-                      onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
-                      placeholder="e.g. Pink"
-                      className="w-full px-2 py-1.5 border border-gray-300 rounded-md text-xs focus:outline-none focus:ring-2 focus:ring-pink-400"
-                    />
-                  </div>
-                  <div className="shrink-0">
-                    <label className="block text-[11px] text-gray-500 mb-1">Base color</label>
-                    <div className="flex items-center gap-1">
-                      <input
-                        type="color"
-                        value={isValidHex(d.shadeGenHex) ? d.shadeGenHex : '#FF69B4'}
-                        onChange={e => setD(prev => ({ ...prev, shadeGenHex: e.target.value }))}
-                        className="w-7 h-[30px] p-0.5 border border-gray-300 rounded cursor-pointer shrink-0"
-                        title="Pick base colour"
-                      />
-                      <input
-                        type="text"
-                        value={d.shadeGenHex}
-                        onChange={e => {
-                          let v = e.target.value.trim();
-                          if (v && !v.startsWith('#')) v = '#' + v;
-                          setD(prev => ({ ...prev, shadeGenHex: v }));
-                        }}
-                        onKeyDown={e => { if (e.key === 'Enter') e.preventDefault(); }}
-                        className="w-[76px] px-2 py-1 border border-gray-300 rounded-md text-xs font-mono focus:outline-none focus:ring-2 focus:ring-pink-400"
-                        placeholder="#FF69B4"
-                        maxLength={7}
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <span className="text-[11px] text-gray-500 shrink-0">Shades:</span>
-                  {([3, 5, 7] as ShadeCount[]).map(n => (
-                    <button
-                      key={n}
-                      type="button"
-                      onClick={(): void => setD(prev => ({ ...prev, shadeGenCount: n, shadeGenExcluded: [] }))}
-                      className={`px-2.5 py-0.5 rounded text-xs font-medium transition-colors ${
-                        d.shadeGenCount === n
-                          ? 'bg-pink-100 text-pink-700 ring-1 ring-pink-300'
-                          : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
-                      }`}
-                    >
-                      {n}
-                    </button>
-                  ))}
-                </div>
-
-                {previewShades.length > 0 && (
-                  <div>
-                    <p className="text-[11px] text-gray-400 mb-1.5">Click to toggle individual shades</p>
-                    <div className="flex gap-2.5 flex-wrap">
-                      {previewShades.map((shade, i) => {
-                        const excluded = d.shadeGenExcluded.includes(i);
-                        return (
-                          <button
-                            key={shade.value}
-                            type="button"
-                            title={excluded ? `Include ${shade.label}` : `Exclude ${shade.label}`}
-                            onClick={(): void => setD(prev => ({
-                              ...prev,
-                              shadeGenExcluded: prev.shadeGenExcluded.includes(i)
-                                ? prev.shadeGenExcluded.filter(x => x !== i)
-                                : [...prev.shadeGenExcluded, i],
-                            }))}
-                            className="flex flex-col items-center gap-0.5 transition-opacity focus:outline-none"
-                          >
-                            <span
-                              className={`w-7 h-7 rounded block transition-all ${
-                                excluded
-                                  ? 'opacity-30 grayscale'
-                                  : 'ring-2 ring-indigo-400 ring-offset-1'
-                              }`}
-                              style={{ backgroundColor: shade.hex }}
-                            />
-                            <span className={`text-[10px] max-w-[40px] truncate text-center leading-tight transition-colors ${excluded ? 'text-gray-300' : 'text-gray-400'}`}>
-                              {shade.label.replace(d.shadeGenName.trim(), '').trim() || '●'}
-                            </span>
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </div>
-                )}
-
-                <button
-                  type="button"
-                  onClick={onApplyShades}
-                  disabled={!canGenerate || selectedCount === 0}
-                  className="w-full px-3 py-1.5 text-xs font-semibold bg-pink-50 hover:bg-pink-100 text-pink-700 border border-pink-200 rounded-md transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                >
-                  {selectedCount === d.shadeGenCount
-                    ? `Add all ${selectedCount} shades`
-                    : `Add ${selectedCount} shade${selectedCount === 1 ? '' : 's'}`}
-                </button>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     );
   }
@@ -718,12 +435,11 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                         </label>
                       </div>
 
-                      {HAS_OPTIONS.includes(editDraft.type) && renderColorOptionsSection(
+                      {HAS_OPTIONS.includes(editDraft.type) && renderOptionsSection(
                         editDraft,
                         setEditDraft,
                         addEditOption,
                         removeEditOption,
-                        applyEditShades,
                         editDragFrom,
                         setEditDragFrom,
                         editDragOver,
@@ -831,13 +547,6 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                       <ul className="px-3 pb-2 space-y-1.5 border-t border-gray-100 pt-1.5">
                         {field.options!.map(opt => (
                           <li key={opt.value} className="flex items-center gap-2 text-xs text-gray-600">
-                            {field.type === 'color' && opt.hex && (
-                              <span
-                                className="w-5 h-5 rounded border border-gray-200 shrink-0"
-                                style={{ backgroundColor: opt.hex }}
-                                title={opt.hex}
-                              />
-                            )}
                             <span className="flex-1">{opt.label}</span>
                             <code className="text-gray-400">{opt.value}</code>
                           </li>
@@ -939,12 +648,11 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                 </label>
               </div>
 
-              {HAS_OPTIONS.includes(draft.type) && renderColorOptionsSection(
+              {HAS_OPTIONS.includes(draft.type) && renderOptionsSection(
                 draft,
                 setDraft,
                 addOption,
                 removeOption,
-                applyDraftShades,
                 draftDragFrom,
                 setDraftDragFrom,
                 draftDragOver,

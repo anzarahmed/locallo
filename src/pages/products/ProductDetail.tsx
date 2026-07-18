@@ -2,7 +2,7 @@ import { useState, useEffect, type JSX } from 'react';
 import { X, Package, ToggleLeft, ToggleRight, Trash2, Loader2, Store, MapPin, Layers } from 'lucide-react';
 import { getProduct, toggleProduct, deleteProduct } from '../../services/productService';
 import { ApiError } from '../../lib/axios';
-import type { AttributeField, AttributeFieldOption, Product, ProductVariant } from '../../types';
+import type { AttributeField, Product, ProductVariant } from '../../types';
 import { useToast } from '../../hooks/useToast';
 
 interface ProductDetailProps {
@@ -33,20 +33,8 @@ function discountPct(selling: number | string | null, mrp: number | string | nul
 function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
   if (raw === null || raw === undefined || raw === '') return <span className="text-gray-400">—</span>;
 
-  if (field.type === 'color' && Array.isArray(raw) && field.options) {
-    const matched = (raw as string[])
-      .map(v => field.options?.find(o => o.value === v))
-      .filter((o): o is AttributeFieldOption => Boolean(o));
-    return (
-      <div className="flex flex-wrap gap-1.5">
-        {matched.map(o => (
-          <span key={o.value} className="flex items-center gap-1.5 text-xs bg-white border border-gray-200 rounded-full px-2.5 py-1 text-gray-700">
-            {o.hex && <span className="w-3 h-3 rounded-full border border-gray-200 shrink-0" style={{ backgroundColor: o.hex }} />}
-            {o.label}
-          </span>
-        ))}
-      </div>
-    );
+  if (field.type === 'color') {
+    return <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">{String(raw)}</span>;
   }
 
   if (field.type === 'multiselect' && Array.isArray(raw) && field.options) {
@@ -175,7 +163,7 @@ function variantLabel(variant: ProductVariant, schema: AttributeField[]): string
     .map(f => {
       const v = variant.attributes[f.key];
       if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) return null;
-      if ((f.type === 'select' || f.type === 'color') && f.options) {
+      if (f.type === 'select' && f.options) {
         const vals = Array.isArray(v) ? (v as string[]) : [v as string];
         return vals.map(val => f.options?.find(o => o.value === val)?.label ?? val).join(', ');
       }
