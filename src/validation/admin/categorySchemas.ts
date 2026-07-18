@@ -3,7 +3,6 @@ import * as Yup from 'yup';
 const attributeFieldOptionSchema = Yup.object({
   label: Yup.string().required(),
   value: Yup.string().required(),
-  hex:   Yup.string().optional(),
 });
 
 const attributeFieldSchema = Yup.object({

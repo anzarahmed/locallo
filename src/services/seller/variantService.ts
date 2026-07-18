@@ -58,6 +58,18 @@ async function requireOwnVariant(productId: string, variantId: string): Promise<
   return variant;
 }
 
+function getVariantKeys(product: Product): string[] {
+  const schema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
+  return schema.filter(f => f.isVariant).map(f => f.key);
+}
+
+function getComboKey(attrs: Record<string, unknown>, variantKeys: string[]): string {
+  return variantKeys
+    .map(key => `${key}:${String(attrs[key] ?? '').trim().toLowerCase()}`)
+    .sort()
+    .join('|');
+}
+
 export async function getProductVariants(
   productId: string,
   sellerId: string,
@@ -75,7 +87,19 @@ export async function createVariant(
   sellerId: string,
   data: CreateVariantInput,
 ): Promise<ProductVariant> {
-  await requireOwnProduct(sellerId, productId);
+  const product = await requireOwnProduct(sellerId, productId);
+
+  const variantKeys = getVariantKeys(product);
+  if (variantKeys.length > 0) {
+    const existingVariants = await ProductVariant.findAll({ where: { productId } });
+    const existingKeys = new Set(
+      existingVariants.map(v => getComboKey(v.attributes as Record<string, unknown>, variantKeys)),
+    );
+    const newKey = getComboKey(data.attributes as Record<string, unknown>, variantKeys);
+    if (existingKeys.has(newKey)) {
+      throw Object.assign(new Error('A variant with this combination already exists'), { status: 409 });
+    }
+  }
 
   const variant = await ProductVariant.create({
     productId,
@@ -96,18 +120,34 @@ export async function createBatchVariants(
   sellerId: string,
   data: CreateBatchVariantInput,
 ): Promise<ProductVariant[]> {
-  await requireOwnProduct(sellerId, productId);
+  const product = await requireOwnProduct(sellerId, productId);
 
   const images = await commitImages((data.images ?? []).map(normalizeImageKey));
   const sharedAttrs = (data.attributes as Record<string, string>) ?? {};
+  const rowAttrs = data.rows.map(row => ({ ...sharedAttrs, ...(row.attributes as Record<string, string>) }));
+
+  const variantKeys = getVariantKeys(product);
+  if (variantKeys.length > 0) {
+    const existingVariants = await ProductVariant.findAll({ where: { productId } });
+    const seenKeys = new Set(
+      existingVariants.map(v => getComboKey(v.attributes as Record<string, unknown>, variantKeys)),
+    );
+    for (const attrs of rowAttrs) {
+      const key = getComboKey(attrs, variantKeys);
+      if (seenKeys.has(key)) {
+        throw Object.assign(new Error('A variant with this combination already exists'), { status: 409 });
+      }
+      seenKeys.add(key);
+    }
+  }
 
   const variants = await Promise.all(
-    data.rows.map(row =>
+    rowAttrs.map((attrs, i) =>
       ProductVariant.create({
         productId,
-        attributes:   { ...sharedAttrs, ...(row.attributes as Record<string, string>) },
+        attributes:   attrs,
         images,
-        stock:        row.stock,
+        stock:        data.rows[i].stock,
         sellingPrice: data.sellingPrice,
         mrp:          data.mrp ?? null,
         isActive:     data.isActive ?? true,

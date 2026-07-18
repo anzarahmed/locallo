@@ -42,12 +42,12 @@ const SCHEMAS: Record<string, AttributeField[]> = {
     {
       key: 'colors', label: 'Available Colors', type: 'color', required: false,
       options: [
-        { label: 'Black',  value: 'black',  hex: '#000000' }, { label: 'White',  value: 'white',  hex: '#FFFFFF' },
-        { label: 'Red',    value: 'red',    hex: '#EF4444' }, { label: 'Blue',   value: 'blue',   hex: '#3B82F6' },
-        { label: 'Green',  value: 'green',  hex: '#22C55E' }, { label: 'Yellow', value: 'yellow', hex: '#EAB308' },
-        { label: 'Pink',   value: 'pink',   hex: '#EC4899' }, { label: 'Beige',  value: 'beige',  hex: '#D2B48C' },
-        { label: 'Brown',  value: 'brown',  hex: '#92400E' }, { label: 'Grey',   value: 'grey',   hex: '#6B7280' },
-        { label: 'Orange', value: 'orange', hex: '#F97316' }, { label: 'Purple', value: 'purple', hex: '#A855F7' },
+        { label: 'Black',  value: 'black' }, { label: 'White',  value: 'white' },
+        { label: 'Red',    value: 'red' }, { label: 'Blue',   value: 'blue' },
+        { label: 'Green',  value: 'green' }, { label: 'Yellow', value: 'yellow' },
+        { label: 'Pink',   value: 'pink' }, { label: 'Beige',  value: 'beige' },
+        { label: 'Brown',  value: 'brown' }, { label: 'Grey',   value: 'grey' },
+        { label: 'Orange', value: 'orange' }, { label: 'Purple', value: 'purple' },
       ],
     },
     { key: 'material',      label: 'Material / Composition', type: 'text',     required: false },

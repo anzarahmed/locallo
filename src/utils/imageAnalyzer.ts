@@ -54,7 +54,7 @@ function matchSelectOption(
 
   if (!match) return null;
 
-  return field.type === 'multiselect' || field.type === 'color'
+  return field.type === 'multiselect'
     ? [match.value]
     : match.value;
 }
