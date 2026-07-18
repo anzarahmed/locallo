@@ -9,6 +9,8 @@ export const PATHS = {
     LIST:   '/api/admins/sellers',
     BY_ID:    (id: string) => `/api/admins/sellers/${id}`,
     STATUS:   (id: string) => `/api/admins/sellers/${id}/status`,
+    KYC_DOCUMENTS: (id: string) => `/api/admins/sellers/${id}/kyc/documents`,
+    KYC_VERIFY:    (id: string) => `/api/admins/sellers/${id}/kyc/verify`,
   },
   CATEGORIES: {
     LIST:   '/api/admins/categories',

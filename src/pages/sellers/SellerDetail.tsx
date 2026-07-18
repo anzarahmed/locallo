@@ -1,14 +1,34 @@
-import { useState, useEffect, type JSX } from 'react';
+import { useState, useEffect, useRef, type JSX, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   X, Phone, Mail, MapPin, Store, Clock,
   Pencil, ToggleLeft, ToggleRight, Loader2,
+  ShieldCheck, ShieldAlert, Upload, ExternalLink,
 } from 'lucide-react';
-import { getSellerById, toggleSellerStatus, type Seller } from '../../services/sellerService';
+import { getSellerById, toggleSellerStatus, uploadKycDocument, setKycVerification, type Seller } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
-import type { WorkingHours } from '../../types';
+import type { WorkingHours, KycDocumentType } from '../../types';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { getInitials, getAvatarColor } from '../../lib/avatar';
+
+const KYC_DOCS: { type: KycDocumentType; label: string; required: boolean }[] = [
+  { type: 'aadhar',                  label: 'Aadhar Card',              required: true },
+  { type: 'pan',                     label: 'PAN Card',                 required: true },
+  { type: 'registrationCertificate', label: 'Registration Certificate', required: false },
+  { type: 'other',                   label: 'Other Document',           required: false },
+];
+
+function KycStatusBadge({ verified }: { verified: boolean }): JSX.Element {
+  const colors = verified
+    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    : 'bg-amber-50 text-amber-700 border-amber-200';
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${colors}`}>
+      {verified ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
+      {verified ? 'Verified' : 'Pending Verification'}
+    </span>
+  );
+}
 
 interface SellerDetailProps {
   sellerId: string;
@@ -75,6 +95,14 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
   const [seller, setSeller] = useState<Seller | null>(null);
   const [loading, setLoading] = useState(true);
   const [toggling, setToggling] = useState(false);
+  const [uploadingType, setUploadingType] = useState<KycDocumentType | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const fileInputRefs = useRef<Record<KycDocumentType, HTMLInputElement | null>>({
+    aadhar: null,
+    pan: null,
+    registrationCertificate: null,
+    other: null,
+  });
 
   useEffect((): void => {
     setLoading(true);
@@ -97,6 +125,36 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
       toast.error('Failed to update seller status');
     } finally {
       setToggling(false);
+    }
+  }
+
+  async function handleKycUpload(documentType: KycDocumentType, e: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !seller?.profile) return;
+    setUploadingType(documentType);
+    try {
+      const { kycDocuments } = await uploadKycDocument(seller.id, documentType, file);
+      setSeller({ ...seller, profile: { ...seller.profile, kycDocuments } });
+      toast.success('Document uploaded');
+    } catch {
+      toast.error('Failed to upload document');
+    } finally {
+      setUploadingType(null);
+    }
+  }
+
+  async function handleKycVerify(verified: boolean): Promise<void> {
+    if (!seller?.profile) return;
+    setVerifying(true);
+    try {
+      const result = await setKycVerification(seller.id, verified);
+      setSeller({ ...seller, profile: { ...seller.profile, isVerified: result.isVerified, verifiedAt: result.verifiedAt } });
+      toast.success(verified ? 'Seller verified' : 'Verification revoked');
+    } catch {
+      toast.error(verified ? 'Aadhar and PAN are required before verification' : 'Failed to revoke verification');
+    } finally {
+      setVerifying(false);
     }
   }
 
@@ -213,6 +271,82 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
                     )}
                   </div>
                 </div>
+
+                {seller.profile && (
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest">KYC Verification</p>
+                      <KycStatusBadge verified={seller.profile.isVerified} />
+                    </div>
+                    <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-2">
+                      {KYC_DOCS.map(({ type, label, required }) => {
+                        const url = seller.profile!.kycDocuments?.[type] ?? null;
+                        const isUploading = uploadingType === type;
+                        return (
+                          <div key={type} className="flex items-center justify-between gap-3 bg-white border border-gray-100 rounded-lg px-3 py-2">
+                            <div className="flex items-center gap-2.5 min-w-0">
+                              {url ? (
+                                <img src={url} alt={label} className="w-9 h-9 rounded-md object-cover border border-gray-200 shrink-0" />
+                              ) : (
+                                <div className="w-9 h-9 rounded-md bg-gray-100 border border-gray-200 shrink-0" />
+                              )}
+                              <div className="min-w-0">
+                                <p className="text-xs font-medium text-gray-700 truncate">
+                                  {label}{required && <span className="text-red-500">*</span>}
+                                </p>
+                                {url ? (
+                                  <a href={url} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline inline-flex items-center gap-1">
+                                    View <ExternalLink className="w-3 h-3" />
+                                  </a>
+                                ) : (
+                                  <p className="text-xs text-gray-400">Not uploaded</p>
+                                )}
+                              </div>
+                            </div>
+                            <div className="shrink-0">
+                              <input
+                                ref={(el) => { fileInputRefs.current[type] = el; }}
+                                type="file"
+                                accept="image/jpeg,image/png,image/webp"
+                                className="hidden"
+                                onChange={(e): void => { void handleKycUpload(type, e); }}
+                              />
+                              <button
+                                type="button"
+                                disabled={isUploading}
+                                onClick={(): void => fileInputRefs.current[type]?.click()}
+                                className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors"
+                              >
+                                {isUploading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}
+                                {url ? 'Replace' : 'Upload'}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+
+                      <button
+                        type="button"
+                        disabled={verifying || (!seller.profile.isVerified && (!seller.profile.kycDocuments?.aadhar || !seller.profile.kycDocuments?.pan))}
+                        onClick={(): void => { void handleKycVerify(!seller.profile!.isVerified); }}
+                        title={!seller.profile.isVerified && (!seller.profile.kycDocuments?.aadhar || !seller.profile.kycDocuments?.pan) ? 'Upload Aadhar and PAN before verifying' : undefined}
+                        className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-xl disabled:opacity-50 transition-colors ${
+                          seller.profile.isVerified
+                            ? 'text-gray-700 border border-gray-200 hover:bg-gray-100'
+                            : 'text-white bg-emerald-600 hover:bg-emerald-700'
+                        }`}
+                      >
+                        {verifying
+                          ? <Loader2 className="w-4 h-4 animate-spin" />
+                          : seller.profile.isVerified
+                            ? <ShieldAlert className="w-4 h-4" />
+                            : <ShieldCheck className="w-4 h-4" />
+                        }
+                        {seller.profile.isVerified ? 'Revoke Verification' : 'Verify Seller'}
+                      </button>
+                    </div>
+                  </div>
+                )}
 
                 {seller.profile?.bio && (
                   <div>

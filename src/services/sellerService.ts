@@ -1,6 +1,6 @@
 import { apiPost, apiGet, apiPut, apiPatch } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { WorkingHours } from '../types';
+import type { WorkingHours, KycDocumentType, KycDocuments } from '../types';
 import type { SellerFormValues } from '../pages/sellers/sellerSchemas';
 
 interface CreateSellerResponse {
@@ -24,6 +24,9 @@ export interface SellerProfile {
   categories: { id: number; name: string; slug: string }[];
   bio: string | null;
   workingHours: WorkingHours | null;
+  isVerified: boolean;
+  verifiedAt: string | null;
+  kycDocuments: KycDocuments;
 }
 
 export interface Seller {
@@ -103,6 +106,17 @@ export function getSellerById(id: string): Promise<Seller> {
 
 export function toggleSellerStatus(id: string): Promise<{ id: string; isActive: boolean }> {
   return apiPatch<{ id: string; isActive: boolean }>(PATHS.SELLERS.STATUS(id), {});
+}
+
+export function uploadKycDocument(id: string, documentType: KycDocumentType, file: File): Promise<{ kycDocuments: KycDocuments }> {
+  const form = new FormData();
+  form.append('documentType', documentType);
+  form.append('document', file);
+  return apiPost<{ kycDocuments: KycDocuments }>(PATHS.SELLERS.KYC_DOCUMENTS(id), form);
+}
+
+export function setKycVerification(id: string, verified: boolean): Promise<{ isVerified: boolean; verifiedBy: string | null; verifiedAt: string | null }> {
+  return apiPatch(PATHS.SELLERS.KYC_VERIFY(id), { verified });
 }
 
 export function updateSeller(id: string, values: SellerFormValues): Promise<Seller> {

@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Power, Eye, Package } from 'lucide-react';
+import { Plus, Pencil, Trash2, Power, Eye, Package, ShieldCheck, ShieldAlert } from 'lucide-react';
 import { type ColumnDef, type Row, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
@@ -18,6 +18,18 @@ function SellerAvatar({ name }: { name: string | null }): JSX.Element {
     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${getAvatarColor(name)}`}>
       {getInitials(name)}
     </div>
+  );
+}
+
+function KycBadge({ verified }: { verified: boolean }): JSX.Element {
+  const colors = verified
+    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+    : 'bg-amber-50 text-amber-700 border-amber-200';
+  return (
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium border ${colors}`}>
+      {verified ? <ShieldCheck className="w-3.5 h-3.5" /> : <ShieldAlert className="w-3.5 h-3.5" />}
+      {verified ? 'Verified' : 'Pending'}
+    </span>
   );
 }
 
@@ -188,6 +200,13 @@ export default function SellerList(): JSX.Element {
         filterOptions: STATUS_FILTER_OPTIONS,
       },
       cell: ({ row }: { row: Row<Seller> }) => <StatusBadge active={row.original.isActive} />,
+    },
+    {
+      id: 'kyc',
+      header: 'KYC',
+      enableSorting: false,
+      enableColumnFilter: false,
+      cell: ({ row }: { row: Row<Seller> }) => <KycBadge verified={row.original.profile?.isVerified ?? false} />,
     },
     {
       accessorKey: 'createdAt',

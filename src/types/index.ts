@@ -3,6 +3,14 @@ export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customer
 export type PermissionAction = 'list' | 'view' | 'add' | 'edit' | 'delete';
 export type PermissionMap = Partial<Record<PermissionModule, PermissionAction[]>>;
 export type SellerStatus = 'active' | 'inactive' | 'pending';
+export type KycDocumentType = 'aadhar' | 'pan' | 'registrationCertificate' | 'other';
+
+export interface KycDocuments {
+  aadhar: string | null;
+  pan: string | null;
+  registrationCertificate: string | null;
+  other: string | null;
+}
 export type AttributeFieldType = 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'color';
 
 export interface AttributeFieldOption {
