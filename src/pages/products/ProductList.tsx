@@ -1,4 +1,5 @@
 import { useState, useEffect, useMemo, type JSX } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Package, Trash2, Eye, AlertCircle, Loader2 } from 'lucide-react';
 import { type ColumnDef, type Row, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
@@ -112,6 +113,8 @@ function DeleteModal({ product, onClose, onDeleted }: DeleteModalProps): JSX.Ele
 export default function ProductList(): JSX.Element {
   const toast = useToast();
   const { hasPermission } = useAuth();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const sellerIdParam = searchParams.get('sellerId');
 
   const [products, setProducts]     = useState<Product[]>([]);
   const [total, setTotal]           = useState(0);
@@ -126,9 +129,16 @@ export default function ProductList(): JSX.Element {
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   const [sorting, setSorting]               = useState<SortingState>([]);
-  const initialFilters: ColumnFiltersState  = [];
+  const initialFilters: ColumnFiltersState  = sellerIdParam ? [{ id: 'seller', value: sellerIdParam }] : [];
   const [columnFilters, setColumnFilters]   = useState<ColumnFiltersState>(initialFilters);
   const [debouncedFilters, setDebouncedFilters] = useState<ColumnFiltersState>(initialFilters);
+
+  useEffect(() => {
+    if (sellerIdParam) {
+      setSearchParams(params => { params.delete('sellerId'); return params; }, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect((): void => {
     getCategories(false).then(setCategories).catch(() => {});

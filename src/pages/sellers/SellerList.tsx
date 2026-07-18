@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Power, Eye } from 'lucide-react';
+import { Plus, Pencil, Trash2, Power, Eye, Package } from 'lucide-react';
 import { type ColumnDef, type Row, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
@@ -236,6 +236,15 @@ export default function SellerList(): JSX.Element {
                 <Pencil className="w-4 h-4" />
               </button>
             )}
+            {hasPermission('products', 'list') && (
+              <button
+                onClick={() => { navigate(`/products?sellerId=${s.id}`); }}
+                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
+                title="View products"
+              >
+                <Package className="w-4 h-4" />
+              </button>
+            )}
             {hasPermission('sellers', 'delete') && (
               <button
                 onClick={() => setDeleteId(s.id)}
@@ -251,7 +260,7 @@ export default function SellerList(): JSX.Element {
     },
   ].filter(col => {
     if (!('id' in col) || col.id !== 'actions') return true;
-    return hasPermission('sellers', 'edit') || hasPermission('sellers', 'view') || hasPermission('sellers', 'delete');
+    return hasPermission('sellers', 'edit') || hasPermission('sellers', 'view') || hasPermission('sellers', 'delete') || hasPermission('products', 'list');
   }) as ColumnDef<Seller, unknown>[], [navigate, toggling, hasPermission]);
 
   if (error) {
