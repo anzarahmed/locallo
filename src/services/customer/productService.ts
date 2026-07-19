@@ -1,8 +1,9 @@
 import { Op, literal } from 'sequelize';
 import { Product } from '../../models/Product';
+import { ProductVariant } from '../../models/ProductVariant';
 import { Category } from '../../models/Category';
-import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
+import type { AttributeField } from '../../types';
 
 interface BrowseFilter {
   categoryId?: number;
@@ -11,14 +12,32 @@ interface BrowseFilter {
   lng?: number;
 }
 
+interface ProductVariantDetail {
+  id: string | null;
+  productId: string;
+  attributes: Record<string, unknown>;
+  images: string[];
+  stock: number;
+  sellingPrice: number | null;
+  mrp: number | null;
+  isActive: boolean;
+}
+
+interface ProductSellerDetail {
+  id: string;
+  name: string | null;
+  address: string | null;
+  lat: number | null;
+  long: number | null;
+}
+
 const TRENDING_LIMIT = 15;
 const TRENDING_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images'];
 
 const SAFE_PRODUCT_ATTRIBUTES = [
   'id', 'sellerId', 'categoryId', 'name', 'description',
   'sellingPrice', 'mrp', 'stock', 'images', 'attributes',
-  'pickupAddress', 'pickupLat', 'pickupLong', 'isActive',
-  'createdAt', 'updatedAt',
+  'isActive', 'createdAt', 'updatedAt',
 ];
 
 const SELLER_LAT_SUBQUERY = '(SELECT lat FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id")';
@@ -61,23 +80,30 @@ export async function browseProducts(
   });
 }
 
-export async function getProductDetail(id: string): Promise<Product> {
+function toVariantDetail(variantRow: ProductVariant): ProductVariantDetail {
+  return {
+    id: variantRow.id,
+    productId: variantRow.productId,
+    attributes: variantRow.attributes,
+    images: variantRow.images,
+    stock: variantRow.stock,
+    sellingPrice: variantRow.sellingPrice,
+    mrp: variantRow.mrp,
+    isActive: variantRow.isActive,
+  };
+}
+
+export async function getProductDetail(
+  id: string,
+  variantId?: string,
+): Promise<{ product: Product; seller: ProductSellerDetail; variants: ProductVariantDetail[] }> {
   const product = await Product.findOne({
     attributes: SAFE_PRODUCT_ATTRIBUTES,
     where: { id, isActive: true },
     include: [
       {
         model: Category,
-        attributes: ['id', 'name', 'slug', 'attributeSchema'],
-      },
-      {
-        model: User,
-        as: 'seller',
-        attributes: [],
-        include: [{
-          model: SellerProfile,
-          attributes: ['businessName', 'address', 'lat', 'long'],
-        }],
+        attributes: ['id', 'name', 'attributeSchema'],
       },
     ],
   });
@@ -85,7 +111,65 @@ export async function getProductDetail(id: string): Promise<Product> {
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
-  return product;
+
+  if (product.category) {
+    const schema = (product.category.attributeSchema as AttributeField[] | undefined) ?? [];
+    product.category.attributeSchema = schema.filter(f => f.isVariant);
+  }
+
+  const sellerProfile = await SellerProfile.findOne({
+    where: { userId: product.sellerId },
+    attributes: ['businessName', 'address', 'lat', 'long'],
+  });
+
+  const seller: ProductSellerDetail = {
+    id: product.sellerId,
+    name: sellerProfile?.businessName ?? null,
+    address: sellerProfile?.address ?? null,
+    lat: sellerProfile?.lat ?? null,
+    long: sellerProfile?.long ?? null,
+  };
+
+  const hasVariants = (await ProductVariant.count({ where: { productId: id } })) > 0;
+
+  if (!hasVariants) {
+    if (variantId) {
+      throw Object.assign(new Error('Variant not found'), { status: 404 });
+    }
+    return {
+      product,
+      seller,
+      variants: [{
+        id: null,
+        productId: product.id,
+        attributes: {},
+        images: product.images,
+        stock: product.stock,
+        sellingPrice: product.sellingPrice,
+        mrp: product.mrp,
+        isActive: product.isActive,
+      }],
+    };
+  }
+
+  if (variantId) {
+    const variantRow = await ProductVariant.findOne({ where: { id: variantId, productId: id, isActive: true } });
+    if (!variantRow) {
+      throw Object.assign(new Error('Variant not found'), { status: 404 });
+    }
+    return { product, seller, variants: [toVariantDetail(variantRow)] };
+  }
+
+  const variantRows = await ProductVariant.findAll({
+    where: { productId: id, isActive: true },
+    order: [['createdAt', 'ASC']],
+  });
+
+  if (variantRows.length === 0) {
+    throw Object.assign(new Error('Variant not found'), { status: 404 });
+  }
+
+  return { product, seller, variants: variantRows.map(toVariantDetail) };
 }
 
 export async function getTrendingProducts(): Promise<Product[]> {

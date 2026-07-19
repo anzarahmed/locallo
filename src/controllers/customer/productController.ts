@@ -55,12 +55,16 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
-    const product = await productService.getProductDetail(String(req.params.id));
+    const variantId = req.query.variantId ? String(req.query.variantId) : undefined;
+    const { product, seller, variants } = await productService.getProductDetail(String(req.params.id), variantId);
     const isWishlisted = req.customer
       ? await wishlistService.isProductWishlisted(req.customer.id, product.id)
       : false;
-    const signed = await withSignedImages(product.toJSON() as Record<string, unknown>);
-    sendSuccess(res, { product: { ...signed, isWishlisted } }, 'Product fetched');
+    const [signedProduct, signedVariants] = await Promise.all([
+      withSignedImages(product.toJSON() as Record<string, unknown>),
+      Promise.all(variants.map(v => withSignedImages(v as unknown as Record<string, unknown>))),
+    ]);
+    sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted }, variants: signedVariants }, 'Product fetched');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Product not found');
   }
