@@ -1,6 +1,6 @@
 import * as Yup from 'yup';
 
-const MODULES = ['sellers', 'categories', 'products'] as const;
+const MODULES = ['sellers', 'categories', 'products', 'customers', 'brands'] as const;
 const ACTIONS = ['list', 'view', 'add', 'edit', 'delete'] as const;
 
 export const updateRolePermissionsSchema = Yup.object({

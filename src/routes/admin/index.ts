@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
 import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, uploadKycDocument, setKycVerification } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
+import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
 import {
   getProducts as getAdminProducts,
   getProduct  as getAdminProduct,
@@ -21,6 +22,7 @@ import { requireAdmin, requireSuperAdmin, requirePermission } from '../../middle
 import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
 import { createSellerSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
+import { createBrandSchema, updateBrandSchema } from '../../validation/admin/brandSchemas';
 import { requestMobileOtpSchema, verifyMobileOtpSchema } from '../../validation/admin/mobileVerificationSchemas';
 import { createSubAdminSchema, updateSubAdminSchema } from '../../validation/admin/subAdminSchemas';
 import { updateRolePermissionsSchema } from '../../validation/admin/rolePermissionSchemas';
@@ -70,6 +72,13 @@ router.post  ('/categories/icon',     requireAdmin, uploadIcon.single('icon'), u
 router.post  ('/categories',          requireAdmin, requirePermission('categories', 'add'),    validate(createCategorySchema), addCategory);
 router.put   ('/categories/:id',      requireAdmin, requirePermission('categories', 'edit'),   validate(updateCategorySchema), editCategory);
 router.delete('/categories/:id',      requireAdmin, requirePermission('categories', 'delete'), removeCategory);
+
+// Brands
+router.get   ('/brands',              requireAdmin, requirePermission('brands', 'list'),   getBrands);
+router.post  ('/brands/logo',         requireAdmin, uploadIcon.single('logo'), uploadBrandLogo);
+router.post  ('/brands',              requireAdmin, requirePermission('brands', 'add'),    validate(createBrandSchema), addBrand);
+router.put   ('/brands/:id',          requireAdmin, requirePermission('brands', 'edit'),   validate(updateBrandSchema), editBrand);
+router.delete('/brands/:id',          requireAdmin, requirePermission('brands', 'delete'), removeBrand);
 
 // Products
 router.get   ('/products',              requireAdmin, requirePermission('products', 'list'),   getAdminProducts);
