@@ -12,7 +12,7 @@ import {
   CreatedAt,
   UpdatedAt,
 } from 'sequelize-typescript';
-import type { UserRole } from '../types';
+import type { Gender, UserRole } from '../types';
 import { SellerProfile } from './SellerProfile';
 import { Product } from './Product';
 
@@ -38,6 +38,15 @@ export class User extends Model {
 
   @Column(DataType.TEXT)
   declare fullName: string | null;
+
+  @Column(DataType.TEXT)
+  declare email: string | null;
+
+  @Column(DataType.DATEONLY)
+  declare dateOfBirth: string | null;
+
+  @Column(DataType.ENUM('male', 'female', 'other'))
+  declare gender: Gender | null;
 
   @Column(DataType.TEXT)
   declare otpCode: string | null;

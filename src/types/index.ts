@@ -1,5 +1,6 @@
 export type AdminRole = 'super_admin' | 'manager' | 'operator';
 export type UserRole = 'CUSTOMER' | 'SELLER';
+export type Gender = 'male' | 'female' | 'other';
 export type ActorType = 'user' | 'admin';
 
 export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers';
