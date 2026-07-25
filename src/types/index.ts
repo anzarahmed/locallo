@@ -94,6 +94,7 @@ export interface ProductVariant {
   productId: string;
   attributes: Record<string, unknown>;
   images: string[];
+  thumbnails: string[];
   stock: number;
   sellingPrice: number | string | null;
   mrp: number | string | null;
@@ -113,6 +114,7 @@ export interface Product {
   costPrice: number | string | null;
   stock: number;
   images: string[];
+  thumbnails: string[];
   attributes: Record<string, unknown>;
   pickupAddress: string | null;
   pickupLat: number | string | null;

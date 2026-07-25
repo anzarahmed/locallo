@@ -219,7 +219,7 @@ export default function ProductList(): JSX.Element {
         return (
           <div className="flex items-center gap-3">
             {p.images.length > 0 ? (
-              <ThumbnailImage src={imgUrl(p.images[0])} alt={p.name} />
+              <ThumbnailImage src={imgUrl(p.thumbnails?.[0] ?? p.images[0])} alt={p.name} />
             ) : (
               <div className="w-10 h-10 rounded-lg bg-gray-100 shrink-0 flex items-center justify-center">
                 <Package className="w-4 h-4 text-gray-300" />
