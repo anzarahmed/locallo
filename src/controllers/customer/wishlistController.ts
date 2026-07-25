@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
-import { getPresignedUrl } from '../../utils/imageStorage';
+import { getPresignedUrl, toThumbnailKey } from '../../utils/imageStorage';
 import { parsePagination } from '../../utils/pagination';
 import * as wishlistService from '../../services/customer/wishlistService';
 
@@ -31,7 +31,7 @@ export async function getWishlist(req: Request, res: Response): Promise<void> {
     rows.map(async (p) => ({
       id: p.id,
       title: p.name,
-      image: p.images[0] ? await getPresignedUrl(p.images[0]) : null,
+      image: p.images[0] ? await getPresignedUrl(toThumbnailKey(p.images[0])) : null,
       mrp: p.mrp,
       sellingPrice: p.sellingPrice,
       rating: 0,

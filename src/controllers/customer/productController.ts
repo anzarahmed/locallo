@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
-import { withSignedImages, getPresignedUrl } from '../../utils/imageStorage';
+import { withSignedImages, getPresignedUrl, toThumbnailKey } from '../../utils/imageStorage';
 import * as productService from '../../services/customer/productService';
 import * as wishlistService from '../../services/customer/wishlistService';
 
@@ -39,7 +39,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
       const item: ProductListItem = {
         id: p.id,
         title: p.name,
-        image: p.images[0] ? await getPresignedUrl(p.images[0]) : null,
+        image: p.images[0] ? await getPresignedUrl(toThumbnailKey(p.images[0])) : null,
         mrp: p.mrp,
         sellingPrice: p.sellingPrice,
         rating: 0,
@@ -81,7 +81,7 @@ export async function getTrendingProducts(req: Request, res: Response): Promise<
     rows.map(async (p) => ({
       id: p.id,
       title: p.name,
-      image: p.images[0] ? await getPresignedUrl(p.images[0]) : null,
+      image: p.images[0] ? await getPresignedUrl(toThumbnailKey(p.images[0])) : null,
       mrp: p.mrp,
       sellingPrice: p.sellingPrice,
       rating: 0,

@@ -2,6 +2,8 @@ import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, Copy
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import path from 'path';
+import sharp from 'sharp';
+import type { Readable } from 'stream';
 
 const s3 = new S3Client({
   region: process.env.AWS_REGION!,
@@ -13,6 +15,7 @@ const s3 = new S3Client({
 
 const BUCKET = process.env.AWS_S3_BUCKET!;
 const SIGNED_URL_TTL = 60 * 60; // 1 hour
+const THUMBNAIL_SIZE = 300;
 
 export function resolveMimeType(buffer: Buffer, originalname: string, declaredMime: string): string {
   if (declaredMime !== 'application/octet-stream') return declaredMime;
@@ -85,9 +88,50 @@ export function normalizeImageKey(urlOrKey: string): string {
   return toKey(urlOrKey);
 }
 
-export async function withSignedImages<T extends Record<string, unknown>>(obj: T): Promise<T> {
+// Thumbnails always live next to their source key as `thumb_<name>.jpg`,
+// regardless of the source extension — the derivation is deterministic so no
+// DB column is needed to track it.
+export function toThumbnailKey(key: string): string {
+  const lastSlash = key.lastIndexOf('/');
+  const dir = key.slice(0, lastSlash + 1);
+  const filename = key.slice(lastSlash + 1);
+  const base = filename.includes('.') ? filename.slice(0, filename.lastIndexOf('.')) : filename;
+  return `${dir}thumb_${base}.jpg`;
+}
+
+async function streamToBuffer(stream: Readable): Promise<Buffer> {
+  const chunks: Buffer[] = [];
+  for await (const chunk of stream) {
+    chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+  }
+  return Buffer.concat(chunks);
+}
+
+async function createThumbnail(key: string): Promise<void> {
+  const { Body } = await s3.send(new GetObjectCommand({ Bucket: BUCKET, Key: key }));
+  const buffer = await streamToBuffer(Body as Readable);
+  const thumbnail = await sharp(buffer)
+    .resize(THUMBNAIL_SIZE, THUMBNAIL_SIZE, { fit: 'cover' })
+    .jpeg({ quality: 80 })
+    .toBuffer();
+
+  await s3.send(new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: toThumbnailKey(key),
+    Body: thumbnail,
+    ContentType: 'image/jpeg',
+  }));
+}
+
+export async function withSignedImages<T extends Record<string, unknown>>(
+  obj: T,
+): Promise<T & { thumbnails: string[] }> {
   const images = Array.isArray(obj.images) ? (obj.images as string[]) : [];
-  return { ...obj, images: await signImages(images) };
+  return {
+    ...obj,
+    images: await signImages(images),
+    thumbnails: await signImages(images.map(toThumbnailKey)),
+  };
 }
 
 export async function signModelRows(
@@ -111,6 +155,13 @@ export async function commitImage(tempKey: string): Promise<string> {
       CopySource: `${BUCKET}/${tempKey}`,
       Key: permanentKey,
     }));
+    try {
+      await createThumbnail(permanentKey);
+    } catch (thumbErr) {
+      // Thumbnail generation is best-effort — a resize failure must never block
+      // the product/variant save that's already committed the full-size image.
+      console.error(`Thumbnail generation failed for ${permanentKey}:`, thumbErr);
+    }
     await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: tempKey }));
   } catch (err: unknown) {
     // Group variant edits fire one update per variant in parallel with the same
