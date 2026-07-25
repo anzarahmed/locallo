@@ -1,9 +1,10 @@
 import type { Request, Response } from 'express';
-import { getCustomerProfile, updateCustomerProfile } from '../../services/customer/customerProfileService';
-import { sendSuccess, handleServiceError } from '../../utils/response';
+import { getCustomerProfile, updateCustomerProfile, uploadCustomerProfileImage } from '../../services/customer/customerProfileService';
+import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
+import { getPresignedUrlOrNull } from '../../utils/imageStorage';
 import type { User } from '../../models/User';
 
-function buildProfileResponse(user: User) {
+async function buildProfileResponse(user: User): Promise<Record<string, unknown>> {
   return {
     id: user.id,
     mobile: user.mobile,
@@ -12,6 +13,7 @@ function buildProfileResponse(user: User) {
     email: user.email,
     dateOfBirth: user.dateOfBirth,
     gender: user.gender,
+    profileImage: await getPresignedUrlOrNull(user.profileImage),
     isVerified: user.isVerified,
     isActive: user.isActive,
   };
@@ -20,7 +22,7 @@ function buildProfileResponse(user: User) {
 export async function getProfile(req: Request, res: Response): Promise<void> {
   try {
     const user = await getCustomerProfile(req.customer!.id);
-    sendSuccess(res, buildProfileResponse(user));
+    sendSuccess(res, await buildProfileResponse(user));
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
@@ -29,8 +31,21 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
 export async function updateProfile(req: Request, res: Response): Promise<void> {
   try {
     const user = await updateCustomerProfile(req.customer!.id, req.body);
-    sendSuccess(res, buildProfileResponse(user), 'Profile updated successfully');
+    sendSuccess(res, await buildProfileResponse(user), 'Profile updated successfully');
   } catch (err: unknown) {
     handleServiceError(err, res);
+  }
+}
+
+export async function uploadProfileImage(req: Request, res: Response): Promise<void> {
+  if (!req.file) {
+    sendError(res, 'No image file provided', 400);
+    return;
+  }
+  try {
+    const user = await uploadCustomerProfileImage(req.customer!.id, req.file);
+    sendSuccess(res, await buildProfileResponse(user), 'Profile image updated successfully');
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to upload profile image');
   }
 }

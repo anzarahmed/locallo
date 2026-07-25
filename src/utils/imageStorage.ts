@@ -65,6 +65,21 @@ export async function saveKycDocument(file: Express.Multer.File, sellerId: strin
   return key;
 }
 
+export async function saveCustomerProfileImage(file: Express.Multer.File, customerId: string): Promise<string> {
+  const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+  const key = `uploads/customers/${customerId}/${randomUUID()}${ext}`;
+  const contentType = resolveMimeType(file.buffer, file.originalname, file.mimetype);
+
+  await s3.send(new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    Body: file.buffer,
+    ContentType: contentType,
+  }));
+
+  return key;
+}
+
 export async function getPresignedUrl(keyOrUrl: string, expiresIn = SIGNED_URL_TTL): Promise<string> {
   return getSignedUrl(
     s3,

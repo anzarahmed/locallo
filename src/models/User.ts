@@ -49,6 +49,9 @@ export class User extends Model {
   declare gender: Gender | null;
 
   @Column(DataType.TEXT)
+  declare profileImage: string | null;
+
+  @Column(DataType.TEXT)
   declare otpCode: string | null;
 
   @Column(DataType.DATE)
