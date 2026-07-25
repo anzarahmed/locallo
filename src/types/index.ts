@@ -88,6 +88,7 @@ export interface Product {
   costPrice: number | null;
   stock: number;
   images: string[];
+  thumbnails: string[];
   isActive: boolean;
   categoryId: number;
   category?: SellerCategory;
@@ -152,6 +153,7 @@ export interface ProductVariant {
   productId: string;
   attributes: Record<string, unknown>;
   images: string[];
+  thumbnails: string[];
   stock: number;
   sellingPrice: number;
   mrp: number | null;

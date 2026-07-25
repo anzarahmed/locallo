@@ -348,7 +348,8 @@ interface ProductCardProps {
 
 function ProductCard({ product, loadingVariants, onEdit, onVariants, onToggle, onDelete, onPreview, onSell }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
-  const imageUrl = product.images?.[0] ? resolveImage(product.images[0]) : null;
+  const thumbnailSrc = product.thumbnails?.[0] ?? product.images?.[0];
+  const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-4">

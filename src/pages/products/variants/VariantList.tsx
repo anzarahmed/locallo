@@ -296,7 +296,8 @@ function GroupedVariantCard({
   group, schema, sdField, onToggle, onEdit, onEditGroup, onDelete, onSell,
 }: GroupedVariantCardProps): JSX.Element {
   const firstVariant = group.variants[0];
-  const imageUrl = firstVariant.images[0] ? resolveImage(firstVariant.images[0]) : null;
+  const thumbnailSrc = firstVariant.thumbnails?.[0] ?? firstVariant.images[0];
+  const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => { setImgError(false); }, [imageUrl]);
@@ -665,7 +666,8 @@ interface VariantCardProps {
 }
 
 function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell }: VariantCardProps): JSX.Element {
-  const imageUrl = variant.images[0] ? resolveImage(variant.images[0]) : null;
+  const thumbnailSrc = variant.thumbnails?.[0] ?? variant.images[0];
+  const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
   const [imgError, setImgError] = useState(false);
 
   useEffect(() => { setImgError(false); }, [imageUrl]);

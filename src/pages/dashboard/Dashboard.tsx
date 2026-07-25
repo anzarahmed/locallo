@@ -232,7 +232,8 @@ function StatCard({ icon, bgIcon, iconBg, accentClass, value, label, growth, sub
 
 /* ── Product row ── */
 function ProductRow({ product, rank }: { product: Product; rank: number }): JSX.Element {
-  const imageUrl = product.images?.[0] ? resolveImage(product.images[0]) : null;
+  const thumbnailSrc = product.thumbnails?.[0] ?? product.images?.[0];
+  const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
   const [imgError, setImgError] = useState(false);
 
   return (
