@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, CopyObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, CopyObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import path from 'path';
@@ -105,12 +105,23 @@ export async function deleteImage(urlOrKey: string): Promise<void> {
 
 export async function commitImage(tempKey: string): Promise<string> {
   const permanentKey = tempKey.replace('uploads/temp/', 'uploads/products/');
-  await s3.send(new CopyObjectCommand({
-    Bucket: BUCKET,
-    CopySource: `${BUCKET}/${tempKey}`,
-    Key: permanentKey,
-  }));
-  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: tempKey }));
+  try {
+    await s3.send(new CopyObjectCommand({
+      Bucket: BUCKET,
+      CopySource: `${BUCKET}/${tempKey}`,
+      Key: permanentKey,
+    }));
+    await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: tempKey }));
+  } catch (err: unknown) {
+    // Group variant edits fire one update per variant in parallel with the same
+    // temp image key — the first request's commit races the rest, which find the
+    // temp object already moved. Treat that as success if the destination exists.
+    if (err instanceof Error && err.name === 'NoSuchKey') {
+      await s3.send(new HeadObjectCommand({ Bucket: BUCKET, Key: permanentKey }));
+      return permanentKey;
+    }
+    throw err;
+  }
   return permanentKey;
 }
 
