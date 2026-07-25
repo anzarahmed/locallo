@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
-import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, uploadKycDocument, setKycVerification } from '../../controllers/seller/sellerController';
+import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, setKycVerification } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
 import {
@@ -20,7 +20,7 @@ import { validate } from '../../middleware/validate';
 import upload, { uploadIcon } from '../../middleware/upload';
 import { requireAdmin, requireSuperAdmin, requirePermission } from '../../middleware/auth';
 import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
-import { createSellerSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
+import { createSellerSchema, adminUpdateSellerSchema, updateSellerBrandsSchema } from '../../validation/seller/sellerSchemas';
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
 import { createBrandSchema, updateBrandSchema } from '../../validation/admin/brandSchemas';
 import { requestMobileOtpSchema, verifyMobileOtpSchema } from '../../validation/admin/mobileVerificationSchemas';
@@ -60,6 +60,7 @@ router.put   ('/sellers/:id',         requireAdmin, requirePermission('sellers',
 router.patch ('/sellers/:id/status',  requireAdmin, requirePermission('sellers', 'edit'),   patchSellerStatus);
 router.post  ('/sellers/:id/kyc/documents', requireAdmin, requirePermission('sellers', 'edit'), upload.single('document'), uploadKycDocument);
 router.patch ('/sellers/:id/kyc/verify',    requireAdmin, requirePermission('sellers', 'edit'), setKycVerification);
+router.patch ('/sellers/:id/brands',        requireAdmin, requireSuperAdmin, validate(updateSellerBrandsSchema), patchSellerBrands);
 
 // Customers
 router.get   ('/customers',           requireAdmin, requirePermission('customers', 'list'),   getCustomers);

@@ -1,8 +1,9 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, setSellerKycVerification } from '../../services/seller/sellerService';
+import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, setSellerKycVerification } from '../../services/seller/sellerService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import { Category } from '../../models/Category';
+import { Brand } from '../../models/Brand';
 import type { User } from '../../models/User';
 import type { SellerProfile } from '../../models/SellerProfile';
 import type { KycDocumentType, KycDocuments } from '../../types';
@@ -18,6 +19,7 @@ async function signKycDocuments(docs: KycDocuments): Promise<KycDocuments> {
 }
 
 interface CategoryObj { id: number; name: string; slug: string; attributeSchema: unknown[] }
+interface BrandObj { id: number; name: string; slug: string }
 
 async function resolveCats(ids: number[]): Promise<CategoryObj[]> {
   if (ids.length === 0) return [];
@@ -25,14 +27,20 @@ async function resolveCats(ids: number[]): Promise<CategoryObj[]> {
   return rows.map(c => ({ id: c.id, name: c.name, slug: c.slug, attributeSchema: c.attributeSchema ?? [] }));
 }
 
-function buildSellerResponse(user: User, profile: SellerProfile, categories: CategoryObj[]) {
+async function resolveBrands(ids: number[]): Promise<BrandObj[]> {
+  if (ids.length === 0) return [];
+  const rows = await Brand.findAll({ where: { id: ids }, attributes: ['id', 'name', 'slug'] });
+  return rows.map(b => ({ id: b.id, name: b.name, slug: b.slug }));
+}
+
+function buildSellerResponse(user: User, profile: SellerProfile, categories: CategoryObj[], brands: BrandObj[] = []) {
   return {
     id: user.id,
     mobile: user.mobile,
     countryCode: user.countryCode,
     fullName: user.fullName,
     isActive: user.isActive,
-    profile: { ...profile.toJSON(), categories },
+    profile: { ...profile.toJSON(), categories, brands },
   };
 }
 
@@ -107,9 +115,21 @@ export async function getSeller(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await getSellerById(req.params.id as string);
     const categories = await resolveCats(profile.categoryIds ?? []);
-    const response = buildSellerResponse(user, profile, categories);
+    const brands = await resolveBrands(profile.brandIds ?? []);
+    const response = buildSellerResponse(user, profile, categories, brands);
     response.profile.kycDocuments = await signKycDocuments(profile.kycDocuments);
     sendSuccess(res, response, 'Seller fetched');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function patchSellerBrands(req: Request, res: Response): Promise<void> {
+  try {
+    const brandIds = (req.body.brandIds as number[]) ?? [];
+    const profile = await updateSellerBrands(req.params.id as string, brandIds);
+    const brands = await resolveBrands(profile.brandIds ?? []);
+    sendSuccess(res, { id: req.params.id, brandIds: profile.brandIds, brands }, 'Brands updated');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
@@ -209,6 +229,10 @@ export async function getSellers(req: Request, res: Response): Promise<void> {
     const fetchedCats = await resolveCats(allCategoryIds);
     const categoryMap = new Map(fetchedCats.map(c => [c.id, c]));
 
+    const allBrandIds = [...new Set(sellers.flatMap(u => u.sellerProfile?.brandIds ?? []))];
+    const fetchedBrands = await resolveBrands(allBrandIds);
+    const brandMap = new Map(fetchedBrands.map(b => [b.id, b]));
+
     sendSuccess(
       res,
       {
@@ -217,6 +241,9 @@ export async function getSellers(req: Request, res: Response): Promise<void> {
           const categories = (user.sellerProfile?.categoryIds ?? [])
             .map(id => categoryMap.get(id))
             .filter((c): c is CategoryObj => c !== undefined);
+          const brands = (user.sellerProfile?.brandIds ?? [])
+            .map(id => brandMap.get(id))
+            .filter((b): b is BrandObj => b !== undefined);
           return {
             id: user.id,
             mobile: user.mobile,
@@ -226,7 +253,7 @@ export async function getSellers(req: Request, res: Response): Promise<void> {
             email: user.sellerProfile?.email ?? null,
             isActive: user.isActive,
             createdAt: user.createdAt,
-            profile: profileJson ? { ...profileJson, categories } : null,
+            profile: profileJson ? { ...profileJson, categories, brands } : null,
           };
         }),
         pagination: {

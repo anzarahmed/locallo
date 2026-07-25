@@ -289,6 +289,12 @@ export async function clearCustomDay(userId: string): Promise<void> {
   await profile.update({ customDayOverride: null });
 }
 
+export async function updateSellerBrands(id: string, brandIds: number[]): Promise<SellerProfile> {
+  const profile = await requireSellerProfile(id);
+  await profile.update({ brandIds });
+  return profile;
+}
+
 export async function toggleSellerStatus(id: string): Promise<User> {
   const user = await User.findOne({ where: { id, role: 'SELLER' } });
   if (!user) {

@@ -85,6 +85,11 @@ export class SellerProfile extends Model {
   @Column(DataType.JSONB)
   declare categoryIds: number[];
 
+  @Default([])
+  @AllowNull(false)
+  @Column(DataType.JSONB)
+  declare brandIds: number[];
+
   @Column(DataType.TEXT)
   declare bio: string | null;
 

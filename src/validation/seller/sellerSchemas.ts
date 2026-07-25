@@ -80,6 +80,10 @@ export const adminUpdateSellerSchema = Yup.object({
   }).nullable().default(null),
 });
 
+export const updateSellerBrandsSchema = Yup.object({
+  brandIds: Yup.array().of(Yup.number().integer().positive().required()).required('Brand IDs are required'),
+});
+
 export const createSellerSchema = Yup.object({
   mobile: Yup.string().required('Mobile number is required'),
   countryCode: Yup.string().default('+91'),
