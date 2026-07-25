@@ -5,6 +5,7 @@ import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments } from '../../types';
 import { saveKycDocument } from '../../utils/imageStorage';
+import { sendKycVerificationEmail } from '../../utils/mailer';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
 type CreateSellerInput       = InferType<typeof createSellerSchema>;
@@ -343,6 +344,12 @@ export async function setSellerKycVerification(
     await profile.update({ isVerified: true, verifiedBy: adminId, verifiedAt: new Date() });
   } else {
     await profile.update({ isVerified: false, verifiedBy: null, verifiedAt: null });
+  }
+
+  try {
+    await sendKycVerificationEmail(profile.email, profile.businessName, verified);
+  } catch (err: unknown) {
+    console.error('[setSellerKycVerification] failed to send notification email:', err);
   }
 
   return profile;

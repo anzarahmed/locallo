@@ -1,4 +1,5 @@
 import nodemailer from 'nodemailer';
+import { kycVerificationEmail } from './emailTemplates/kycVerificationEmail';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -26,5 +27,20 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
         <p style="color:#6b7280;font-size:13px">Or copy this link: ${resetUrl}</p>
       </div>
     `,
+  });
+}
+
+export async function sendKycVerificationEmail(
+  to: string,
+  businessName: string,
+  verified: boolean,
+): Promise<void> {
+  const { subject, html } = kycVerificationEmail(businessName, verified);
+
+  await transporter.sendMail({
+    from: `"Localo" <${process.env.GMAIL_USER}>`,
+    to,
+    subject,
+    html,
   });
 }
