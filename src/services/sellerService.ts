@@ -22,6 +22,8 @@ export interface SellerProfile {
   pincode: string | null;
   categoryIds: number[];
   categories: { id: number; name: string; slug: string }[];
+  brandIds: number[];
+  brands: { id: number; name: string; slug: string }[];
   bio: string | null;
   workingHours: WorkingHours | null;
   isVerified: boolean;
@@ -117,6 +119,16 @@ export function uploadKycDocument(id: string, documentType: KycDocumentType, fil
 
 export function setKycVerification(id: string, verified: boolean): Promise<{ isVerified: boolean; verifiedBy: string | null; verifiedAt: string | null }> {
   return apiPatch(PATHS.SELLERS.KYC_VERIFY(id), { verified });
+}
+
+export interface UpdateSellerBrandsResponse {
+  id: string;
+  brandIds: number[];
+  brands: { id: number; name: string; slug: string }[];
+}
+
+export function updateSellerBrands(id: string, brandIds: number[]): Promise<UpdateSellerBrandsResponse> {
+  return apiPatch<UpdateSellerBrandsResponse>(PATHS.SELLERS.BRANDS(id), { brandIds });
 }
 
 export function updateSeller(id: string, values: SellerFormValues): Promise<Seller> {

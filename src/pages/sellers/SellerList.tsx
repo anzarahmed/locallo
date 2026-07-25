@@ -1,11 +1,13 @@
 import { useState, useEffect, useMemo, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Power, Eye, Package, ShieldCheck, ShieldAlert } from 'lucide-react';
+import { Plus, Pencil, Trash2, Power, Eye, Package, ShieldCheck, ShieldAlert, Tags } from 'lucide-react';
 import { type ColumnDef, type Row, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import StatusBadge from '../../components/ui/StatusBadge';
+import ActionMenu, { type ActionMenuItem } from '../../components/ui/ActionMenu';
 import SellerDetail from './SellerDetail';
+import SellerBrandsModal from './SellerBrandsModal';
 import { getSellerList, toggleSellerStatus, type Seller } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
@@ -36,7 +38,8 @@ function KycBadge({ verified }: { verified: boolean }): JSX.Element {
 export default function SellerList(): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
-  const { hasPermission } = useAuth();
+  const { hasPermission, admin } = useAuth();
+  const isSuperAdmin = admin?.role === 'super_admin';
 
   const [sellers, setSellers]           = useState<Seller[]>([]);
   const [loading, setLoading]           = useState(true);
@@ -54,6 +57,7 @@ export default function SellerList(): JSX.Element {
   const [toggleId, setToggleId]   = useState<string | null>(null);
   const [toggling, setToggling]   = useState(false);
   const [viewId, setViewId]       = useState<string | null>(null);
+  const [brandsSellerId, setBrandsSellerId] = useState<string | null>(null);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -171,6 +175,15 @@ export default function SellerList(): JSX.Element {
                 ))}
               </div>
             )}
+            {s.profile?.brands && s.profile.brands.length > 0 && (
+              <div className="flex flex-wrap gap-1 mt-1">
+                {s.profile.brands.map(b => (
+                  <span key={b.id} className="inline-block px-2 py-0.5 text-xs bg-amber-50 text-amber-700 rounded-full font-medium">
+                    {b.name}
+                  </span>
+                ))}
+              </div>
+            )}
           </div>
         );
       },
@@ -225,9 +238,27 @@ export default function SellerList(): JSX.Element {
       header: 'Actions',
       enableSorting: false,
       enableColumnFilter: false,
-      meta: { hideFromVisibility: true, align: 'right' },
+      meta: { hideFromVisibility: true, align: 'right', className: 'w-24' },
       cell: ({ row }: { row: Row<Seller> }) => {
         const s = row.original;
+
+        const items: ActionMenuItem[] = [];
+        if (hasPermission('sellers', 'view')) {
+          items.push({ key: 'view', label: 'View details', icon: Eye, onClick: () => setViewId(s.id) });
+        }
+        if (hasPermission('sellers', 'edit')) {
+          items.push({ key: 'edit', label: 'Edit', icon: Pencil, onClick: () => navigate(`/sellers/${s.id}/edit`) });
+        }
+        if (hasPermission('products', 'list')) {
+          items.push({ key: 'products', label: 'View products', icon: Package, onClick: () => navigate(`/products?sellerId=${s.id}`) });
+        }
+        if (isSuperAdmin) {
+          items.push({ key: 'brands', label: 'Associate brands', icon: Tags, onClick: () => setBrandsSellerId(s.id) });
+        }
+        if (hasPermission('sellers', 'delete')) {
+          items.push({ key: 'delete', label: 'Delete', icon: Trash2, onClick: () => setDeleteId(s.id), variant: 'danger' });
+        }
+
         return (
           <div className="flex items-center justify-end gap-2">
             {hasPermission('sellers', 'edit') && (
@@ -236,51 +267,15 @@ export default function SellerList(): JSX.Element {
                 onToggle={() => { if (!toggling) setToggleId(s.id); }}
               />
             )}
-            <div className="w-px h-4 bg-gray-200" />
-            {hasPermission('sellers', 'view') && (
-              <button
-                onClick={() => setViewId(s.id)}
-                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-                title="View details"
-              >
-                <Eye className="w-4 h-4" />
-              </button>
-            )}
-            {hasPermission('sellers', 'edit') && (
-              <button
-                onClick={() => { navigate(`/sellers/${s.id}/edit`); }}
-                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-                title="Edit"
-              >
-                <Pencil className="w-4 h-4" />
-              </button>
-            )}
-            {hasPermission('products', 'list') && (
-              <button
-                onClick={() => { navigate(`/products?sellerId=${s.id}`); }}
-                className="p-1.5 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-md transition-colors"
-                title="View products"
-              >
-                <Package className="w-4 h-4" />
-              </button>
-            )}
-            {hasPermission('sellers', 'delete') && (
-              <button
-                onClick={() => setDeleteId(s.id)}
-                className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-md transition-colors"
-                title="Delete"
-              >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            )}
+            <ActionMenu items={items} />
           </div>
         );
       },
     },
   ].filter(col => {
     if (!('id' in col) || col.id !== 'actions') return true;
-    return hasPermission('sellers', 'edit') || hasPermission('sellers', 'view') || hasPermission('sellers', 'delete') || hasPermission('products', 'list');
-  }) as ColumnDef<Seller, unknown>[], [navigate, toggling, hasPermission]);
+    return hasPermission('sellers', 'edit') || hasPermission('sellers', 'view') || hasPermission('sellers', 'delete') || hasPermission('products', 'list') || isSuperAdmin;
+  }) as ColumnDef<Seller, unknown>[], [navigate, toggling, hasPermission, isSuperAdmin]);
 
   if (error) {
     return <div className="p-8 text-center text-sm text-red-600">{error}</div>;
@@ -363,6 +358,25 @@ export default function SellerList(): JSX.Element {
           }}
         />
       )}
+
+      {brandsSellerId !== null && (() => {
+        const seller = sellers.find(s => s.id === brandsSellerId);
+        if (!seller) return null;
+        return (
+          <SellerBrandsModal
+            sellerId={seller.id}
+            sellerName={seller.businessName || seller.fullName || 'This seller'}
+            currentBrandIds={seller.profile?.brandIds ?? []}
+            onClose={() => setBrandsSellerId(null)}
+            onSaved={(brandIds, brands) => {
+              setSellers(list => list.map(s => s.id === seller.id && s.profile
+                ? { ...s, profile: { ...s.profile, brandIds, brands } }
+                : s));
+              setBrandsSellerId(null);
+            }}
+          />
+        );
+      })()}
 
       {deleteId !== null && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
