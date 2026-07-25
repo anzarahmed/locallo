@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Users,
   Tag,
+  Tags,
   Package,
   LogOut,
   ChevronLeft,
@@ -29,6 +30,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/sellers',    icon: Users,            label: 'Sellers',    permission: { module: 'sellers',    action: 'list' } },
   { to: '/products',   icon: Package,          label: 'Products',   permission: { module: 'products',   action: 'list' } },
   { to: '/categories', icon: Tag,              label: 'Categories', permission: { module: 'categories', action: 'list' } },
+  { to: '/brands',     icon: Tags,             label: 'Brands',     permission: { module: 'brands',     action: 'list' } },
   { to: '/customers',  icon: UserRound,        label: 'Customers',  permission: { module: 'customers',  action: 'list' } },
 ];
 

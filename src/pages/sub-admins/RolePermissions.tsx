@@ -8,6 +8,7 @@ import type { PermissionModule, PermissionAction, PermissionMap } from '../../ty
 const MODULES: { key: PermissionModule; label: string }[] = [
   { key: 'sellers',    label: 'Sellers'    },
   { key: 'categories', label: 'Categories' },
+  { key: 'brands',     label: 'Brands'     },
   { key: 'products',   label: 'Products'   },
   { key: 'customers',  label: 'Customers'  },
 ];
