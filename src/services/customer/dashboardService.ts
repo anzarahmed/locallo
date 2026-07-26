@@ -1,4 +1,8 @@
+import { Op } from 'sequelize';
 import { Category } from '../../models/Category';
+import { Banner } from '../../models/Banner';
+import { Brand } from '../../models/Brand';
+import { getPresignedUrlOrNull } from '../../utils/imageStorage';
 
 export interface DashboardBanner {
   id: number;
@@ -6,13 +10,6 @@ export interface DashboardBanner {
   title: string;
   link: string;
 }
-
-// Static until super_admin banner management (CRUD + S3 upload) is built.
-const STATIC_BANNERS: DashboardBanner[] = [
-  { id: 1, imageUrl: 'https://picsum.photos/seed/localo-banner-1/1200/400', title: 'Big Summer Sale', link: '' },
-  { id: 2, imageUrl: 'https://picsum.photos/seed/localo-banner-2/1200/400', title: 'New Arrivals', link: '' },
-  { id: 3, imageUrl: 'https://picsum.photos/seed/localo-banner-3/1200/400', title: 'Shop Local', link: '' },
-];
 
 export async function getDashboardCategories(): Promise<Category[]> {
   return Category.findAll({
@@ -22,6 +19,22 @@ export async function getDashboardCategories(): Promise<Category[]> {
   });
 }
 
-export function getDashboardBanners(): DashboardBanner[] {
-  return STATIC_BANNERS;
+export async function getDashboardBanners(): Promise<DashboardBanner[]> {
+  const today = new Date().toISOString().slice(0, 10);
+  const rows = await Banner.findAll({
+    where: {
+      isActive: true,
+      startDate: { [Op.lte]: today },
+      endDate: { [Op.gte]: today },
+    },
+    include: [{ model: Brand, attributes: ['id', 'slug'] }],
+    order: [['startDate', 'ASC']],
+  });
+
+  return Promise.all(rows.map(async (banner) => ({
+    id: banner.id,
+    imageUrl: (await getPresignedUrlOrNull(banner.image)) ?? '',
+    title: banner.title ?? '',
+    link: `/products?brand_id=${banner.brand.id}`,
+  })));
 }

@@ -7,6 +7,7 @@ import type { AttributeField } from '../../types';
 
 interface BrowseFilter {
   categoryId?: number;
+  brandId?: number;
   search?: string;
   lat?: number;
   lng?: number;
@@ -60,6 +61,16 @@ export async function browseProducts(
 
   if (filters.categoryId !== undefined) where.categoryId = filters.categoryId;
   if (filters.search)                   where.name       = { [Op.iLike]: `%${filters.search}%` };
+
+  if (filters.brandId !== undefined) {
+    const sellerProfiles = await SellerProfile.findAll({
+      where: { brandIds: { [Op.contains]: [filters.brandId] } },
+      attributes: ['userId'],
+    });
+    const sellerIds = sellerProfiles.map(p => p.userId);
+    if (sellerIds.length === 0) return { rows: [], count: 0 };
+    where.sellerId = { [Op.in]: sellerIds };
+  }
 
   const hasLocation = filters.lat !== undefined && filters.lng !== undefined;
 

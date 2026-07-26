@@ -16,7 +16,7 @@ export async function getDashboard(_req: Request, res: Response): Promise<void> 
     title: c.name,
     icon: (await getPresignedUrlOrNull(c.icon)) ?? '',
   })));
-  const banners = getDashboardBanners();
+  const banners = await getDashboardBanners();
 
   sendSuccess(res, { banners, categories, offers: [] }, 'Dashboard data fetched');
 }

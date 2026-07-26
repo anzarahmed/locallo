@@ -3,6 +3,7 @@ import { login, forgotPassword, resetPassword } from '../../controllers/admin/ad
 import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, setKycVerification } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
+import { getBanners, addBanner, editBanner, removeBanner, uploadBannerImage } from '../../controllers/admin/bannerController';
 import {
   getProducts as getAdminProducts,
   getProduct  as getAdminProduct,
@@ -23,6 +24,7 @@ import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../
 import { createSellerSchema, adminUpdateSellerSchema, updateSellerBrandsSchema } from '../../validation/seller/sellerSchemas';
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
 import { createBrandSchema, updateBrandSchema } from '../../validation/admin/brandSchemas';
+import { createBannerSchema, updateBannerSchema } from '../../validation/admin/bannerSchemas';
 import { requestMobileOtpSchema, verifyMobileOtpSchema } from '../../validation/admin/mobileVerificationSchemas';
 import { createSubAdminSchema, updateSubAdminSchema } from '../../validation/admin/subAdminSchemas';
 import { updateRolePermissionsSchema } from '../../validation/admin/rolePermissionSchemas';
@@ -80,6 +82,13 @@ router.post  ('/brands/logo',         requireAdmin, uploadIcon.single('logo'), u
 router.post  ('/brands',              requireAdmin, requirePermission('brands', 'add'),    validate(createBrandSchema), addBrand);
 router.put   ('/brands/:id',          requireAdmin, requirePermission('brands', 'edit'),   validate(updateBrandSchema), editBrand);
 router.delete('/brands/:id',          requireAdmin, requirePermission('brands', 'delete'), removeBrand);
+
+// Banners
+router.get   ('/banners',             requireAdmin, requirePermission('banners', 'list'),   getBanners);
+router.post  ('/banners/image',       requireAdmin, upload.single('image'), uploadBannerImage);
+router.post  ('/banners',             requireAdmin, requirePermission('banners', 'add'),    validate(createBannerSchema), addBanner);
+router.put   ('/banners/:id',         requireAdmin, requirePermission('banners', 'edit'),   validate(updateBannerSchema), editBanner);
+router.delete('/banners/:id',         requireAdmin, requirePermission('banners', 'delete'), removeBanner);
 
 // Products
 router.get   ('/products',              requireAdmin, requirePermission('products', 'list'),   getAdminProducts);
