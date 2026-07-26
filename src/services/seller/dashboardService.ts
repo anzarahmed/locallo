@@ -8,8 +8,8 @@ export interface DashboardStats {
   wishlistGrowthPercent: number;
   totalProducts: number;
   productsAddedThisWeek: number;
-  interestRate: number;
-  interestRateGrowthPercent: number;
+  avgRating: number;
+  reviewCount: number;
 }
 
 export async function getSellerDashboardStats(sellerId: string): Promise<DashboardStats> {
@@ -27,7 +27,7 @@ export async function getSellerDashboardStats(sellerId: string): Promise<Dashboa
     wishlistGrowthPercent: 0,
     totalProducts,
     productsAddedThisWeek,
-    interestRate: 0,
-    interestRateGrowthPercent: 0,
+    avgRating: 0,
+    reviewCount: 0,
   };
 }
