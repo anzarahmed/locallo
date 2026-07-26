@@ -9,6 +9,7 @@ const MODULES: { key: PermissionModule; label: string }[] = [
   { key: 'sellers',    label: 'Sellers'    },
   { key: 'categories', label: 'Categories' },
   { key: 'brands',     label: 'Brands'     },
+  { key: 'banners',    label: 'Banners'    },
   { key: 'products',   label: 'Products'   },
   { key: 'customers',  label: 'Customers'  },
 ];

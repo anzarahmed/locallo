@@ -6,6 +6,7 @@ import {
   Tag,
   Tags,
   Package,
+  Image,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -31,6 +32,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/products',   icon: Package,          label: 'Products',   permission: { module: 'products',   action: 'list' } },
   { to: '/categories', icon: Tag,              label: 'Categories', permission: { module: 'categories', action: 'list' } },
   { to: '/brands',     icon: Tags,             label: 'Brands',     permission: { module: 'brands',     action: 'list' } },
+  { to: '/banners',    icon: Image,            label: 'Banners',    permission: { module: 'banners',    action: 'list' } },
   { to: '/customers',  icon: UserRound,        label: 'Customers',  permission: { module: 'customers',  action: 'list' } },
 ];
 

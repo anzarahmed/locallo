@@ -46,6 +46,17 @@ export interface Brand {
   logo?: string | null;
 }
 
+export interface Banner {
+  readonly id: number;
+  brandId: number;
+  brand?: { id: number; name: string; slug: string };
+  image: string;
+  title: string | null;
+  startDate: string;
+  endDate: string;
+  isActive: boolean;
+}
+
 export interface Admin {
   readonly id: string;
   readonly email: string;
