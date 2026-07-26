@@ -133,8 +133,8 @@ export interface DashboardStats {
   wishlistGrowthPercent: number;
   totalProducts: number;
   productsAddedThisWeek: number;
-  interestRate: number;
-  interestRateGrowthPercent: number;
+  avgRating: number;
+  reviewCount: number;
 }
 
 export interface CustomDayTime {

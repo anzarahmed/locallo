@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, TrendingUp, Heart, BarChart2, Eye } from 'lucide-react';
+import { Package, Star, Heart, BarChart2, Eye } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { getProfile, getProducts, getDashboardStats } from '../../services/sellerService';
@@ -120,14 +120,15 @@ export default function Dashboard(): JSX.Element {
             sublabel="this week"
           />
           <StatCard
-            icon={<TrendingUp size={20} className="text-amber-500" />}
-            bgIcon={<TrendingUp size={88} className="text-amber-400" />}
+            icon={<Star size={20} className="text-amber-500" />}
+            bgIcon={<Star size={88} className="text-amber-400" />}
             iconBg="bg-amber-50"
             accentClass="bg-amber-400"
-            value={loading || !stats ? null : stats.interestRate.toFixed(1) + '%'}
-            label="Interest Rate"
-            growth={stats ? fmtGrowthPercent(stats.interestRateGrowthPercent) : '+0%'}
-            sublabel="this month"
+            value={loading || !stats ? null : stats.avgRating.toFixed(1)}
+            label="Shop Rating"
+            growth={stats ? `${stats.reviewCount} reviews` : '0 reviews'}
+            growthNeutral
+            sublabel="out of 5.0"
           />
         </div>
 
@@ -179,12 +180,23 @@ interface StatCardProps {
   value: string | null;
   label: string;
   growth: string;
+  growthNeutral?: boolean;
   sublabel: string;
 }
 
-function StatCard({ icon, bgIcon, iconBg, accentClass, value, label, growth, sublabel }: StatCardProps): JSX.Element {
-  const isPositive = growth.startsWith('+') && growth !== '+0' && growth !== '+0%';
-  const isZero = growth === '+0' || growth === '+0%';
+function StatCard({
+  icon,
+  bgIcon,
+  iconBg,
+  accentClass,
+  value,
+  label,
+  growth,
+  growthNeutral,
+  sublabel,
+}: StatCardProps): JSX.Element {
+  const isPositive = !growthNeutral && growth.startsWith('+') && growth !== '+0' && growth !== '+0%';
+  const isZero = growthNeutral || growth === '+0' || growth === '+0%';
 
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden relative">
