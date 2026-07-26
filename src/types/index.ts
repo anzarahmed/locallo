@@ -1,5 +1,5 @@
 export type AdminRole = 'super_admin' | 'manager' | 'operator';
-export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands';
+export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands' | 'banners';
 export type PermissionAction = 'list' | 'view' | 'add' | 'edit' | 'delete';
 export type PermissionMap = Partial<Record<PermissionModule, PermissionAction[]>>;
 export type SellerStatus = 'active' | 'inactive' | 'pending';
