@@ -4,6 +4,7 @@ import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, p
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
 import { getBanners, addBanner, editBanner, removeBanner, uploadBannerImage } from '../../controllers/admin/bannerController';
+import { getFaqs, addFaq, editFaq, removeFaq } from '../../controllers/admin/faqController';
 import {
   getProducts as getAdminProducts,
   getProduct  as getAdminProduct,
@@ -25,6 +26,7 @@ import { createSellerSchema, adminUpdateSellerSchema, updateSellerBrandsSchema }
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
 import { createBrandSchema, updateBrandSchema } from '../../validation/admin/brandSchemas';
 import { createBannerSchema, updateBannerSchema } from '../../validation/admin/bannerSchemas';
+import { createFaqSchema, updateFaqSchema } from '../../validation/admin/faqSchemas';
 import { requestMobileOtpSchema, verifyMobileOtpSchema } from '../../validation/admin/mobileVerificationSchemas';
 import { createSubAdminSchema, updateSubAdminSchema } from '../../validation/admin/subAdminSchemas';
 import { updateRolePermissionsSchema } from '../../validation/admin/rolePermissionSchemas';
@@ -89,6 +91,12 @@ router.post  ('/banners/image',       requireAdmin, upload.single('image'), uplo
 router.post  ('/banners',             requireAdmin, requirePermission('banners', 'add'),    validate(createBannerSchema), addBanner);
 router.put   ('/banners/:id',         requireAdmin, requirePermission('banners', 'edit'),   validate(updateBannerSchema), editBanner);
 router.delete('/banners/:id',         requireAdmin, requirePermission('banners', 'delete'), removeBanner);
+
+// FAQs
+router.get   ('/faqs',                requireAdmin, requirePermission('faqs', 'list'),   getFaqs);
+router.post  ('/faqs',                requireAdmin, requirePermission('faqs', 'add'),    validate(createFaqSchema), addFaq);
+router.put   ('/faqs/:id',            requireAdmin, requirePermission('faqs', 'edit'),   validate(updateFaqSchema), editFaq);
+router.delete('/faqs/:id',            requireAdmin, requirePermission('faqs', 'delete'), removeFaq);
 
 // Products
 router.get   ('/products',              requireAdmin, requirePermission('products', 'list'),   getAdminProducts);

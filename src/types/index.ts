@@ -3,7 +3,7 @@ export type UserRole = 'CUSTOMER' | 'SELLER';
 export type Gender = 'male' | 'female' | 'other';
 export type ActorType = 'user' | 'admin';
 
-export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands' | 'banners';
+export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands' | 'banners' | 'faqs';
 export type PermissionAction = 'list' | 'view' | 'add' | 'edit' | 'delete';
 export type PermissionMap = Partial<Record<PermissionModule, PermissionAction[]>>;
 
