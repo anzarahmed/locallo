@@ -1,12 +1,19 @@
 import type { Request, Response } from 'express';
 import { sendSuccess } from '../../utils/response';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
-import { getDashboardCategories, getDashboardBanners } from '../../services/customer/dashboardService';
+import { getDashboardCategories, getDashboardBanners, getDashboardBrands } from '../../services/customer/dashboardService';
 
 interface DashboardCategory {
   id: number;
   title: string;
   icon: string;
+}
+
+interface DashboardBrand {
+  id: number;
+  name: string;
+  slug: string;
+  logo: string;
 }
 
 export async function getDashboard(_req: Request, res: Response): Promise<void> {
@@ -18,5 +25,13 @@ export async function getDashboard(_req: Request, res: Response): Promise<void> 
   })));
   const banners = await getDashboardBanners();
 
-  sendSuccess(res, { banners, categories, offers: [] }, 'Dashboard data fetched');
+  const brandRows = await getDashboardBrands();
+  const brands: DashboardBrand[] = await Promise.all(brandRows.map(async (b) => ({
+    id: b.id,
+    name: b.name,
+    slug: b.slug,
+    logo: (await getPresignedUrlOrNull(b.logo)) ?? '',
+  })));
+
+  sendSuccess(res, { banners, categories, brands, offers: [] }, 'Dashboard data fetched');
 }

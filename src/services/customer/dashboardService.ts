@@ -20,6 +20,14 @@ export async function getDashboardCategories(): Promise<Category[]> {
   });
 }
 
+export async function getDashboardBrands(): Promise<Brand[]> {
+  return Brand.findAll({
+    attributes: ['id', 'name', 'slug', 'logo'],
+    where: { isActive: true },
+    order: [['name', 'ASC']],
+  });
+}
+
 export async function getDashboardBanners(): Promise<DashboardBanner[]> {
   const today = new Date().toISOString().slice(0, 10);
   const rows = await Banner.findAll({
