@@ -4,6 +4,7 @@ import { getProfile, updateProfile, uploadProfileImage } from '../../controllers
 import { getProducts, getProduct, getTrendingProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
 import { getDashboard } from '../../controllers/customer/dashboardController';
+import { getNotifications, markNotificationRead } from '../../controllers/customer/notificationController';
 import { requireCustomer, optionalCustomer } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import upload from '../../middleware/upload';
@@ -27,5 +28,8 @@ router.get('/products/:id',      optionalCustomer, getProduct);
 
 router.get('/wishlist',                 requireCustomer, getWishlist);
 router.post('/wishlist/:productId',     requireCustomer, toggleWishlist);
+
+router.get('/notifications',           requireCustomer, getNotifications);
+router.patch('/notifications/:id/read', requireCustomer, markNotificationRead);
 
 export default router;
