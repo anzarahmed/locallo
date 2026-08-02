@@ -7,6 +7,7 @@ import {
   Tags,
   Package,
   Image,
+  HelpCircle,
   LogOut,
   ChevronLeft,
   ChevronRight,
@@ -33,6 +34,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/categories', icon: Tag,              label: 'Categories', permission: { module: 'categories', action: 'list' } },
   { to: '/brands',     icon: Tags,             label: 'Brands',     permission: { module: 'brands',     action: 'list' } },
   { to: '/banners',    icon: Image,            label: 'Banners',    permission: { module: 'banners',    action: 'list' } },
+  { to: '/faqs',       icon: HelpCircle,       label: 'FAQs',       permission: { module: 'faqs',       action: 'list' } },
   { to: '/customers',  icon: UserRound,        label: 'Customers',  permission: { module: 'customers',  action: 'list' } },
 ];
 

@@ -23,6 +23,10 @@ export const PATHS = {
     BY_ID:  (id: number) => `/api/admins/brands/${id}`,
     LOGO:   '/api/admins/brands/logo',
   },
+  FAQS: {
+    LIST:   '/api/admins/faqs',
+    BY_ID:  (id: number) => `/api/admins/faqs/${id}`,
+  },
   BANNERS: {
     LIST:   '/api/admins/banners',
     BY_ID:  (id: number) => `/api/admins/banners/${id}`,
