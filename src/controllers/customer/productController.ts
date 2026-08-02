@@ -16,13 +16,14 @@ interface ProductListItem {
 }
 
 export async function getProducts(req: Request, res: Response): Promise<void> {
-  const { page, limit, searchQuery, searchByLocation, category_id: categoryId, brand_id: brandId } = req.body;
+  const { page, limit, searchQuery, searchByLocation, category_id: categoryId, brand_id: brandId, shop_id: shopId } = req.body;
 
   const hasLocation = searchByLocation !== undefined;
   const { rows, count } = await productService.browseProducts(
     {
       categoryId,
       brandId,
+      sellerId: shopId,
       search: searchQuery || undefined,
       lat: searchByLocation?.lat,
       lng: searchByLocation?.lng,

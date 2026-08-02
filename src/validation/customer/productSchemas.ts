@@ -14,4 +14,7 @@ export const searchProductsSchema = Yup.object({
   brand_id: Yup.number()
     .integer()
     .transform((value, originalValue) => (originalValue === '' ? undefined : value)),
+  shop_id: Yup.string()
+    .uuid()
+    .transform((value, originalValue) => (originalValue === '' ? undefined : value)),
 });

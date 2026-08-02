@@ -8,6 +8,7 @@ import type { AttributeField } from '../../types';
 interface BrowseFilter {
   categoryId?: number;
   brandId?: number;
+  sellerId?: string;
   search?: string;
   lat?: number;
   lng?: number;
@@ -60,6 +61,7 @@ export async function browseProducts(
   const where: Record<string, unknown> = { isActive: true };
 
   if (filters.categoryId !== undefined) where.categoryId = filters.categoryId;
+  if (filters.sellerId !== undefined)   where.sellerId   = filters.sellerId;
   if (filters.search)                   where.name       = { [Op.iLike]: `%${filters.search}%` };
 
   if (filters.brandId !== undefined) {
