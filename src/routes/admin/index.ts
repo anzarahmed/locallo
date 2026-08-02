@@ -5,6 +5,7 @@ import { getCategories, addCategory, editCategory, removeCategory, uploadCategor
 import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
 import { getBanners, addBanner, editBanner, removeBanner, uploadBannerImage } from '../../controllers/admin/bannerController';
 import { getFaqs, addFaq, editFaq, removeFaq } from '../../controllers/admin/faqController';
+import { getCmsPages, addCmsPage, editCmsPage, removeCmsPage } from '../../controllers/admin/cmsPageController';
 import {
   getProducts as getAdminProducts,
   getProduct  as getAdminProduct,
@@ -27,6 +28,7 @@ import { createCategorySchema, updateCategorySchema } from '../../validation/adm
 import { createBrandSchema, updateBrandSchema } from '../../validation/admin/brandSchemas';
 import { createBannerSchema, updateBannerSchema } from '../../validation/admin/bannerSchemas';
 import { createFaqSchema, updateFaqSchema } from '../../validation/admin/faqSchemas';
+import { createCmsPageSchema, updateCmsPageSchema } from '../../validation/admin/cmsPageSchemas';
 import { requestMobileOtpSchema, verifyMobileOtpSchema } from '../../validation/admin/mobileVerificationSchemas';
 import { createSubAdminSchema, updateSubAdminSchema } from '../../validation/admin/subAdminSchemas';
 import { updateRolePermissionsSchema } from '../../validation/admin/rolePermissionSchemas';
@@ -97,6 +99,12 @@ router.get   ('/faqs',                requireAdmin, requirePermission('faqs', 'l
 router.post  ('/faqs',                requireAdmin, requirePermission('faqs', 'add'),    validate(createFaqSchema), addFaq);
 router.put   ('/faqs/:id',            requireAdmin, requirePermission('faqs', 'edit'),   validate(updateFaqSchema), editFaq);
 router.delete('/faqs/:id',            requireAdmin, requirePermission('faqs', 'delete'), removeFaq);
+
+// CMS Pages
+router.get   ('/cms-pages',           requireAdmin, requirePermission('cmsPages', 'list'),   getCmsPages);
+router.post  ('/cms-pages',           requireAdmin, requirePermission('cmsPages', 'add'),    validate(createCmsPageSchema), addCmsPage);
+router.put   ('/cms-pages/:id',       requireAdmin, requirePermission('cmsPages', 'edit'),   validate(updateCmsPageSchema), editCmsPage);
+router.delete('/cms-pages/:id',       requireAdmin, requirePermission('cmsPages', 'delete'), removeCmsPage);
 
 // Products
 router.get   ('/products',              requireAdmin, requirePermission('products', 'list'),   getAdminProducts);
