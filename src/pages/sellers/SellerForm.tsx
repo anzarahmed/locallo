@@ -4,13 +4,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, MapPin, Building2, Phone, FileText, Clock,
   UserPlus, Store, AlertCircle, Copy, Clipboard, CheckCircle,
-  ShieldCheck, Upload, ExternalLink, X,
+  ShieldCheck, Upload, Camera, ExternalLink, X,
 } from 'lucide-react';
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
 import SelectField from '../../components/ui/SelectField';
 import MultiComboboxField from '../../components/ui/MultiComboboxField';
 import OtpVerificationModal from '../../components/ui/OtpVerificationModal';
+import CameraCaptureModal from '../../components/ui/CameraCaptureModal';
 import * as sellerService from '../../services/sellerService';
 import type { Seller } from '../../services/sellerService';
 import { getCategories } from '../../services/categoryService';
@@ -197,10 +198,11 @@ interface KycDocRowProps {
   onPick: () => void;
   onSelect: (e: ChangeEvent<HTMLInputElement>) => void;
   onClear: () => void;
+  onCapture: () => void;
 }
 
 function KycDocRow({
-  label, existingUrl, stagedFile, disabled, inputRef, onPick, onSelect, onClear,
+  label, existingUrl, stagedFile, disabled, inputRef, onPick, onSelect, onClear, onCapture,
 }: KycDocRowProps): JSX.Element {
   return (
     <div className="flex items-center justify-between gap-3 bg-white border border-gray-100 rounded-lg px-3 py-2">
@@ -244,6 +246,12 @@ function KycDocRow({
           </button>
         )}
         <button
+          type="button" disabled={disabled} onClick={onCapture} title="Capture with camera"
+          className="p-1.5 text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors"
+        >
+          <Camera className="w-3.5 h-3.5" />
+        </button>
+        <button
           type="button" disabled={disabled} onClick={onPick}
           className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors"
         >
@@ -272,6 +280,7 @@ export default function SellerForm(): JSX.Element {
   const [otpModalOpen, setOtpModalOpen] = useState<boolean>(false);
   const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
   const [kycFiles, setKycFiles] = useState<Partial<Record<KycDocumentType, File>>>({});
+  const [captureFor, setCaptureFor] = useState<KycDocumentType | null>(null);
   const kycFileInputRefs = useRef<Record<KycDocumentType, HTMLInputElement | null>>({
     aadhar: null, pan: null, registrationCertificate: null, other: null,
   });
@@ -313,11 +322,15 @@ export default function SellerForm(): JSX.Element {
     };
   }, [seller]);
 
+  function stageKycFile(documentType: KycDocumentType, file: File): void {
+    setKycFiles(prev => ({ ...prev, [documentType]: file }));
+  }
+
   function handleKycFileSelect(documentType: KycDocumentType, e: ChangeEvent<HTMLInputElement>): void {
     const file = e.target.files?.[0];
     e.target.value = '';
     if (!file) return;
-    setKycFiles(prev => ({ ...prev, [documentType]: file }));
+    stageKycFile(documentType, file);
   }
 
   function handleKycFileClear(documentType: KycDocumentType): void {
@@ -630,10 +643,21 @@ export default function SellerForm(): JSX.Element {
                     onPick={(): void => kycFileInputRefs.current[type]?.click()}
                     onSelect={(e): void => { handleKycFileSelect(type, e); }}
                     onClear={(): void => { handleKycFileClear(type); }}
+                    onCapture={(): void => { setCaptureFor(type); }}
                   />
                 ))}
               </div>
             </SectionCard>
+
+            <CameraCaptureModal
+              isOpen={captureFor !== null}
+              title={`Capture ${KYC_DOCS.find(d => d.type === captureFor)?.label ?? 'Document'}`}
+              onCapture={(file): void => {
+                if (captureFor) stageKycFile(captureFor, file);
+                setCaptureFor(null);
+              }}
+              onClose={(): void => { setCaptureFor(null); }}
+            />
 
             <SectionCard
               icon={<FileText className="w-3.5 h-3.5 text-indigo-600" />}

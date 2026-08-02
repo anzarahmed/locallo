@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   X, Phone, Mail, MapPin, Store, Clock,
   Pencil, ToggleLeft, ToggleRight, Loader2,
-  ShieldCheck, ShieldAlert, Upload, ExternalLink,
+  ShieldCheck, ShieldAlert, Upload, Camera, ExternalLink,
 } from 'lucide-react';
 import { getSellerById, toggleSellerStatus, uploadKycDocument, setKycVerification, type Seller } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
@@ -11,6 +11,7 @@ import type { WorkingHours, KycDocumentType } from '../../types';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { getInitials, getAvatarColor } from '../../lib/avatar';
 import { KYC_DOCS } from '../../lib/constants';
+import CameraCaptureModal from '../../components/ui/CameraCaptureModal';
 
 function KycStatusBadge({ verified }: { verified: boolean }): JSX.Element {
   const colors = verified
@@ -91,6 +92,7 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
   const [toggling, setToggling] = useState(false);
   const [uploadingType, setUploadingType] = useState<KycDocumentType | null>(null);
   const [verifying, setVerifying] = useState(false);
+  const [captureFor, setCaptureFor] = useState<KycDocumentType | null>(null);
   const fileInputRefs = useRef<Record<KycDocumentType, HTMLInputElement | null>>({
     aadhar: null,
     pan: null,
@@ -122,10 +124,8 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
     }
   }
 
-  async function handleKycUpload(documentType: KycDocumentType, e: ChangeEvent<HTMLInputElement>): Promise<void> {
-    const file = e.target.files?.[0];
-    e.target.value = '';
-    if (!file || !seller?.profile) return;
+  async function uploadKycFile(documentType: KycDocumentType, file: File): Promise<void> {
+    if (!seller?.profile) return;
     setUploadingType(documentType);
     try {
       const { kycDocuments } = await uploadKycDocument(seller.id, documentType, file);
@@ -136,6 +136,13 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
     } finally {
       setUploadingType(null);
     }
+  }
+
+  async function handleKycUpload(documentType: KycDocumentType, e: ChangeEvent<HTMLInputElement>): Promise<void> {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    await uploadKycFile(documentType, file);
   }
 
   async function handleKycVerify(verified: boolean): Promise<void> {
@@ -297,7 +304,7 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
                                 )}
                               </div>
                             </div>
-                            <div className="shrink-0">
+                            <div className="flex items-center gap-1.5 shrink-0">
                               <input
                                 ref={(el) => { fileInputRefs.current[type] = el; }}
                                 type="file"
@@ -305,6 +312,15 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
                                 className="hidden"
                                 onChange={(e): void => { void handleKycUpload(type, e); }}
                               />
+                              <button
+                                type="button"
+                                disabled={isUploading}
+                                onClick={(): void => { setCaptureFor(type); }}
+                                title="Capture with camera"
+                                className="p-1.5 text-gray-500 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors"
+                              >
+                                <Camera className="w-3.5 h-3.5" />
+                              </button>
                               <button
                                 type="button"
                                 disabled={isUploading}
@@ -399,6 +415,16 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
         </div>
 
       </div>
+
+      <CameraCaptureModal
+        isOpen={captureFor !== null}
+        title={`Capture ${KYC_DOCS.find(d => d.type === captureFor)?.label ?? 'Document'}`}
+        onCapture={(file): void => {
+          if (captureFor) void uploadKycFile(captureFor, file);
+          setCaptureFor(null);
+        }}
+        onClose={(): void => { setCaptureFor(null); }}
+      />
     </div>
   );
 }
