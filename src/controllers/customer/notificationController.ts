@@ -41,3 +41,12 @@ export async function markNotificationRead(req: Request, res: Response): Promise
     handleServiceError(err, res, 'Notification not found');
   }
 }
+
+export async function deleteNotification(req: Request, res: Response): Promise<void> {
+  try {
+    await notificationService.deleteNotification(req.customer!.id, String(req.params.id));
+    sendSuccess(res, null, 'Notification deleted');
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Notification not found');
+  }
+}

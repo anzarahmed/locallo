@@ -28,3 +28,12 @@ export async function markNotificationRead(customerId: string, id: string): Prom
 
   return notification;
 }
+
+export async function deleteNotification(customerId: string, id: string): Promise<void> {
+  const notification = await Notification.findOne({ where: { id, customerId } });
+  if (!notification) {
+    throw Object.assign(new Error('Notification not found'), { status: 404 });
+  }
+
+  await notification.destroy();
+}
