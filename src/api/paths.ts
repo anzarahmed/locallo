@@ -27,6 +27,10 @@ export const PATHS = {
     LIST:   '/api/admins/faqs',
     BY_ID:  (id: number) => `/api/admins/faqs/${id}`,
   },
+  CMS_PAGES: {
+    LIST:   '/api/admins/cms-pages',
+    BY_ID:  (id: number) => `/api/admins/cms-pages/${id}`,
+  },
   BANNERS: {
     LIST:   '/api/admins/banners',
     BY_ID:  (id: number) => `/api/admins/banners/${id}`,

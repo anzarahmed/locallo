@@ -1,5 +1,5 @@
 export type AdminRole = 'super_admin' | 'manager' | 'operator';
-export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands' | 'banners' | 'faqs';
+export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands' | 'banners' | 'faqs' | 'cmsPages';
 export type PermissionAction = 'list' | 'view' | 'add' | 'edit' | 'delete';
 export type PermissionMap = Partial<Record<PermissionModule, PermissionAction[]>>;
 export type SellerStatus = 'active' | 'inactive' | 'pending';
@@ -50,6 +50,14 @@ export interface Faq {
   readonly id: number;
   question: string;
   answer: string;
+  isActive: boolean;
+}
+
+export interface CmsPage {
+  readonly id: number;
+  title: string;
+  slug: string;
+  content: string;
   isActive: boolean;
 }
 
