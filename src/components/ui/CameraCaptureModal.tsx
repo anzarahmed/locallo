@@ -25,6 +25,11 @@ export default function CameraCaptureModal({
     setIsStarting(true);
 
     let cancelled = false;
+    if (!navigator.mediaDevices?.getUserMedia) {
+      setError('Camera access requires a secure (HTTPS) connection. Please use file upload instead.');
+      setIsStarting(false);
+      return;
+    }
     navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } })
       .then((stream) => {
         if (cancelled) {
