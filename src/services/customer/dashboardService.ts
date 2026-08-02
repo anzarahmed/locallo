@@ -8,7 +8,8 @@ export interface DashboardBanner {
   id: number;
   imageUrl: string;
   title: string;
-  link: string;
+  dataId: number;
+  type: 'BRAND';
 }
 
 export async function getDashboardCategories(): Promise<Category[]> {
@@ -35,6 +36,7 @@ export async function getDashboardBanners(): Promise<DashboardBanner[]> {
     id: banner.id,
     imageUrl: (await getPresignedUrlOrNull(banner.image)) ?? '',
     title: banner.title ?? '',
-    link: `/products?brand_id=${banner.brand.id}`,
+    dataId: banner.brand.id,
+    type: 'BRAND',
   })));
 }
