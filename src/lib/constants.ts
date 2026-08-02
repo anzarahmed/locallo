@@ -1,3 +1,5 @@
+import type { KycDocumentType } from '../types';
+
 export const DEFAULT_PAGE_SIZE = 5;
 export const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100] as const;
 
@@ -29,3 +31,10 @@ export const ROLE_BADGE_CLASSES: Record<string, string> = {
   manager:  'bg-indigo-100 text-indigo-700',
   operator: 'bg-violet-100 text-violet-700',
 };
+
+export const KYC_DOCS: { type: KycDocumentType; label: string; required: boolean }[] = [
+  { type: 'aadhar',                  label: 'Aadhar Card',              required: true },
+  { type: 'pan',                     label: 'PAN Card',                 required: true },
+  { type: 'registrationCertificate', label: 'Registration Certificate', required: false },
+  { type: 'other',                   label: 'Other Document',           required: false },
+];

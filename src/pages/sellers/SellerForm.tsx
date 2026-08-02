@@ -1,9 +1,10 @@
-import { lazy, Suspense, useState, useEffect, useMemo, type JSX } from 'react';
+import { lazy, Suspense, useState, useEffect, useMemo, useRef, type JSX, type ChangeEvent } from 'react';
 const LocationPicker = lazy(() => import('../../components/LocationPicker'));
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, MapPin, Building2, Phone, FileText, Clock,
   UserPlus, Store, AlertCircle, Copy, Clipboard, CheckCircle,
+  ShieldCheck, Upload, ExternalLink, X,
 } from 'lucide-react';
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
@@ -14,7 +15,8 @@ import * as sellerService from '../../services/sellerService';
 import type { Seller } from '../../services/sellerService';
 import { getCategories } from '../../services/categoryService';
 import { requestMobileOtp } from '../../services/mobileVerificationService';
-import type { Category } from '../../types';
+import type { Category, KycDocumentType } from '../../types';
+import { KYC_DOCS } from '../../lib/constants';
 import { ApiError } from '../../lib/axios';
 import { useToast } from '../../hooks/useToast';
 import {
@@ -184,6 +186,75 @@ function SectionCard({ icon, title, required, hint, children }: SectionCardProps
   );
 }
 
+// ── KycDocRow ──────────────────────────────────────────────────────────────────
+
+interface KycDocRowProps {
+  label: string;
+  existingUrl: string | null;
+  stagedFile: File | undefined;
+  disabled: boolean;
+  inputRef: (el: HTMLInputElement | null) => void;
+  onPick: () => void;
+  onSelect: (e: ChangeEvent<HTMLInputElement>) => void;
+  onClear: () => void;
+}
+
+function KycDocRow({
+  label, existingUrl, stagedFile, disabled, inputRef, onPick, onSelect, onClear,
+}: KycDocRowProps): JSX.Element {
+  return (
+    <div className="flex items-center justify-between gap-3 bg-white border border-gray-100 rounded-lg px-3 py-2">
+      <div className="flex items-center gap-2.5 min-w-0">
+        {stagedFile ? (
+          <div className="w-9 h-9 rounded-md bg-indigo-50 border border-indigo-100 flex items-center justify-center shrink-0">
+            <FileText className="w-4 h-4 text-indigo-500" />
+          </div>
+        ) : existingUrl ? (
+          <img src={existingUrl} alt={label} className="w-9 h-9 rounded-md object-cover border border-gray-200 shrink-0" />
+        ) : (
+          <div className="w-9 h-9 rounded-md bg-gray-100 border border-gray-200 shrink-0" />
+        )}
+        <div className="min-w-0">
+          <p className="text-xs font-medium text-gray-700 truncate">{label}</p>
+          {stagedFile ? (
+            <p className="text-xs text-indigo-600 truncate">{stagedFile.name} · pending save</p>
+          ) : existingUrl ? (
+            <a href={existingUrl} target="_blank" rel="noreferrer" className="text-xs text-indigo-600 hover:underline inline-flex items-center gap-1">
+              View <ExternalLink className="w-3 h-3" />
+            </a>
+          ) : (
+            <p className="text-xs text-gray-400">Not uploaded</p>
+          )}
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <input
+          ref={inputRef}
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          className="hidden"
+          onChange={onSelect}
+        />
+        {stagedFile && (
+          <button
+            type="button" onClick={onClear} disabled={disabled} title="Remove selected file"
+            className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors"
+          >
+            <X className="w-3.5 h-3.5" />
+          </button>
+        )}
+        <button
+          type="button" disabled={disabled} onClick={onPick}
+          className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          {stagedFile || existingUrl ? 'Replace' : 'Upload'}
+        </button>
+      </div>
+    </div>
+  );
+}
+
 // ── SellerForm ─────────────────────────────────────────────────────────────────
 
 export default function SellerForm(): JSX.Element {
@@ -200,6 +271,10 @@ export default function SellerForm(): JSX.Element {
   const [mobileVerified, setMobileVerified] = useState<boolean>(false);
   const [otpModalOpen, setOtpModalOpen] = useState<boolean>(false);
   const [isSendingOtp, setIsSendingOtp] = useState<boolean>(false);
+  const [kycFiles, setKycFiles] = useState<Partial<Record<KycDocumentType, File>>>({});
+  const kycFileInputRefs = useRef<Record<KycDocumentType, HTMLInputElement | null>>({
+    aadhar: null, pan: null, registrationCertificate: null, other: null,
+  });
 
   useEffect((): void => {
     getCategories().then(setCategories).catch((): void => {});
@@ -238,6 +313,21 @@ export default function SellerForm(): JSX.Element {
     };
   }, [seller]);
 
+  function handleKycFileSelect(documentType: KycDocumentType, e: ChangeEvent<HTMLInputElement>): void {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setKycFiles(prev => ({ ...prev, [documentType]: file }));
+  }
+
+  function handleKycFileClear(documentType: KycDocumentType): void {
+    setKycFiles(prev => {
+      const next = { ...prev };
+      delete next[documentType];
+      return next;
+    });
+  }
+
   async function handleSubmit(
     values: SellerFormValues,
     { setSubmitting, setStatus }: FormikHelpers<SellerFormValues>,
@@ -248,11 +338,26 @@ export default function SellerForm(): JSX.Element {
       return;
     }
     try {
+      let sellerId: string;
       if (isEdit && id) {
         await sellerService.updateSeller(id, values);
+        sellerId = id;
       } else {
-        await sellerService.createSeller(values);
+        const created = await sellerService.createSeller(values);
+        sellerId = created.id;
       }
+
+      const pending = Object.entries(kycFiles) as [KycDocumentType, File][];
+      if (pending.length > 0) {
+        const results = await Promise.allSettled(
+          pending.map(([type, file]) => sellerService.uploadKycDocument(sellerId, type, file)),
+        );
+        const failedCount = results.filter(r => r.status === 'rejected').length;
+        if (failedCount > 0) {
+          toast.error(`Seller saved, but ${failedCount} document${failedCount > 1 ? 's' : ''} failed to upload. Retry from Edit Seller.`);
+        }
+      }
+
       toast.success(isEdit ? 'Seller updated' : 'Seller added');
       navigate('/sellers');
     } catch (err: unknown) {
@@ -507,6 +612,28 @@ export default function SellerForm(): JSX.Element {
               onVerified={(): void => { setMobileVerified(true); }}
               onClose={(): void => { setOtpModalOpen(false); }}
             />
+
+            <SectionCard
+              icon={<ShieldCheck className="w-3.5 h-3.5 text-indigo-600" />}
+              title="Verification Documents"
+              hint="Optional — upload now, or later from Edit Seller"
+            >
+              <div className="space-y-2">
+                {KYC_DOCS.map(({ type, label }) => (
+                  <KycDocRow
+                    key={type}
+                    label={label}
+                    existingUrl={seller?.profile?.kycDocuments?.[type] ?? null}
+                    stagedFile={kycFiles[type]}
+                    disabled={f.isSubmitting}
+                    inputRef={(el): void => { kycFileInputRefs.current[type] = el; }}
+                    onPick={(): void => kycFileInputRefs.current[type]?.click()}
+                    onSelect={(e): void => { handleKycFileSelect(type, e); }}
+                    onClear={(): void => { handleKycFileClear(type); }}
+                  />
+                ))}
+              </div>
+            </SectionCard>
 
             <SectionCard
               icon={<FileText className="w-3.5 h-3.5 text-indigo-600" />}

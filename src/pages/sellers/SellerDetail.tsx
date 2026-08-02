@@ -10,13 +10,7 @@ import { useToast } from '../../hooks/useToast';
 import type { WorkingHours, KycDocumentType } from '../../types';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { getInitials, getAvatarColor } from '../../lib/avatar';
-
-const KYC_DOCS: { type: KycDocumentType; label: string; required: boolean }[] = [
-  { type: 'aadhar',                  label: 'Aadhar Card',              required: true },
-  { type: 'pan',                     label: 'PAN Card',                 required: true },
-  { type: 'registrationCertificate', label: 'Registration Certificate', required: false },
-  { type: 'other',                   label: 'Other Document',           required: false },
-];
+import { KYC_DOCS } from '../../lib/constants';
 
 function KycStatusBadge({ verified }: { verified: boolean }): JSX.Element {
   const colors = verified
