@@ -4,7 +4,7 @@ import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments } from '../../types';
-import { saveKycDocument } from '../../utils/imageStorage';
+import { saveKycDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
 import { sendKycVerificationEmail } from '../../utils/mailer';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
@@ -31,6 +31,8 @@ export async function createSeller(
       throw Object.assign(new Error('Mobile number already registered'), { status: 409 });
     }
 
+    const photo = await commitSellerPhoto(normalizeImageKey(data.photo));
+
     const user = await User.create(
       {
         mobile: data.mobile,
@@ -39,6 +41,7 @@ export async function createSeller(
         role: 'SELLER',
         isVerified: false,
         isActive: true,
+        profileImage: photo,
       },
       { transaction: t },
     );
@@ -219,10 +222,17 @@ export async function adminUpdateSeller(
       }
     }
 
+    const previousPhoto = user.profileImage;
+    const newPhoto = await commitSellerPhoto(normalizeImageKey(data.photo));
+
     await user.update(
-      { mobile: data.mobile, countryCode: data.countryCode, fullName: data.fullName ?? null },
+      { mobile: data.mobile, countryCode: data.countryCode, fullName: data.fullName ?? null, profileImage: newPhoto },
       { transaction: t },
     );
+
+    if (previousPhoto && previousPhoto !== newPhoto) {
+      await deleteImage(previousPhoto).catch(() => {});
+    }
 
     await profile.update(
       {

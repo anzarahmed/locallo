@@ -7,7 +7,7 @@ import { Brand } from '../../models/Brand';
 import type { User } from '../../models/User';
 import type { SellerProfile } from '../../models/SellerProfile';
 import type { KycDocumentType, KycDocuments } from '../../types';
-import { getPresignedUrl } from '../../utils/imageStorage';
+import { saveImage, getPresignedUrl, getPresignedUrlOrNull } from '../../utils/imageStorage';
 
 const KYC_DOCUMENT_TYPES: KycDocumentType[] = ['aadhar', 'pan', 'registrationCertificate', 'other'];
 
@@ -33,15 +33,30 @@ async function resolveBrands(ids: number[]): Promise<BrandObj[]> {
   return rows.map(b => ({ id: b.id, name: b.name, slug: b.slug }));
 }
 
-function buildSellerResponse(user: User, profile: SellerProfile, categories: CategoryObj[], brands: BrandObj[] = []) {
+async function buildSellerResponse(user: User, profile: SellerProfile, categories: CategoryObj[], brands: BrandObj[] = []) {
   return {
     id: user.id,
     mobile: user.mobile,
     countryCode: user.countryCode,
     fullName: user.fullName,
+    photo: await getPresignedUrlOrNull(user.profileImage),
     isActive: user.isActive,
     profile: { ...profile.toJSON(), categories, brands },
   };
+}
+
+export async function uploadSellerPhoto(req: Request, res: Response): Promise<void> {
+  if (!req.file) {
+    sendError(res, 'No photo file provided', 400);
+    return;
+  }
+  try {
+    const key = await saveImage(req.file, 'sellers');
+    const url = await getPresignedUrl(key);
+    sendSuccess(res, { url }, 'Photo uploaded', 201);
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to upload photo');
+  }
 }
 
 export async function getProfile(req: Request, res: Response): Promise<void> {
@@ -76,7 +91,7 @@ export async function addSeller(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await createSeller(req.body, req.admin!.id);
     const categories = await resolveCats(profile.categoryIds ?? []);
-    sendSuccess(res, buildSellerResponse(user, profile, categories), 'Seller created', 201);
+    sendSuccess(res, await buildSellerResponse(user, profile, categories), 'Seller created', 201);
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
@@ -86,7 +101,7 @@ export async function updateSeller(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await updateSellerProfile(req.seller!.id, req.body);
     const categories = await resolveCats(profile.categoryIds ?? []);
-    sendSuccess(res, buildSellerResponse(user, profile, categories), 'Profile updated');
+    sendSuccess(res, await buildSellerResponse(user, profile, categories), 'Profile updated');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
@@ -105,7 +120,7 @@ export async function adminEditSeller(req: Request, res: Response): Promise<void
   try {
     const { user, profile } = await adminUpdateSeller(req.params.id as string, req.body);
     const categories = await resolveCats(profile.categoryIds ?? []);
-    sendSuccess(res, buildSellerResponse(user, profile, categories), 'Seller updated');
+    sendSuccess(res, await buildSellerResponse(user, profile, categories), 'Seller updated');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
@@ -116,7 +131,7 @@ export async function getSeller(req: Request, res: Response): Promise<void> {
     const { user, profile } = await getSellerById(req.params.id as string);
     const categories = await resolveCats(profile.categoryIds ?? []);
     const brands = await resolveBrands(profile.brandIds ?? []);
-    const response = buildSellerResponse(user, profile, categories, brands);
+    const response = await buildSellerResponse(user, profile, categories, brands);
     response.profile.kycDocuments = await signKycDocuments(profile.kycDocuments);
     sendSuccess(res, response, 'Seller fetched');
   } catch (err: unknown) {
@@ -233,29 +248,32 @@ export async function getSellers(req: Request, res: Response): Promise<void> {
     const fetchedBrands = await resolveBrands(allBrandIds);
     const brandMap = new Map(fetchedBrands.map(b => [b.id, b]));
 
+    const sellerRows = await Promise.all(sellers.map(async (user) => {
+      const profileJson = user.sellerProfile ? user.sellerProfile.toJSON() : null;
+      const categories = (user.sellerProfile?.categoryIds ?? [])
+        .map(id => categoryMap.get(id))
+        .filter((c): c is CategoryObj => c !== undefined);
+      const brands = (user.sellerProfile?.brandIds ?? [])
+        .map(id => brandMap.get(id))
+        .filter((b): b is BrandObj => b !== undefined);
+      return {
+        id: user.id,
+        mobile: user.mobile,
+        countryCode: user.countryCode,
+        fullName: user.fullName,
+        photo: await getPresignedUrlOrNull(user.profileImage),
+        businessName: user.sellerProfile?.businessName ?? null,
+        email: user.sellerProfile?.email ?? null,
+        isActive: user.isActive,
+        createdAt: user.createdAt,
+        profile: profileJson ? { ...profileJson, categories, brands } : null,
+      };
+    }));
+
     sendSuccess(
       res,
       {
-        sellers: sellers.map((user) => {
-          const profileJson = user.sellerProfile ? user.sellerProfile.toJSON() : null;
-          const categories = (user.sellerProfile?.categoryIds ?? [])
-            .map(id => categoryMap.get(id))
-            .filter((c): c is CategoryObj => c !== undefined);
-          const brands = (user.sellerProfile?.brandIds ?? [])
-            .map(id => brandMap.get(id))
-            .filter((b): b is BrandObj => b !== undefined);
-          return {
-            id: user.id,
-            mobile: user.mobile,
-            countryCode: user.countryCode,
-            fullName: user.fullName,
-            businessName: user.sellerProfile?.businessName ?? null,
-            email: user.sellerProfile?.email ?? null,
-            isActive: user.isActive,
-            createdAt: user.createdAt,
-            profile: profileJson ? { ...profileJson, categories, brands } : null,
-          };
-        }),
+        sellers: sellerRows,
         pagination: {
           total,
           page,

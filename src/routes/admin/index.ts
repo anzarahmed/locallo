@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
-import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, setKycVerification } from '../../controllers/seller/sellerController';
+import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, uploadSellerPhoto, setKycVerification } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
 import { getBanners, addBanner, editBanner, removeBanner, uploadBannerImage } from '../../controllers/admin/bannerController';
@@ -59,6 +59,7 @@ router.get('/roles/:role/permissions', requireAdmin, requireSuperAdmin, fetchRol
 router.put('/roles/:role/permissions', requireAdmin, requireSuperAdmin, validate(updateRolePermissionsSchema), saveRolePermissions);
 
 // Sellers
+router.post  ('/sellers/photo',       requireAdmin, upload.single('photo'), uploadSellerPhoto);
 router.post  ('/sellers',             requireAdmin, requirePermission('sellers', 'add'),    validate(createSellerSchema),     addSeller);
 router.get   ('/sellers',             requireAdmin, requirePermission('sellers', 'list'),   getSellers);
 router.get   ('/sellers/:id',         requireAdmin, requirePermission('sellers', 'view'),   getSeller);
