@@ -44,6 +44,9 @@ const SAFE_PRODUCT_ATTRIBUTES = [
 
 const SELLER_LAT_SUBQUERY = '(SELECT lat FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id")';
 const SELLER_LONG_SUBQUERY = '(SELECT long FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id")';
+const SELLER_VERIFIED_CONDITION = literal(
+  'EXISTS (SELECT 1 FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id" AND seller_profiles.is_verified = true)',
+);
 
 function distanceExpression(lat: number, lng: number): ReturnType<typeof literal> {
   return literal(
@@ -58,7 +61,7 @@ export async function browseProducts(
   page: number,
   limit: number,
 ): Promise<{ rows: Product[]; count: number }> {
-  const where: Record<string, unknown> = { isActive: true };
+  const where: Record<string, unknown> = { isActive: true, [Op.and]: [SELLER_VERIFIED_CONDITION] };
 
   if (filters.categoryId !== undefined) where.categoryId = filters.categoryId;
   if (filters.sellerId !== undefined)   where.sellerId   = filters.sellerId;
@@ -188,7 +191,7 @@ export async function getProductDetail(
 export async function getTrendingProducts(): Promise<Product[]> {
   return Product.findAll({
     attributes: TRENDING_ATTRIBUTES,
-    where: { isActive: true },
+    where: { isActive: true, [Op.and]: [SELLER_VERIFIED_CONDITION] },
     order: [['createdAt', 'DESC']],
     limit: TRENDING_LIMIT,
   });
