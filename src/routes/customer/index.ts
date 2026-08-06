@@ -3,7 +3,7 @@ import { requestOtp, verifyOtp } from '../../controllers/customer/customerAuthCo
 import { getProfile, updateProfile, uploadProfileImage } from '../../controllers/customer/customerProfileController';
 import { getProducts, getProduct, getTrendingProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
-import { addReview } from '../../controllers/customer/reviewController';
+import { addReview, getReviews } from '../../controllers/customer/reviewController';
 import { getDashboard } from '../../controllers/customer/dashboardController';
 import { getCmsPage } from '../../controllers/customer/cmsPageController';
 import { getFaqs } from '../../controllers/customer/faqController';
@@ -36,6 +36,7 @@ router.get('/products/:id',      optionalCustomer, getProduct);
 router.get('/wishlist',                 requireCustomer, getWishlist);
 router.post('/wishlist/:productId',     requireCustomer, toggleWishlist);
 
+router.get('/reviews',  getReviews);
 router.post('/reviews', requireCustomer, validate(createReviewSchema), addReview);
 
 router.get('/notifications',           requireCustomer, getNotifications);
