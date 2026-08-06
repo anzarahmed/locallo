@@ -5,6 +5,7 @@ import { getProducts, getProduct, getTrendingProducts } from '../../controllers/
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
 import { getDashboard } from '../../controllers/customer/dashboardController';
 import { getCmsPage } from '../../controllers/customer/cmsPageController';
+import { getFaqs } from '../../controllers/customer/faqController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/customer/notificationController';
 import { requireCustomer, optionalCustomer } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
@@ -19,6 +20,7 @@ router.post('/auth/request-otp', validate(requestOtpSchema), requestOtp);
 router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
 
 router.get('/cms-pages/:slug', getCmsPage);
+router.get('/faqs', getFaqs);
 
 router.get('/profile',       requireCustomer, getProfile);
 router.put('/profile',       requireCustomer, validate(updateCustomerProfileSchema), updateProfile);
