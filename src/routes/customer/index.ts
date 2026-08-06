@@ -3,6 +3,7 @@ import { requestOtp, verifyOtp } from '../../controllers/customer/customerAuthCo
 import { getProfile, updateProfile, uploadProfileImage } from '../../controllers/customer/customerProfileController';
 import { getProducts, getProduct, getTrendingProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
+import { addReview } from '../../controllers/customer/reviewController';
 import { getDashboard } from '../../controllers/customer/dashboardController';
 import { getCmsPage } from '../../controllers/customer/cmsPageController';
 import { getFaqs } from '../../controllers/customer/faqController';
@@ -13,6 +14,7 @@ import upload from '../../middleware/upload';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/customer/customerAuthSchemas';
 import { updateCustomerProfileSchema } from '../../validation/customer/customerProfileSchemas';
 import { searchProductsSchema } from '../../validation/customer/productSchemas';
+import { createReviewSchema } from '../../validation/customer/reviewSchemas';
 
 const router = Router();
 
@@ -33,6 +35,8 @@ router.get('/products/:id',      optionalCustomer, getProduct);
 
 router.get('/wishlist',                 requireCustomer, getWishlist);
 router.post('/wishlist/:productId',     requireCustomer, toggleWishlist);
+
+router.post('/reviews', requireCustomer, validate(createReviewSchema), addReview);
 
 router.get('/notifications',           requireCustomer, getNotifications);
 router.patch('/notifications/:id/read', requireCustomer, markNotificationRead);
