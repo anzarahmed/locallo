@@ -4,7 +4,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Loader2, MapPin, Building2, Phone, FileText, Clock,
   UserPlus, Store, AlertCircle, Copy, Clipboard, CheckCircle,
-  ShieldCheck, Upload, Camera, ExternalLink, X,
+  ShieldCheck, Upload, Camera, ExternalLink, X, UserCircle,
 } from 'lucide-react';
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
 import AuthField from '../../components/ui/AuthField';
@@ -187,6 +187,109 @@ function SectionCard({ icon, title, required, hint, children }: SectionCardProps
   );
 }
 
+// ── SellerPhotoField ───────────────────────────────────────────────────────────
+
+interface SellerPhotoFieldProps {
+  value: string;
+  touched: boolean;
+  error?: string;
+  disabled: boolean;
+  onChange: (url: string) => void;
+  onBlur: () => void;
+}
+
+function SellerPhotoField({ value, touched, error, disabled, onChange, onBlur }: SellerPhotoFieldProps): JSX.Element {
+  const toast = useToast();
+  const [uploading, setUploading] = useState(false);
+  const [captureOpen, setCaptureOpen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  async function upload(file: File): Promise<void> {
+    setUploading(true);
+    try {
+      const { url } = await sellerService.uploadSellerPhoto(file);
+      onChange(url);
+    } catch (err: unknown) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to upload photo');
+    } finally {
+      setUploading(false);
+      onBlur();
+    }
+  }
+
+  function handleFileChange(e: ChangeEvent<HTMLInputElement>): void {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    void upload(file);
+  }
+
+  return (
+    <div>
+      <div className="flex items-center gap-4">
+        <div className="relative w-20 h-20 rounded-full overflow-hidden bg-gray-100 border border-gray-200 shrink-0 flex items-center justify-center">
+          {value ? (
+            <img src={value} alt="Seller photo" className="w-full h-full object-cover" />
+          ) : (
+            <UserCircle className="w-10 h-10 text-gray-300" />
+          )}
+          {uploading && (
+            <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
+              <Loader2 className="w-5 h-5 text-white animate-spin" />
+            </div>
+          )}
+        </div>
+        <div className="flex flex-col gap-2">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            className="hidden"
+            onChange={handleFileChange}
+          />
+          <div className="flex items-center gap-2">
+            <button
+              type="button" disabled={disabled || uploading} onClick={(): void => fileInputRef.current?.click()}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors"
+            >
+              <Upload className="w-3.5 h-3.5" />
+              {value ? 'Replace' : 'Upload'}
+            </button>
+            <button
+              type="button" disabled={disabled || uploading} onClick={(): void => setCaptureOpen(true)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-gray-600 border border-gray-200 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors"
+            >
+              <Camera className="w-3.5 h-3.5" />
+              Capture
+            </button>
+            {value && (
+              <button
+                type="button" disabled={disabled || uploading}
+                onClick={(): void => { onChange(''); onBlur(); }}
+                title="Remove photo"
+                className="p-1.5 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-50 disabled:opacity-60 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+          <p className="text-xs text-gray-400">JPEG, PNG or WebP</p>
+        </div>
+      </div>
+      {touched && error && (
+        <p className="mt-2 text-xs text-red-600" role="alert">{error}</p>
+      )}
+
+      <CameraCaptureModal
+        isOpen={captureOpen}
+        title="Capture Seller Photo"
+        onCapture={(file): void => { setCaptureOpen(false); void upload(file); }}
+        onClose={(): void => setCaptureOpen(false)}
+      />
+    </div>
+  );
+}
+
 // ── KycDocRow ──────────────────────────────────────────────────────────────────
 
 interface KycDocRowProps {
@@ -301,13 +404,14 @@ export default function SellerForm(): JSX.Element {
   const initialValues = useMemo((): SellerFormValues => {
     if (!seller) {
       return {
-        shopName: '', ownerName: '', email: '', countryCode: '+91', mobile: '',
+        photo: '', shopName: '', ownerName: '', email: '', countryCode: '+91', mobile: '',
         categoryIds: [], bio: '', workingHours: DEFAULT_WORKING_HOURS,
         latitude: 28.6139, longitude: 77.2090, address: '',
       };
     }
     const p = seller.profile;
     return {
+      photo:        seller.photo ?? '',
       shopName:     p?.businessName ?? '',
       ownerName:    seller.fullName ?? '',
       email:        p?.email ?? '',
@@ -530,6 +634,22 @@ export default function SellerForm(): JSX.Element {
 
           {/* ── Left column ── */}
           <div className="space-y-4">
+
+            <SectionCard
+              icon={<UserCircle className="w-3.5 h-3.5 text-indigo-600" />}
+              title="Seller Photo"
+              required
+              hint="Upload a clear photo, or capture one with the camera"
+            >
+              <SellerPhotoField
+                value={f.values.photo}
+                touched={Boolean(f.touched.photo)}
+                error={typeof f.errors.photo === 'string' ? f.errors.photo : undefined}
+                disabled={f.isSubmitting}
+                onChange={(url): void => { void f.setFieldValue('photo', url); }}
+                onBlur={(): void => { void f.setFieldTouched('photo', true); }}
+              />
+            </SectionCard>
 
             <SectionCard
               icon={<Building2 className="w-3.5 h-3.5 text-indigo-600" />}

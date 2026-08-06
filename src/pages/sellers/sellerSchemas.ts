@@ -32,6 +32,7 @@ const daySchema = Yup.object({
 });
 
 export const sellerSchema = Yup.object({
+  photo:       Yup.string().trim().required('Seller photo is required'),
   shopName:    Yup.string().trim().required('Shop name is required'),
   ownerName:   Yup.string().trim().required('Owner name is required'),
   email:       Yup.string().trim().email('Enter a valid email').required('Email is required'),

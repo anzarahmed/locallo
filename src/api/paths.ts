@@ -7,6 +7,7 @@ export const PATHS = {
   SELLERS: {
     CREATE: '/api/admins/sellers',
     LIST:   '/api/admins/sellers',
+    PHOTO:  '/api/admins/sellers/photo',
     BY_ID:    (id: string) => `/api/admins/sellers/${id}`,
     STATUS:   (id: string) => `/api/admins/sellers/${id}/status`,
     KYC_DOCUMENTS: (id: string) => `/api/admins/sellers/${id}/kyc/documents`,

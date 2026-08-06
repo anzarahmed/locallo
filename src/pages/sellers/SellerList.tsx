@@ -15,7 +15,10 @@ import { SkeletonAvatarCell, SkeletonNameBadgeCell } from '../../components/ui/S
 import { DEFAULT_PAGE_SIZE, STATUS_FILTER_OPTIONS } from '../../lib/constants';
 import { getInitials, getAvatarColor } from '../../lib/avatar';
 
-function SellerAvatar({ name }: { name: string | null }): JSX.Element {
+function SellerAvatar({ name, photo }: { name: string | null; photo?: string | null }): JSX.Element {
+  if (photo) {
+    return <img src={photo} alt={name ?? 'Seller'} className="w-8 h-8 rounded-full object-cover shrink-0 border border-gray-200" />;
+  }
   return (
     <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 text-xs font-semibold ${getAvatarColor(name)}`}>
       {getInitials(name)}
@@ -143,7 +146,7 @@ export default function SellerList(): JSX.Element {
         const s = row.original;
         return (
           <div className="flex items-center gap-3">
-            <SellerAvatar name={s.fullName} />
+            <SellerAvatar name={s.fullName} photo={s.photo} />
             <div>
               <p className="font-medium text-gray-900">{s.fullName || 'N/A'}</p>
               <p className="text-xs text-gray-400">{s.email || 'No email'}</p>

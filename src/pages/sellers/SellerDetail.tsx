@@ -191,9 +191,13 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
               {/* Left — avatar + actions */}
               <div className="md:w-56 shrink-0 p-5 space-y-4">
                 <div className="flex flex-col items-center text-center gap-2">
-                  <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold ${getAvatarColor(seller.fullName)}`}>
-                    {getInitials(seller.fullName)}
-                  </div>
+                  {seller.photo ? (
+                    <img src={seller.photo} alt={seller.fullName ?? 'Seller'} className="w-20 h-20 rounded-full object-cover border border-gray-200" />
+                  ) : (
+                    <div className={`w-20 h-20 rounded-full flex items-center justify-center text-2xl font-bold ${getAvatarColor(seller.fullName)}`}>
+                      {getInitials(seller.fullName)}
+                    </div>
+                  )}
                   <div>
                     <p className="text-sm font-semibold text-gray-900 leading-snug">{seller.fullName || 'Unknown'}</p>
                     <p className="text-xs text-gray-400 mt-0.5">

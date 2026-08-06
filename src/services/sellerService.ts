@@ -36,6 +36,7 @@ export interface Seller {
   mobile: string;
   countryCode: string | null;
   fullName: string | null;
+  photo: string | null;
   businessName: string | null;
   email: string | null;
   isActive: boolean;
@@ -68,7 +69,14 @@ export function createSeller(values: SellerFormValues): Promise<CreateSellerResp
     categoryIds:  values.categoryIds,
     bio:          values.bio,
     workingHours: values.workingHours ?? null,
+    photo:        values.photo,
   });
+}
+
+export function uploadSellerPhoto(file: File): Promise<{ url: string }> {
+  const form = new FormData();
+  form.append('photo', file);
+  return apiPost<{ url: string }>(PATHS.SELLERS.PHOTO, form);
 }
 
 export interface SellerListParams {
@@ -144,5 +152,6 @@ export function updateSeller(id: string, values: SellerFormValues): Promise<Sell
     categoryIds:  values.categoryIds,
     bio:          values.bio,
     workingHours: values.workingHours ?? null,
+    photo:        values.photo,
   });
 }
