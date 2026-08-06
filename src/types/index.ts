@@ -5,3 +5,10 @@ export interface CmsPage {
   content: string;
   isActive: boolean;
 }
+
+export interface Faq {
+  id: number;
+  question: string;
+  answer: string;
+  isActive: boolean;
+}
