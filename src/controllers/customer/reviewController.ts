@@ -1,6 +1,6 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
-import { signImages, getPresignedUrlOrNull } from '../../utils/imageStorage';
+import { signImages, getPresignedUrlOrNull, saveReviewImage } from '../../utils/imageStorage';
 import { parsePagination } from '../../utils/pagination';
 import * as reviewService from '../../services/customer/reviewService';
 
@@ -24,6 +24,21 @@ interface ReviewListItem {
   rating: number;
   review: string;
   image: string[];
+}
+
+export async function uploadReviewImages(req: Request, res: Response): Promise<void> {
+  const files = req.files as Express.Multer.File[] | undefined;
+  if (!files || files.length === 0) {
+    sendError(res, 'No image files provided', 400);
+    return;
+  }
+  try {
+    const keys = await Promise.all(files.map((file) => saveReviewImage(file, req.customer!.id)));
+    const images = await signImages(keys);
+    sendSuccess(res, { images }, 'Images uploaded', 201);
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to upload images');
+  }
 }
 
 export async function addReview(req: Request, res: Response): Promise<void> {

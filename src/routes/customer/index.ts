@@ -3,14 +3,14 @@ import { requestOtp, verifyOtp } from '../../controllers/customer/customerAuthCo
 import { getProfile, updateProfile, uploadProfileImage } from '../../controllers/customer/customerProfileController';
 import { getProducts, getProduct, getTrendingProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
-import { addReview, getReviews } from '../../controllers/customer/reviewController';
+import { addReview, getReviews, uploadReviewImages } from '../../controllers/customer/reviewController';
 import { getDashboard } from '../../controllers/customer/dashboardController';
 import { getCmsPage } from '../../controllers/customer/cmsPageController';
 import { getFaqs } from '../../controllers/customer/faqController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/customer/notificationController';
 import { requireCustomer, optionalCustomer } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
-import upload from '../../middleware/upload';
+import upload, { uploadArray } from '../../middleware/upload';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/customer/customerAuthSchemas';
 import { updateCustomerProfileSchema } from '../../validation/customer/customerProfileSchemas';
 import { searchProductsSchema } from '../../validation/customer/productSchemas';
@@ -38,6 +38,7 @@ router.post('/wishlist/:productId',     requireCustomer, toggleWishlist);
 
 router.get('/reviews',  getReviews);
 router.post('/reviews', requireCustomer, validate(createReviewSchema), addReview);
+router.post('/reviews/images', requireCustomer, uploadArray('images', 5), uploadReviewImages);
 
 router.get('/notifications',           requireCustomer, getNotifications);
 router.patch('/notifications/:id/read', requireCustomer, markNotificationRead);
