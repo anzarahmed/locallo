@@ -1,6 +1,5 @@
 import type { InferType } from 'yup';
 import { User } from '../../models/User';
-import { SellerProfile } from '../../models/SellerProfile';
 import { Session } from '../../models/Session';
 import { sendOtp } from '../../utils/msg91';
 import { generateOtp, makeOtpExpiresAt } from '../../utils/otp';
@@ -18,11 +17,6 @@ async function findActiveSeller(phoneNumber: string): Promise<User> {
   }
   if (!user.isActive) {
     throw Object.assign(new Error('Account is not active'), { status: 403 });
-  }
-
-  const profile = await SellerProfile.findOne({ where: { userId: user.id } });
-  if (!profile?.isVerified) {
-    throw Object.assign(new Error('KYC verification pending. Contact support to complete verification.'), { status: 403 });
   }
 
   return user;

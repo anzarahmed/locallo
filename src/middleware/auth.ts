@@ -2,7 +2,6 @@ import type { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { Admin } from '../models/Admin';
 import { User } from '../models/User';
-import { SellerProfile } from '../models/SellerProfile';
 import { Session } from '../models/Session';
 import { RolePermission } from '../models/RolePermission';
 import { hashToken } from '../utils/session';
@@ -100,13 +99,9 @@ export async function requireSeller(req: Request, res: Response, next: NextFunct
     return;
   }
 
-  const user = await User.findByPk(payload.id, { include: [SellerProfile] });
+  const user = await User.findByPk(payload.id);
   if (!user || !user.isActive) {
     res.status(401).json({ message: 'Unauthorized' });
-    return;
-  }
-  if (!user.sellerProfile?.isVerified) {
-    res.status(403).json({ message: 'KYC verification pending. Contact support to complete verification.' });
     return;
   }
 
