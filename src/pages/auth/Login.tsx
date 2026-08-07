@@ -3,6 +3,7 @@ import logoUrl from '../../assets/logo.png';
 import { Link, useNavigate } from 'react-router-dom';
 import { Loader2 } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import { useAuth } from '../../hooks/useAuth';
 import AuthField from '../../components/ui/AuthField';
 import { loginSchema, type LoginValues } from './authSchemas';
@@ -11,6 +12,7 @@ import { loginSchema, type LoginValues } from './authSchemas';
 
 export default function Login(): JSX.Element {
   const { login } = useAuth();
+  const { executeRecaptcha } = useGoogleReCaptcha();
   const navigate = useNavigate();
 
   async function handleSubmit(
@@ -18,7 +20,8 @@ export default function Login(): JSX.Element {
     { setSubmitting, setStatus }: FormikHelpers<LoginValues>,
   ): Promise<void> {
     try {
-      await login(values.email, values.password);
+      const captchaToken = await executeRecaptcha?.('login');
+      await login(values.email, values.password, captchaToken);
       navigate('/dashboard');
     } catch (err: unknown) {
       setStatus(err instanceof Error ? err.message : 'Login failed. Please try again.');

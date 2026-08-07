@@ -3,6 +3,7 @@ import logoUrl from '../../assets/logo.png';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
 import AuthField from '../../components/ui/AuthField';
 import { forgotSchema, type ForgotValues } from './authSchemas';
 import { forgotPassword } from '../../services/authService';
@@ -11,12 +12,15 @@ import type { ApiError } from '../../lib/axios';
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ForgotPassword(): JSX.Element {
+  const { executeRecaptcha } = useGoogleReCaptcha();
+
   async function handleSubmit(
     values: ForgotValues,
     { setSubmitting, setStatus }: FormikHelpers<ForgotValues>,
   ): Promise<void> {
     try {
-      await forgotPassword(values.email);
+      const captchaToken = await executeRecaptcha?.('forgot_password');
+      await forgotPassword(values.email, captchaToken);
       setStatus('sent');
     } catch (err: unknown) {
       setStatus((err as ApiError).message ?? 'error');
