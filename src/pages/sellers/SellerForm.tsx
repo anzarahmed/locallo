@@ -873,6 +873,7 @@ export default function SellerForm(): JSX.Element {
                   latitude={f.values.latitude}
                   longitude={f.values.longitude}
                   mapHeight="h-[420px]"
+                  enableGeolocation={!isEdit}
                   onChange={(lat: number, lng: number): void => {
                     void f.setFieldValue('latitude', lat);
                     void f.setFieldValue('longitude', lng);
