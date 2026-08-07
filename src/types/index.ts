@@ -11,6 +11,15 @@ export interface KycDocuments {
   registrationCertificate: string | null;
   other: string | null;
 }
+
+export type BrandDocumentType = 'certification' | 'other';
+
+export interface BrandDocumentSet {
+  certification: string | null;
+  other: string | null;
+}
+
+export type BrandDocuments = Record<string, BrandDocumentSet>;
 export type AttributeFieldType = 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'color';
 
 export interface AttributeFieldOption {

@@ -1,6 +1,6 @@
 import { apiPost, apiGet, apiPut, apiPatch } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { WorkingHours, KycDocumentType, KycDocuments } from '../types';
+import type { WorkingHours, KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../types';
 import type { SellerFormValues } from '../pages/sellers/sellerSchemas';
 
 interface CreateSellerResponse {
@@ -29,6 +29,7 @@ export interface SellerProfile {
   isVerified: boolean;
   verifiedAt: string | null;
   kycDocuments: KycDocuments;
+  brandDocuments: BrandDocuments;
 }
 
 export interface Seller {
@@ -127,6 +128,13 @@ export function uploadKycDocument(id: string, documentType: KycDocumentType, fil
 
 export function setKycVerification(id: string, verified: boolean): Promise<{ isVerified: boolean; verifiedBy: string | null; verifiedAt: string | null }> {
   return apiPatch(PATHS.SELLERS.KYC_VERIFY(id), { verified });
+}
+
+export function uploadBrandDocument(sellerId: string, brandId: number, documentType: BrandDocumentType, file: File): Promise<{ brandDocuments: BrandDocuments }> {
+  const form = new FormData();
+  form.append('documentType', documentType);
+  form.append('document', file);
+  return apiPost<{ brandDocuments: BrandDocuments }>(PATHS.SELLERS.BRAND_DOCUMENTS(sellerId, brandId), form);
 }
 
 export interface UpdateSellerBrandsResponse {

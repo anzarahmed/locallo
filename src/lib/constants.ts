@@ -1,4 +1,4 @@
-import type { KycDocumentType } from '../types';
+import type { KycDocumentType, BrandDocumentType } from '../types';
 
 export const DEFAULT_PAGE_SIZE = 5;
 export const PAGE_SIZE_OPTIONS = [5, 10, 20, 50, 100] as const;
@@ -37,4 +37,9 @@ export const KYC_DOCS: { type: KycDocumentType; label: string; required: boolean
   { type: 'pan',                     label: 'PAN Card',                 required: true },
   { type: 'registrationCertificate', label: 'Registration Certificate', required: false },
   { type: 'other',                   label: 'Other Document',           required: false },
+];
+
+export const BRAND_DOCS: { type: BrandDocumentType; label: string }[] = [
+  { type: 'certification', label: 'Brand Certification' },
+  { type: 'other',         label: 'Other Document' },
 ];

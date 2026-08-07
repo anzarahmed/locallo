@@ -13,6 +13,7 @@ export const PATHS = {
     KYC_DOCUMENTS: (id: string) => `/api/admins/sellers/${id}/kyc/documents`,
     KYC_VERIFY:    (id: string) => `/api/admins/sellers/${id}/kyc/verify`,
     BRANDS:        (id: string) => `/api/admins/sellers/${id}/brands`,
+    BRAND_DOCUMENTS: (id: string, brandId: number) => `/api/admins/sellers/${id}/brands/${brandId}/documents`,
   },
   CATEGORIES: {
     LIST:   '/api/admins/categories',
