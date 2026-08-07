@@ -12,6 +12,10 @@ export async function listOffersForSeller(page: number, limit: number): Promise<
   });
 }
 
+export function hasOfferStarted(startDate: Date | string): boolean {
+  return new Date() >= new Date(startDate);
+}
+
 export interface AcceptedOfferRow {
   offer: Offer;
   acceptedCount: number;
@@ -87,7 +91,7 @@ export async function acceptOffer(
     throw Object.assign(new Error('Offer not found'), { status: 404 });
   }
 
-  if (new Date() >= new Date(offer.startDate)) {
+  if (hasOfferStarted(offer.startDate)) {
     throw Object.assign(new Error('Product selection is locked once the offer has started'), { status: 400 });
   }
 

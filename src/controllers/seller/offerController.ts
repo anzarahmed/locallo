@@ -7,13 +7,18 @@ import * as offerService from '../../services/seller/offerService';
 export async function getOffers(req: Request, res: Response): Promise<void> {
   const { page, limit } = parsePagination(req);
   const { rows, count } = await offerService.listOffersForSeller(page, limit);
-  sendSuccess(res, { offers: rows, total: count, page, limit }, 'Offers fetched');
+  const offers = rows.map(o => ({ ...o.toJSON(), hasStarted: offerService.hasOfferStarted(o.startDate) }));
+  sendSuccess(res, { offers, total: count, page, limit }, 'Offers fetched');
 }
 
 export async function getAcceptedOffers(req: Request, res: Response): Promise<void> {
   const { page, limit } = parsePagination(req);
   const { rows, count } = await offerService.listAcceptedOffersForSeller(req.seller!.id, page, limit);
-  const offers = rows.map(r => ({ ...r.offer.toJSON(), acceptedCount: r.acceptedCount }));
+  const offers = rows.map(r => ({
+    ...r.offer.toJSON(),
+    acceptedCount: r.acceptedCount,
+    hasStarted: offerService.hasOfferStarted(r.offer.startDate),
+  }));
   sendSuccess(res, { offers, total: count, page, limit }, 'Accepted offers fetched');
 }
 
@@ -23,7 +28,7 @@ export async function getOffer(req: Request, res: Response): Promise<void> {
     const { offer, acceptedProducts } = await offerService.getOfferForSeller(id, req.seller!.id);
     const signedProducts = await signModelRows(acceptedProducts);
     sendSuccess(res, {
-      offer,
+      offer: { ...offer.toJSON(), hasStarted: offerService.hasOfferStarted(offer.startDate) },
       acceptedProducts: signedProducts,
       acceptedProductIds: acceptedProducts.map(p => p.id),
     }, 'Offer fetched');
