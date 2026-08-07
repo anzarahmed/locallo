@@ -24,8 +24,9 @@ export function resolveMimeType(buffer: Buffer, originalname: string, declaredMi
   if (buffer.length > 11 &&
       buffer[0] === 0x52 && buffer[1] === 0x49 && buffer[2] === 0x46 && buffer[3] === 0x46 &&
       buffer[8] === 0x57 && buffer[9] === 0x45 && buffer[10] === 0x42 && buffer[11] === 0x50) return 'image/webp';
+  if (buffer[0] === 0x25 && buffer[1] === 0x50 && buffer[2] === 0x44 && buffer[3] === 0x46) return 'application/pdf';
   const ext = originalname.toLowerCase().slice(originalname.lastIndexOf('.'));
-  const extMap: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml' };
+  const extMap: Record<string, string> = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.svg': 'image/svg+xml', '.pdf': 'application/pdf' };
   return extMap[ext] ?? 'image/jpeg';
 }
 
@@ -53,6 +54,21 @@ export async function saveImage(file: Express.Multer.File, sellerId: string): Pr
 export async function saveKycDocument(file: Express.Multer.File, sellerId: string, documentType: string): Promise<string> {
   const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
   const key = `uploads/kyc/${sellerId}/${documentType}-${randomUUID()}${ext}`;
+  const contentType = resolveMimeType(file.buffer, file.originalname, file.mimetype);
+
+  await s3.send(new PutObjectCommand({
+    Bucket: BUCKET,
+    Key: key,
+    Body: file.buffer,
+    ContentType: contentType,
+  }));
+
+  return key;
+}
+
+export async function saveBrandDocument(file: Express.Multer.File, sellerId: string, brandId: number, documentType: string): Promise<string> {
+  const ext = path.extname(file.originalname).toLowerCase() || '.jpg';
+  const key = `uploads/brand-documents/${sellerId}/${brandId}-${documentType}-${randomUUID()}${ext}`;
   const contentType = resolveMimeType(file.buffer, file.originalname, file.mimetype);
 
   await s3.send(new PutObjectCommand({

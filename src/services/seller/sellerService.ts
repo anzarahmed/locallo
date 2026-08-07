@@ -3,8 +3,9 @@ import { Op, literal } from 'sequelize';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
-import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments } from '../../types';
-import { saveKycDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
+import { Brand } from '../../models/Brand';
+import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
+import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
 import { sendKycVerificationEmail } from '../../utils/mailer';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
@@ -303,6 +304,28 @@ export async function updateSellerBrands(id: string, brandIds: number[]): Promis
   const profile = await requireSellerProfile(id);
   await profile.update({ brandIds });
   return profile;
+}
+
+export async function uploadSellerBrandDocument(
+  sellerId: string,
+  brandId: number,
+  documentType: BrandDocumentType,
+  file: Express.Multer.File,
+): Promise<BrandDocuments> {
+  const profile = await requireSellerProfile(sellerId);
+  const brand = await Brand.findByPk(brandId);
+  if (!brand) {
+    throw Object.assign(new Error('Brand not found'), { status: 404 });
+  }
+
+  const key = await saveBrandDocument(file, sellerId, brandId, documentType);
+  const existing = profile.brandDocuments[String(brandId)] ?? { certification: null, other: null };
+  const brandDocuments: BrandDocuments = {
+    ...profile.brandDocuments,
+    [String(brandId)]: { ...existing, [documentType]: key },
+  };
+  await profile.update({ brandDocuments });
+  return brandDocuments;
 }
 
 export async function toggleSellerStatus(id: string): Promise<User> {

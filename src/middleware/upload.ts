@@ -70,4 +70,27 @@ export const uploadIcon = multer({
   },
 });
 
+const ALLOWED_DOCUMENT_MIME_TYPES = [...ALLOWED_MIME_TYPES, 'application/pdf'];
+const ALLOWED_DOCUMENT_EXTENSIONS = [...ALLOWED_EXTENSIONS, '.pdf'];
+
+function isAllowedDocumentFile(file: Express.Multer.File): boolean {
+  if (file.mimetype !== 'application/octet-stream') {
+    return ALLOWED_DOCUMENT_MIME_TYPES.includes(file.mimetype);
+  }
+  const ext = file.originalname.toLowerCase().slice(file.originalname.lastIndexOf('.'));
+  return ALLOWED_DOCUMENT_EXTENSIONS.includes(ext);
+}
+
+export const uploadDocument = multer({
+  storage: multer.memoryStorage(),
+  limits: { fileSize: MAX_SIZE_BYTES },
+  fileFilter: (_req: Request, file, cb) => {
+    if (isAllowedDocumentFile(file)) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only JPEG, PNG, WebP, and PDF documents are allowed'));
+    }
+  },
+});
+
 export default upload;

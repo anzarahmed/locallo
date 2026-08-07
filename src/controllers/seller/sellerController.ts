@@ -1,21 +1,34 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, setSellerKycVerification } from '../../services/seller/sellerService';
+import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, setSellerKycVerification, uploadSellerBrandDocument } from '../../services/seller/sellerService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import { Category } from '../../models/Category';
 import { Brand } from '../../models/Brand';
 import type { User } from '../../models/User';
 import type { SellerProfile } from '../../models/SellerProfile';
-import type { KycDocumentType, KycDocuments } from '../../types';
+import type { KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
 import { saveImage, getPresignedUrl, getPresignedUrlOrNull } from '../../utils/imageStorage';
 
 const KYC_DOCUMENT_TYPES: KycDocumentType[] = ['aadhar', 'pan', 'registrationCertificate', 'other'];
+const BRAND_DOCUMENT_TYPES: BrandDocumentType[] = ['certification', 'other'];
 
 async function signKycDocuments(docs: KycDocuments): Promise<KycDocuments> {
   const entries = await Promise.all(
     (Object.keys(docs) as KycDocumentType[]).map(async (type) => [type, docs[type] ? await getPresignedUrl(docs[type] as string) : null] as const),
   );
   return Object.fromEntries(entries) as unknown as KycDocuments;
+}
+
+async function signBrandDocuments(docs: BrandDocuments): Promise<BrandDocuments> {
+  const entries = await Promise.all(
+    Object.entries(docs).map(async ([brandId, set]) => {
+      const signedEntries = await Promise.all(
+        (Object.keys(set) as BrandDocumentType[]).map(async (type) => [type, set[type] ? await getPresignedUrl(set[type] as string) : null] as const),
+      );
+      return [brandId, Object.fromEntries(signedEntries)] as const;
+    }),
+  );
+  return Object.fromEntries(entries) as unknown as BrandDocuments;
 }
 
 interface CategoryObj { id: number; name: string; slug: string; attributeSchema: unknown[] }
@@ -133,6 +146,7 @@ export async function getSeller(req: Request, res: Response): Promise<void> {
     const brands = await resolveBrands(profile.brandIds ?? []);
     const response = await buildSellerResponse(user, profile, categories, brands);
     response.profile.kycDocuments = await signKycDocuments(profile.kycDocuments);
+    response.profile.brandDocuments = await signBrandDocuments(profile.brandDocuments);
     sendSuccess(res, response, 'Seller fetched');
   } catch (err: unknown) {
     handleServiceError(err, res);
@@ -164,6 +178,30 @@ export async function uploadKycDocument(req: Request, res: Response): Promise<vo
 
     const kycDocuments = await uploadSellerKycDocument(req.params.id as string, documentType as KycDocumentType, req.file);
     sendSuccess(res, { kycDocuments: await signKycDocuments(kycDocuments) }, 'Document uploaded');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function uploadBrandDocument(req: Request, res: Response): Promise<void> {
+  try {
+    const brandId = Number(req.params.brandId);
+    if (!Number.isInteger(brandId) || brandId <= 0) {
+      sendError(res, 'Invalid brand id', 422);
+      return;
+    }
+    const documentType = req.body.documentType as string;
+    if (!BRAND_DOCUMENT_TYPES.includes(documentType as BrandDocumentType)) {
+      sendError(res, 'Invalid document type', 422);
+      return;
+    }
+    if (!req.file) {
+      sendError(res, 'Document file is required', 422);
+      return;
+    }
+
+    const brandDocuments = await uploadSellerBrandDocument(req.params.id as string, brandId, documentType as BrandDocumentType, req.file);
+    sendSuccess(res, { brandDocuments: await signBrandDocuments(brandDocuments) }, 'Document uploaded');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }

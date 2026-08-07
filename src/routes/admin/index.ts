@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
-import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, uploadSellerPhoto, setKycVerification } from '../../controllers/seller/sellerController';
+import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, uploadSellerPhoto, setKycVerification, uploadBrandDocument } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
 import { getBanners, addBanner, editBanner, removeBanner, uploadBannerImage } from '../../controllers/admin/bannerController';
@@ -20,7 +20,7 @@ import {
   fetchRolePermissions, saveRolePermissions, fetchMyPermissions,
 } from '../../controllers/admin/rolePermissionController';
 import { validate } from '../../middleware/validate';
-import upload, { uploadIcon } from '../../middleware/upload';
+import upload, { uploadIcon, uploadDocument } from '../../middleware/upload';
 import { requireAdmin, requireSuperAdmin, requirePermission } from '../../middleware/auth';
 import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
 import { createSellerSchema, adminUpdateSellerSchema, updateSellerBrandsSchema } from '../../validation/seller/sellerSchemas';
@@ -68,6 +68,7 @@ router.patch ('/sellers/:id/status',  requireAdmin, requirePermission('sellers',
 router.post  ('/sellers/:id/kyc/documents', requireAdmin, requirePermission('sellers', 'edit'), upload.single('document'), uploadKycDocument);
 router.patch ('/sellers/:id/kyc/verify',    requireAdmin, requirePermission('sellers', 'edit'), setKycVerification);
 router.patch ('/sellers/:id/brands',        requireAdmin, requireSuperAdmin, validate(updateSellerBrandsSchema), patchSellerBrands);
+router.post  ('/sellers/:id/brands/:brandId/documents', requireAdmin, requireSuperAdmin, uploadDocument.single('document'), uploadBrandDocument);
 
 // Customers
 router.get   ('/customers',           requireAdmin, requirePermission('customers', 'list'),   getCustomers);

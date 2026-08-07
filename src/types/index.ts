@@ -53,3 +53,12 @@ export interface KycDocuments {
   registrationCertificate: string | null;
   other: string | null;
 }
+
+export type BrandDocumentType = 'certification' | 'other';
+
+export interface BrandDocumentSet {
+  certification: string | null;
+  other: string | null;
+}
+
+export type BrandDocuments = Record<string, BrandDocumentSet>;
