@@ -22,6 +22,7 @@ import {
 import { validate } from '../../middleware/validate';
 import upload, { uploadIcon, uploadDocument } from '../../middleware/upload';
 import { requireAdmin, requireSuperAdmin, requirePermission } from '../../middleware/auth';
+import { verifyRecaptcha } from '../../middleware/recaptcha';
 import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
 import { createSellerSchema, adminUpdateSellerSchema, updateSellerBrandsSchema } from '../../validation/seller/sellerSchemas';
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
@@ -36,9 +37,9 @@ import { updateRolePermissionsSchema } from '../../validation/admin/rolePermissi
 const router = Router();
 
 // Public auth
-router.post('/login',           validate(adminLoginSchema),       login);
-router.post('/forgot-password', validate(forgotPasswordSchema),   forgotPassword);
-router.post('/reset-password',  validate(resetPasswordSchema),    resetPassword);
+router.post('/login',           validate(adminLoginSchema),     verifyRecaptcha('login'),           login);
+router.post('/forgot-password', validate(forgotPasswordSchema), verifyRecaptcha('forgot_password'), forgotPassword);
+router.post('/reset-password',  validate(resetPasswordSchema),  resetPassword);
 
 // Mobile OTP (admin-initiated, any admin role)
 router.post('/mobile/request-otp', requireAdmin, validate(requestMobileOtpSchema), requestMobileOtp);
