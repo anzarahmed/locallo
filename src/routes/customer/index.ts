@@ -3,7 +3,7 @@ import { requestOtp, verifyOtp } from '../../controllers/customer/customerAuthCo
 import { getProfile, updateProfile, uploadProfileImage } from '../../controllers/customer/customerProfileController';
 import { getProducts, getProduct, getTrendingProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
-import { addReview, getReviews, uploadReviewImages } from '../../controllers/customer/reviewController';
+import { addReview, getReviews, removeReview, uploadReviewImages } from '../../controllers/customer/reviewController';
 import { getDashboard } from '../../controllers/customer/dashboardController';
 import { getCmsPage } from '../../controllers/customer/cmsPageController';
 import { getFaqs } from '../../controllers/customer/faqController';
@@ -39,6 +39,7 @@ router.post('/wishlist/:productId',     requireCustomer, toggleWishlist);
 router.get('/reviews',  getReviews);
 router.post('/reviews', requireCustomer, validate(createReviewSchema), addReview);
 router.post('/reviews/images', requireCustomer, uploadArray('images', 5), uploadReviewImages);
+router.delete('/reviews/:id', requireCustomer, removeReview);
 
 router.get('/notifications',           requireCustomer, getNotifications);
 router.patch('/notifications/:id/read', requireCustomer, markNotificationRead);

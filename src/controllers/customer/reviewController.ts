@@ -20,6 +20,7 @@ interface ReviewCustomer {
 }
 
 interface ReviewListItem {
+  id: string;
   customer: ReviewCustomer;
   rating: number;
   review: string;
@@ -72,6 +73,7 @@ export async function getReviews(req: Request, res: Response): Promise<void> {
 
     const review: ReviewListItem[] = await Promise.all(
       rows.map(async (r) => ({
+        id: r.id,
         customer: {
           id: r.customer?.id ?? null,
           name: r.customer?.fullName ?? 'Customer',
@@ -90,5 +92,14 @@ export async function getReviews(req: Request, res: Response): Promise<void> {
     );
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to fetch reviews');
+  }
+}
+
+export async function removeReview(req: Request, res: Response): Promise<void> {
+  try {
+    await reviewService.deleteReview(req.customer!.id, String(req.params.id));
+    sendSuccess(res, null, 'Review deleted');
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to delete review');
   }
 }

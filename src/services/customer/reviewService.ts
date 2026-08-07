@@ -19,7 +19,7 @@ export async function createReview(customerId: string, data: CreateReviewInput):
 
   const existing = await Review.findOne({ where: { customerId, productId: data.productId } });
   if (existing) {
-    throw Object.assign(new Error('You have already reviewed this product'), { status: 409 });
+   // throw Object.assign(new Error('You have already reviewed this product'), { status: 409 });
   }
 
   return Review.create({
@@ -58,4 +58,13 @@ export async function listReviews(
   );
 
   return { rows, count, media: mediaRows.map((r) => r.img) };
+}
+
+export async function deleteReview(customerId: string, reviewId: string): Promise<void> {
+  const review = await Review.findOne({ where: { id: reviewId, customerId } });
+  if (!review) {
+    throw Object.assign(new Error('Review not found'), { status: 404 });
+  }
+
+  await review.destroy();
 }
