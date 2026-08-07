@@ -176,6 +176,7 @@ export interface Offer {
   offerType: OfferType;
   config: OfferConfig;
   isActive: boolean;
+  hasStarted: boolean;
 }
 
 export interface Notification {

@@ -5,7 +5,7 @@ import { getOffer } from '../../services/offerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
-import { formatDateTime, hasOfferStarted, offerSummary, offerTypeLabel } from '../../lib/offerUtils';
+import { formatDateTime, offerSummary, offerTypeLabel } from '../../lib/offerUtils';
 import type { Offer, Product } from '../../types';
 
 export default function OfferDetail(): JSX.Element {
@@ -105,7 +105,7 @@ export default function OfferDetail(): JSX.Element {
                 </div>
               )}
 
-              {hasOfferStarted(offer) ? (
+              {offer.hasStarted ? (
                 <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-3.5 py-3">
                   <Lock size={16} className="text-gray-400 shrink-0" />
                   Product selection is locked — this offer has already started.

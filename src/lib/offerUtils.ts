@@ -4,10 +4,6 @@ export function formatDateTime(value: string): string {
   return new Date(value).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }
 
-export function hasOfferStarted(offer: Offer): boolean {
-  return new Date() >= new Date(offer.startDate);
-}
-
 export function offerTypeLabel(offer: Offer): string {
   switch (offer.offerType) {
     case 'percentage_off': return 'Percentage Off';

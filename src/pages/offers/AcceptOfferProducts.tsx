@@ -6,7 +6,6 @@ import { getProducts } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
-import { hasOfferStarted } from '../../lib/offerUtils';
 import type { Offer, Product } from '../../types';
 
 const ACTIVE_PRODUCTS_LIMIT = 50;
@@ -32,7 +31,7 @@ export default function AcceptOfferProducts(): JSX.Element {
           getOffer(Number(id)),
           getProducts({ filter: 'visible', limit: ACTIVE_PRODUCTS_LIMIT }),
         ]);
-        if (hasOfferStarted(offerData.offer)) {
+        if (offerData.offer.hasStarted) {
           toast.error('Product selection is locked — this offer has already started.');
           navigate(`/offers/${id}`, { replace: true });
           return;
