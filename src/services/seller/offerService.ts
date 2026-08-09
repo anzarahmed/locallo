@@ -61,6 +61,33 @@ async function getAcceptedProductIds(offerId: number, sellerId: string): Promise
   return rows.map(r => r.productId);
 }
 
+async function findOverlappingAcceptedProducts(
+  offerId: number,
+  sellerId: string,
+  productIds: string[],
+  offer: Offer,
+): Promise<OfferProduct[]> {
+  return OfferProduct.findAll({
+    where: {
+      sellerId,
+      productId: { [Op.in]: productIds },
+      offerId: { [Op.ne]: offerId },
+    },
+    include: [
+      {
+        model: Offer,
+        required: true,
+        where: {
+          isActive: true,
+          startDate: { [Op.lte]: offer.endDate },
+          endDate: { [Op.gte]: offer.startDate },
+        },
+      },
+      Product,
+    ],
+  });
+}
+
 async function getAcceptedProducts(offerId: number, sellerId: string): Promise<Product[]> {
   const rows = await OfferProduct.findAll({
     where: { offerId, sellerId },
@@ -101,6 +128,14 @@ export async function acceptOffer(
     const owned = await Product.count({ where: { id: { [Op.in]: uniqueIds }, sellerId, isActive: true } });
     if (owned !== uniqueIds.length) {
       throw Object.assign(new Error('One or more products do not belong to you or are inactive'), { status: 422 });
+    }
+
+    const overlaps = await findOverlappingAcceptedProducts(offerId, sellerId, uniqueIds, offer);
+    if (overlaps.length > 0) {
+      const names = overlaps
+        .map(o => `"${o.product?.name ?? 'Product'}" is already part of the overlapping offer "${o.offer?.title ?? 'another offer'}"`)
+        .join('; ');
+      throw Object.assign(new Error(names), { status: 409 });
     }
   }
 
