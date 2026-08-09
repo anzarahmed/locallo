@@ -186,6 +186,7 @@ export interface Notification {
   referenceType: string | null;
   referenceId: string | null;
   isRead: boolean;
+  createdAt: string;
 }
 
 export interface NotificationsResponse {
