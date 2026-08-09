@@ -5,6 +5,7 @@ import { getProducts, getProduct, getTrendingProducts, getSimilarProducts } from
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
 import { addReview, getReviews, removeReview, uploadReviewImages } from '../../controllers/customer/reviewController';
 import { getDashboard } from '../../controllers/customer/dashboardController';
+import { getOffers } from '../../controllers/customer/offerController';
 import { getCmsPage } from '../../controllers/customer/cmsPageController';
 import { getFaqs } from '../../controllers/customer/faqController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/customer/notificationController';
@@ -29,6 +30,7 @@ router.put('/profile',       requireCustomer, validate(updateCustomerProfileSche
 router.post('/profile/image', requireCustomer, upload.single('image'), uploadProfileImage);
 
 router.get('/dashboard',          getDashboard);
+router.get('/offers',             getOffers);
 router.get('/products/trending', optionalCustomer, getTrendingProducts);
 router.post('/products',         optionalCustomer, validate(searchProductsSchema), getProducts);
 router.get('/products/:id',      optionalCustomer, getProduct);
