@@ -76,7 +76,7 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await getSellerById(req.seller!.id);
     const categories = await resolveCats(profile.categoryIds ?? []);
-    sendSuccess(res, buildSellerResponse(user, profile, categories), 'Profile fetched');
+    sendSuccess(res, await buildSellerResponse(user, profile, categories), 'Profile fetched');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
