@@ -4,6 +4,7 @@ import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, p
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
 import { getBanners, addBanner, editBanner, removeBanner, uploadBannerImage } from '../../controllers/admin/bannerController';
+import { getOffers, getOffer, addOffer, editOffer, toggleOfferStatus, removeOffer } from '../../controllers/admin/offerController';
 import { getFaqs, addFaq, editFaq, removeFaq } from '../../controllers/admin/faqController';
 import { getCmsPages, addCmsPage, editCmsPage, removeCmsPage } from '../../controllers/admin/cmsPageController';
 import {
@@ -28,6 +29,7 @@ import { createSellerSchema, adminUpdateSellerSchema, updateSellerBrandsSchema }
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
 import { createBrandSchema, updateBrandSchema } from '../../validation/admin/brandSchemas';
 import { createBannerSchema, updateBannerSchema } from '../../validation/admin/bannerSchemas';
+import { createOfferSchema, updateOfferSchema } from '../../validation/admin/offerSchemas';
 import { createFaqSchema, updateFaqSchema } from '../../validation/admin/faqSchemas';
 import { createCmsPageSchema, updateCmsPageSchema } from '../../validation/admin/cmsPageSchemas';
 import { requestMobileOtpSchema, verifyMobileOtpSchema } from '../../validation/admin/mobileVerificationSchemas';
@@ -96,6 +98,14 @@ router.post  ('/banners/image',       requireAdmin, upload.single('image'), uplo
 router.post  ('/banners',             requireAdmin, requirePermission('banners', 'add'),    validate(createBannerSchema), addBanner);
 router.put   ('/banners/:id',         requireAdmin, requirePermission('banners', 'edit'),   validate(updateBannerSchema), editBanner);
 router.delete('/banners/:id',         requireAdmin, requirePermission('banners', 'delete'), removeBanner);
+
+// Offers
+router.get   ('/offers',              requireAdmin, requirePermission('offers', 'list'),   getOffers);
+router.get   ('/offers/:id',          requireAdmin, requirePermission('offers', 'view'),   getOffer);
+router.post  ('/offers',              requireAdmin, requirePermission('offers', 'add'),    validate(createOfferSchema), addOffer);
+router.put   ('/offers/:id',          requireAdmin, requirePermission('offers', 'edit'),   validate(updateOfferSchema), editOffer);
+router.patch ('/offers/:id/toggle',   requireAdmin, requirePermission('offers', 'edit'),   toggleOfferStatus);
+router.delete('/offers/:id',          requireAdmin, requirePermission('offers', 'delete'), removeOffer);
 
 // FAQs
 router.get   ('/faqs',                requireAdmin, requirePermission('faqs', 'list'),   getFaqs);

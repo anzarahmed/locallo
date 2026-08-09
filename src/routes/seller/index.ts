@@ -11,6 +11,8 @@ import { analyzeImage } from '../../controllers/seller/imageAnalysisController';
 import { getCategories, getMyCategories } from '../../controllers/seller/categoryController';
 import { getVariants, createVariant, createBatchVariants, updateVariant, deleteVariant, toggleVariant } from '../../controllers/seller/variantController';
 import { markProductSold, markVariantSold, getSoldLogs } from '../../controllers/seller/soldController';
+import { getOffers, getAcceptedOffers, getOffer, acceptOffer } from '../../controllers/seller/offerController';
+import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/seller/notificationController';
 import { validate } from '../../middleware/validate';
 import upload from '../../middleware/upload';
 import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema, setCustomDaySchema } from '../../validation/seller/sellerSchemas';
@@ -18,6 +20,7 @@ import { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/selle
 import { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import { createVariantSchema, createBatchVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
 import { markSoldSchema } from '../../validation/seller/soldSchemas';
+import { acceptOfferSchema } from '../../validation/seller/offerSchemas';
 
 const router = Router();
 
@@ -61,5 +64,14 @@ router.post('/products/:id/variants/:variantId/sell',           requireSeller, v
 router.post('/products/:id/sell', requireSeller, validate(markSoldSchema), markProductSold);
 
 router.get('/sold-logs', requireSeller, getSoldLogs);
+
+router.get('/offers',            requireSeller, getOffers);
+router.get('/offers/accepted',   requireSeller, getAcceptedOffers);
+router.get('/offers/:id',        requireSeller, getOffer);
+router.post('/offers/:id/accept', requireSeller, validate(acceptOfferSchema), acceptOffer);
+
+router.get('/notifications',            requireSeller, getNotifications);
+router.patch('/notifications/:id/read', requireSeller, markNotificationRead);
+router.delete('/notifications/:id',     requireSeller, deleteNotification);
 
 export default router;

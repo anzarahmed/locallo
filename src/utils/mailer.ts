@@ -1,5 +1,6 @@
 import nodemailer from 'nodemailer';
 import { kycVerificationEmail } from './emailTemplates/kycVerificationEmail';
+import { offerNotificationEmail } from './emailTemplates/offerNotificationEmail';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -7,6 +8,9 @@ const transporter = nodemailer.createTransport({
     user: process.env.GMAIL_USER,
     pass: process.env.GMAIL_APP_PASSWORD,
   },
+  connectionTimeout: 10_000,
+  greetingTimeout: 10_000,
+  socketTimeout: 10_000,
 });
 
 export async function sendPasswordResetEmail(to: string, resetUrl: string): Promise<void> {
@@ -36,6 +40,21 @@ export async function sendKycVerificationEmail(
   verified: boolean,
 ): Promise<void> {
   const { subject, html } = kycVerificationEmail(businessName, verified);
+
+  await transporter.sendMail({
+    from: `"Localo" <${process.env.GMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
+}
+
+export async function sendOfferNotificationEmail(
+  to: string,
+  offerTitle: string,
+  offerDescription: string | null,
+): Promise<void> {
+  const { subject, html } = offerNotificationEmail(offerTitle, offerDescription);
 
   await transporter.sendMail({
     from: `"Localo" <${process.env.GMAIL_USER}>`,

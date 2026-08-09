@@ -41,6 +41,12 @@ export class Notification extends Model {
   @Column(DataType.STRING(50))
   declare type: string;
 
+  @Column(DataType.STRING(30))
+  declare referenceType: string | null;
+
+  @Column(DataType.STRING(64))
+  declare referenceId: string | null;
+
   @AllowNull(false)
   @Default(false)
   @Column(DataType.BOOLEAN)

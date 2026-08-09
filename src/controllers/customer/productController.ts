@@ -1,8 +1,10 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 import { withSignedImages, getPresignedUrl, toThumbnailKey } from '../../utils/imageStorage';
+import { getActiveOffersForProducts, computeOfferPricing } from '../../utils/offerPricing';
 import * as productService from '../../services/customer/productService';
 import * as wishlistService from '../../services/customer/wishlistService';
+import type { Offer } from '../../models/Offer';
 
 interface ProductListItem {
   id: string;
@@ -10,9 +12,17 @@ interface ProductListItem {
   image: string | null;
   mrp: number | null;
   sellingPrice: number;
+  offerPrice: number | null;
+  offerBadge: string | null;
   rating: number;
   isWishlisted: boolean;
   distanceKm?: number;
+}
+
+function offerFieldsFor(offersById: Map<string, Offer>, productId: string, sellingPrice: number): { offerPrice: number | null; offerBadge: string | null } {
+  const offer = offersById.get(productId);
+  if (!offer) return { offerPrice: null, offerBadge: null };
+  return computeOfferPricing(offer, sellingPrice);
 }
 
 export async function getProducts(req: Request, res: Response): Promise<void> {
@@ -32,9 +42,11 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
     limit,
   );
 
-  const wishlistedIds = req.customer
-    ? await wishlistService.getWishlistedProductIds(req.customer.id, rows.map((p) => p.id))
-    : new Set<string>();
+  const productIds = rows.map((p) => p.id);
+  const [wishlistedIds, offersById] = await Promise.all([
+    req.customer ? wishlistService.getWishlistedProductIds(req.customer.id, productIds) : Promise.resolve(new Set<string>()),
+    getActiveOffersForProducts(productIds),
+  ]);
 
   const products: ProductListItem[] = await Promise.all(
     rows.map(async (p) => {
@@ -44,6 +56,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
         image: p.images[0] ? await getPresignedUrl(toThumbnailKey(p.images[0])) : null,
         mrp: p.mrp,
         sellingPrice: p.sellingPrice,
+        ...offerFieldsFor(offersById, p.id, p.sellingPrice),
         rating: 0,
         isWishlisted: wishlistedIds.has(p.id),
       };
@@ -59,14 +72,16 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
     const variantId = req.query.variantId ? String(req.query.variantId) : undefined;
     const { product, seller, variants } = await productService.getProductDetail(String(req.params.id), variantId);
-    const isWishlisted = req.customer
-      ? await wishlistService.isProductWishlisted(req.customer.id, product.id)
-      : false;
+    const [isWishlisted, offersById] = await Promise.all([
+      req.customer ? wishlistService.isProductWishlisted(req.customer.id, product.id) : Promise.resolve(false),
+      getActiveOffersForProducts([product.id]),
+    ]);
+    const { offerPrice, offerBadge } = offerFieldsFor(offersById, product.id, product.sellingPrice);
     const [signedProduct, signedVariants] = await Promise.all([
       withSignedImages(product.toJSON() as Record<string, unknown>),
       Promise.all(variants.map(v => withSignedImages(v as unknown as Record<string, unknown>))),
     ]);
-    sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted }, variants: signedVariants }, 'Product fetched');
+    sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted, offerPrice, offerBadge }, variants: signedVariants }, 'Product fetched');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Product not found');
   }
@@ -74,10 +89,12 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
 
 export async function getTrendingProducts(req: Request, res: Response): Promise<void> {
   const rows = await productService.getTrendingProducts();
+  const productIds = rows.map((p) => p.id);
 
-  const wishlistedIds = req.customer
-    ? await wishlistService.getWishlistedProductIds(req.customer.id, rows.map((p) => p.id))
-    : new Set<string>();
+  const [wishlistedIds, offersById] = await Promise.all([
+    req.customer ? wishlistService.getWishlistedProductIds(req.customer.id, productIds) : Promise.resolve(new Set<string>()),
+    getActiveOffersForProducts(productIds),
+  ]);
 
   const products: ProductListItem[] = await Promise.all(
     rows.map(async (p) => ({
@@ -86,6 +103,7 @@ export async function getTrendingProducts(req: Request, res: Response): Promise<
       image: p.images[0] ? await getPresignedUrl(toThumbnailKey(p.images[0])) : null,
       mrp: p.mrp,
       sellingPrice: p.sellingPrice,
+      ...offerFieldsFor(offersById, p.id, p.sellingPrice),
       rating: 0,
       isWishlisted: wishlistedIds.has(p.id),
     })),

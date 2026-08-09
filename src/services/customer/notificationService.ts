@@ -1,5 +1,23 @@
 import { Notification } from '../../models/Notification';
 
+export async function createNotification(
+  userId: string,
+  title: string,
+  message: string,
+  type: string,
+  referenceType?: string,
+  referenceId?: string,
+): Promise<Notification> {
+  return Notification.create({
+    customerId: userId,
+    title,
+    message,
+    type,
+    referenceType: referenceType ?? null,
+    referenceId: referenceId ?? null,
+  });
+}
+
 export async function listNotifications(
   customerId: string,
   page: number,
