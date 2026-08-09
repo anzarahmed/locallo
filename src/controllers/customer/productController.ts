@@ -111,3 +111,32 @@ export async function getTrendingProducts(req: Request, res: Response): Promise<
 
   sendSuccess(res, { products }, 'Trending products fetched');
 }
+
+export async function getSimilarProducts(req: Request, res: Response): Promise<void> {
+  try {
+    const rows = await productService.getSimilarProducts(String(req.params.id));
+    const productIds = rows.map((p) => p.id);
+
+    const [wishlistedIds, offersById] = await Promise.all([
+      req.customer ? wishlistService.getWishlistedProductIds(req.customer.id, productIds) : Promise.resolve(new Set<string>()),
+      getActiveOffersForProducts(productIds),
+    ]);
+
+    const products: ProductListItem[] = await Promise.all(
+      rows.map(async (p) => ({
+        id: p.id,
+        title: p.name,
+        image: p.images[0] ? await getPresignedUrl(toThumbnailKey(p.images[0])) : null,
+        mrp: p.mrp,
+        sellingPrice: p.sellingPrice,
+        ...offerFieldsFor(offersById, p.id, p.sellingPrice),
+        rating: 0,
+        isWishlisted: wishlistedIds.has(p.id),
+      })),
+    );
+
+    sendSuccess(res, { products }, 'Similar products fetched');
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Product not found');
+  }
+}

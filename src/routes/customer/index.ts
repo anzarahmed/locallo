@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requestOtp, verifyOtp } from '../../controllers/customer/customerAuthController';
 import { getProfile, updateProfile, uploadProfileImage } from '../../controllers/customer/customerProfileController';
-import { getProducts, getProduct, getTrendingProducts } from '../../controllers/customer/productController';
+import { getProducts, getProduct, getTrendingProducts, getSimilarProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
 import { addReview, getReviews, removeReview, uploadReviewImages } from '../../controllers/customer/reviewController';
 import { getDashboard } from '../../controllers/customer/dashboardController';
@@ -32,6 +32,7 @@ router.get('/dashboard',          getDashboard);
 router.get('/products/trending', optionalCustomer, getTrendingProducts);
 router.post('/products',         optionalCustomer, validate(searchProductsSchema), getProducts);
 router.get('/products/:id',      optionalCustomer, getProduct);
+router.get('/products/:id/similar', optionalCustomer, getSimilarProducts);
 
 router.get('/wishlist',                 requireCustomer, getWishlist);
 router.post('/wishlist/:productId',     requireCustomer, toggleWishlist);

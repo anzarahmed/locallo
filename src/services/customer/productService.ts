@@ -34,6 +34,7 @@ interface ProductSellerDetail {
 }
 
 const TRENDING_LIMIT = 15;
+const SIMILAR_LIMIT = 10;
 const TRENDING_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images'];
 
 const SAFE_PRODUCT_ATTRIBUTES = [
@@ -194,5 +195,28 @@ export async function getTrendingProducts(): Promise<Product[]> {
     where: { isActive: true, [Op.and]: [SELLER_VERIFIED_CONDITION] },
     order: [['createdAt', 'DESC']],
     limit: TRENDING_LIMIT,
+  });
+}
+
+export async function getSimilarProducts(productId: string): Promise<Product[]> {
+  const source = await Product.findOne({
+    where: { id: productId, isActive: true },
+    attributes: ['id', 'categoryId'],
+  });
+
+  if (!source) {
+    throw Object.assign(new Error('Product not found'), { status: 404 });
+  }
+
+  return Product.findAll({
+    attributes: TRENDING_ATTRIBUTES,
+    where: {
+      isActive: true,
+      categoryId: source.categoryId,
+      id: { [Op.ne]: productId },
+      [Op.and]: [SELLER_VERIFIED_CONDITION],
+    },
+    order: [['createdAt', 'DESC']],
+    limit: SIMILAR_LIMIT,
   });
 }
