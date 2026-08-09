@@ -27,7 +27,7 @@ function offerFieldsFor(offersById: Map<string, Offer>, productId: string, selli
 }
 
 export async function getProducts(req: Request, res: Response): Promise<void> {
-  const { page, limit, searchQuery, searchByLocation, category_id: categoryId, brand_id: brandId, shop_id: shopId } = req.body;
+  const { page, limit, searchQuery, searchByLocation, category_id: categoryId, brand_id: brandId, shop_id: shopId, offer_id: offerId } = req.body;
 
   const hasLocation = searchByLocation !== undefined;
   const { rows, count } = await productService.browseProducts(
@@ -35,6 +35,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
       categoryId,
       brandId,
       sellerId: shopId,
+      offerId,
       search: searchQuery || undefined,
       lat: searchByLocation?.lat,
       lng: searchByLocation?.lng,

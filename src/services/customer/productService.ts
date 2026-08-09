@@ -3,12 +3,14 @@ import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { Category } from '../../models/Category';
 import { SellerProfile } from '../../models/SellerProfile';
+import { OfferProduct } from '../../models/OfferProduct';
 import type { AttributeField } from '../../types';
 
 interface BrowseFilter {
   categoryId?: number;
   brandId?: number;
   sellerId?: string;
+  offerId?: number;
   search?: string;
   lat?: number;
   lng?: number;
@@ -76,6 +78,16 @@ export async function browseProducts(
     const sellerIds = sellerProfiles.map(p => p.userId);
     if (sellerIds.length === 0) return { rows: [], count: 0 };
     where.sellerId = { [Op.in]: sellerIds };
+  }
+
+  if (filters.offerId !== undefined) {
+    const offerProducts = await OfferProduct.findAll({
+      where: { offerId: filters.offerId },
+      attributes: ['productId'],
+    });
+    const productIds = offerProducts.map(op => op.productId);
+    if (productIds.length === 0) return { rows: [], count: 0 };
+    where.id = { [Op.in]: productIds };
   }
 
   const hasLocation = filters.lat !== undefined && filters.lng !== undefined;
