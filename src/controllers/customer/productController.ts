@@ -12,6 +12,7 @@ interface ProductListItem {
   image: string | null;
   mrp: number | null;
   sellingPrice: number;
+  offerId: number | null;
   offerPrice: number | null;
   offerBadge: string | null;
   rating: number;
@@ -19,10 +20,10 @@ interface ProductListItem {
   distanceKm?: number;
 }
 
-function offerFieldsFor(offersById: Map<string, Offer>, productId: string, sellingPrice: number): { offerPrice: number | null; offerBadge: string | null } {
+function offerFieldsFor(offersById: Map<string, Offer>, productId: string, sellingPrice: number): { offerId: number | null; offerPrice: number | null; offerBadge: string | null } {
   const offer = offersById.get(productId);
-  if (!offer) return { offerPrice: null, offerBadge: null };
-  return computeOfferPricing(offer, sellingPrice);
+  if (!offer) return { offerId: null, offerPrice: null, offerBadge: null };
+  return { offerId: offer.id, ...computeOfferPricing(offer, sellingPrice) };
 }
 
 export async function getProducts(req: Request, res: Response): Promise<void> {
@@ -76,12 +77,12 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
       req.customer ? wishlistService.isProductWishlisted(req.customer.id, product.id) : Promise.resolve(false),
       getActiveOffersForProducts([product.id]),
     ]);
-    const { offerPrice, offerBadge } = offerFieldsFor(offersById, product.id, product.sellingPrice);
+    const { offerId, offerPrice, offerBadge } = offerFieldsFor(offersById, product.id, product.sellingPrice);
     const [signedProduct, signedVariants] = await Promise.all([
       withSignedImages(product.toJSON() as Record<string, unknown>),
       Promise.all(variants.map(v => withSignedImages(v as unknown as Record<string, unknown>))),
     ]);
-    sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted, offerPrice, offerBadge }, variants: signedVariants }, 'Product fetched');
+    sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted, offerId, offerPrice, offerBadge }, variants: signedVariants }, 'Product fetched');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Product not found');
   }

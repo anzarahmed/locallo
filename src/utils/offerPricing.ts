@@ -42,11 +42,11 @@ export function computeOfferPricing(offer: Offer, sellingPrice: number): OfferPr
       const { discountPercent, maxDiscountCap } = offer.config as PercentageOffConfig;
       const rawDiscount = sellingPrice * (discountPercent / 100);
       const discount = maxDiscountCap !== undefined ? Math.min(rawDiscount, maxDiscountCap) : rawDiscount;
-      return { offerPrice: Math.max(0, sellingPrice - discount), offerBadge: null };
+      return { offerPrice: Math.round(Math.max(0, sellingPrice - discount)), offerBadge: null };
     }
     case 'flat_amount_off': {
       const { flatAmount } = offer.config as FlatAmountOffConfig;
-      return { offerPrice: Math.max(0, sellingPrice - flatAmount), offerBadge: null };
+      return { offerPrice: Math.round(Math.max(0, sellingPrice - flatAmount)), offerBadge: null };
     }
     case 'bogo': {
       const { buyQty, getQty, getDiscountPercent } = offer.config as BogoConfig;
