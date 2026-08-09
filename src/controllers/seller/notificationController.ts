@@ -12,6 +12,7 @@ interface NotificationItem {
   referenceType: string | null;
   referenceId: string | null;
   isRead: boolean;
+  createdAt: Date;
 }
 
 function toItem(n: Notification): NotificationItem {
@@ -23,6 +24,7 @@ function toItem(n: Notification): NotificationItem {
     referenceType: n.referenceType,
     referenceId: n.referenceId,
     isRead: n.isRead,
+    createdAt: n.createdAt,
   };
 }
 
