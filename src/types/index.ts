@@ -1,5 +1,5 @@
 export type AdminRole = 'super_admin' | 'manager' | 'operator';
-export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands' | 'banners' | 'faqs' | 'cmsPages';
+export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands' | 'banners' | 'faqs' | 'cmsPages' | 'offers';
 export type PermissionAction = 'list' | 'view' | 'add' | 'edit' | 'delete';
 export type PermissionMap = Partial<Record<PermissionModule, PermissionAction[]>>;
 export type SellerStatus = 'active' | 'inactive' | 'pending';
@@ -78,6 +78,36 @@ export interface Banner {
   title: string | null;
   startDate: string;
   endDate: string;
+  isActive: boolean;
+}
+
+export type OfferType = 'percentage_off' | 'flat_amount_off' | 'bogo';
+
+export interface PercentageOffConfig {
+  discountPercent: number;
+  maxDiscountCap?: number;
+}
+
+export interface FlatAmountOffConfig {
+  flatAmount: number;
+}
+
+export interface BogoConfig {
+  buyQty: number;
+  getQty: number;
+  getDiscountPercent: number;
+}
+
+export type OfferConfig = PercentageOffConfig | FlatAmountOffConfig | BogoConfig;
+
+export interface Offer {
+  readonly id: number;
+  title: string;
+  description: string | null;
+  startDate: string;
+  endDate: string;
+  offerType: OfferType;
+  config: OfferConfig;
   isActive: boolean;
 }
 
