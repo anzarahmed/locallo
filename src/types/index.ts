@@ -148,6 +148,77 @@ export interface CustomDayOverride {
   time: CustomDayTime;
 }
 
+export type OfferType = 'percentage_off' | 'flat_amount_off' | 'bogo';
+
+export interface PercentageOffConfig {
+  discountPercent: number;
+  maxDiscountCap?: number;
+}
+
+export interface FlatAmountOffConfig {
+  flatAmount: number;
+}
+
+export interface BogoConfig {
+  buyQty: number;
+  getQty: number;
+  getDiscountPercent: number;
+}
+
+export type OfferConfig = PercentageOffConfig | FlatAmountOffConfig | BogoConfig;
+
+export interface Offer {
+  id: number;
+  title: string;
+  description: string | null;
+  startDate: string;
+  endDate: string;
+  offerType: OfferType;
+  config: OfferConfig;
+  isActive: boolean;
+}
+
+export interface Notification {
+  id: string;
+  title: string;
+  message: string;
+  type: string;
+  referenceType: string | null;
+  referenceId: string | null;
+  isRead: boolean;
+}
+
+export interface NotificationsResponse {
+  notifications: Notification[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface OffersResponse {
+  offers: Offer[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface AcceptedOffer extends Offer {
+  acceptedCount: number;
+}
+
+export interface AcceptedOffersResponse {
+  offers: AcceptedOffer[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface OfferDetailResponse {
+  offer: Offer;
+  acceptedProducts: Product[];
+  acceptedProductIds: string[];
+}
+
 export interface ProductVariant {
   id: string;
   productId: string;

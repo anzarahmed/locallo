@@ -18,4 +18,11 @@ export const PATHS = {
   SOLD_LOGS:      '/api/sellers/sold-logs',
   PRODUCT_SELL:   (id: string): string => `/api/sellers/products/${id}/sell`,
   VARIANT_SELL:   (id: string, vid: string): string => `/api/sellers/products/${id}/variants/${vid}/sell`,
+  OFFERS:         '/api/sellers/offers',
+  ACCEPTED_OFFERS: '/api/sellers/offers/accepted',
+  OFFER_BY_ID:    (id: number): string => `/api/sellers/offers/${id}`,
+  OFFER_ACCEPT:   (id: number): string => `/api/sellers/offers/${id}/accept`,
+  NOTIFICATIONS:      '/api/sellers/notifications',
+  NOTIFICATION_READ:  (id: string): string => `/api/sellers/notifications/${id}/read`,
+  NOTIFICATION_BY_ID: (id: string): string => `/api/sellers/notifications/${id}`,
 } as const;

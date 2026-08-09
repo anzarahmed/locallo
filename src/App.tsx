@@ -17,6 +17,10 @@ const EditProduct = lazy(() => import('./pages/products/EditProduct'));
 const VariantList = lazy(() => import('./pages/products/variants/VariantList'));
 const Settings    = lazy(() => import('./pages/settings/Settings'));
 const SoldLogs    = lazy(() => import('./pages/sold-logs/SoldLogs'));
+const AcceptedOffers = lazy(() => import('./pages/offers/AcceptedOffers'));
+const OfferDetail = lazy(() => import('./pages/offers/OfferDetail'));
+const AcceptOfferProducts = lazy(() => import('./pages/offers/AcceptOfferProducts'));
+const NotificationList = lazy(() => import('./pages/notifications/NotificationList'));
 
 function AuthGuard({ children }: { children: JSX.Element }): JSX.Element {
   const { token, isRestoring } = useAuth();
@@ -52,6 +56,10 @@ function AppRoutes(): JSX.Element {
           <Route path="/products/:id/variants" element={<VariantList />} />
           <Route path="/settings"              element={<Settings />} />
           <Route path="/sold-logs"             element={<SoldLogs />} />
+          <Route path="/offers"                element={<AcceptedOffers />} />
+          <Route path="/offers/:id"            element={<OfferDetail />} />
+          <Route path="/offers/:id/accept"     element={<AcceptOfferProducts />} />
+          <Route path="/notifications"         element={<NotificationList />} />
           <Route path="/pnl"                   element={<Placeholder title="P&L" />} />
         </Route>
 

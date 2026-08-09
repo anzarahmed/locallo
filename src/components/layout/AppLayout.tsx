@@ -1,9 +1,10 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt } from 'lucide-react';
+import { LayoutDashboard, Package, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt, Bell, BadgePercent } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
 import { useState, useRef, useEffect, type JSX } from 'react';
 import logo from '../../assets/logo.png';
+import { getNotifications } from '../../services/notificationService';
 
 interface NavItem {
   to: string;
@@ -15,6 +16,7 @@ const BASE_NAV: NavItem[] = [
   { to: '/dashboard',  icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
   { to: '/products',   icon: <Package size={20} />,         label: 'Products'  },
   { to: '/sold-logs',  icon: <Receipt size={20} />,         label: 'Sales Log' },
+  { to: '/offers',     icon: <BadgePercent size={20} />,    label: 'Offers'    },
 ];
 
 const PNL_NAV:      NavItem = { to: '/pnl',      icon: <BarChart2 size={20} />, label: 'P&L'      };
@@ -25,6 +27,13 @@ export default function AppLayout(): JSX.Element {
   const { logout, seller } = useAuth();
   const { showPnl } = useModulePrefs();
   const navigate = useNavigate();
+  const [hasUnread, setHasUnread] = useState(false);
+
+  useEffect(() => {
+    getNotifications({ page: 1, limit: 50 })
+      .then(data => setHasUnread(data.notifications.some(n => !n.isRead)))
+      .catch(() => {});
+  }, []);
 
   const sidebarNav = [...BASE_NAV, ...(showPnl ? [PNL_NAV] : [])];
   const mobileNav  = [...BASE_NAV, ...(showPnl ? [PNL_NAV] : []), PROFILE_NAV, SETTINGS_NAV];
@@ -36,7 +45,10 @@ export default function AppLayout(): JSX.Element {
         {/* Logo + avatar row */}
         <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
           <img src={logo} alt="Loccalo" className="h-9 w-auto" />
-          <ProfileMenu seller={seller} logout={logout} navigate={navigate} />
+          <div className="flex items-center gap-2">
+            <NotificationBell hasUnread={hasUnread} onClick={() => navigate('/notifications')} />
+            <ProfileMenu seller={seller} logout={logout} navigate={navigate} />
+          </div>
         </div>
 
         {/* Nav */}
@@ -72,6 +84,11 @@ export default function AppLayout(): JSX.Element {
         </div>
       </aside>
 
+      {/* ── Mobile floating notification bell ── */}
+      <div className="md:hidden fixed top-4 right-4 z-40">
+        <NotificationBell hasUnread={hasUnread} onClick={() => navigate('/notifications')} floating />
+      </div>
+
       {/* ── Main content ── */}
       <main className="flex-1 md:ml-60 pb-20 md:pb-0">
         <Outlet />
@@ -97,6 +114,32 @@ export default function AppLayout(): JSX.Element {
         ))}
       </nav>
     </div>
+  );
+}
+
+/* ── Notification bell ── */
+interface NotificationBellProps {
+  hasUnread: boolean;
+  onClick: () => void;
+  floating?: boolean;
+}
+
+function NotificationBell({ hasUnread, onClick, floating = false }: NotificationBellProps): JSX.Element {
+  return (
+    <button
+      onClick={onClick}
+      aria-label="Notifications"
+      className={`relative flex items-center justify-center w-9 h-9 rounded-full transition-colors ${
+        floating
+          ? 'bg-white shadow-md text-gray-500 hover:text-teal-600'
+          : 'text-gray-400 hover:text-teal-600 hover:bg-gray-50'
+      }`}
+    >
+      <Bell size={18} />
+      {hasUnread && (
+        <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-rose-500 ring-2 ring-white" />
+      )}
+    </button>
   );
 }
 
