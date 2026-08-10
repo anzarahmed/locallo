@@ -81,7 +81,11 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
     const { offerId, offerPrice, offerBadge } = offerFieldsFor(offersById, product.id, product.sellingPrice);
     const [signedProduct, signedVariants] = await Promise.all([
       withSignedImages(product.toJSON() as Record<string, unknown>),
-      Promise.all(variants.map(v => withSignedImages(v as unknown as Record<string, unknown>))),
+      Promise.all(variants.map(async (v) => {
+        const signed = await withSignedImages(v as unknown as Record<string, unknown>);
+        const variantSellingPrice = (v.sellingPrice ?? product.sellingPrice) as number;
+        return { ...signed, ...offerFieldsFor(offersById, product.id, variantSellingPrice) };
+      })),
     ]);
     sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted, offerId, offerPrice, offerBadge }, variants: signedVariants }, 'Product fetched');
   } catch (err: unknown) {
