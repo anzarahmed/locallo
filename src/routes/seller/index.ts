@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireSeller } from '../../middleware/auth';
 import { getDashboardStats } from '../../controllers/seller/dashboardController';
-import { getProfile, updateSeller, updateAddress, getSettings, updateSettings, getCustomDayOverride, setCustomDayOverride, clearCustomDayOverride } from '../../controllers/seller/sellerController';
+import { getProfile, updateSeller, updateAddress, getSettings, updateSettings, getCustomDayOverride, setCustomDayOverride, clearCustomDayOverride, deleteAccount } from '../../controllers/seller/sellerController';
 import { requestOtp, verifyOtp, logout } from '../../controllers/seller/sellerAuthController';
 import {
   uploadImage, createProduct, getProducts,
@@ -36,6 +36,7 @@ router.get('/my-categories', requireSeller, getMyCategories);
 router.get('/profile', requireSeller, getProfile);
 router.put('/profile', requireSeller, validate(updateSellerSchema),  updateSeller);
 router.put('/address', requireSeller, validate(updateAddressSchema), updateAddress);
+router.delete('/account', requireSeller, deleteAccount);
 
 router.get('/settings', requireSeller, getSettings);
 router.put('/settings', requireSeller, validate(updateNotificationSettingsSchema), updateSettings);

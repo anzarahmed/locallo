@@ -4,6 +4,10 @@ import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 import { Brand } from '../../models/Brand';
+import { Product } from '../../models/Product';
+import { ProductVariant } from '../../models/ProductVariant';
+import { Review } from '../../models/Review';
+import { Session } from '../../models/Session';
 import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
 import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
 import { sendKycVerificationEmail } from '../../utils/mailer';
@@ -124,6 +128,45 @@ export async function updateSellerAddress(
   const profile = await requireSellerProfile(userId);
   await profile.update({ address: data.address, lat: data.lat, long: data.long });
   return profile;
+}
+
+export async function deleteSellerAccount(userId: string): Promise<void> {
+  const user = await User.findOne({ where: { id: userId, role: 'SELLER' } });
+  if (!user) {
+    throw Object.assign(new Error('Seller not found'), { status: 404 });
+  }
+
+  const profile = await SellerProfile.findOne({ where: { userId } });
+  const products = await Product.findAll({ where: { sellerId: userId }, attributes: ['id', 'images'] });
+  const productIds = products.map((p) => p.id);
+  const variants = productIds.length
+    ? await ProductVariant.findAll({ where: { productId: productIds }, attributes: ['images'] })
+    : [];
+  const reviews = productIds.length
+    ? await Review.findAll({ where: { productId: productIds }, attributes: ['images'] })
+    : [];
+
+  const imageKeys = [
+    ...(user.profileImage ? [user.profileImage] : []),
+    ...products.flatMap((p) => p.images),
+    ...variants.flatMap((v) => v.images),
+    ...reviews.flatMap((r) => r.images),
+    ...(profile ? Object.values(profile.kycDocuments).filter((v): v is string => Boolean(v)) : []),
+    ...(profile
+      ? Object.values(profile.brandDocuments).flatMap((set) => Object.values(set).filter((v): v is string => Boolean(v)))
+      : []),
+  ];
+
+  await sequelize.transaction(async (t) => {
+    await Session.destroy({ where: { actorType: 'user', actorId: userId }, transaction: t });
+    await user.destroy({ transaction: t });
+  });
+
+  await Promise.all(
+    imageKeys.map((key) =>
+      deleteImage(key).catch((err) => console.error(`Failed to delete image ${key} for deleted seller ${userId}:`, err)),
+    ),
+  );
 }
 
 const VALID_SELLER_SORT = new Set(['fullName', 'mobile', 'isActive', 'businessName', 'email', 'createdAt']);
