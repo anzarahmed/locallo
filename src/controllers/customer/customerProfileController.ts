@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { getCustomerProfile, updateCustomerProfile, uploadCustomerProfileImage } from '../../services/customer/customerProfileService';
+import { getCustomerProfile, updateCustomerProfile, uploadCustomerProfileImage, deleteCustomerAccount } from '../../services/customer/customerProfileService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
 import type { User } from '../../models/User';
@@ -47,5 +47,14 @@ export async function uploadProfileImage(req: Request, res: Response): Promise<v
     sendSuccess(res, await buildProfileResponse(user), 'Profile image updated successfully');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to upload profile image');
+  }
+}
+
+export async function deleteAccount(req: Request, res: Response): Promise<void> {
+  try {
+    await deleteCustomerAccount(req.customer!.id);
+    sendSuccess(res, null, 'Account deleted successfully');
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to delete account');
   }
 }

@@ -1,5 +1,8 @@
 import type { InferType } from 'yup';
 import { User } from '../../models/User';
+import { Review } from '../../models/Review';
+import { Session } from '../../models/Session';
+import sequelize from '../../config/database';
 import { saveCustomerProfileImage, deleteImage } from '../../utils/imageStorage';
 import type { updateCustomerProfileSchema } from '../../validation/customer/customerProfileSchemas';
 
@@ -51,4 +54,28 @@ export async function uploadCustomerProfileImage(userId: string, file: Express.M
   }
 
   return user;
+}
+
+export async function deleteCustomerAccount(userId: string): Promise<void> {
+  const user = await User.findOne({ where: { id: userId, role: 'CUSTOMER' } });
+  if (!user) {
+    throw Object.assign(new Error('Customer not found'), { status: 404 });
+  }
+
+  const reviews = await Review.findAll({ where: { customerId: userId }, attributes: ['images'] });
+  const imageKeys = [
+    ...(user.profileImage ? [user.profileImage] : []),
+    ...reviews.flatMap((review) => review.images),
+  ];
+
+  await sequelize.transaction(async (t) => {
+    await Session.destroy({ where: { actorType: 'user', actorId: userId }, transaction: t });
+    await user.destroy({ transaction: t });
+  });
+
+  await Promise.all(
+    imageKeys.map((key) =>
+      deleteImage(key).catch((err) => console.error(`Failed to delete image ${key} for deleted customer ${userId}:`, err)),
+    ),
+  );
 }

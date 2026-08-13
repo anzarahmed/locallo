@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requestOtp, verifyOtp } from '../../controllers/customer/customerAuthController';
-import { getProfile, updateProfile, uploadProfileImage } from '../../controllers/customer/customerProfileController';
+import { getProfile, updateProfile, uploadProfileImage, deleteAccount } from '../../controllers/customer/customerProfileController';
 import { getProducts, getProduct, getTrendingProducts, getSimilarProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
 import { addReview, getReviews, removeReview, uploadReviewImages } from '../../controllers/customer/reviewController';
@@ -28,6 +28,7 @@ router.get('/faqs', getFaqs);
 router.get('/profile',       requireCustomer, getProfile);
 router.put('/profile',       requireCustomer, validate(updateCustomerProfileSchema), updateProfile);
 router.post('/profile/image', requireCustomer, upload.single('image'), uploadProfileImage);
+router.delete('/account',    requireCustomer, deleteAccount);
 
 router.get('/dashboard',          getDashboard);
 router.get('/offers',             getOffers);
