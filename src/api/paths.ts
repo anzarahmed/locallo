@@ -9,6 +9,7 @@ export const PATHS = {
   },
   PROFILE:    '/api/sellers/profile',
   ADDRESS:    '/api/sellers/address',
+  ACCOUNT:    '/api/sellers/account',
   PRODUCTS:       '/api/sellers/products',
   UPLOAD_IMAGE:   '/api/sellers/products/images',
   ANALYZE_IMAGE:  '/api/sellers/products/analyze-image',

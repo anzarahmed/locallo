@@ -1,11 +1,11 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
-import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight, CalendarDays, Pencil, X } from 'lucide-react';
+import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight, CalendarDays, Pencil, X, Trash2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
-import { getProfile, updateProfile, getCustomDay, setCustomDay, clearCustomDay } from '../../services/sellerService';
+import { getProfile, updateProfile, getCustomDay, setCustomDay, clearCustomDay, deleteAccount } from '../../services/sellerService';
 import {
   profileSchema,
   customDaySchema,
@@ -15,6 +15,7 @@ import {
 import { ApiError } from '../../lib/axios';
 import type { SellerCategory, CustomDayOverride } from '../../types';
 import LocationDisplay from '../../components/LocationDisplay';
+import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
 
 type DayFieldErrors  = Partial<{ open: string; close: string }>;
 type DayFieldTouched = Partial<{ open: boolean; close: boolean }>;
@@ -32,10 +33,26 @@ const DEFAULT_LAT = 19.076;
 const DEFAULT_LNG = 72.8777;
 
 export default function Profile(): JSX.Element {
-  const { seller, updateSeller } = useAuth();
+  const { seller, updateSeller, logout } = useAuth();
   const toast = useToast();
   const { showPnl, setShowPnl } = useModulePrefs();
   const navigate = useNavigate();
+
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [deletingAccount, setDeletingAccount] = useState(false);
+
+  async function confirmDeleteAccount(): Promise<void> {
+    setDeletingAccount(true);
+    try {
+      await deleteAccount();
+      toast.success('Account deleted');
+      logout();
+      navigate('/login', { replace: true });
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to delete account');
+      setDeletingAccount(false);
+    }
+  }
 
   const [categories, setCategories] = useState<SellerCategory[]>([]);
   const [categoryIds, setCategoryIds] = useState<number[]>([]);
@@ -381,7 +398,39 @@ export default function Profile(): JSX.Element {
             </div>
           </div>
         </div>
+
+        {/* ── Danger Zone ── */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden mb-4">
+          <div className="flex items-start gap-3 px-5 py-4 border-b border-gray-100">
+            <div className="w-9 h-9 rounded-xl bg-rose-50 flex items-center justify-center shrink-0">
+              <Trash2 size={16} className="text-rose-500" />
+            </div>
+            <div>
+              <h3 className="text-sm font-semibold text-gray-800">Danger Zone</h3>
+              <p className="text-xs text-gray-400 mt-0.5">Irreversible account actions</p>
+            </div>
+          </div>
+          <div className="p-5">
+            <button
+              type="button"
+              onClick={() => setDeleteConfirmOpen(true)}
+              className="w-full py-3 rounded-xl border-2 border-rose-500 text-rose-600 font-semibold text-sm hover:bg-rose-50 transition-colors"
+            >
+              Delete Account
+            </button>
+          </div>
+        </div>
       </div>
+
+      {deleteConfirmOpen && (
+        <ConfirmDeleteModal
+          title="Delete Account"
+          message="This will permanently delete your account, all your products, and your sales history. This cannot be undone."
+          loading={deletingAccount}
+          onConfirm={() => void confirmDeleteAccount()}
+          onCancel={() => setDeleteConfirmOpen(false)}
+        />
+      )}
     </div>
   );
 }

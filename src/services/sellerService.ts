@@ -18,6 +18,10 @@ export function updateAddress(data: { address: string; lat: number; long: number
   return apiPut(PATHS.ADDRESS, data);
 }
 
+export function deleteAccount(): Promise<unknown> {
+  return apiDelete(PATHS.ACCOUNT);
+}
+
 export function getCategories(): Promise<{ categories: SellerCategory[] }> {
   return apiGet(PATHS.CATEGORIES);
 }
