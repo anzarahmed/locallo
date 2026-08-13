@@ -4,6 +4,7 @@ import { withSignedImages, getPresignedUrl, toThumbnailKey } from '../../utils/i
 import { getActiveOffersForProducts, computeOfferPricing } from '../../utils/offerPricing';
 import * as productService from '../../services/customer/productService';
 import * as wishlistService from '../../services/customer/wishlistService';
+import * as productViewService from '../../services/customer/productViewService';
 import type { Offer } from '../../models/Offer';
 
 interface ProductListItem {
@@ -74,6 +75,9 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
     const variantId = req.query.variantId ? String(req.query.variantId) : undefined;
     const { product, seller, variants } = await productService.getProductDetail(String(req.params.id), variantId);
+    if (req.customer) {
+      void productViewService.recordProductView(req.customer.id, product.id, product.sellerId);
+    }
     const [isWishlisted, offersById] = await Promise.all([
       req.customer ? wishlistService.isProductWishlisted(req.customer.id, product.id) : Promise.resolve(false),
       getActiveOffersForProducts([product.id]),
