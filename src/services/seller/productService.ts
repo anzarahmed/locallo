@@ -149,7 +149,12 @@ type ProductSortBy =
   | 'sort_hidden_first'
   | 'sort_name_az';
 
-function resolveOrder(sortBy: ProductSortBy): [string, string][] {
+const WISHLIST_COUNT_SQL = '(SELECT COUNT(*)::int FROM wishlists WHERE product_id = "Product".id)';
+const REVIEW_COUNT_SQL = '(SELECT COUNT(*)::int FROM reviews WHERE product_id = "Product".id)';
+const AVG_RATING_SQL = '(SELECT COALESCE(AVG(rating), 0) FROM reviews WHERE product_id = "Product".id)';
+const TOP_SCORE_SQL = `(${WISHLIST_COUNT_SQL} + (${AVG_RATING_SQL} * ${REVIEW_COUNT_SQL}))`;
+
+function resolveOrder(sortBy: ProductSortBy): [ReturnType<typeof literal> | string, string][] {
   switch (sortBy) {
     case 'sort_price_high_low':  return [['sellingPrice', 'DESC']];
     case 'sort_price_low_high':  return [['sellingPrice', 'ASC']];
@@ -158,7 +163,8 @@ function resolveOrder(sortBy: ProductSortBy): [string, string][] {
     case 'sort_visible_first':   return [['isActive', 'DESC'], ['createdAt', 'DESC']];
     case 'sort_hidden_first':    return [['isActive', 'ASC'], ['createdAt', 'DESC']];
     case 'sort_name_az':         return [['name', 'ASC']];
-    // sort_most_wishlisted and sort_top_rated fall back until those tables exist
+    case 'sort_most_wishlisted': return [[literal(WISHLIST_COUNT_SQL), 'DESC'], ['createdAt', 'DESC']];
+    case 'sort_top_rated':       return [[literal(AVG_RATING_SQL), 'DESC'], [literal(REVIEW_COUNT_SQL), 'DESC'], ['createdAt', 'DESC']];
     default:                     return [['createdAt', 'DESC']];
   }
 }
@@ -188,6 +194,21 @@ export async function getSellerProducts(
     order: resolveOrder(sortBy),
     limit,
     offset: (page - 1) * limit,
+  });
+}
+
+export async function getTopProducts(sellerId: string, limit: number): Promise<Product[]> {
+  return Product.findAll({
+    where: { sellerId },
+    attributes: {
+      include: [
+        [literal(WISHLIST_COUNT_SQL), 'wishlistCount'],
+        [literal(REVIEW_COUNT_SQL), 'reviewCount'],
+        [literal(AVG_RATING_SQL), 'avgRating'],
+      ],
+    },
+    order: [[literal(TOP_SCORE_SQL), 'DESC'], ['createdAt', 'DESC']],
+    limit,
   });
 }
 

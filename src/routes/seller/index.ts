@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { requireSeller } from '../../middleware/auth';
-import { getDashboardStats } from '../../controllers/seller/dashboardController';
+import { getDashboardStats, getTopProducts as getTopDashboardProducts } from '../../controllers/seller/dashboardController';
 import { getProfile, updateSeller, updateAddress, getSettings, updateSettings, getCustomDayOverride, setCustomDayOverride, clearCustomDayOverride, deleteAccount } from '../../controllers/seller/sellerController';
 import { requestOtp, verifyOtp, logout } from '../../controllers/seller/sellerAuthController';
 import {
@@ -29,6 +29,7 @@ router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
 router.post('/auth/logout',      requireSeller,               logout);
 
 router.get('/dashboard/stats', requireSeller, getDashboardStats);
+router.get('/dashboard/top-products', requireSeller, getTopDashboardProducts);
 
 router.get('/categories', requireSeller, getCategories);
 router.get('/my-categories', requireSeller, getMyCategories);
