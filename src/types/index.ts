@@ -75,6 +75,7 @@ export interface ProfileResponse {
   mobile: string;
   countryCode: string;
   fullName: string | null;
+  photo: string | null;
   isActive: boolean;
   profile: SellerProfile;
 }

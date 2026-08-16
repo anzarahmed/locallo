@@ -77,10 +77,14 @@ export default function Dashboard(): JSX.Element {
             <h1 className="text-white text-[22px] font-bold leading-tight mt-0.5">{businessName}</h1>
           </div>
           <div
-            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base border-2 border-white/30 shrink-0"
+            className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base border-2 border-white/30 shrink-0 overflow-hidden"
             style={{ background: 'rgba(255,255,255,0.25)' }}
           >
-            {initials(businessName)}
+            {profile?.photo ? (
+              <img src={resolveImage(profile.photo)} alt={businessName} className="w-full h-full object-cover" />
+            ) : (
+              initials(businessName)
+            )}
           </div>
         </div>
       </div>

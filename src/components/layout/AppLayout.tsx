@@ -6,6 +6,7 @@ import { useState, useRef, useEffect, type JSX } from 'react';
 import logo from '../../assets/logo.png';
 import { getNotifications } from '../../services/notificationService';
 import { getProfile } from '../../services/sellerService';
+import { resolveImage } from '../../lib/imageUtils';
 
 interface NavItem {
   to: string;
@@ -30,6 +31,7 @@ export default function AppLayout(): JSX.Element {
   const navigate = useNavigate();
   const [hasUnread, setHasUnread] = useState(false);
   const [kycPending, setKycPending] = useState(false);
+  const [photo, setPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     getNotifications({ page: 1, limit: 50 })
@@ -39,7 +41,7 @@ export default function AppLayout(): JSX.Element {
 
   useEffect(() => {
     getProfile()
-      .then(data => setKycPending(!data.profile.isVerified))
+      .then(data => { setKycPending(!data.profile.isVerified); setPhoto(data.photo); })
       .catch(() => {});
   }, []);
 
@@ -95,7 +97,7 @@ export default function AppLayout(): JSX.Element {
           <img src={logo} alt="Loccalo" className="h-7 w-auto md:hidden" />
           <div className="flex items-center gap-2 ml-auto">
             <NotificationBell hasUnread={hasUnread} onClick={() => navigate('/notifications')} />
-            <ProfileMenu seller={seller} logout={logout} navigate={navigate} />
+            <ProfileMenu seller={seller} photo={photo} logout={logout} navigate={navigate} />
           </div>
         </header>
 
@@ -167,11 +169,12 @@ function NotificationBell({ hasUnread, onClick }: NotificationBellProps): JSX.El
 /* ── Profile menu (desktop) ── */
 interface ProfileMenuProps {
   seller: ReturnType<typeof useAuth>['seller'];
+  photo: string | null;
   logout: () => void;
   navigate: (path: string) => void;
 }
 
-function ProfileMenu({ seller, logout, navigate }: ProfileMenuProps): JSX.Element {
+function ProfileMenu({ seller, photo, logout, navigate }: ProfileMenuProps): JSX.Element {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -195,10 +198,14 @@ function ProfileMenu({ seller, logout, navigate }: ProfileMenuProps): JSX.Elemen
         aria-label="Profile menu"
       >
         <div
-          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0"
+          className="w-8 h-8 rounded-full flex items-center justify-center text-white text-sm font-bold shrink-0 overflow-hidden"
           style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
         >
-          {initial}
+          {photo ? (
+            <img src={resolveImage(photo)} alt="" className="w-full h-full object-cover" />
+          ) : (
+            initial
+          )}
         </div>
         <ChevronDown
           size={14}
