@@ -102,11 +102,13 @@ export default function VerifyOtp(): JSX.Element {
     if (cooldown > 0 || !state) return;
     try {
       const { requestOtp } = await import('../../services/authService');
-      await requestOtp(state.countryCode, state.phoneNumber);
+      // TEMPORARY: SMS delivery isn't live yet, so surface the OTP in the toast for testing.
+      // Remove this once MSG91 delivery is confirmed working.
+      const { otp } = await requestOtp(state.countryCode, state.phoneNumber);
       setCooldown(RESEND_COOLDOWN);
       setDigits(['', '', '', '']);
       setHasError(false);
-      toast.success('OTP resent successfully');
+      toast.success(`OTP resent successfully: ${otp}`);
       inputRefs.current[0]?.focus();
     } catch (err) {
       toast.error(

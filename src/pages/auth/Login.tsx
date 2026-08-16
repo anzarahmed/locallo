@@ -23,8 +23,10 @@ export default function Login(): JSX.Element {
     helpers: FormikHelpers<RequestOtpValues>,
   ): Promise<void> {
     try {
-      await requestOtp(values.countryCode, values.phoneNumber);
-      toast.success('OTP sent successfully');
+      // TEMPORARY: SMS delivery isn't live yet, so surface the OTP in the toast for testing.
+      // Remove this once MSG91 delivery is confirmed working.
+      const { otp } = await requestOtp(values.countryCode, values.phoneNumber);
+      toast.success(`OTP sent successfully: ${otp}`);
       navigate('/verify-otp', {
         state: { countryCode: values.countryCode, phoneNumber: values.phoneNumber },
       });

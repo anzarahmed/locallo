@@ -3,7 +3,7 @@ import { PATHS } from '../api/paths';
 import { getDeviceId, getDeviceType } from '../lib/deviceInfo';
 import type { Seller } from '../types';
 
-export function requestOtp(countryCode: string, phoneNumber: string): Promise<void> {
+export function requestOtp(countryCode: string, phoneNumber: string): Promise<{ otp: string }> {
   return apiPost(PATHS.AUTH.REQUEST_OTP, {
     countryCode,
     phoneNumber,

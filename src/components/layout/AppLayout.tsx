@@ -1,10 +1,11 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt, Bell, BadgePercent } from 'lucide-react';
+import { LayoutDashboard, Package, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt, Bell, BadgePercent, AlertTriangle } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
 import { useState, useRef, useEffect, type JSX } from 'react';
 import logo from '../../assets/logo.png';
 import { getNotifications } from '../../services/notificationService';
+import { getProfile } from '../../services/sellerService';
 
 interface NavItem {
   to: string;
@@ -28,10 +29,17 @@ export default function AppLayout(): JSX.Element {
   const { showPnl } = useModulePrefs();
   const navigate = useNavigate();
   const [hasUnread, setHasUnread] = useState(false);
+  const [kycPending, setKycPending] = useState(false);
 
   useEffect(() => {
     getNotifications({ page: 1, limit: 50 })
       .then(data => setHasUnread(data.notifications.some(n => !n.isRead)))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    getProfile()
+      .then(data => setKycPending(!data.profile.isVerified))
       .catch(() => {});
   }, []);
 
@@ -91,6 +99,7 @@ export default function AppLayout(): JSX.Element {
 
       {/* ── Main content ── */}
       <main className="flex-1 md:ml-60 pb-20 md:pb-0">
+        {kycPending && <KycPendingBanner />}
         <Outlet />
       </main>
 
@@ -113,6 +122,19 @@ export default function AppLayout(): JSX.Element {
           <MobileNavItem key={to} to={to} icon={icon} label={label} />
         ))}
       </nav>
+    </div>
+  );
+}
+
+/* ── KYC pending banner ── */
+function KycPendingBanner(): JSX.Element {
+  return (
+    <div className="sticky top-0 z-20 bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-start sm:items-center gap-2.5">
+      <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+      <p className="text-xs sm:text-sm text-amber-800 leading-snug">
+        <span className="font-semibold">Your KYC verification is pending.</span>{' '}
+        Please complete your KYC — until it's verified, your products won't be visible to customers.
+      </p>
     </div>
   );
 }
