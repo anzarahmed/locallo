@@ -32,6 +32,16 @@ function toDatetimeLocalValue(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function tomorrowStartDatetimeLocalValue(): string {
+  const d = new Date();
+  d.setHours(24, 0, 0, 0);
+  return toDatetimeLocalValue(d.toISOString());
+}
+
+function hasOfferStarted(offer: Offer): boolean {
+  return new Date(offer.startDate).getTime() <= Date.now();
+}
+
 function offerTypeLabel(type: OfferType): string {
   return OFFER_TYPE_OPTIONS.find(o => o.value === type)?.label ?? type;
 }
@@ -80,6 +90,7 @@ function OfferModal({ offer, onClose, onSaved }: OfferModalProps): JSX.Element {
   const isEdit = Boolean(offer);
   const toast  = useToast();
   const config = (offer?.config ?? {}) as unknown as Record<string, number | undefined>;
+  const minStart = useMemo(() => tomorrowStartDatetimeLocalValue(), []);
 
   const initialValues: OfferFormValues = {
     title: offer?.title ?? '',
@@ -170,6 +181,7 @@ function OfferModal({ offer, onClose, onSaved }: OfferModalProps): JSX.Element {
             <div className="grid grid-cols-2 gap-4">
               <AuthField
                 label="Start Date & Time" name="startDate" type="datetime-local" required
+                min={minStart}
                 value={f.values.startDate}
                 onChange={f.handleChange}
                 onBlur={f.handleBlur}
@@ -178,6 +190,7 @@ function OfferModal({ offer, onClose, onSaved }: OfferModalProps): JSX.Element {
               />
               <AuthField
                 label="End Date & Time" name="endDate" type="datetime-local" required
+                min={f.values.startDate || minStart}
                 value={f.values.endDate}
                 onChange={f.handleChange}
                 onBlur={f.handleBlur}
@@ -498,13 +511,15 @@ export default function OfferList(): JSX.Element {
       },
       cell: ({ row }: { row: Row<Offer> }) => {
         const offer = row.original;
+        const started = hasOfferStarted(offer);
         return (
           <div className="flex justify-center">
             {hasPermission('offers', 'edit') ? (
               <ToggleSwitch
                 active={offer.isActive}
-                onToggle={toggling === offer.id ? (): void => {} : (): void => { void handleToggleActive(offer); }}
-                title={`${offer.isActive ? 'Deactivate' : 'Activate'} offer`}
+                disabled={started || toggling === offer.id}
+                onToggle={(): void => { void handleToggleActive(offer); }}
+                title={started ? 'Offer has already started and cannot be changed' : `${offer.isActive ? 'Deactivate' : 'Activate'} offer`}
               />
             ) : (
               <StatusBadge active={offer.isActive} />
@@ -521,22 +536,25 @@ export default function OfferList(): JSX.Element {
       meta: { hideFromVisibility: true, align: 'right' },
       cell: ({ row }: { row: Row<Offer> }) => {
         const offer = row.original;
+        const started = hasOfferStarted(offer);
         return (
           <div className="flex items-center justify-end gap-1">
             {hasPermission('offers', 'edit') && (
               <button
-                onClick={() => setModalOffer(offer)}
-                className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
-                title="Edit"
+                onClick={started ? undefined : () => setModalOffer(offer)}
+                disabled={started}
+                className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                title={started ? 'Offer has already started and cannot be edited' : 'Edit'}
               >
                 <Pencil className="w-4 h-4" />
               </button>
             )}
             {hasPermission('offers', 'delete') && (
               <button
-                onClick={() => setDeleteTarget(offer)}
-                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-                title="Delete"
+                onClick={started ? undefined : () => setDeleteTarget(offer)}
+                disabled={started}
+                className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-40 disabled:cursor-not-allowed disabled:hover:bg-transparent disabled:hover:text-gray-400"
+                title={started ? 'Offer has already started and cannot be deleted' : 'Delete'}
               >
                 <Trash2 className="w-4 h-4" />
               </button>

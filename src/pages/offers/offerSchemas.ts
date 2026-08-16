@@ -10,7 +10,14 @@ export const OFFER_TYPE_OPTIONS: { value: OfferType; label: string }[] = [
 export const offerSchema = Yup.object({
   title: Yup.string().trim().required('Title is required'),
   description: Yup.string().trim().nullable(),
-  startDate: Yup.string().required('Start date/time is required'),
+  startDate: Yup.string()
+    .required('Start date/time is required')
+    .test('is-future', 'Start date must be after today', value => {
+      if (!value) return true;
+      const startOfTomorrow = new Date();
+      startOfTomorrow.setHours(24, 0, 0, 0);
+      return new Date(value).getTime() >= startOfTomorrow.getTime();
+    }),
   endDate: Yup.string()
     .required('End date/time is required')
     .test('after-start', 'End date must be after start date', function (value) {
