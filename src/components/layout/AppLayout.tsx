@@ -50,13 +50,9 @@ export default function AppLayout(): JSX.Element {
     <div className="min-h-screen bg-gray-50 flex">
       {/* ── Desktop sidebar ── */}
       <aside className="hidden md:flex flex-col w-60 bg-white border-r border-gray-100 fixed top-0 left-0 h-screen z-30">
-        {/* Logo + avatar row */}
-        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between">
+        {/* Logo */}
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center">
           <img src={logo} alt="Loccalo" className="h-9 w-auto" />
-          <div className="flex items-center gap-2">
-            <NotificationBell hasUnread={hasUnread} onClick={() => navigate('/notifications')} />
-            <ProfileMenu seller={seller} logout={logout} navigate={navigate} />
-          </div>
         </div>
 
         {/* Nav */}
@@ -92,16 +88,24 @@ export default function AppLayout(): JSX.Element {
         </div>
       </aside>
 
-      {/* ── Mobile floating notification bell ── */}
-      <div className="md:hidden fixed top-4 right-4 z-40">
-        <NotificationBell hasUnread={hasUnread} onClick={() => navigate('/notifications')} floating />
-      </div>
+      {/* ── Content column (offset for fixed desktop sidebar) ── */}
+      <div className="flex-1 md:ml-60 flex flex-col min-h-screen">
+        {/* ── Top bar ── */}
+        <header className="sticky top-0 z-30 bg-white border-b border-gray-100 flex items-center justify-between px-4 md:px-6 py-2.5">
+          <img src={logo} alt="Loccalo" className="h-7 w-auto md:hidden" />
+          <div className="flex items-center gap-2 ml-auto">
+            <NotificationBell hasUnread={hasUnread} onClick={() => navigate('/notifications')} />
+            <ProfileMenu seller={seller} logout={logout} navigate={navigate} />
+          </div>
+        </header>
 
-      {/* ── Main content ── */}
-      <main className="flex-1 md:ml-60 pb-20 md:pb-0">
         {kycPending && <KycPendingBanner />}
-        <Outlet />
-      </main>
+
+        {/* ── Main content ── */}
+        <main className="flex-1 pb-20 md:pb-0">
+          <Outlet />
+        </main>
+      </div>
 
       {/* ── Mobile bottom nav ── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 z-30 flex items-center justify-around px-2 py-2">
@@ -129,7 +133,7 @@ export default function AppLayout(): JSX.Element {
 /* ── KYC pending banner ── */
 function KycPendingBanner(): JSX.Element {
   return (
-    <div className="sticky top-0 z-20 bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-start sm:items-center gap-2.5">
+    <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-start sm:items-center gap-2.5">
       <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
       <p className="text-xs sm:text-sm text-amber-800 leading-snug">
         <span className="font-semibold">Your KYC verification is pending.</span>{' '}
@@ -143,19 +147,14 @@ function KycPendingBanner(): JSX.Element {
 interface NotificationBellProps {
   hasUnread: boolean;
   onClick: () => void;
-  floating?: boolean;
 }
 
-function NotificationBell({ hasUnread, onClick, floating = false }: NotificationBellProps): JSX.Element {
+function NotificationBell({ hasUnread, onClick }: NotificationBellProps): JSX.Element {
   return (
     <button
       onClick={onClick}
       aria-label="Notifications"
-      className={`relative flex items-center justify-center w-9 h-9 rounded-full transition-colors ${
-        floating
-          ? 'bg-white shadow-md text-gray-500 hover:text-teal-600'
-          : 'text-gray-400 hover:text-teal-600 hover:bg-gray-50'
-      }`}
+      className="relative flex items-center justify-center w-9 h-9 rounded-full text-gray-400 hover:text-teal-600 hover:bg-gray-50 transition-colors"
     >
       <Bell size={18} />
       {hasUnread && (

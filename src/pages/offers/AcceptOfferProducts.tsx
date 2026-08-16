@@ -134,9 +134,9 @@ export default function AcceptOfferProducts(): JSX.Element {
           </div>
         </div>
 
-        <div className="space-y-2">
-          {loading ? (
-            Array.from({ length: 5 }).map((_, i) => (
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {Array.from({ length: 5 }).map((_, i) => (
               <div key={i} className="bg-white rounded-2xl shadow-sm p-3 flex items-center gap-3 animate-pulse">
                 <div className="w-12 h-12 rounded-xl bg-gray-100 shrink-0" />
                 <div className="flex-1">
@@ -144,26 +144,28 @@ export default function AcceptOfferProducts(): JSX.Element {
                   <div className="h-3 bg-gray-100 rounded w-1/3" />
                 </div>
               </div>
-            ))
-          ) : products.length === 0 ? (
-            <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
-              <Package size={32} className="text-gray-200 mx-auto mb-2" />
-              <p className="text-sm text-gray-400">No active products to apply this offer to.</p>
-            </div>
-          ) : (
-            products.map(product => (
+            ))}
+          </div>
+        ) : products.length === 0 ? (
+          <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
+            <Package size={32} className="text-gray-200 mx-auto mb-2" />
+            <p className="text-sm text-gray-400">No active products to apply this offer to.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            {products.map(product => (
               <ProductRow
                 key={product.id}
                 product={product}
                 checked={selected.has(product.id)}
                 onToggle={() => toggleProduct(product.id)}
               />
-            ))
-          )}
-        </div>
+            ))}
+          </div>
+        )}
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-100 px-6 md:px-8 py-4">
+      <div className="fixed bottom-0 left-0 right-0 md:left-60 bg-white border-t border-gray-100 px-6 md:px-8 py-4">
         <button
           type="button"
           onClick={() => void handleSave()}

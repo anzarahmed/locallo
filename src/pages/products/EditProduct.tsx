@@ -233,7 +233,7 @@ export default function EditProduct(): JSX.Element {
     <div className="min-h-screen bg-gray-100 pb-28">
       {/* Teal header */}
       <div
-        className="px-5 pt-8 pb-6 flex items-center gap-4"
+        className="px-5 md:px-8 pt-8 pb-6 flex items-center gap-4"
         style={{
           background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)',
           borderRadius: '0 0 28px 28px',
@@ -252,7 +252,7 @@ export default function EditProduct(): JSX.Element {
       {pageLoading ? (
         <FormSkeleton />
       ) : (
-        <div className="px-4 pt-5 max-w-2xl mx-auto space-y-4">
+        <div className="px-4 md:px-8 pt-5 max-w-2xl mx-auto space-y-4">
           {/* Primary Image */}
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <p className="text-sm font-semibold text-gray-700 mb-3">
@@ -738,7 +738,7 @@ function CombinationStockRow({ combo, variantFields, stock, onChange }: Combinat
 /* ── Loading skeleton ── */
 function FormSkeleton(): JSX.Element {
   return (
-    <div className="px-4 pt-5 max-w-2xl mx-auto space-y-4 animate-pulse">
+    <div className="px-4 md:px-8 pt-5 max-w-2xl mx-auto space-y-4 animate-pulse">
       <div className="bg-white rounded-2xl shadow-sm p-4">
         <div className="h-4 w-28 bg-gray-100 rounded mb-3" />
         <div className="flex items-center gap-3">

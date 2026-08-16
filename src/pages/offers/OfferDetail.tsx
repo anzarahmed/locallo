@@ -55,7 +55,7 @@ export default function OfferDetail(): JSX.Element {
         </div>
       </div>
 
-      <div className="px-6 md:px-8 -mt-8 relative z-10 pb-8">
+      <div className="px-6 md:px-8 -mt-8 relative z-10 pb-8 max-w-2xl mx-auto">
         {loading ? (
           <div className="bg-white rounded-2xl shadow-sm p-4 animate-pulse space-y-3">
             <div className="h-5 bg-gray-100 rounded w-2/3" />

@@ -64,7 +64,7 @@ export default function Dashboard(): JSX.Element {
     <div className="min-h-screen bg-gray-100">
       {/* ── Teal header ── */}
       <div
-        className="relative px-5 pt-8 pb-28"
+        className="relative px-5 md:px-8 pt-8 pb-28"
         style={{
           background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)',
           borderRadius: '0 0 28px 28px',
@@ -86,9 +86,9 @@ export default function Dashboard(): JSX.Element {
       </div>
 
       {/* ── Content (overlaps header) ── */}
-      <div className="px-4 -mt-20 relative z-10">
+      <div className="px-4 md:px-8 -mt-20 relative z-10">
         {/* Stat cards 2×2 */}
-        <div className="grid grid-cols-2 gap-3 mb-5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
           <StatCard
             icon={<Eye size={20} className="text-teal-600" />}
             bgIcon={<Eye size={88} className="text-teal-500" />}
@@ -136,26 +136,28 @@ export default function Dashboard(): JSX.Element {
         <div className="mb-6">
           <h2 className="text-[16px] font-bold text-gray-800 mb-3">Top Products</h2>
 
-          <div className="flex flex-col gap-2.5">
-            {loading ? (
-              Array.from({ length: 3 }).map((_, i) => <ProductRowSkeleton key={i} />)
-            ) : products.length === 0 ? (
-              <div className="bg-white rounded-2xl py-12 text-center shadow-sm">
-                <Package size={36} className="text-gray-200 mx-auto mb-3" />
-                <p className="text-sm text-gray-400">No products yet</p>
-                <button
-                  onClick={() => navigate('/products/add')}
-                  className="mt-3 text-sm font-semibold text-teal-600 hover:text-teal-700"
-                >
-                  Add your first product
-                </button>
-              </div>
-            ) : (
-              products.map((product, i) => (
+          {loading ? (
+            <div className="flex flex-col gap-2.5">
+              {Array.from({ length: 3 }).map((_, i) => <ProductRowSkeleton key={i} />)}
+            </div>
+          ) : products.length === 0 ? (
+            <div className="bg-white rounded-2xl py-12 text-center shadow-sm">
+              <Package size={36} className="text-gray-200 mx-auto mb-3" />
+              <p className="text-sm text-gray-400">No products yet</p>
+              <button
+                onClick={() => navigate('/products/add')}
+                className="mt-3 text-sm font-semibold text-teal-600 hover:text-teal-700"
+              >
+                Add your first product
+              </button>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
+              {products.map((product, i) => (
                 <ProductRow key={product.id} product={product} rank={i + 1} />
-              ))
-            )}
-          </div>
+              ))}
+            </div>
+          )}
 
           {!loading && stats && stats.totalProducts > 5 && (
             <button

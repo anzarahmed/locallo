@@ -77,14 +77,14 @@ export default function Settings(): JSX.Element {
     <div className="min-h-screen bg-gray-50">
       {/* Teal header */}
       <div
-        className="px-5 pt-10 pb-8"
+        className="px-5 md:px-8 pt-10 pb-8"
         style={{ background: 'linear-gradient(135deg, #26B8B2 0%, #14817C 100%)' }}
       >
         <h1 className="text-2xl font-bold text-white">Settings</h1>
         <p className="text-teal-100 text-sm mt-1">Manage your notification preferences</p>
       </div>
 
-      <div className="px-4 -mt-4 pb-10 max-w-2xl mx-auto space-y-4">
+      <div className="px-4 md:px-8 -mt-4 pb-10 max-w-2xl mx-auto space-y-4">
         {/* Notifications card */}
         <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
           <div className="px-5 pt-5 pb-2">

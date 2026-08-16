@@ -163,7 +163,7 @@ export default function Profile(): JSX.Element {
     <div className="min-h-screen bg-gray-100">
       {/* Teal header */}
       <div
-        className="px-5 pt-8 pb-16"
+        className="px-5 md:px-8 pt-8 pb-16"
         style={{
           background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)',
           borderRadius: '0 0 28px 28px',
@@ -173,7 +173,7 @@ export default function Profile(): JSX.Element {
         <p className="text-white/60 text-sm mt-0.5">{seller?.mobile}</p>
       </div>
 
-      <div className="px-4 -mt-10 relative z-10 pb-10">
+      <div className="px-4 md:px-8 -mt-10 relative z-10 pb-10 max-w-3xl mx-auto">
         {/* ── Shop Info card ── */}
         <div className="bg-white rounded-2xl shadow-sm p-5 mb-4">
           <form noValidate onSubmit={profileForm.handleSubmit} className="flex flex-col gap-4">
@@ -454,7 +454,7 @@ function ProfileSkeleton({ mobile }: { mobile?: string }): JSX.Element {
     <div className="min-h-screen bg-gray-100">
       {/* Teal header */}
       <div
-        className="px-5 pt-8 pb-16"
+        className="px-5 md:px-8 pt-8 pb-16"
         style={{
           background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)',
           borderRadius: '0 0 28px 28px',
@@ -464,7 +464,7 @@ function ProfileSkeleton({ mobile }: { mobile?: string }): JSX.Element {
         <p className="text-white/60 text-sm mt-0.5">{mobile}</p>
       </div>
 
-      <div className="px-4 -mt-10 relative z-10 pb-10">
+      <div className="px-4 md:px-8 -mt-10 relative z-10 pb-10 max-w-3xl mx-auto">
         {/* Shop Info card */}
         <div className="bg-white rounded-2xl shadow-sm p-5 mb-4 flex flex-col gap-4">
           {/* Shop name */}

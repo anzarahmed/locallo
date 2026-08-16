@@ -123,15 +123,17 @@ export default function SoldLogs(): JSX.Element {
         </div>
 
         {/* Log entries */}
-        <div className="flex flex-col gap-3 mb-4">
-          {loading ? (
-            Array.from({ length: 5 }).map((_, i) => <LogSkeleton key={i} />)
-          ) : logs.length === 0 ? (
-            <EmptyState />
-          ) : (
-            logs.map(log => <LogCard key={log.id} log={log} />)
-          )}
-        </div>
+        {loading ? (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            {Array.from({ length: 5 }).map((_, i) => <LogSkeleton key={i} />)}
+          </div>
+        ) : logs.length === 0 ? (
+          <div className="mb-4"><EmptyState /></div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+            {logs.map(log => <LogCard key={log.id} log={log} />)}
+          </div>
+        )}
 
         {/* Pagination */}
         {!loading && totalPages > 1 && (

@@ -50,15 +50,17 @@ export default function AcceptedOffers(): JSX.Element {
         </div>
       </div>
 
-      <div className="px-6 md:px-8 -mt-8 relative z-10 pb-8 space-y-3">
+      <div className="px-6 md:px-8 -mt-8 relative z-10 pb-8">
         {loading ? (
-          Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="bg-white rounded-2xl shadow-sm p-4 animate-pulse space-y-3">
-              <div className="h-4 bg-gray-100 rounded w-1/3" />
-              <div className="h-5 bg-gray-100 rounded w-2/3" />
-              <div className="h-4 bg-gray-100 rounded w-1/2" />
-            </div>
-          ))
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="bg-white rounded-2xl shadow-sm p-4 animate-pulse space-y-3">
+                <div className="h-4 bg-gray-100 rounded w-1/3" />
+                <div className="h-5 bg-gray-100 rounded w-2/3" />
+                <div className="h-4 bg-gray-100 rounded w-1/2" />
+              </div>
+            ))}
+          </div>
         ) : offers.length === 0 ? (
           <div className="bg-white rounded-2xl shadow-sm p-8 text-center">
             <Tag size={32} className="text-gray-200 mx-auto mb-2" />
@@ -66,27 +68,29 @@ export default function AcceptedOffers(): JSX.Element {
             <p className="text-xs text-gray-300 mt-1">Offers you accept from notifications will show up here.</p>
           </div>
         ) : (
-          offers.map(offer => (
-            <button
-              key={offer.id}
-              type="button"
-              onClick={() => navigate(`/offers/${offer.id}`)}
-              className="w-full bg-white rounded-2xl shadow-sm p-4 text-left flex items-center gap-3 hover:shadow-md transition-shadow"
-            >
-              <div className="flex-1 min-w-0">
-                <span className="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full">
-                  <BadgePercent size={12} />
-                  {offerTypeLabel(offer)}
-                </span>
-                <p className="text-sm font-bold text-gray-900 mt-2 truncate">{offer.title}</p>
-                <p className="text-xs font-semibold text-teal-600 mt-0.5 truncate">{offerSummary(offer)}</p>
-                <p className="text-xs text-gray-400 mt-1">
-                  Applied to {offer.acceptedCount} product{offer.acceptedCount !== 1 ? 's' : ''} · Ends {formatDateTime(offer.endDate)}
-                </p>
-              </div>
-              <ChevronRight size={18} className="text-gray-300 shrink-0" />
-            </button>
-          ))
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+            {offers.map(offer => (
+              <button
+                key={offer.id}
+                type="button"
+                onClick={() => navigate(`/offers/${offer.id}`)}
+                className="w-full bg-white rounded-2xl shadow-sm p-4 text-left flex items-center gap-3 hover:shadow-md transition-shadow"
+              >
+                <div className="flex-1 min-w-0">
+                  <span className="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full">
+                    <BadgePercent size={12} />
+                    {offerTypeLabel(offer)}
+                  </span>
+                  <p className="text-sm font-bold text-gray-900 mt-2 truncate">{offer.title}</p>
+                  <p className="text-xs font-semibold text-teal-600 mt-0.5 truncate">{offerSummary(offer)}</p>
+                  <p className="text-xs text-gray-400 mt-1">
+                    Applied to {offer.acceptedCount} product{offer.acceptedCount !== 1 ? 's' : ''} · Ends {formatDateTime(offer.endDate)}
+                  </p>
+                </div>
+                <ChevronRight size={18} className="text-gray-300 shrink-0" />
+              </button>
+            ))}
+          </div>
         )}
       </div>
     </div>
