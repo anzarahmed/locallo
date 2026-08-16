@@ -2,9 +2,7 @@ import { Op } from 'sequelize';
 import type { InferType } from 'yup';
 import { Offer } from '../../models/Offer';
 import { User } from '../../models/User';
-import { SellerProfile } from '../../models/SellerProfile';
-import { createNotification } from '../../services/customer/notificationService';
-import { sendOfferNotificationEmail } from '../../utils/mailer';
+import { OfferSellerNotification } from '../../models/OfferSellerNotification';
 import type { createOfferSchema, updateOfferSchema } from '../../validation/admin/offerSchemas';
 import type { OfferConfig, OfferType } from '../../types';
 
@@ -100,32 +98,14 @@ function assertNotStarted(offer: Offer): void {
   }
 }
 
-async function notifySellersOfOffer(offer: Offer): Promise<void> {
-  const sellers = await User.findAll({
-    where: { role: 'SELLER' },
-    include: [{ model: SellerProfile, attributes: ['email'] }],
-  });
+async function enqueueOfferNotifications(offer: Offer): Promise<void> {
+  const sellers = await User.findAll({ where: { role: 'SELLER' }, attributes: ['id'] });
+  if (sellers.length === 0) return;
 
-  const message = offer.description ?? `A new offer "${offer.title}" is available — open it to see the details.`;
-
-  const results = await Promise.allSettled(
-    sellers.map(async (seller) => {
-      await createNotification(seller.id, offer.title, message, 'offer', 'offer', String(offer.id));
-
-      const email = seller.sellerProfile?.email ?? seller.email;
-      if (email) {
-        await sendOfferNotificationEmail(email, offer.title, offer.description);
-      }
-    }),
+  await OfferSellerNotification.bulkCreate(
+    sellers.map((seller) => ({ offerId: offer.id, sellerId: seller.id })),
+    { ignoreDuplicates: true },
   );
-
-  // Fan-out runs synchronously in the request (no job queue in this codebase) —
-  // one seller's email/DB failure must never block the rest or the offer creation itself.
-  for (const result of results) {
-    if (result.status === 'rejected') {
-      console.error(`Offer ${offer.id} notification fan-out failed for a seller:`, result.reason);
-    }
-  }
 }
 
 export async function createOffer(data: CreateOfferInput, createdBy: string): Promise<Offer> {
@@ -142,7 +122,7 @@ export async function createOffer(data: CreateOfferInput, createdBy: string): Pr
     createdBy,
   });
 
-  await notifySellersOfOffer(offer);
+  await enqueueOfferNotifications(offer);
 
   return getOfferById(offer.id);
 }
