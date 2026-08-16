@@ -6,6 +6,10 @@ export function getDashboardStats(): Promise<DashboardStats> {
   return apiGet(PATHS.DASHBOARD.STATS);
 }
 
+export function getTopProducts(): Promise<{ products: Product[] }> {
+  return apiGet(PATHS.DASHBOARD.TOP_PRODUCTS);
+}
+
 export function getProfile(): Promise<ProfileResponse> {
   return apiGet(PATHS.PROFILE);
 }

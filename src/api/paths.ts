@@ -6,6 +6,7 @@ export const PATHS = {
   },
   DASHBOARD: {
     STATS: '/api/sellers/dashboard/stats',
+    TOP_PRODUCTS: '/api/sellers/dashboard/top-products',
   },
   PROFILE:    '/api/sellers/profile',
   ADDRESS:    '/api/sellers/address',

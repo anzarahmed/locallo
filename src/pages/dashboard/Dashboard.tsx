@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Package, Star, Heart, BarChart2, Eye } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
-import { getProfile, getProducts, getDashboardStats } from '../../services/sellerService';
+import { getProfile, getTopProducts, getDashboardStats } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import type { ProfileResponse, Product, DashboardStats } from '../../types';
@@ -31,13 +31,13 @@ export default function Dashboard(): JSX.Element {
   useEffect(() => {
     async function load(): Promise<void> {
       try {
-        const [profileData, allProds, dashStats] = await Promise.all([
+        const [profileData, topProds, dashStats] = await Promise.all([
           getProfile(),
-          getProducts({ page: 1, limit: 5 }),
+          getTopProducts(),
           getDashboardStats(),
         ]);
         setProfile(profileData);
-        setProducts(allProds.products);
+        setProducts(topProds.products);
         setStats(dashStats);
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to load dashboard');
