@@ -91,6 +91,15 @@ export async function getOfferById(id: number): Promise<Offer> {
   return offer;
 }
 
+function assertNotStarted(offer: Offer): void {
+  if (new Date(offer.startDate).getTime() <= Date.now()) {
+    throw Object.assign(
+      new Error('This offer has already started and can no longer be modified'),
+      { status: 409 },
+    );
+  }
+}
+
 async function notifySellersOfOffer(offer: Offer): Promise<void> {
   const sellers = await User.findAll({
     where: { role: 'SELLER' },
@@ -143,6 +152,7 @@ export async function updateOffer(id: number, data: UpdateOfferInput): Promise<O
   if (!offer) {
     throw Object.assign(new Error('Offer not found'), { status: 404 });
   }
+  assertNotStarted(offer);
 
   const updates: Record<string, unknown> = { ...data };
 
@@ -158,6 +168,7 @@ export async function updateOffer(id: number, data: UpdateOfferInput): Promise<O
 
 export async function toggleOffer(id: number): Promise<Offer> {
   const offer = await getOfferById(id);
+  assertNotStarted(offer);
   offer.isActive = !offer.isActive;
   await offer.save();
   return offer;
@@ -168,5 +179,6 @@ export async function deleteOffer(id: number): Promise<void> {
   if (!offer) {
     throw Object.assign(new Error('Offer not found'), { status: 404 });
   }
+  assertNotStarted(offer);
   await offer.destroy();
 }
