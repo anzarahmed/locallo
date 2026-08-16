@@ -6,7 +6,7 @@ import { useToast } from '../../hooks/useToast';
 import { getProfile, getTopProducts, getDashboardStats } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
-import type { ProfileResponse, Product, DashboardStats } from '../../types';
+import type { ProfileResponse, TopProduct, DashboardStats } from '../../types';
 
 function initials(name: string | null): string {
   if (!name) return 'S';
@@ -24,7 +24,7 @@ export default function Dashboard(): JSX.Element {
   const navigate = useNavigate();
 
   const [profile, setProfile] = useState<ProfileResponse | null>(null);
-  const [products, setProducts] = useState<Product[]>([]);
+  const [products, setProducts] = useState<TopProduct[]>([]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -249,9 +249,8 @@ function StatCard({
 }
 
 /* ── Product row ── */
-function ProductRow({ product, rank }: { product: Product; rank: number }): JSX.Element {
-  const thumbnailSrc = product.thumbnails?.[0] ?? product.images?.[0];
-  const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
+function ProductRow({ product, rank }: { product: TopProduct; rank: number }): JSX.Element {
+  const imageUrl = product.image ? resolveImage(product.image) : null;
   const [imgError, setImgError] = useState(false);
 
   return (
@@ -264,7 +263,7 @@ function ProductRow({ product, rank }: { product: Product; rank: number }): JSX.
         {imageUrl && !imgError ? (
           <img
             src={imageUrl}
-            alt={product.name}
+            alt={product.title}
             className="w-full h-full object-cover"
             onError={() => setImgError(true)}
           />
@@ -275,8 +274,8 @@ function ProductRow({ product, rank }: { product: Product; rank: number }): JSX.
 
       {/* Name + stock */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-800 truncate">{product.name}</p>
-        <p className="text-xs text-gray-400 mt-0.5">{product.stock} in stock</p>
+        <p className="text-sm font-semibold text-gray-800 truncate">{product.title}</p>
+        <p className="text-xs text-gray-400 mt-0.5">{product.totalStock} in stock</p>
       </div>
 
       {/* Growth indicator */}

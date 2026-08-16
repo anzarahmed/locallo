@@ -100,6 +100,14 @@ export interface Product {
   createdAt: string;
 }
 
+export interface TopProduct {
+  id: string;
+  title: string;
+  image: string | null;
+  totalStock: number;
+  isActive: boolean;
+}
+
 export interface SoldLog {
   id: string;
   productId: string | null;
