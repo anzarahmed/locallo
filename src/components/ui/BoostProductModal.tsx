@@ -375,11 +375,9 @@ function BudgetStep({ dailyBudget, onChange }: BudgetStepProps): JSX.Element {
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-500 flex items-center gap-1">
             Estimated impressions
-            <Info
-              size={12}
-              className="text-gray-300"
-              title="Approximate number of times your boosted product may be shown to users based on your budget and targeting."
-            />
+            <span title="Approximate number of times your boosted product may be shown to users based on your budget and targeting.">
+              <Info size={12} className="text-gray-300" />
+            </span>
           </span>
           <span className="text-sm font-bold text-gray-800">
             {min.toLocaleString('en-IN')} – {max.toLocaleString('en-IN')}
