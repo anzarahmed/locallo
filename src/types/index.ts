@@ -81,3 +81,6 @@ export interface BogoConfig {
 }
 
 export type OfferConfig = PercentageOffConfig | FlatAmountOffConfig | BogoConfig;
+
+export type BoostAudienceType = 'pan_india' | 'state' | 'city';
+export type BoostStatus = 'active' | 'completed' | 'cancelled';

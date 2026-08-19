@@ -11,6 +11,7 @@ import { analyzeImage } from '../../controllers/seller/imageAnalysisController';
 import { getCategories, getMyCategories } from '../../controllers/seller/categoryController';
 import { getVariants, createVariant, createBatchVariants, updateVariant, deleteVariant, toggleVariant } from '../../controllers/seller/variantController';
 import { markProductSold, markVariantSold, getSoldLogs } from '../../controllers/seller/soldController';
+import { createProductBoost, getActiveProductBoost } from '../../controllers/seller/boostController';
 import { getOffers, getAcceptedOffers, getOffer, acceptOffer } from '../../controllers/seller/offerController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/seller/notificationController';
 import { validate } from '../../middleware/validate';
@@ -20,6 +21,7 @@ import { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/selle
 import { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import { createVariantSchema, createBatchVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
 import { markSoldSchema } from '../../validation/seller/soldSchemas';
+import { createBoostSchema } from '../../validation/seller/boostSchemas';
 import { acceptOfferSchema } from '../../validation/seller/offerSchemas';
 
 const router = Router();
@@ -64,6 +66,9 @@ router.patch('/products/:productId/variants/:variantId/toggle', requireSeller, t
 router.post('/products/:id/variants/:variantId/sell',           requireSeller, validate(markSoldSchema), markVariantSold);
 
 router.post('/products/:id/sell', requireSeller, validate(markSoldSchema), markProductSold);
+
+router.post('/products/:id/boost', requireSeller, validate(createBoostSchema), createProductBoost);
+router.get('/products/:id/boost',  requireSeller, getActiveProductBoost);
 
 router.get('/sold-logs', requireSeller, getSoldLogs);
 
