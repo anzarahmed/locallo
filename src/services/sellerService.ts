@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse, CustomDayOverride, TopProduct } from '../types';
+import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse, CustomDayOverride, TopProduct, ProductBoost } from '../types';
 
 export function getDashboardStats(): Promise<DashboardStats> {
   return apiGet(PATHS.DASHBOARD.STATS);
@@ -130,6 +130,21 @@ export function markProductSold(productId: string, quantity: number): Promise<un
 
 export function markVariantSold(productId: string, variantId: string, quantity: number): Promise<unknown> {
   return apiPost(PATHS.VARIANT_SELL(productId, variantId), { quantity });
+}
+
+export interface CreateBoostPayload {
+  type: 0 | 1 | 2;
+  state?: string;
+  city?: string;
+  budget: number;
+}
+
+export function createBoost(productId: string, data: CreateBoostPayload): Promise<{ boost: ProductBoost }> {
+  return apiPost(PATHS.PRODUCT_BOOST(productId), data);
+}
+
+export function getActiveBoost(productId: string): Promise<{ boost: ProductBoost | null }> {
+  return apiGet(PATHS.PRODUCT_BOOST(productId));
 }
 
 export function getSoldLogs(params?: {

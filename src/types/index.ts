@@ -188,6 +188,22 @@ export interface Offer {
   hasStarted: boolean;
 }
 
+export type BoostAudienceType = 'pan_india' | 'state' | 'city';
+export type BoostStatus = 'active' | 'completed' | 'cancelled';
+
+export interface ProductBoost {
+  id: string;
+  productId: string;
+  audienceType: BoostAudienceType;
+  state: string | null;
+  city: string | null;
+  dailyBudget: number;
+  estimatedImpressionsMin: number;
+  estimatedImpressionsMax: number;
+  status: BoostStatus;
+  createdAt: string;
+}
+
 export interface Notification {
   id: string;
   title: string;

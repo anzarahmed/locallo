@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, Heart, ChevronDown, ScanEye, ShoppingBag, Loader2 } from 'lucide-react';
+import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, Heart, ChevronDown, ScanEye, ShoppingBag, Loader2, Rocket } from 'lucide-react';
 import { getProducts, toggleProduct, deleteProduct, markProductSold, markVariantSold, getProductVariants } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
@@ -10,6 +10,7 @@ import { FILTER_TABS, SORT_OPTIONS, PAGE_LIMIT, type FilterTab } from '../../con
 import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../components/ui/SellModal';
 import VariantPickerModal from '../../components/ui/VariantPickerModal';
+import BoostProductModal from '../../components/ui/BoostProductModal';
 import type { Product, ProductVariant, AttributeField } from '../../types';
 import ProductPreview from './ProductPreview';
 
@@ -36,6 +37,7 @@ export default function ProductList(): JSX.Element {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [loadingVariantsForId, setLoadingVariantsForId] = useState<string | null>(null);
   const [selling, setSelling] = useState(false);
+  const [boostProduct, setBoostProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -249,6 +251,7 @@ export default function ProductList(): JSX.Element {
                 onDelete={() => setDeleteTarget(product)}
                 onPreview={() => setPreviewId(product.id)}
                 onSell={() => void handleSellClick(product)}
+                onPromote={() => setBoostProduct(product)}
               />
             ))
           )}
@@ -330,6 +333,14 @@ export default function ProductList(): JSX.Element {
           onClose={() => setSellProduct(null)}
         />
       )}
+
+      {boostProduct && (
+        <BoostProductModal
+          product={boostProduct}
+          onClose={() => setBoostProduct(null)}
+          onBoosted={() => {}}
+        />
+      )}
     </div>
   );
 }
@@ -344,9 +355,10 @@ interface ProductCardProps {
   onDelete: () => void;
   onPreview: () => void;
   onSell: () => void;
+  onPromote: () => void;
 }
 
-function ProductCard({ product, loadingVariants, onEdit, onVariants, onToggle, onDelete, onPreview, onSell }: ProductCardProps): JSX.Element {
+function ProductCard({ product, loadingVariants, onEdit, onVariants, onToggle, onDelete, onPreview, onSell, onPromote }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
   const thumbnailSrc = product.thumbnails?.[0] ?? product.images?.[0];
   const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
@@ -408,6 +420,13 @@ function ProductCard({ product, loadingVariants, onEdit, onVariants, onToggle, o
         </div>
 
         <div className="flex items-center gap-2">
+          <button
+            onClick={onPromote}
+            title="Promote product"
+            className="w-9 h-9 rounded-full bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors"
+          >
+            <Rocket size={15} />
+          </button>
           <button
             onClick={onSell}
             disabled={loadingVariants || product.stock === 0}

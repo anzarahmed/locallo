@@ -19,6 +19,7 @@ export const PATHS = {
   CUSTOM_DAY:     '/api/sellers/custom-day',
   SOLD_LOGS:      '/api/sellers/sold-logs',
   PRODUCT_SELL:   (id: string): string => `/api/sellers/products/${id}/sell`,
+  PRODUCT_BOOST:  (id: string): string => `/api/sellers/products/${id}/boost`,
   VARIANT_SELL:   (id: string, vid: string): string => `/api/sellers/products/${id}/variants/${vid}/sell`,
   OFFERS:         '/api/sellers/offers',
   ACCEPTED_OFFERS: '/api/sellers/offers/accepted',
