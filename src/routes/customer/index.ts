@@ -37,8 +37,9 @@ router.post('/products',         optionalCustomer, validate(searchProductsSchema
 router.get('/products/:id',      optionalCustomer, getProduct);
 router.get('/products/:id/similar', optionalCustomer, getSimilarProducts);
 
-router.get('/wishlist',                 requireCustomer, getWishlist);
-router.post('/wishlist/:productId',     requireCustomer, toggleWishlist);
+router.get('/wishlist',                            requireCustomer, getWishlist);
+router.post('/wishlist/:productId',                requireCustomer, toggleWishlist);
+router.post('/wishlist/:productId/:variantId',     requireCustomer, toggleWishlist);
 
 router.get('/reviews',  getReviews);
 router.post('/reviews', requireCustomer, validate(createReviewSchema), addReview);

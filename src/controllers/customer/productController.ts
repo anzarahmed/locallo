@@ -79,7 +79,7 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
       void productViewService.recordProductView(req.customer.id, product.id, product.sellerId);
     }
     const [isWishlisted, offersById] = await Promise.all([
-      req.customer ? wishlistService.isProductWishlisted(req.customer.id, product.id) : Promise.resolve(false),
+      req.customer ? wishlistService.isProductWishlisted(req.customer.id, product.id, variantId) : Promise.resolve(false),
       getActiveOffersForProducts([product.id]),
     ]);
     const { offerId, offerPrice, offerBadge } = offerFieldsFor(offersById, product.id, product.sellingPrice);

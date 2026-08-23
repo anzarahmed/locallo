@@ -11,6 +11,7 @@ import {
 } from 'sequelize-typescript';
 import { User } from './User';
 import { Product } from './Product';
+import { ProductVariant } from './ProductVariant';
 
 @Table({ tableName: 'wishlists', timestamps: false, underscored: true })
 export class Wishlist extends Model {
@@ -29,6 +30,10 @@ export class Wishlist extends Model {
   @Column(DataType.UUID)
   declare productId: string;
 
+  @ForeignKey(() => ProductVariant)
+  @Column(DataType.UUID)
+  declare variantId: string | null;
+
   @AllowNull(false)
   @Default(DataType.NOW)
   @Column(DataType.DATE)
@@ -39,4 +44,7 @@ export class Wishlist extends Model {
 
   @BelongsTo(() => Product)
   declare product: Product;
+
+  @BelongsTo(() => ProductVariant)
+  declare variant: ProductVariant | null;
 }
