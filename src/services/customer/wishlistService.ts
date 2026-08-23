@@ -80,6 +80,7 @@ export async function isProductWishlisted(
   productId: string,
   variantId?: string,
 ): Promise<boolean> {
-  const row = await Wishlist.findOne({ where: { customerId, productId, variantId: variantId ?? null } });
+  const variantCondition = variantId ? { [Op.in]: [null, variantId] } : null;
+  const row = await Wishlist.findOne({ where: { customerId, productId, variantId: variantCondition } });
   return row !== null;
 }
