@@ -190,6 +190,7 @@ export interface Offer {
 
 export type BoostAudienceType = 'pan_india' | 'state' | 'city';
 export type BoostStatus = 'active' | 'completed' | 'cancelled';
+export type PaymentStatus = 'pending' | 'paid' | 'failed';
 
 export interface ProductBoost {
   id: string;
@@ -201,6 +202,10 @@ export interface ProductBoost {
   estimatedImpressionsMin: number;
   estimatedImpressionsMax: number;
   status: BoostStatus;
+  razorpayOrderId: string;
+  paymentStatus: PaymentStatus;
+  amount: number;
+  currency: string;
   createdAt: string;
 }
 

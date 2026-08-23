@@ -139,7 +139,10 @@ export interface CreateBoostPayload {
   budget: number;
 }
 
-export function createBoost(productId: string, data: CreateBoostPayload): Promise<{ boost: ProductBoost }> {
+export function createBoost(
+  productId: string,
+  data: CreateBoostPayload,
+): Promise<{ boost: ProductBoost; razorpayKeyId: string }> {
   return apiPost(PATHS.PRODUCT_BOOST(productId), data);
 }
 

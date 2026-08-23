@@ -5,6 +5,7 @@ import {
   Eye, Info, Loader2, ChevronDown, Rocket, type LucideIcon,
 } from 'lucide-react';
 import { createBoost, getActiveBoost } from '../../services/sellerService';
+import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { estimateImpressions, formatAudienceLabel, AUDIENCE_TYPE_CODE } from '../../lib/boostUtils';
@@ -27,6 +28,7 @@ const STEPS: { key: 1 | 2 | 3; label: string; icon: LucideIcon }[] = [
 
 export default function BoostProductModal({ product, onClose, onBoosted }: BoostProductModalProps): JSX.Element {
   const toast = useToast();
+  const { seller } = useAuth();
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -64,18 +66,46 @@ export default function BoostProductModal({ product, onClose, onBoosted }: Boost
   async function handleSubmit(values: BoostFormValues): Promise<void> {
     setSubmitting(true);
     try {
-      const { boost } = await createBoost(product.id, {
+      const { boost, razorpayKeyId } = await createBoost(product.id, {
         type: AUDIENCE_TYPE_CODE[values.audienceType as BoostAudienceType],
         state: values.audienceType !== 'pan_india' ? values.state : undefined,
         city: values.audienceType === 'city' ? values.city : undefined,
         budget: Number(values.dailyBudget),
       });
-      toast.success('Your product boost is now live!');
-      onBoosted(boost);
-      onClose();
+
+      if (typeof window.Razorpay !== 'function') {
+        toast.error('Payment gateway failed to load. Please refresh and try again.');
+        setSubmitting(false);
+        return;
+      }
+
+      const rzp = new window.Razorpay({
+        key: razorpayKeyId,
+        amount: boost.amount * 100,
+        currency: boost.currency,
+        order_id: boost.razorpayOrderId,
+        name: 'Localo',
+        description: `Boost for ${product.name}`,
+        prefill: {
+          name: seller?.businessName ?? seller?.fullName ?? undefined,
+          contact: seller?.mobile,
+        },
+        theme: { color: '#1B9E98' },
+        handler: () => {
+          toast.success('Payment received — your boost is now live!');
+          onBoosted(boost);
+          onClose();
+        },
+        modal: {
+          ondismiss: () => {
+            toast.info('Payment was not completed. You can try boosting again anytime.');
+            setSubmitting(false);
+          },
+        },
+      });
+      rzp.open();
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to boost product');
-    } finally {
       setSubmitting(false);
     }
   }
@@ -436,6 +466,11 @@ function ExistingBoostView({ boost, onClose }: { boost: ProductBoost; onClose: (
         </div>
         <p className="text-sm font-bold text-gray-800">This product is already boosted</p>
         <p className="text-xs text-gray-400 mt-1">You can start a new boost once this one ends.</p>
+        {boost.paymentStatus === 'pending' && (
+          <p className="text-xs font-semibold text-amber-600 bg-amber-50 rounded-full px-3 py-1 mt-2">
+            Payment processing — this can take a few seconds
+          </p>
+        )}
       </div>
 
       <div className="bg-gray-50 rounded-2xl divide-y divide-gray-100">
