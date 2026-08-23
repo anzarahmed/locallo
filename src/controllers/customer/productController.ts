@@ -78,17 +78,21 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
     if (req.customer) {
       void productViewService.recordProductView(req.customer.id, product.id, product.sellerId);
     }
-    const [isWishlisted, offersById] = await Promise.all([
-      req.customer ? wishlistService.isProductWishlisted(req.customer.id, product.id, variantId) : Promise.resolve(false),
+    const [{ productWishlisted, wishlistedVariantIds }, offersById] = await Promise.all([
+      req.customer
+        ? wishlistService.getProductWishlistState(req.customer.id, product.id)
+        : Promise.resolve({ productWishlisted: false, wishlistedVariantIds: new Set<string>() }),
       getActiveOffersForProducts([product.id]),
     ]);
+    const isWishlisted = productWishlisted || (variantId ? wishlistedVariantIds.has(variantId) : false);
     const { offerId, offerPrice, offerBadge } = offerFieldsFor(offersById, product.id, product.sellingPrice);
     const [signedProduct, signedVariants] = await Promise.all([
       withSignedImages(product.toJSON() as Record<string, unknown>),
       Promise.all(variants.map(async (v) => {
         const signed = await withSignedImages(v as unknown as Record<string, unknown>);
         const variantSellingPrice = (v.sellingPrice ?? product.sellingPrice) as number;
-        return { ...signed, ...offerFieldsFor(offersById, product.id, variantSellingPrice) };
+        const variantWishlisted = productWishlisted || (v.id !== null && wishlistedVariantIds.has(v.id));
+        return { ...signed, ...offerFieldsFor(offersById, product.id, variantSellingPrice), isWishlisted: variantWishlisted };
       })),
     ]);
     sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted, offerId, offerPrice, offerBadge }, variants: signedVariants }, 'Product fetched');

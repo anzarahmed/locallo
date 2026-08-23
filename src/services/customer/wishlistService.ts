@@ -75,12 +75,17 @@ export async function getWishlistedProductIds(
   return new Set(rows.map((r) => r.productId));
 }
 
-export async function isProductWishlisted(
+export async function getProductWishlistState(
   customerId: string,
   productId: string,
-  variantId?: string,
-): Promise<boolean> {
-  const variantCondition = variantId ? { [Op.in]: [null, variantId] } : null;
-  const row = await Wishlist.findOne({ where: { customerId, productId, variantId: variantCondition } });
-  return row !== null;
+): Promise<{ productWishlisted: boolean; wishlistedVariantIds: Set<string> }> {
+  const rows = await Wishlist.findAll({
+    attributes: ['variantId'],
+    where: { customerId, productId },
+  });
+
+  return {
+    productWishlisted: rows.some((r) => r.variantId === null),
+    wishlistedVariantIds: new Set(rows.filter((r) => r.variantId !== null).map((r) => r.variantId as string)),
+  };
 }
