@@ -13,7 +13,7 @@ import {
 } from 'sequelize-typescript';
 import { User } from './User';
 import { Product } from './Product';
-import type { BoostAudienceType, BoostStatus } from '../types';
+import type { BoostAudienceType, BoostStatus, PaymentStatus } from '../types';
 
 @Table({ tableName: 'product_boosts', timestamps: true, underscored: true })
 export class ProductBoost extends Model {
@@ -58,6 +58,30 @@ export class ProductBoost extends Model {
   @Default('active')
   @Column(DataType.STRING(20))
   declare status: BoostStatus;
+
+  @AllowNull(false)
+  @Column(DataType.STRING(255))
+  declare razorpayOrderId: string;
+
+  @AllowNull(false)
+  @Default('pending')
+  @Column(DataType.STRING(20))
+  declare paymentStatus: PaymentStatus;
+
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  declare amount: number;
+
+  @AllowNull(false)
+  @Default('INR')
+  @Column(DataType.STRING(10))
+  declare currency: string;
+
+  @Column(DataType.STRING(255))
+  declare razorpayPaymentId: string | null;
+
+  @Column(DataType.STRING(512))
+  declare razorpaySignature: string | null;
 
   @BelongsTo(() => User)
   declare seller: User;

@@ -3,11 +3,18 @@ import cors from 'cors';
 import adminRoutes from './routes/admin/index';
 import sellerRoutes from './routes/seller/index';
 import customerRoutes from './routes/customer/index';
+import webhookRoutes from './routes/webhooks/index';
 
 const app = express();
 
 app.use(cors());
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      (req as express.Request).rawBody = buf;
+    },
+  }),
+);
 
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
@@ -16,5 +23,6 @@ app.get('/health', (_req, res) => {
 app.use('/api/admins', adminRoutes);
 app.use('/api/sellers', sellerRoutes);
 app.use('/api/customers', customerRoutes);
+app.use('/api/webhooks', webhookRoutes);
 
 export default app;

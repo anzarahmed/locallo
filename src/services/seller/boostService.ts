@@ -1,5 +1,9 @@
 import { Product } from '../../models/Product';
 import { ProductBoost } from '../../models/ProductBoost';
+import { User } from '../../models/User';
+import { SellerProfile } from '../../models/SellerProfile';
+import { createRazorpayOrder } from '../../utils/razorpay';
+import { sendBoostPaymentConfirmedEmail } from '../../utils/mailer';
 import type { BoostAudienceType } from '../../types';
 
 const IMPRESSIONS_PER_RUPEE = 20;
@@ -41,6 +45,14 @@ export async function createBoost(
   const audienceType = AUDIENCE_TYPE_BY_CODE[input.type];
   const { min, max } = estimateImpressions(input.budget);
 
+  const receipt = `boost_${productId}_${Date.now()}`;
+  let order;
+  try {
+    order = await createRazorpayOrder(input.budget, receipt);
+  } catch (err) {
+    throw Object.assign(err as Error, { status: 502 });
+  }
+
   return ProductBoost.create({
     sellerId,
     productId,
@@ -51,6 +63,10 @@ export async function createBoost(
     estimatedImpressionsMin: min,
     estimatedImpressionsMax: max,
     status: 'active',
+    razorpayOrderId: order.orderId,
+    paymentStatus: 'pending',
+    amount: input.budget,
+    currency: order.currency,
   });
 }
 
@@ -59,4 +75,34 @@ export async function getActiveBoost(sellerId: string, productId: string): Promi
     where: { sellerId, productId, status: 'active' },
     order: [['createdAt', 'DESC']],
   });
+}
+
+export async function markBoostPaid(razorpayOrderId: string, paymentId: string, signature: string): Promise<void> {
+  const boost = await ProductBoost.findOne({ where: { razorpayOrderId }, include: [{ model: Product }] });
+  if (!boost || boost.paymentStatus === 'paid') return;
+
+  await boost.update({ paymentStatus: 'paid', razorpayPaymentId: paymentId, razorpaySignature: signature });
+
+  const seller = await User.findByPk(boost.sellerId, {
+    include: [{ model: SellerProfile, attributes: ['email', 'businessName'] }],
+  });
+  const email = seller?.sellerProfile?.email ?? seller?.email;
+  if (email) {
+    try {
+      await sendBoostPaymentConfirmedEmail(
+        email,
+        seller?.sellerProfile?.businessName ?? seller?.fullName ?? 'there',
+        boost.product.name,
+        boost.amount,
+      );
+    } catch (err) {
+      console.error('markBoostPaid: failed to send confirmation email', err);
+    }
+  }
+}
+
+export async function markBoostFailed(razorpayOrderId: string, paymentId: string): Promise<void> {
+  const boost = await ProductBoost.findOne({ where: { razorpayOrderId } });
+  if (!boost || boost.paymentStatus !== 'pending') return;
+  await boost.update({ paymentStatus: 'failed', status: 'cancelled', razorpayPaymentId: paymentId });
 }

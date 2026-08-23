@@ -7,6 +7,7 @@ declare global {
       admin?: Admin;
       seller?: User;
       customer?: User;
+      rawBody?: Buffer;
     }
   }
 }

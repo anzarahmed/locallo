@@ -5,7 +5,7 @@ import * as boostService from '../../services/seller/boostService';
 export async function createProductBoost(req: Request, res: Response): Promise<void> {
   try {
     const boost = await boostService.createBoost(req.seller!.id, String(req.params.id), req.body);
-    sendSuccess(res, { boost }, 'Product boosted successfully', 201);
+    sendSuccess(res, { boost, razorpayKeyId: process.env.RAZORPAY_KEY_ID }, 'Product boosted successfully', 201);
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to boost product');
   }
