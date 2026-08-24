@@ -212,9 +212,14 @@ export async function getTopProducts(sellerId: string, limit: number): Promise<P
   });
 }
 
+const VIEW_COUNT_SQL = '(SELECT COUNT(*)::int FROM product_views WHERE product_id = "Product".id)';
+
 export async function getSellerProduct(sellerId: string, productId: string): Promise<Product> {
   const product = await Product.findOne({
     where: { id: productId, sellerId },
+    attributes: {
+      include: [[literal(VIEW_COUNT_SQL), 'viewCount']],
+    },
     include: [
       { model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] },
       { model: ProductVariant, attributes: ['id'] },
