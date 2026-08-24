@@ -208,7 +208,7 @@ export default function EditProduct(): JSX.Element {
       }
 
       toast.success('Product updated');
-      navigate('/products');
+      navigate(hasVariants || hasCombinations ? `/products/${id}/variants` : '/products');
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Failed to update product';
       helpers.setStatus(msg);
