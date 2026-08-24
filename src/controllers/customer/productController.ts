@@ -74,7 +74,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
     const variantId = req.query.variantId ? String(req.query.variantId) : undefined;
-    const { product, seller, variants } = await productService.getProductDetail(String(req.params.id), variantId);
+    const { product, seller, variants, rating } = await productService.getProductDetail(String(req.params.id), variantId);
     if (req.customer) {
       void productViewService.recordProductView(req.customer.id, product.id, product.sellerId);
     }
@@ -95,7 +95,7 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
         return { ...signed, ...offerFieldsFor(offersById, product.id, variantSellingPrice), isWishlisted: variantWishlisted };
       })),
     ]);
-    sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted, offerId, offerPrice, offerBadge }, variants: signedVariants }, 'Product fetched');
+    sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted, offerId, offerPrice, offerBadge, rating }, variants: signedVariants }, 'Product fetched');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Product not found');
   }

@@ -1,9 +1,10 @@
-import { Op, literal } from 'sequelize';
+import { Op, literal, fn, col } from 'sequelize';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { Category } from '../../models/Category';
 import { SellerProfile } from '../../models/SellerProfile';
 import { OfferProduct } from '../../models/OfferProduct';
+import { Review } from '../../models/Review';
 import type { AttributeField } from '../../types';
 
 interface BrowseFilter {
@@ -109,6 +110,16 @@ export async function browseProducts(
   });
 }
 
+async function getProductRating(productId: string): Promise<number> {
+  const stats = await Review.findOne({
+    attributes: [[fn('AVG', col('rating')), 'avgRating']],
+    where: { productId },
+    raw: true,
+  }) as unknown as { avgRating: string | null } | null;
+
+  return stats?.avgRating ? Math.round(parseFloat(stats.avgRating) * 10) / 10 : 0;
+}
+
 function toVariantDetail(variantRow: ProductVariant): ProductVariantDetail {
   return {
     id: variantRow.id,
@@ -125,7 +136,7 @@ function toVariantDetail(variantRow: ProductVariant): ProductVariantDetail {
 export async function getProductDetail(
   id: string,
   variantId?: string,
-): Promise<{ product: Product; seller: ProductSellerDetail; variants: ProductVariantDetail[] }> {
+): Promise<{ product: Product; seller: ProductSellerDetail; variants: ProductVariantDetail[]; rating: number }> {
   const product = await Product.findOne({
     attributes: SAFE_PRODUCT_ATTRIBUTES,
     where: { id, isActive: true },
@@ -146,10 +157,13 @@ export async function getProductDetail(
     product.category.attributeSchema = schema.filter(f => f.isVariant);
   }
 
-  const sellerProfile = await SellerProfile.findOne({
-    where: { userId: product.sellerId },
-    attributes: ['businessName', 'address', 'lat', 'long'],
-  });
+  const [sellerProfile, rating] = await Promise.all([
+    SellerProfile.findOne({
+      where: { userId: product.sellerId },
+      attributes: ['businessName', 'address', 'lat', 'long'],
+    }),
+    getProductRating(id),
+  ]);
 
   const seller: ProductSellerDetail = {
     id: product.sellerId,
@@ -168,6 +182,7 @@ export async function getProductDetail(
     return {
       product,
       seller,
+      rating,
       variants: [{
         id: null,
         productId: product.id,
@@ -186,7 +201,7 @@ export async function getProductDetail(
     if (!variantRow) {
       throw Object.assign(new Error('Variant not found'), { status: 404 });
     }
-    return { product, seller, variants: [toVariantDetail(variantRow)] };
+    return { product, seller, rating, variants: [toVariantDetail(variantRow)] };
   }
 
   const variantRows = await ProductVariant.findAll({
@@ -198,7 +213,7 @@ export async function getProductDetail(
     throw Object.assign(new Error('Variant not found'), { status: 404 });
   }
 
-  return { product, seller, variants: variantRows.map(toVariantDetail) };
+  return { product, seller, rating, variants: variantRows.map(toVariantDetail) };
 }
 
 export async function getTrendingProducts(): Promise<Product[]> {
