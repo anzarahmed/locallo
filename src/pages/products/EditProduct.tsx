@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormik, type FormikHelpers } from 'formik';
-import { ArrowLeft, Camera, X, Plus, Loader2, ChevronDown, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Camera, X, Plus, Loader2, ChevronDown, ChevronRight, Eye } from 'lucide-react';
 import {
   getProfile, getSellerProduct, updateProduct, uploadProductImage, createVariant,
 } from '../../services/sellerService';
@@ -41,6 +41,7 @@ export default function EditProduct(): JSX.Element {
   const [initialValues, setInitialValues] = useState<AddProductFormValues>(EMPTY_VALUES);
   const [hasVariants, setHasVariants] = useState(false);
   const [variantCount, setVariantCount] = useState(0);
+  const [viewCount, setViewCount] = useState(0);
   const [variantSelections, setVariantSelections] = useState<VariantSelections>({});
   const [comboStocks, setComboStocks] = useState<Record<string, string>>({});
 
@@ -63,6 +64,7 @@ export default function EditProduct(): JSX.Element {
         const count = product.variants?.length ?? 0;
         setHasVariants(count > 0);
         setVariantCount(count);
+        setViewCount(product.viewCount ?? 0);
         const schema = product.category?.attributeSchema ?? [];
         setAttributeSchema(schema);
         setAttributes(normalizeAttrValues(product.attributes ?? {}, schema));
@@ -246,7 +248,13 @@ export default function EditProduct(): JSX.Element {
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-white text-[20px] font-bold">Edit Product</h1>
+        <h1 className="text-white text-[20px] font-bold flex-1">Edit Product</h1>
+        {!pageLoading && (
+          <span className="flex items-center gap-1.5 text-white/90 text-xs font-semibold bg-white/15 rounded-full px-3 py-1.5 shrink-0">
+            <Eye size={13} />
+            {viewCount} views
+          </span>
+        )}
       </div>
 
       {pageLoading ? (

@@ -1,5 +1,5 @@
 import { useState, useEffect, type JSX } from 'react';
-import { X, Package, ChevronLeft, ChevronRight, Star, Heart, MapPin, Store, EyeOff, Loader2 } from 'lucide-react';
+import { X, Package, ChevronLeft, ChevronRight, Star, Heart, MapPin, Store, Eye, EyeOff, Loader2 } from 'lucide-react';
 import { getSellerProduct, getProductVariants } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
@@ -316,6 +316,10 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                     <span className="flex items-center gap-1 text-xs text-gray-400">
                       <Heart size={12} className="text-pink-400" />
                       0 saved
+                    </span>
+                    <span className="flex items-center gap-1 text-xs text-gray-400">
+                      <Eye size={12} className="text-gray-400" />
+                      {product.viewCount ?? 0} views
                     </span>
                   </div>
                 </div>

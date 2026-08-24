@@ -96,6 +96,7 @@ export interface Product {
   attributes?: Record<string, unknown>;
   variants?: Array<{ id: string }>;
   variantCount?: number;
+  viewCount?: number;
   pickupAddress?: string | null;
   createdAt: string;
 }
