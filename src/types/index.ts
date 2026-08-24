@@ -45,6 +45,9 @@ export interface CustomDayOverride {
   time: CustomDayTime;
 }
 
+export type DayOfWeek = 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
+export type WorkingHours = Record<DayOfWeek, CustomDayTime>;
+
 export type KycDocumentType = 'aadhar' | 'pan' | 'registrationCertificate' | 'other';
 
 export interface KycDocuments {
