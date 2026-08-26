@@ -106,3 +106,12 @@ export async function markBoostFailed(razorpayOrderId: string, paymentId: string
   if (!boost || boost.paymentStatus !== 'pending') return;
   await boost.update({ paymentStatus: 'failed', status: 'cancelled', razorpayPaymentId: paymentId });
 }
+
+export async function cancelBoost(sellerId: string, productId: string): Promise<void> {
+  const boost = await ProductBoost.findOne({
+    where: { sellerId, productId, status: 'active', paymentStatus: 'pending' },
+    order: [['createdAt', 'DESC']],
+  });
+  if (!boost) return;
+  await boost.update({ paymentStatus: 'cancelled', status: 'cancelled' });
+}

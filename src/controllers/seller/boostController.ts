@@ -19,3 +19,12 @@ export async function getActiveProductBoost(req: Request, res: Response): Promis
     handleServiceError(err, res, 'Failed to fetch boost');
   }
 }
+
+export async function cancelProductBoost(req: Request, res: Response): Promise<void> {
+  try {
+    await boostService.cancelBoost(req.seller!.id, String(req.params.id));
+    sendSuccess(res, {}, 'Boost cancelled');
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to cancel boost');
+  }
+}
