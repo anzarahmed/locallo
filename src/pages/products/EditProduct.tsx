@@ -1,9 +1,9 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useFormik, type FormikHelpers } from 'formik';
-import { ArrowLeft, Camera, X, Plus, Loader2, ChevronDown, ChevronRight, Eye } from 'lucide-react';
+import { ArrowLeft, Camera, X, Plus, Loader2, ChevronDown, ChevronRight, Eye, Star } from 'lucide-react';
 import {
-  getProfile, getSellerProduct, updateProduct, uploadProductImage, createVariant,
+  getProfile, getSellerProduct, updateProduct, uploadProductImage, createVariant, getProductReviews,
 } from '../../services/sellerService';
 import { addProductSchema, type AddProductFormValues } from '../../validation/productSchemas';
 import { useToast } from '../../hooks/useToast';
@@ -18,11 +18,13 @@ import {
 } from '../../lib/variantUtils';
 import FormField from '../../components/ui/FormField';
 import AttrInput from '../../components/ui/AttrInput';
-import type { SellerCategory, AttributeField, AttributeFieldOption } from '../../types';
+import type { SellerCategory, AttributeField, AttributeFieldOption, ProductReview } from '../../types';
 
 const EMPTY_VALUES: AddProductFormValues = {
   name: '', description: '', categoryId: 0, sellingPrice: '', mrp: '', costPrice: '', stock: '',
 };
+
+const REVIEWS_PAGE_SIZE = 10;
 
 export default function EditProduct(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -44,6 +46,11 @@ export default function EditProduct(): JSX.Element {
   const [viewCount, setViewCount] = useState(0);
   const [variantSelections, setVariantSelections] = useState<VariantSelections>({});
   const [comboStocks, setComboStocks] = useState<Record<string, string>>({});
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [reviewSummary, setReviewSummary] = useState({ avgRating: 0, reviewCount: 0 });
+  const [reviewsTotal, setReviewsTotal] = useState(0);
+  const [reviewsPage, setReviewsPage] = useState(1);
+  const [reviewsLoading, setReviewsLoading] = useState(true);
 
   const variantFields = attributeSchema.filter(f => f.isVariant === true);
   const nonVariantFields = attributeSchema.filter(f => !f.isVariant);
@@ -90,6 +97,32 @@ export default function EditProduct(): JSX.Element {
     }
     void load();
   }, [id]); // toast and navigate are stable
+
+  async function loadReviews(page: number): Promise<void> {
+    try {
+      const res = await getProductReviews(id!, { page, limit: REVIEWS_PAGE_SIZE });
+      setReviewSummary(res.summary);
+      setReviewsTotal(res.total);
+      setReviews(prev => (page === 1 ? res.reviews : [...prev, ...res.reviews]));
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to load reviews');
+    } finally {
+      setReviewsLoading(false);
+    }
+  }
+
+  useEffect(() => {
+    if (!id) return;
+    setReviewsLoading(true);
+    setReviewsPage(1);
+    void loadReviews(1);
+  }, [id]); // toast is stable
+
+  function handleLoadMoreReviews(): void {
+    const next = reviewsPage + 1;
+    setReviewsPage(next);
+    void loadReviews(next);
+  }
 
   const form = useFormik<AddProductFormValues>({
     initialValues,
@@ -598,6 +631,96 @@ export default function EditProduct(): JSX.Element {
             </div>
             <ChevronRight size={18} className="text-gray-400 shrink-0" />
           </button>
+
+          {/* Reviews */}
+          <div className="bg-white rounded-2xl shadow-sm p-4">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-sm font-semibold text-gray-700">Customer Reviews</p>
+              {!reviewsLoading && reviewSummary.reviewCount > 0 && (
+                <div className="flex items-center gap-1 text-xs font-semibold text-gray-600">
+                  <Star size={13} className="text-amber-400 fill-amber-400" />
+                  {reviewSummary.avgRating.toFixed(1)}
+                  <span className="text-gray-400 font-normal">({reviewSummary.reviewCount})</span>
+                </div>
+              )}
+            </div>
+
+            {reviewsLoading ? (
+              <div className="space-y-3 animate-pulse">
+                {[0, 1].map(i => (
+                  <div key={i} className="flex gap-3">
+                    <div className="w-9 h-9 rounded-full bg-gray-100 shrink-0" />
+                    <div className="flex-1 space-y-2">
+                      <div className="h-3 w-24 bg-gray-100 rounded" />
+                      <div className="h-3 w-full bg-gray-100 rounded" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : reviews.length === 0 ? (
+              <p className="text-xs text-gray-400 text-center py-4">No reviews yet</p>
+            ) : (
+              <div className="space-y-4">
+                {reviews.map(r => (
+                  <div key={r.id} className="pb-4 border-b border-gray-50 last:border-0 last:pb-0">
+                    <div className="flex items-start gap-3">
+                      {r.customer.image ? (
+                        <img
+                          src={r.customer.image}
+                          alt={r.customer.name}
+                          className="w-9 h-9 rounded-full object-cover shrink-0"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-teal-50 text-teal-600 text-xs font-bold flex items-center justify-center shrink-0">
+                          {r.customer.name.charAt(0).toUpperCase()}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-gray-700 truncate">{r.customer.name}</p>
+                          <span className="text-xs text-gray-400 shrink-0">
+                            {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-0.5 mt-0.5">
+                          {[1, 2, 3, 4, 5].map(i => (
+                            <Star
+                              key={i}
+                              size={12}
+                              className={i <= Math.round(r.rating) ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}
+                            />
+                          ))}
+                        </div>
+                        <p className="text-sm text-gray-600 mt-1.5 whitespace-pre-wrap">{r.review}</p>
+                        {r.images.length > 0 && (
+                          <div className="flex gap-2 mt-2 flex-wrap">
+                            {r.images.map((img, i) => (
+                              <img
+                                key={i}
+                                src={img}
+                                alt={`Review attachment ${i + 1}`}
+                                className="w-14 h-14 rounded-lg object-cover"
+                              />
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {reviews.length < reviewsTotal && (
+                  <button
+                    type="button"
+                    onClick={handleLoadMoreReviews}
+                    className="w-full text-xs font-semibold text-teal-600 hover:text-teal-700 py-2"
+                  >
+                    Load more reviews
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
 
           {form.status && (
             <p className="text-sm text-rose-500 text-center px-2">{form.status as string}</p>

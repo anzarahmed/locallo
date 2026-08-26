@@ -252,6 +252,30 @@ export interface OfferDetailResponse {
   acceptedProductIds: string[];
 }
 
+export interface ProductReview {
+  id: string;
+  customer: {
+    id: string | null;
+    name: string;
+    image: string | null;
+  };
+  rating: number;
+  review: string;
+  images: string[];
+  createdAt: string;
+}
+
+export interface ProductReviewsResponse {
+  reviews: ProductReview[];
+  total: number;
+  page: number;
+  limit: number;
+  summary: {
+    avgRating: number;
+    reviewCount: number;
+  };
+}
+
 export interface ProductVariant {
   id: string;
   productId: string;
