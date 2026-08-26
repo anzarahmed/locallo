@@ -419,58 +419,59 @@ function ProductCard({ product, loadingVariants, onEdit, onVariants, onToggle, o
           )}
         </div>
 
-        <div className="flex items-center gap-2">
-          <button
-            onClick={onPromote}
-            title="Promote product"
-            className="w-9 h-9 rounded-full bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors"
-          >
-            <Rocket size={15} />
-          </button>
-          <button
-            onClick={onSell}
-            disabled={loadingVariants || product.stock === 0}
-            title={product.stock === 0 ? 'Out of stock' : 'Mark as sold'}
-            className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors disabled:opacity-40"
-          >
-            {loadingVariants ? <Loader2 size={15} className="animate-spin" /> : <ShoppingBag size={15} />}
-          </button>
-          <button
-            onClick={onPreview}
-            title="Customer preview"
-            className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition-colors"
-          >
-            <ScanEye size={15} />
-          </button>
-          <button
-            onClick={onToggle}
-            title={product.isActive ? 'Hide product' : 'Show product'}
-            className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
-          >
-            {product.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
-          </button>
-          <button
-            onClick={onEdit}
-            title="Edit product"
-            className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
-          >
-            <Pencil size={15} />
-          </button>
-          <button
-            onClick={onVariants}
-            title="Manage variants"
-            className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
-          >
-            <Layers size={15} />
-          </button>
-          <button
-            onClick={onDelete}
-            title="Delete product"
-            className="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center text-rose-400 hover:bg-rose-100 transition-colors"
-          >
-            <Trash2 size={15} />
-          </button>
-        </div>
+        <button
+          onClick={onPromote}
+          className="flex items-center gap-1 px-2.5 h-7 rounded-full bg-violet-600 text-white text-[11px] font-semibold leading-none hover:bg-violet-700 transition-colors shrink-0"
+        >
+          <Rocket size={12} />
+          Promote
+        </button>
+      </div>
+
+      <div className="flex items-center justify-end gap-2 mt-2">
+        <button
+          onClick={onSell}
+          disabled={loadingVariants || product.stock === 0}
+          title={product.stock === 0 ? 'Out of stock' : 'Mark as sold'}
+          className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors disabled:opacity-40"
+        >
+          {loadingVariants ? <Loader2 size={15} className="animate-spin" /> : <ShoppingBag size={15} />}
+        </button>
+        <button
+          onClick={onPreview}
+          title="Customer preview"
+          className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition-colors"
+        >
+          <ScanEye size={15} />
+        </button>
+        <button
+          onClick={onToggle}
+          title={product.isActive ? 'Hide product' : 'Show product'}
+          className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
+        >
+          {product.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
+        </button>
+        <button
+          onClick={onEdit}
+          title="Edit product"
+          className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
+        >
+          <Pencil size={15} />
+        </button>
+        <button
+          onClick={onVariants}
+          title="Manage variants"
+          className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
+        >
+          <Layers size={15} />
+        </button>
+        <button
+          onClick={onDelete}
+          title="Delete product"
+          className="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center text-rose-400 hover:bg-rose-100 transition-colors"
+        >
+          <Trash2 size={15} />
+        </button>
       </div>
     </div>
   );

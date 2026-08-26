@@ -191,7 +191,7 @@ export interface Offer {
 
 export type BoostAudienceType = 'pan_india' | 'state' | 'city';
 export type BoostStatus = 'active' | 'completed' | 'cancelled';
-export type PaymentStatus = 'pending' | 'paid' | 'failed';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
 
 export interface ProductBoost {
   id: string;

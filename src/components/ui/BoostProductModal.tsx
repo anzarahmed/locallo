@@ -4,7 +4,7 @@ import {
   X, Globe, Map, Building2, Users, IndianRupee, ClipboardCheck,
   Eye, Info, Loader2, ChevronDown, Rocket, type LucideIcon,
 } from 'lucide-react';
-import { createBoost, getActiveBoost } from '../../services/sellerService';
+import { createBoost, getActiveBoost, cancelBoost } from '../../services/sellerService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
@@ -33,6 +33,7 @@ export default function BoostProductModal({ product, onClose, onBoosted }: Boost
   const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(true);
   const [existingBoost, setExistingBoost] = useState<ProductBoost | null>(null);
+  const [cancelling, setCancelling] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -98,6 +99,7 @@ export default function BoostProductModal({ product, onClose, onBoosted }: Boost
         },
         modal: {
           ondismiss: () => {
+            void cancelBoost(product.id).catch(() => {});
             toast.info('Payment was not completed. You can try boosting again anytime.');
             setSubmitting(false);
           },
@@ -140,6 +142,19 @@ export default function BoostProductModal({ product, onClose, onBoosted }: Boost
   const nextDisabled =
     submitting || (step === 1 && !canProceedStep1) || (step === 2 && !canProceedStep2);
 
+  async function handleCancelStuckBoost(): Promise<void> {
+    setCancelling(true);
+    try {
+      await cancelBoost(product.id);
+      toast.info('Boost cancelled. You can start a new one now.');
+      setExistingBoost(null);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to cancel boost');
+    } finally {
+      setCancelling(false);
+    }
+  }
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40">
       <div className="bg-white rounded-2xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh]">
@@ -163,7 +178,12 @@ export default function BoostProductModal({ product, onClose, onBoosted }: Boost
             <p className="text-sm text-gray-400">Checking boost status…</p>
           </div>
         ) : existingBoost ? (
-          <ExistingBoostView boost={existingBoost} onClose={onClose} />
+          <ExistingBoostView
+            boost={existingBoost}
+            onClose={onClose}
+            onCancel={existingBoost.paymentStatus === 'pending' ? handleCancelStuckBoost : undefined}
+            cancelling={cancelling}
+          />
         ) : (
           <>
             <div className="px-5 pb-4 shrink-0">
@@ -453,7 +473,14 @@ function ReviewStep({ values }: { values: BoostFormValues }): JSX.Element {
 }
 
 /* ── Already-boosted view ── */
-function ExistingBoostView({ boost, onClose }: { boost: ProductBoost; onClose: () => void }): JSX.Element {
+interface ExistingBoostViewProps {
+  boost: ProductBoost;
+  onClose: () => void;
+  onCancel?: () => void;
+  cancelling: boolean;
+}
+
+function ExistingBoostView({ boost, onClose, onCancel, cancelling }: ExistingBoostViewProps): JSX.Element {
   const audienceLabel = formatAudienceLabel(boost.audienceType, boost.state, boost.city);
   return (
     <div className="px-5 pb-5">
@@ -468,7 +495,7 @@ function ExistingBoostView({ boost, onClose }: { boost: ProductBoost; onClose: (
         <p className="text-xs text-gray-400 mt-1">You can start a new boost once this one ends.</p>
         {boost.paymentStatus === 'pending' && (
           <p className="text-xs font-semibold text-amber-600 bg-amber-50 rounded-full px-3 py-1 mt-2">
-            Payment processing — this can take a few seconds
+            Payment not completed yet
           </p>
         )}
       </div>
@@ -505,14 +532,27 @@ function ExistingBoostView({ boost, onClose }: { boost: ProductBoost; onClose: (
         </div>
       </div>
 
-      <button
-        type="button"
-        onClick={onClose}
-        className="w-full mt-5 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-        style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
-      >
-        Close
-      </button>
+      <div className="flex gap-3 mt-5">
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={cancelling}
+            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
+          >
+            {cancelling && <Loader2 size={15} className="animate-spin" />}
+            {cancelling ? 'Cancelling…' : 'Cancel & try again'}
+          </button>
+        )}
+        <button
+          type="button"
+          onClick={onClose}
+          className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+          style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
+        >
+          Close
+        </button>
+      </div>
     </div>
   );
 }

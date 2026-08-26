@@ -157,6 +157,10 @@ export function getActiveBoost(productId: string): Promise<{ boost: ProductBoost
   return apiGet(PATHS.PRODUCT_BOOST(productId));
 }
 
+export function cancelBoost(productId: string): Promise<Record<string, never>> {
+  return apiPatch(PATHS.PRODUCT_BOOST_CANCEL(productId), {});
+}
+
 export function getSoldLogs(params?: {
   page?: number;
   limit?: number;
