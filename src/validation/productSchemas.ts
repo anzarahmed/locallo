@@ -6,7 +6,7 @@ export const addProductSchema = Yup.object({
   categoryId:   Yup.number().integer().positive('Please select a category').required('Please select a category'),
   sellingPrice: Yup.number().typeError('Enter a valid amount').positive('Must be positive').required('Selling price is required'),
   mrp:          Yup.number().typeError('Enter a valid amount').positive('Must be positive').optional(),
-  costPrice:    Yup.number().typeError('Enter a valid amount').positive('Must be positive').optional(),
+  costPrice:    Yup.number().typeError('Enter a valid amount').positive('Must be positive').required('Cost price is required'),
   stock:        Yup.number().typeError('Enter a whole number').integer('Must be a whole number').min(0, 'Cannot be negative').required('Stock is required'),
 });
 

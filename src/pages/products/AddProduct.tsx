@@ -212,7 +212,7 @@ export default function AddProduct(): JSX.Element {
         categoryId:   Number(values.categoryId),
         sellingPrice: Number(values.sellingPrice),
         mrp:          values.mrp      ? Number(values.mrp)      : undefined,
-        costPrice:    values.costPrice ? Number(values.costPrice) : undefined,
+        costPrice:    Number(values.costPrice),
         ...(!hasCombinations && { stock: Number(values.stock) }),
         images:       [primaryImage!, ...secondaryImages],
         attributes:   productAttrs,
@@ -492,7 +492,7 @@ export default function AddProduct(): JSX.Element {
             </FormField>
           </div>
 
-          <FormField label="Cost Price (optional)" error={form.touched.costPrice ? form.errors.costPrice as string : undefined}>
+          <FormField label="Cost Price" required error={form.touched.costPrice ? form.errors.costPrice as string : undefined}>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
               <input
