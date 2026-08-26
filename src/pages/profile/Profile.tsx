@@ -45,7 +45,7 @@ export default function Profile(): JSX.Element {
     setDeletingAccount(true);
     try {
       await deleteAccount();
-      toast.success('Account deleted');
+      toast.success('Account scheduled for deletion. Log in within 30 days to reactivate it.');
       logout();
       navigate('/login', { replace: true });
     } catch (err) {
@@ -407,7 +407,7 @@ export default function Profile(): JSX.Element {
             </div>
             <div>
               <h3 className="text-sm font-semibold text-gray-800">Danger Zone</h3>
-              <p className="text-xs text-gray-400 mt-0.5">Irreversible account actions</p>
+              <p className="text-xs text-gray-400 mt-0.5">Recoverable within a 30-day window</p>
             </div>
           </div>
           <div className="p-5">
@@ -425,7 +425,7 @@ export default function Profile(): JSX.Element {
       {deleteConfirmOpen && (
         <ConfirmDeleteModal
           title="Delete Account"
-          message="This will permanently delete your account, all your products, and your sales history. This cannot be undone."
+          message="Your account will be deactivated and held for 30 days. Log in again during this period to reactivate it. If you don't, your account, products, and sales history will be permanently deleted."
           loading={deletingAccount}
           onConfirm={() => void confirmDeleteAccount()}
           onCancel={() => setDeleteConfirmOpen(false)}
