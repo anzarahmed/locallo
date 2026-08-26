@@ -4,6 +4,8 @@ import { Product } from '../../models/Product';
 import { Category } from '../../models/Category';
 import { ProductVariant } from '../../models/ProductVariant';
 import { SellerProfile } from '../../models/SellerProfile';
+import { Review } from '../../models/Review';
+import { User } from '../../models/User';
 import type { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import type { AttributeField } from '../../types';
 import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
@@ -229,6 +231,40 @@ export async function getSellerProduct(sellerId: string, productId: string): Pro
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
   return product;
+}
+
+export async function getSellerProductReviews(
+  sellerId: string,
+  productId: string,
+  page: number,
+  limit: number,
+): Promise<{ rows: Review[]; count: number; avgRating: number; reviewCount: number }> {
+  await requireOwnProduct(sellerId, productId);
+
+  const [{ rows, count }, agg] = await Promise.all([
+    Review.findAndCountAll({
+      where: { productId },
+      include: [{ model: User, as: 'customer', attributes: ['id', 'fullName', 'profileImage'] }],
+      order: [['createdAt', 'DESC']],
+      limit,
+      offset: (page - 1) * limit,
+    }),
+    Review.findOne({
+      where: { productId },
+      attributes: [
+        [literal('COALESCE(AVG(rating), 0)'), 'avgRating'],
+        [literal('COUNT(*)::int'), 'reviewCount'],
+      ],
+      raw: true,
+    }) as unknown as Promise<{ avgRating: string; reviewCount: number } | null>,
+  ]);
+
+  return {
+    rows,
+    count,
+    avgRating: Number(agg?.avgRating ?? 0),
+    reviewCount: agg?.reviewCount ?? 0,
+  };
 }
 
 export async function updateSellerProduct(

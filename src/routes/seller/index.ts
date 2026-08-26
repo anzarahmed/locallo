@@ -5,7 +5,7 @@ import { getProfile, updateSeller, updateAddress, getSettings, updateSettings, g
 import { requestOtp, verifyOtp, logout } from '../../controllers/seller/sellerAuthController';
 import {
   uploadImage, createProduct, getProducts,
-  getProduct, updateProduct, toggleProduct, deleteProduct,
+  getProduct, updateProduct, toggleProduct, deleteProduct, getProductReviews,
 } from '../../controllers/seller/productController';
 import { analyzeImage } from '../../controllers/seller/imageAnalysisController';
 import { getCategories, getMyCategories } from '../../controllers/seller/categoryController';
@@ -53,6 +53,7 @@ router.post('/products/analyze-image',   requireSeller, upload.single('image'), 
 router.post('/products',              requireSeller, validate(createProductSchema), createProduct);
 router.get('/products',               requireSeller, getProducts);
 router.get('/products/:id',           requireSeller, getProduct);
+router.get('/products/:id/reviews',   requireSeller, getProductReviews);
 router.put('/products/:id',           requireSeller, validate(updateProductSchema), updateProduct);
 router.patch('/products/:id/toggle',  requireSeller, toggleProduct);
 router.delete('/products/:id',        requireSeller, deleteProduct);

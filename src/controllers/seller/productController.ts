@@ -1,6 +1,9 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
-import { saveImage, getPresignedUrl, withSignedImages, signModelRows } from '../../utils/imageStorage';
+import {
+  saveImage, getPresignedUrl, withSignedImages, signModelRows,
+  getPresignedUrlOrNull, signImages,
+} from '../../utils/imageStorage';
 import { parsePagination } from '../../utils/pagination';
 import * as productService from '../../services/seller/productService';
 
@@ -60,6 +63,38 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
     sendSuccess(res, { product: signed }, 'Product fetched');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Product not found');
+  }
+}
+
+export async function getProductReviews(req: Request, res: Response): Promise<void> {
+  const { page, limit } = parsePagination(req);
+  try {
+    const { rows, count, avgRating, reviewCount } = await productService.getSellerProductReviews(
+      req.seller!.id, String(req.params.id), page, limit,
+    );
+
+    const reviews = await Promise.all(rows.map(async (r) => ({
+      id: r.id,
+      customer: {
+        id: r.customer?.id ?? null,
+        name: r.customer?.fullName ?? 'Customer',
+        image: await getPresignedUrlOrNull(r.customer?.profileImage),
+      },
+      rating: r.rating,
+      review: r.content,
+      images: await signImages(r.images),
+      createdAt: r.createdAt,
+    })));
+
+    sendSuccess(res, {
+      reviews,
+      total: count,
+      page,
+      limit,
+      summary: { avgRating: Number(avgRating.toFixed(1)), reviewCount },
+    }, 'Reviews fetched');
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to fetch reviews');
   }
 }
 
