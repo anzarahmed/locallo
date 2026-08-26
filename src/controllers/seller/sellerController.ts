@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, setSellerKycVerification, uploadSellerBrandDocument, deleteSellerAccount } from '../../services/seller/sellerService';
+import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, setSellerKycVerification, uploadSellerBrandDocument, requestSellerAccountDeletion } from '../../services/seller/sellerService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import { Category } from '../../models/Category';
@@ -131,8 +131,8 @@ export async function updateAddress(req: Request, res: Response): Promise<void> 
 
 export async function deleteAccount(req: Request, res: Response): Promise<void> {
   try {
-    await deleteSellerAccount(req.seller!.id);
-    sendSuccess(res, null, 'Account deleted successfully');
+    await requestSellerAccountDeletion(req.seller!.id);
+    sendSuccess(res, null, 'Account scheduled for deletion in 30 days. Log in again during this period to reactivate it.');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to delete account');
   }

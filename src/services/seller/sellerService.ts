@@ -130,7 +130,19 @@ export async function updateSellerAddress(
   return profile;
 }
 
-export async function deleteSellerAccount(userId: string): Promise<void> {
+export async function requestSellerAccountDeletion(userId: string): Promise<void> {
+  const user = await User.findOne({ where: { id: userId, role: 'SELLER' } });
+  if (!user) {
+    throw Object.assign(new Error('Seller not found'), { status: 404 });
+  }
+
+  await sequelize.transaction(async (t) => {
+    await Session.destroy({ where: { actorType: 'user', actorId: userId }, transaction: t });
+    await user.update({ isActive: false, deletionRequestedAt: new Date() }, { transaction: t });
+  });
+}
+
+export async function permanentlyDeleteSellerAccount(userId: string): Promise<void> {
   const user = await User.findOne({ where: { id: userId, role: 'SELLER' } });
   if (!user) {
     throw Object.assign(new Error('Seller not found'), { status: 404 });

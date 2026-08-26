@@ -15,7 +15,7 @@ async function findActiveSeller(phoneNumber: string): Promise<User> {
   if (!user) {
     throw Object.assign(new Error('Seller not found'), { status: 404 });
   }
-  if (!user.isActive) {
+  if (!user.isActive && !user.deletionRequestedAt) {
     throw Object.assign(new Error('Account is not active'), { status: 403 });
   }
 
@@ -48,7 +48,13 @@ export async function verifySellerOtp(data: VerifyOtpInput): Promise<{ token: st
     throw Object.assign(new Error('Invalid OTP'), { status: 422 });
   }
 
-  await user.update({ otpCode: null, otpExpiresAt: null, isVerified: true });
+  await user.update({
+    otpCode: null,
+    otpExpiresAt: null,
+    isVerified: true,
+    isActive: true,
+    deletionRequestedAt: null,
+  });
 
   const token = await createUserSession(user.id, 'SELLER', data.deviceId, data.deviceType);
 

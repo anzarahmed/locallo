@@ -67,6 +67,9 @@ export class User extends Model {
   @Column(DataType.BOOLEAN)
   declare isActive: boolean;
 
+  @Column(DataType.DATE)
+  declare deletionRequestedAt: Date | null;
+
   @CreatedAt
   declare createdAt: Date;
 

@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { getCustomerProfile, updateCustomerProfile, uploadCustomerProfileImage, deleteCustomerAccount } from '../../services/customer/customerProfileService';
+import { getCustomerProfile, updateCustomerProfile, uploadCustomerProfileImage, requestCustomerAccountDeletion } from '../../services/customer/customerProfileService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
 import type { User } from '../../models/User';
@@ -52,8 +52,8 @@ export async function uploadProfileImage(req: Request, res: Response): Promise<v
 
 export async function deleteAccount(req: Request, res: Response): Promise<void> {
   try {
-    await deleteCustomerAccount(req.customer!.id);
-    sendSuccess(res, null, 'Account deleted successfully');
+    await requestCustomerAccountDeletion(req.customer!.id);
+    sendSuccess(res, null, 'Account scheduled for deletion in 30 days. Log in again during this period to reactivate it.');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to delete account');
   }

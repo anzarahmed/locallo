@@ -56,7 +56,19 @@ export async function uploadCustomerProfileImage(userId: string, file: Express.M
   return user;
 }
 
-export async function deleteCustomerAccount(userId: string): Promise<void> {
+export async function requestCustomerAccountDeletion(userId: string): Promise<void> {
+  const user = await User.findOne({ where: { id: userId, role: 'CUSTOMER' } });
+  if (!user) {
+    throw Object.assign(new Error('Customer not found'), { status: 404 });
+  }
+
+  await sequelize.transaction(async (t) => {
+    await Session.destroy({ where: { actorType: 'user', actorId: userId }, transaction: t });
+    await user.update({ isActive: false, deletionRequestedAt: new Date() }, { transaction: t });
+  });
+}
+
+export async function permanentlyDeleteCustomerAccount(userId: string): Promise<void> {
   const user = await User.findOne({ where: { id: userId, role: 'CUSTOMER' } });
   if (!user) {
     throw Object.assign(new Error('Customer not found'), { status: 404 });
