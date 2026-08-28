@@ -51,7 +51,7 @@ export default function SellerList(): JSX.Element {
   const [pageSize, setPageSize]         = useState(DEFAULT_PAGE_SIZE);
   const [totalRecords, setTotalRecords] = useState(0);
 
-  const [sorting, setSorting]               = useState<SortingState>([{ id: 'fullName', desc: false }]);
+  const [sorting, setSorting]               = useState<SortingState>([{ id: 'createdAt', desc: true }]);
   const initialFilters: ColumnFiltersState  = [];
   const [columnFilters, setColumnFilters]   = useState<ColumnFiltersState>(initialFilters);
   const [debouncedFilters, setDebouncedFilters] = useState<ColumnFiltersState>(initialFilters);
