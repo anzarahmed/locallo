@@ -52,6 +52,12 @@ export class SoldLog extends Model {
   @Column(DataType.JSONB)
   declare variantInfo: Record<string, unknown> | null;
 
+  @Column(DataType.DECIMAL(12, 2))
+  declare sellingPriceAtSale: number | null;
+
+  @Column(DataType.DECIMAL(12, 2))
+  declare costPriceAtSale: number | null;
+
   @AllowNull(false)
   @Default(DataType.NOW)
   @Column(DataType.DATE)

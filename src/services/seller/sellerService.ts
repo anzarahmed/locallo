@@ -11,6 +11,7 @@ import { Session } from '../../models/Session';
 import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
 import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
 import { sendKycVerificationEmail } from '../../utils/mailer';
+import { createDefaultLedgers } from './ledgerService';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
 type CreateSellerInput       = InferType<typeof createSellerSchema>;
@@ -69,6 +70,8 @@ export async function createSeller(
       },
       { transaction: t },
     );
+
+    await createDefaultLedgers(user.id, t);
 
     return { user, profile };
   });

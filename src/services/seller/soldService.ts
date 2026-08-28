@@ -44,6 +44,8 @@ export async function markProductSold(
     stockAfter,
     productName: product.name,
     variantInfo: null,
+    sellingPriceAtSale: product.sellingPrice,
+    costPriceAtSale:    product.costPrice,
   });
 }
 
@@ -84,6 +86,8 @@ export async function markVariantSold(
     stockAfter,
     productName: product.name,
     variantInfo: variant.attributes,
+    sellingPriceAtSale: variant.sellingPrice ?? product.sellingPrice,
+    costPriceAtSale:    product.costPrice,
   });
 }
 

@@ -11,6 +11,9 @@ import { analyzeImage } from '../../controllers/seller/imageAnalysisController';
 import { getCategories, getMyCategories } from '../../controllers/seller/categoryController';
 import { getVariants, createVariant, createBatchVariants, updateVariant, deleteVariant, toggleVariant } from '../../controllers/seller/variantController';
 import { markProductSold, markVariantSold, getSoldLogs } from '../../controllers/seller/soldController';
+import { addLedger, getLedgers, editLedger, removeLedger } from '../../controllers/seller/ledgerController';
+import { addExpense, getExpenses, editExpense, removeExpense } from '../../controllers/seller/expenseController';
+import { getPnlSummary } from '../../controllers/seller/pnlController';
 import { createProductBoost, getActiveProductBoost, cancelProductBoost } from '../../controllers/seller/boostController';
 import { getOffers, getAcceptedOffers, getOffer, acceptOffer } from '../../controllers/seller/offerController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/seller/notificationController';
@@ -21,6 +24,8 @@ import { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/selle
 import { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import { createVariantSchema, createBatchVariantSchema, updateVariantSchema } from '../../validation/seller/variantSchemas';
 import { markSoldSchema } from '../../validation/seller/soldSchemas';
+import { createLedgerSchema } from '../../validation/seller/ledgerSchemas';
+import { createExpenseSchema, updateExpenseSchema } from '../../validation/seller/expenseSchemas';
 import { createBoostSchema } from '../../validation/seller/boostSchemas';
 import { acceptOfferSchema } from '../../validation/seller/offerSchemas';
 
@@ -73,6 +78,18 @@ router.get('/products/:id/boost',         requireSeller, getActiveProductBoost);
 router.patch('/products/:id/boost/cancel', requireSeller, cancelProductBoost);
 
 router.get('/sold-logs', requireSeller, getSoldLogs);
+
+router.post('/ledgers',       requireSeller, validate(createLedgerSchema), addLedger);
+router.get('/ledgers',        requireSeller, getLedgers);
+router.put('/ledgers/:id',    requireSeller, validate(createLedgerSchema), editLedger);
+router.delete('/ledgers/:id', requireSeller, removeLedger);
+
+router.post('/expenses',       requireSeller, validate(createExpenseSchema), addExpense);
+router.get('/expenses',        requireSeller, getExpenses);
+router.put('/expenses/:id',    requireSeller, validate(updateExpenseSchema), editExpense);
+router.delete('/expenses/:id', requireSeller, removeExpense);
+
+router.get('/pnl/summary', requireSeller, getPnlSummary);
 
 router.get('/offers',            requireSeller, getOffers);
 router.get('/offers/accepted',   requireSeller, getAcceptedOffers);
