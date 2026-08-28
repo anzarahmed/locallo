@@ -30,4 +30,9 @@ export const PATHS = {
   NOTIFICATIONS:      '/api/sellers/notifications',
   NOTIFICATION_READ:  (id: string): string => `/api/sellers/notifications/${id}/read`,
   NOTIFICATION_BY_ID: (id: string): string => `/api/sellers/notifications/${id}`,
+  LEDGERS:      '/api/sellers/ledgers',
+  LEDGER_BY_ID: (id: string): string => `/api/sellers/ledgers/${id}`,
+  EXPENSES:      '/api/sellers/expenses',
+  EXPENSE_BY_ID: (id: string): string => `/api/sellers/expenses/${id}`,
+  PNL_SUMMARY: '/api/sellers/pnl/summary',
 } as const;

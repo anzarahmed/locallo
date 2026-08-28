@@ -21,6 +21,8 @@ const AcceptedOffers = lazy(() => import('./pages/offers/AcceptedOffers'));
 const OfferDetail = lazy(() => import('./pages/offers/OfferDetail'));
 const AcceptOfferProducts = lazy(() => import('./pages/offers/AcceptOfferProducts'));
 const NotificationList = lazy(() => import('./pages/notifications/NotificationList'));
+const Pnl = lazy(() => import('./pages/pnl/Pnl'));
+const Expenses = lazy(() => import('./pages/expenses/Expenses'));
 
 function AuthGuard({ children }: { children: JSX.Element }): JSX.Element {
   const { token, isRestoring } = useAuth();
@@ -60,20 +62,13 @@ function AppRoutes(): JSX.Element {
           <Route path="/offers/:id"            element={<OfferDetail />} />
           <Route path="/offers/:id/accept"     element={<AcceptOfferProducts />} />
           <Route path="/notifications"         element={<NotificationList />} />
-          <Route path="/pnl"                   element={<Placeholder title="P&L" />} />
+          <Route path="/pnl"                   element={<Pnl />} />
+          <Route path="/expenses"              element={<Expenses />} />
         </Route>
 
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </Suspense>
-  );
-}
-
-function Placeholder({ title }: { title: string }): JSX.Element {
-  return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <p className="text-gray-400 text-sm">{title} — coming soon</p>
-    </div>
   );
 }
 

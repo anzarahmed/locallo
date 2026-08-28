@@ -276,6 +276,43 @@ export interface ProductReviewsResponse {
   };
 }
 
+export interface Ledger {
+  id: string;
+  name: string;
+  createdAt: string;
+}
+
+export interface Expense {
+  id: string;
+  ledgerId: string;
+  ledger: { id: string; name: string };
+  amount: number;
+  description: string | null;
+  expenseDate: string;
+  createdAt: string;
+}
+
+export interface ExpensesResponse {
+  expenses: Expense[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type PnlPeriod = 'today' | 'this_month' | 'this_quarter' | 'financial_year' | 'custom';
+
+export interface PnlSummary {
+  totalSales: number;
+  totalCost: number;
+  totalExpenses: number;
+  openingStockValue: number;
+  closingStockValue: number;
+  grossProfit: number;
+  netProfitLoss: number;
+  from: string;
+  to: string;
+}
+
 export interface ProductVariant {
   id: string;
   productId: string;
