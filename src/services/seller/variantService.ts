@@ -5,6 +5,7 @@ import { Category } from '../../models/Category';
 import type { createVariantSchema, updateVariantSchema, createBatchVariantSchema } from '../../validation/seller/variantSchemas';
 import type { AttributeField } from '../../types';
 import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
+import { recordPurchase } from './purchaseService';
 
 export async function syncProductStock(productId: string): Promise<void> {
   const total = ((await ProductVariant.sum('stock', { where: { productId } })) as number | null) ?? 0;
@@ -112,6 +113,19 @@ export async function createVariant(
   });
   await syncProductStock(productId);
   await syncProductVariantAttrs(productId);
+
+  await recordPurchase({
+    sellerId,
+    productId,
+    variantId:   variant.id,
+    quantity:    variant.stock,
+    stockBefore: 0,
+    stockAfter:  variant.stock,
+    productName: product.name,
+    variantInfo: variant.attributes as Record<string, unknown>,
+    costPriceAtPurchase: product.costPrice,
+  });
+
   return variant;
 }
 
@@ -157,6 +171,21 @@ export async function createBatchVariants(
 
   await syncProductStock(productId);
   await syncProductVariantAttrs(productId);
+
+  for (const variant of variants) {
+    await recordPurchase({
+      sellerId,
+      productId,
+      variantId:   variant.id,
+      quantity:    variant.stock,
+      stockBefore: 0,
+      stockAfter:  variant.stock,
+      productName: product.name,
+      variantInfo: variant.attributes as Record<string, unknown>,
+      costPriceAtPurchase: product.costPrice,
+    });
+  }
+
   return variants;
 }
 
@@ -166,8 +195,11 @@ export async function updateVariant(
   sellerId: string,
   data: UpdateVariantInput,
 ): Promise<ProductVariant> {
-  await requireOwnProduct(sellerId, productId);
+  const product = await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
+
+  const stockBefore = variant.stock;
+  const stockDelta = data.stock !== undefined ? data.stock - stockBefore : 0;
 
   await variant.update({
     ...(data.images       !== undefined && { images:       await commitImages(data.images.map(normalizeImageKey)) }),
@@ -178,6 +210,21 @@ export async function updateVariant(
   });
 
   await syncProductStock(productId);
+
+  if (stockDelta > 0) {
+    await recordPurchase({
+      sellerId,
+      productId,
+      variantId:   variant.id,
+      quantity:    stockDelta,
+      stockBefore,
+      stockAfter:  variant.stock,
+      productName: product.name,
+      variantInfo: variant.attributes as Record<string, unknown>,
+      costPriceAtPurchase: product.costPrice,
+    });
+  }
+
   return variant;
 }
 

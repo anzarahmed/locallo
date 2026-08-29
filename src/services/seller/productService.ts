@@ -9,6 +9,7 @@ import { User } from '../../models/User';
 import type { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import type { AttributeField } from '../../types';
 import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
+import { recordPurchase } from './purchaseService';
 import sequelize from '../../config/database';
 
 type CreateProductInput = InferType<typeof createProductSchema>;
@@ -129,7 +130,33 @@ export async function createProduct(
         mrp:          data.mrp ?? null,
         isActive:     true,
       }));
-      await ProductVariant.bulkCreate(variants, { transaction: t });
+      const createdVariants = await ProductVariant.bulkCreate(variants, { transaction: t, returning: true });
+
+      for (const variant of createdVariants) {
+        await recordPurchase({
+          sellerId,
+          productId:   created.id,
+          variantId:   variant.id,
+          quantity:    variant.stock,
+          stockBefore: 0,
+          stockAfter:  variant.stock,
+          productName: created.name,
+          variantInfo: variant.attributes as Record<string, unknown>,
+          costPriceAtPurchase: created.costPrice,
+        }, t);
+      }
+    } else {
+      await recordPurchase({
+        sellerId,
+        productId:   created.id,
+        variantId:   null,
+        quantity:    created.stock,
+        stockBefore: 0,
+        stockAfter:  created.stock,
+        productName: created.name,
+        variantInfo: null,
+        costPriceAtPurchase: created.costPrice,
+      }, t);
     }
 
     return created;
@@ -301,6 +328,9 @@ export async function updateSellerProduct(
     validateAttributes(mergedAttributes, schema, hasVariants);
   }
 
+  const stockBefore = product.stock;
+  const stockDelta = !hasVariants && data.stock !== undefined ? data.stock - stockBefore : 0;
+
   await product.update({
     ...(data.name          !== undefined && { name:          data.name }),
     ...(data.description   !== undefined && { description:   data.description }),
@@ -315,6 +345,20 @@ export async function updateSellerProduct(
     ...(data.pickupLat     !== undefined && { pickupLat:     data.pickupLat }),
     ...(data.pickupLong    !== undefined && { pickupLong:    data.pickupLong }),
   });
+
+  if (stockDelta > 0) {
+    await recordPurchase({
+      sellerId,
+      productId:   product.id,
+      variantId:   null,
+      quantity:    stockDelta,
+      stockBefore,
+      stockAfter:  product.stock,
+      productName: product.name,
+      variantInfo: null,
+      costPriceAtPurchase: product.costPrice,
+    });
+  }
 
   return product.reload({ include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }] });
 }

@@ -11,6 +11,7 @@ import { analyzeImage } from '../../controllers/seller/imageAnalysisController';
 import { getCategories, getMyCategories } from '../../controllers/seller/categoryController';
 import { getVariants, createVariant, createBatchVariants, updateVariant, deleteVariant, toggleVariant } from '../../controllers/seller/variantController';
 import { markProductSold, markVariantSold, getSoldLogs } from '../../controllers/seller/soldController';
+import { getPurchaseLogs } from '../../controllers/seller/purchaseController';
 import { addLedger, getLedgers, editLedger, removeLedger } from '../../controllers/seller/ledgerController';
 import { addExpense, getExpenses, editExpense, removeExpense } from '../../controllers/seller/expenseController';
 import { getPnlSummary } from '../../controllers/seller/pnlController';
@@ -78,6 +79,7 @@ router.get('/products/:id/boost',         requireSeller, getActiveProductBoost);
 router.patch('/products/:id/boost/cancel', requireSeller, cancelProductBoost);
 
 router.get('/sold-logs', requireSeller, getSoldLogs);
+router.get('/purchase-logs', requireSeller, getPurchaseLogs);
 
 router.post('/ledgers',       requireSeller, validate(createLedgerSchema), addLedger);
 router.get('/ledgers',        requireSeller, getLedgers);
