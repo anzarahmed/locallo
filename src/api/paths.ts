@@ -18,6 +18,7 @@ export const PATHS = {
   SETTINGS:       '/api/sellers/settings',
   CUSTOM_DAY:     '/api/sellers/custom-day',
   SOLD_LOGS:      '/api/sellers/sold-logs',
+  PURCHASE_LOGS:  '/api/sellers/purchase-logs',
   PRODUCT_SELL:   (id: string): string => `/api/sellers/products/${id}/sell`,
   PRODUCT_BOOST:  (id: string): string => `/api/sellers/products/${id}/boost`,
   PRODUCT_BOOST_CANCEL: (id: string): string => `/api/sellers/products/${id}/boost/cancel`,

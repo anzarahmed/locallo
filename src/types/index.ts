@@ -129,6 +129,26 @@ export interface SoldLogsResponse {
   limit: number;
 }
 
+export interface PurchaseLog {
+  id: string;
+  productId: string | null;
+  variantId: string | null;
+  quantity: number;
+  stockBefore: number;
+  stockAfter: number;
+  productName: string;
+  variantInfo: Record<string, unknown> | null;
+  purchasedAt: string;
+  productImage: string | null;
+}
+
+export interface PurchaseLogsResponse {
+  logs: PurchaseLog[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export interface ProductsResponse {
   products: Product[];
   total: number;
@@ -305,6 +325,7 @@ export interface PnlSummary {
   totalSales: number;
   totalCost: number;
   totalExpenses: number;
+  totalPurchases: number;
   openingStockValue: number;
   closingStockValue: number;
   grossProfit: number;

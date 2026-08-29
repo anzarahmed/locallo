@@ -17,6 +17,7 @@ const EditProduct = lazy(() => import('./pages/products/EditProduct'));
 const VariantList = lazy(() => import('./pages/products/variants/VariantList'));
 const Settings    = lazy(() => import('./pages/settings/Settings'));
 const SoldLogs    = lazy(() => import('./pages/sold-logs/SoldLogs'));
+const PurchaseLogs = lazy(() => import('./pages/purchase-logs/PurchaseLogs'));
 const AcceptedOffers = lazy(() => import('./pages/offers/AcceptedOffers'));
 const OfferDetail = lazy(() => import('./pages/offers/OfferDetail'));
 const AcceptOfferProducts = lazy(() => import('./pages/offers/AcceptOfferProducts'));
@@ -58,6 +59,7 @@ function AppRoutes(): JSX.Element {
           <Route path="/products/:id/variants" element={<VariantList />} />
           <Route path="/settings"              element={<Settings />} />
           <Route path="/sold-logs"             element={<SoldLogs />} />
+          <Route path="/purchase-logs"         element={<PurchaseLogs />} />
           <Route path="/offers"                element={<AcceptedOffers />} />
           <Route path="/offers/:id"            element={<OfferDetail />} />
           <Route path="/offers/:id/accept"     element={<AcceptOfferProducts />} />

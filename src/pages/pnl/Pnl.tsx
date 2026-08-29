@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Link } from 'react-router-dom';
-import { Wallet, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ListChecks } from 'lucide-react';
+import { Wallet, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ListChecks, PackagePlus } from 'lucide-react';
 import { getPnlSummary, getExpenses } from '../../services/pnlService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
@@ -93,7 +93,7 @@ export default function Pnl(): JSX.Element {
         ...(summary.openingStockValue > 0
           ? [{ label: 'To Opening Stock', amount: summary.openingStockValue }]
           : []),
-        { label: 'To Purchase', amount: summary.totalCost },
+        { label: 'To Purchase', amount: summary.totalPurchases },
         ...expenses.map(e => ({
           id: e.id,
           label: e.ledger?.name ?? 'Ledger',
@@ -140,12 +140,20 @@ export default function Pnl(): JSX.Element {
               )}
             </div>
           </div>
-          <Link
-            to="/expenses"
-            className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 transition-colors shrink-0"
-          >
-            <ListChecks size={14} /> Manage Expenses
-          </Link>
+          <div className="flex items-center gap-2 shrink-0">
+            <Link
+              to="/purchase-logs"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 transition-colors"
+            >
+              <PackagePlus size={14} /> Purchase Log
+            </Link>
+            <Link
+              to="/expenses"
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold text-white bg-white/15 hover:bg-white/25 transition-colors"
+            >
+              <ListChecks size={14} /> Manage Expenses
+            </Link>
+          </div>
         </div>
       </div>
 
