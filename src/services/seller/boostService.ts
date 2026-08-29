@@ -3,7 +3,7 @@ import { ProductBoost } from '../../models/ProductBoost';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 import { createRazorpayOrder } from '../../utils/razorpay';
-import { sendBoostPaymentConfirmedEmail } from '../../utils/mailer';
+import { sendBoostPaymentConfirmedEmail, sendBoostPaymentFailedEmail } from '../../utils/mailer';
 import type { BoostAudienceType } from '../../types';
 
 const IMPRESSIONS_PER_RUPEE = 20;
@@ -102,9 +102,26 @@ export async function markBoostPaid(razorpayOrderId: string, paymentId: string, 
 }
 
 export async function markBoostFailed(razorpayOrderId: string, paymentId: string): Promise<void> {
-  const boost = await ProductBoost.findOne({ where: { razorpayOrderId } });
+  const boost = await ProductBoost.findOne({ where: { razorpayOrderId }, include: [{ model: Product }] });
   if (!boost || boost.paymentStatus !== 'pending') return;
   await boost.update({ paymentStatus: 'failed', status: 'cancelled', razorpayPaymentId: paymentId });
+
+  const seller = await User.findByPk(boost.sellerId, {
+    include: [{ model: SellerProfile, attributes: ['email', 'businessName'] }],
+  });
+  const email = seller?.sellerProfile?.email ?? seller?.email;
+  if (email) {
+    try {
+      await sendBoostPaymentFailedEmail(
+        email,
+        seller?.sellerProfile?.businessName ?? seller?.fullName ?? 'there',
+        boost.product.name,
+        boost.amount,
+      );
+    } catch (err) {
+      console.error('markBoostFailed: failed to send failure email', err);
+    }
+  }
 }
 
 export async function cancelBoost(sellerId: string, productId: string): Promise<void> {

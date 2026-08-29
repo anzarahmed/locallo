@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 import { kycVerificationEmail } from './emailTemplates/kycVerificationEmail';
 import { offerNotificationEmail } from './emailTemplates/offerNotificationEmail';
 import { boostPaymentConfirmedEmail } from './emailTemplates/boostPaymentConfirmedEmail';
+import { boostPaymentFailedEmail } from './emailTemplates/boostPaymentFailedEmail';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -72,6 +73,22 @@ export async function sendBoostPaymentConfirmedEmail(
   amount: number,
 ): Promise<void> {
   const { subject, html } = boostPaymentConfirmedEmail(businessName, productName, amount);
+
+  await transporter.sendMail({
+    from: `"Localo" <${process.env.GMAIL_USER}>`,
+    to,
+    subject,
+    html,
+  });
+}
+
+export async function sendBoostPaymentFailedEmail(
+  to: string,
+  businessName: string,
+  productName: string,
+  amount: number,
+): Promise<void> {
+  const { subject, html } = boostPaymentFailedEmail(businessName, productName, amount);
 
   await transporter.sendMail({
     from: `"Localo" <${process.env.GMAIL_USER}>`,
