@@ -1,10 +1,16 @@
 import { QueryTypes } from 'sequelize';
 import sequelize from '../../config/database';
 
+export interface PnlExpenseItem {
+  ledgerName: string;
+  amount: number;
+}
+
 export interface PnlSummary {
   totalSales: number;
   totalCost: number;
   totalExpenses: number;
+  expenses: PnlExpenseItem[];
   openingStockValue: number;
   closingStockValue: number;
   grossProfit: number;
@@ -20,6 +26,11 @@ interface SalesCostRow {
 
 interface ExpensesRow {
   totalExpenses: string | null;
+}
+
+interface ExpenseByLedgerRow {
+  ledgerName: string;
+  amount: string;
 }
 
 interface StockValueRow {
@@ -89,6 +100,16 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
     { type: QueryTypes.SELECT, replacements: { sellerId, from, to } },
   );
 
+  const expensesByLedger = await sequelize.query<ExpenseByLedgerRow>(
+    `SELECT sl.name AS "ledgerName", COALESCE(SUM(e.amount), 0) AS "amount"
+     FROM expenses e
+     JOIN seller_ledgers sl ON sl.id = e.ledger_id
+     WHERE e.seller_id = :sellerId AND e.expense_date BETWEEN :from AND :to
+     GROUP BY sl.id, sl.name
+     ORDER BY sl.name ASC`,
+    { type: QueryTypes.SELECT, replacements: { sellerId, from, to } },
+  );
+
   const openingStockValue = await stockValueAsOf(sellerId, from, 'opening');
   const closingStockValue = await stockValueAsOf(sellerId, to, 'closing');
 
@@ -102,6 +123,7 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
     totalSales,
     totalCost,
     totalExpenses,
+    expenses: expensesByLedger.map((row) => ({ ledgerName: row.ledgerName, amount: Number(row.amount) })),
     openingStockValue,
     closingStockValue,
     grossProfit,

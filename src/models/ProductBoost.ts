@@ -55,6 +55,11 @@ export class ProductBoost extends Model {
   declare estimatedImpressionsMax: number;
 
   @AllowNull(false)
+  @Default(0)
+  @Column(DataType.INTEGER)
+  declare impressionCount: number;
+
+  @AllowNull(false)
   @Default('active')
   @Column(DataType.STRING(20))
   declare status: BoostStatus;

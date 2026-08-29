@@ -15,7 +15,7 @@ import { validate } from '../../middleware/validate';
 import upload, { uploadArray } from '../../middleware/upload';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/customer/customerAuthSchemas';
 import { updateCustomerProfileSchema } from '../../validation/customer/customerProfileSchemas';
-import { searchProductsSchema } from '../../validation/customer/productSchemas';
+import { searchProductsSchema, trendingQuerySchema } from '../../validation/customer/productSchemas';
 import { createReviewSchema } from '../../validation/customer/reviewSchemas';
 
 const router = Router();
@@ -33,7 +33,7 @@ router.delete('/account',    requireCustomer, deleteAccount);
 
 router.get('/dashboard',          getDashboard);
 router.get('/offers',             getOffers);
-router.get('/products/trending', optionalCustomer, getTrendingProducts);
+router.get('/products/trending', optionalCustomer, validate(trendingQuerySchema, 'query'), getTrendingProducts);
 router.post('/products',         optionalCustomer, validate(searchProductsSchema), getProducts);
 router.get('/products/:id',      optionalCustomer, getProduct);
 router.get('/products/:id/similar', optionalCustomer, getSimilarProducts);

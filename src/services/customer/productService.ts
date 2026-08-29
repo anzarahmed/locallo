@@ -15,6 +15,7 @@ interface BrowseFilter {
   search?: string;
   lat?: number;
   lng?: number;
+  excludeProductIds?: string[];
 }
 
 interface ProductVariantDetail {
@@ -36,9 +37,9 @@ interface ProductSellerDetail {
   long: number | null;
 }
 
-const TRENDING_LIMIT = 15;
+export const TRENDING_LIMIT = 15;
 const SIMILAR_LIMIT = 10;
-const TRENDING_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images'];
+export const TRENDING_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images'];
 
 const SAFE_PRODUCT_ATTRIBUTES = [
   'id', 'sellerId', 'categoryId', 'name', 'description',
@@ -48,7 +49,7 @@ const SAFE_PRODUCT_ATTRIBUTES = [
 
 const SELLER_LAT_SUBQUERY = '(SELECT lat FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id")';
 const SELLER_LONG_SUBQUERY = '(SELECT long FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id")';
-const SELLER_VERIFIED_CONDITION = literal(
+export const SELLER_VERIFIED_CONDITION = literal(
   'EXISTS (SELECT 1 FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id" AND seller_profiles.is_verified = true)',
 );
 
@@ -86,9 +87,15 @@ export async function browseProducts(
       where: { offerId: filters.offerId },
       attributes: ['productId'],
     });
-    const productIds = offerProducts.map(op => op.productId);
+    let productIds = offerProducts.map(op => op.productId);
+    if (filters.excludeProductIds?.length) {
+      const excludeSet = new Set(filters.excludeProductIds);
+      productIds = productIds.filter(id => !excludeSet.has(id));
+    }
     if (productIds.length === 0) return { rows: [], count: 0 };
     where.id = { [Op.in]: productIds };
+  } else if (filters.excludeProductIds?.length) {
+    where.id = { [Op.notIn]: filters.excludeProductIds };
   }
 
   const hasLocation = filters.lat !== undefined && filters.lng !== undefined;
@@ -216,12 +223,18 @@ export async function getProductDetail(
   return { product, seller, rating, variants: variantRows.map(toVariantDetail) };
 }
 
-export async function getTrendingProducts(): Promise<Product[]> {
+export async function getTrendingProducts(
+  excludeProductIds: string[] = [],
+  limit: number = TRENDING_LIMIT,
+): Promise<Product[]> {
+  const where: Record<string, unknown> = { isActive: true, [Op.and]: [SELLER_VERIFIED_CONDITION] };
+  if (excludeProductIds.length) where.id = { [Op.notIn]: excludeProductIds };
+
   return Product.findAll({
     attributes: TRENDING_ATTRIBUTES,
-    where: { isActive: true, [Op.and]: [SELLER_VERIFIED_CONDITION] },
+    where,
     order: [['createdAt', 'DESC']],
-    limit: TRENDING_LIMIT,
+    limit,
   });
 }
 
