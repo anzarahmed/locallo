@@ -479,7 +479,7 @@ export default function SellerForm(): JSX.Element {
       navigate('/sellers');
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 409) {
-        setStatus('This mobile number is already registered.');
+        setStatus(err.message || 'This mobile number is already registered.');
       } else {
         setStatus('Something went wrong. Please try again.');
       }
