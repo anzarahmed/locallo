@@ -37,6 +37,14 @@ export async function createSeller(
       throw Object.assign(new Error('Mobile number already registered'), { status: 409 });
     }
 
+    const emailConflict = await SellerProfile.findOne({
+      where: { email: { [Op.iLike]: data.email } },
+      transaction: t,
+    });
+    if (emailConflict) {
+      throw Object.assign(new Error('Email already registered'), { status: 409 });
+    }
+
     const photo = await commitSellerPhoto(normalizeImageKey(data.photo));
 
     const user = await User.create(
@@ -108,7 +116,16 @@ export async function updateSellerProfile(
       workingHours: Record<string, unknown>;
     }> = {};
     if (data.businessName !== undefined) profileUpdates.businessName = data.businessName;
-    if (data.email !== undefined) profileUpdates.email = data.email;
+    if (data.email !== undefined && data.email !== profile.email) {
+      const emailConflict = await SellerProfile.findOne({
+        where: { email: { [Op.iLike]: data.email }, userId: { [Op.ne]: user.id } },
+        transaction: t,
+      });
+      if (emailConflict) {
+        throw Object.assign(new Error('Email already registered'), { status: 409 });
+      }
+      profileUpdates.email = data.email;
+    }
     if (data.categoryIds !== undefined) profileUpdates.categoryIds = data.categoryIds.filter((id): id is number => id !== undefined);
     if (data.bio !== undefined) profileUpdates.bio = data.bio;
     if (data.workingHours !== undefined) profileUpdates.workingHours = data.workingHours as Record<string, unknown>;
@@ -278,6 +295,16 @@ export async function adminUpdateSeller(
       const conflict = await User.findOne({ where: { mobile: data.mobile, role: 'SELLER' }, transaction: t });
       if (conflict) {
         throw Object.assign(new Error('Mobile number already registered'), { status: 409 });
+      }
+    }
+
+    if (data.email !== profile.email) {
+      const emailConflict = await SellerProfile.findOne({
+        where: { email: { [Op.iLike]: data.email }, userId: { [Op.ne]: user.id } },
+        transaction: t,
+      });
+      if (emailConflict) {
+        throw Object.assign(new Error('Email already registered'), { status: 409 });
       }
     }
 
