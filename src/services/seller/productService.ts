@@ -217,6 +217,10 @@ export async function getSellerProducts(
           literal('(SELECT COUNT(*)::int FROM product_variants WHERE product_id = "Product".id)'),
           'variantCount',
         ],
+        [
+          literal(`EXISTS (SELECT 1 FROM product_boosts WHERE product_id = "Product".id AND status = 'active')`),
+          'isBoosted',
+        ],
       ],
     },
     include: [{ model: Category, attributes: ['id', 'name', 'slug'] }],
