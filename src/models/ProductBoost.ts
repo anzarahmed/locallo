@@ -60,7 +60,7 @@ export class ProductBoost extends Model {
   declare impressionCount: number;
 
   @AllowNull(false)
-  @Default('active')
+  @Default('pending')
   @Column(DataType.STRING(20))
   declare status: BoostStatus;
 

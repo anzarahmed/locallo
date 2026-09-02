@@ -1,3 +1,4 @@
+import { Op } from 'sequelize';
 import { Product } from '../../models/Product';
 import { ProductBoost } from '../../models/ProductBoost';
 import { User } from '../../models/User';
@@ -37,6 +38,11 @@ export async function createBoost(
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
 
+  await ProductBoost.update(
+    { status: 'cancelled', paymentStatus: 'cancelled' },
+    { where: { sellerId, productId, status: 'pending' } },
+  );
+
   const existing = await ProductBoost.findOne({ where: { productId, status: 'active' } });
   if (existing) {
     throw Object.assign(new Error('This product already has an active boost'), { status: 409 });
@@ -62,7 +68,7 @@ export async function createBoost(
     dailyBudget: input.budget,
     estimatedImpressionsMin: min,
     estimatedImpressionsMax: max,
-    status: 'active',
+    status: 'pending',
     razorpayOrderId: order.orderId,
     paymentStatus: 'pending',
     amount: input.budget,
@@ -72,7 +78,7 @@ export async function createBoost(
 
 export async function getActiveBoost(sellerId: string, productId: string): Promise<ProductBoost | null> {
   return ProductBoost.findOne({
-    where: { sellerId, productId, status: 'active' },
+    where: { sellerId, productId, status: { [Op.in]: ['active', 'pending'] } },
     order: [['createdAt', 'DESC']],
   });
 }
@@ -81,7 +87,29 @@ export async function markBoostPaid(razorpayOrderId: string, paymentId: string, 
   const boost = await ProductBoost.findOne({ where: { razorpayOrderId }, include: [{ model: Product }] });
   if (!boost || boost.paymentStatus === 'paid') return;
 
-  await boost.update({ paymentStatus: 'paid', razorpayPaymentId: paymentId, razorpaySignature: signature });
+  const otherActivePaid = await ProductBoost.count({
+    where: {
+      productId: boost.productId,
+      status: 'active',
+      paymentStatus: 'paid',
+      id: { [Op.ne]: boost.id },
+    },
+  });
+
+  if (otherActivePaid > 0) {
+    console.error(
+      `markBoostPaid: product ${boost.productId} already has a live paid boost; boost ${boost.id} ` +
+        `(order ${razorpayOrderId}, payment ${paymentId}) was paid too — needs a refund`,
+    );
+    await boost.update({ paymentStatus: 'paid', razorpayPaymentId: paymentId, razorpaySignature: signature });
+  } else {
+    await boost.update({
+      status: 'active',
+      paymentStatus: 'paid',
+      razorpayPaymentId: paymentId,
+      razorpaySignature: signature,
+    });
+  }
 
   const seller = await User.findByPk(boost.sellerId, {
     include: [{ model: SellerProfile, attributes: ['email', 'businessName'] }],
@@ -126,7 +154,7 @@ export async function markBoostFailed(razorpayOrderId: string, paymentId: string
 
 export async function cancelBoost(sellerId: string, productId: string): Promise<void> {
   const boost = await ProductBoost.findOne({
-    where: { sellerId, productId, status: 'active', paymentStatus: 'pending' },
+    where: { sellerId, productId, status: 'pending' },
     order: [['createdAt', 'DESC']],
   });
   if (!boost) return;
