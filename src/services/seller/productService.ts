@@ -162,7 +162,9 @@ export async function createProduct(
     return created;
   });
 
-  return product.reload({ include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }] });
+  const reloaded = await product.reload({ include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }] });
+  reloaded.setDataValue('hasVariants', hasRows);
+  return reloaded;
 }
 
 type ProductFilter = 'all' | 'visible' | 'hidden';
@@ -261,6 +263,7 @@ export async function getSellerProduct(sellerId: string, productId: string): Pro
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
+  product.setDataValue('hasVariants', (product.variants?.length ?? 0) > 0);
   return product;
 }
 
@@ -364,7 +367,9 @@ export async function updateSellerProduct(
     });
   }
 
-  return product.reload({ include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }] });
+  const reloaded = await product.reload({ include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }] });
+  reloaded.setDataValue('hasVariants', hasVariants);
+  return reloaded;
 }
 
 export async function toggleSellerProduct(sellerId: string, productId: string): Promise<Product> {
