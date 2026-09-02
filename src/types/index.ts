@@ -96,6 +96,8 @@ export interface Product {
   attributes?: Record<string, unknown>;
   variants?: Array<{ id: string }>;
   variantCount?: number;
+  hasVariants?: boolean;
+  isBoosted?: boolean;
   viewCount?: number;
   pickupAddress?: string | null;
   createdAt: string;
@@ -210,7 +212,7 @@ export interface Offer {
 }
 
 export type BoostAudienceType = 'pan_india' | 'state' | 'city';
-export type BoostStatus = 'active' | 'completed' | 'cancelled';
+export type BoostStatus = 'pending' | 'active' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
 
 export interface ProductBoost {

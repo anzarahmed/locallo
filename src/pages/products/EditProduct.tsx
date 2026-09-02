@@ -214,7 +214,7 @@ export default function EditProduct(): JSX.Element {
     };
 
     try {
-      await updateProduct(id!, {
+      const { product: updated } = await updateProduct(id!, {
         name:         values.name,
         description:  values.description,
         sellingPrice: Number(values.sellingPrice),
@@ -241,7 +241,7 @@ export default function EditProduct(): JSX.Element {
       }
 
       toast.success('Product updated');
-      navigate(hasVariants || hasCombinations ? `/products/${id}/variants` : '/products');
+      navigate(updated.hasVariants || hasCombinations ? `/products/${id}/variants` : '/products');
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Failed to update product';
       helpers.setStatus(msg);
