@@ -12,6 +12,7 @@ import SellModal from '../../components/ui/SellModal';
 import VariantPickerModal from '../../components/ui/VariantPickerModal';
 import BoostProductModal from '../../components/ui/BoostProductModal';
 import type { Product, ProductVariant, AttributeField } from '../../types';
+import Tooltip from '../../components/ui/Tooltip';
 import ProductPreview from './ProductPreview';
 
 export default function ProductList(): JSX.Element {
@@ -431,49 +432,61 @@ function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onT
       </div>
 
       <div className="flex items-center justify-end gap-2 mt-2">
-        <button
-          onClick={onSell}
-          disabled={loadingVariants || product.stock === 0}
-          title={product.stock === 0 ? 'Out of stock' : 'Mark as sold'}
-          className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors disabled:opacity-40"
-        >
-          {loadingVariants ? <Loader2 size={15} className="animate-spin" /> : <ShoppingBag size={15} />}
-        </button>
-        <button
-          onClick={onPreview}
-          title="Customer preview"
-          className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition-colors"
-        >
-          <ScanEye size={15} />
-        </button>
-        <button
-          onClick={onToggle}
-          title={product.isActive ? 'Hide product' : 'Show product'}
-          className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
-        >
-          {product.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
-        </button>
-        <button
-          onClick={onEdit}
-          title="Edit product"
-          className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
-        >
-          <Pencil size={15} />
-        </button>
-        <button
-          onClick={onVariants}
-          title="Manage variants"
-          className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
-        >
-          <Layers size={15} />
-        </button>
-        <button
-          onClick={onDelete}
-          title="Delete product"
-          className="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center text-rose-400 hover:bg-rose-100 transition-colors"
-        >
-          <Trash2 size={15} />
-        </button>
+        <Tooltip label={product.stock === 0 ? 'Out of stock' : 'Mark as sold'}>
+          <button
+            onClick={onSell}
+            disabled={loadingVariants || product.stock === 0}
+            aria-label={product.stock === 0 ? 'Out of stock' : 'Mark as sold'}
+            className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors disabled:opacity-40"
+          >
+            {loadingVariants ? <Loader2 size={15} className="animate-spin" /> : <ShoppingBag size={15} />}
+          </button>
+        </Tooltip>
+        <Tooltip label="Customer preview">
+          <button
+            onClick={onPreview}
+            aria-label="Customer preview"
+            className="w-9 h-9 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition-colors"
+          >
+            <ScanEye size={15} />
+          </button>
+        </Tooltip>
+        <Tooltip label={product.isActive ? 'Hide product' : 'Show product'}>
+          <button
+            onClick={onToggle}
+            aria-label={product.isActive ? 'Hide product' : 'Show product'}
+            className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
+          >
+            {product.isActive ? <Eye size={16} /> : <EyeOff size={16} />}
+          </button>
+        </Tooltip>
+        <Tooltip label="Edit product">
+          <button
+            onClick={onEdit}
+            aria-label="Edit product"
+            className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
+          >
+            <Pencil size={15} />
+          </button>
+        </Tooltip>
+        <Tooltip label="Manage variants">
+          <button
+            onClick={onVariants}
+            aria-label="Manage variants"
+            className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
+          >
+            <Layers size={15} />
+          </button>
+        </Tooltip>
+        <Tooltip label="Delete product">
+          <button
+            onClick={onDelete}
+            aria-label="Delete product"
+            className="w-9 h-9 rounded-full bg-rose-50 flex items-center justify-center text-rose-400 hover:bg-rose-100 transition-colors"
+          >
+            <Trash2 size={15} />
+          </button>
+        </Tooltip>
       </div>
     </div>
   );
