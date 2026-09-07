@@ -66,11 +66,28 @@ export async function browseProducts(
   page: number,
   limit: number,
 ): Promise<{ rows: Product[]; count: number }> {
-  const where: Record<string, unknown> = { isActive: true, [Op.and]: [SELLER_VERIFIED_CONDITION] };
+  const andClauses: unknown[] = [SELLER_VERIFIED_CONDITION];
+  const where: Record<string, unknown> = { isActive: true, [Op.and]: andClauses };
 
   if (filters.categoryId !== undefined) where.categoryId = filters.categoryId;
   if (filters.sellerId !== undefined)   where.sellerId   = filters.sellerId;
-  if (filters.search)                   where.name       = { [Op.iLike]: `%${filters.search}%` };
+
+  if (filters.search) {
+    const escape = Product.sequelize!.escape.bind(Product.sequelize);
+    const tokens = filters.search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    for (const token of tokens) {
+      const like = escape(`%${token}%`);
+      andClauses.push({
+        [Op.or]: [
+          { name: { [Op.iLike]: `%${token}%` } },
+          literal(
+            'EXISTS (SELECT 1 FROM product_variants pv, jsonb_each_text(pv.attributes) a ' +
+            `WHERE pv.product_id = "Product".id AND pv.is_active = true AND a.value ILIKE ${like})`,
+          ),
+        ],
+      });
+    }
+  }
 
   if (filters.brandId !== undefined) {
     const sellerProfiles = await SellerProfile.findAll({
