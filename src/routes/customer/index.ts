@@ -9,7 +9,7 @@ import { getOffers } from '../../controllers/customer/offerController';
 import { getCmsPage } from '../../controllers/customer/cmsPageController';
 import { getFaqs } from '../../controllers/customer/faqController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/customer/notificationController';
-import { getSellerWorkingHours } from '../../controllers/customer/sellerController';
+import { getSellerWorkingHours, getSellerDetails } from '../../controllers/customer/sellerController';
 import { requireCustomer, optionalCustomer } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import upload, { uploadArray } from '../../middleware/upload';
@@ -39,6 +39,7 @@ router.get('/products/:id',      optionalCustomer, getProduct);
 router.get('/products/:id/similar', optionalCustomer, getSimilarProducts);
 
 router.get('/sellers/:id/working-hours', getSellerWorkingHours);
+router.get('/sellers/:id', getSellerDetails);
 
 router.get('/wishlist',                            requireCustomer, getWishlist);
 router.post('/wishlist/:productId',                requireCustomer, toggleWishlist);
