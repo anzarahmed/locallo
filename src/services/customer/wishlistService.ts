@@ -4,7 +4,7 @@ import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 
 const LIST_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images'];
-const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'sellingPrice', 'mrp'];
+const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'stock', 'sellingPrice', 'mrp', 'isActive'];
 
 export async function toggleWishlist(
   customerId: string,

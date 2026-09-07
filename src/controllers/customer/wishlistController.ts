@@ -14,6 +14,9 @@ interface WishlistItem {
   image: string | null;
   mrp: number | null;
   sellingPrice: number;
+  variantStock: number | null;
+  variantAttributes: Record<string, unknown> | null;
+  variantIsActive: boolean | null;
   rating: number;
   isWishlisted: true;
 }
@@ -39,15 +42,19 @@ export async function getWishlist(req: Request, res: Response): Promise<void> {
 
   const products: WishlistItem[] = await Promise.all(
     rows.map(async (w) => {
-      const image = w.variant?.images[0] ?? w.product.images[0];
+      const v = w.variant;
+      const image = v?.images[0] ?? w.product.images[0];
       return {
         id: w.product.id,
         productId: w.product.id,
         variantId: w.variantId,
         title: w.product.name,
         image: image ? await getPresignedUrl(toThumbnailKey(image)) : null,
-        mrp: w.variant?.mrp ?? w.product.mrp,
-        sellingPrice: w.variant?.sellingPrice ?? w.product.sellingPrice,
+        mrp: v?.mrp ?? w.product.mrp,
+        sellingPrice: v?.sellingPrice ?? w.product.sellingPrice,
+        variantStock: v ? v.stock : null,
+        variantAttributes: v ? v.attributes : null,
+        variantIsActive: v ? v.isActive : null,
         rating: 0,
         isWishlisted: true,
       };
