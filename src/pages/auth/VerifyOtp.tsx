@@ -186,15 +186,15 @@ export default function VerifyOtp(): JSX.Element {
       {/* Resend */}
       <div className="text-center">
         {cooldown > 0 ? (
-          <span className="text-sm text-gray-400">
+          <span className="text-sm text-gray-300 underline underline-offset-2 cursor-not-allowed select-none">
             Resend OTP in{' '}
-            <span className="font-semibold text-gray-600">{cooldown}s</span>
+            <span className="font-semibold text-gray-400">{cooldown}s</span>
           </span>
         ) : (
           <button
             type="button"
             onClick={() => void handleResend()}
-            className="text-sm font-semibold text-orange-500 hover:text-orange-600 transition-colors"
+            className="text-sm text-gray-500 underline underline-offset-2 hover:text-orange-500 transition-colors cursor-pointer"
           >
             Resend OTP
           </button>
