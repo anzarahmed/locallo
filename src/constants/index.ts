@@ -20,10 +20,14 @@ export const DEFAULT_DAILY_BUDGET = 500;
 export const DAILY_BUDGET_STEP = 50;
 
 export const SORT_OPTIONS: { value: string; label: string }[] = [
-  { value: 'sort_newest',         label: 'Newest'            },
-  { value: 'sort_price_high_low', label: 'Price: High → Low' },
-  { value: 'sort_price_low_high', label: 'Price: Low → High' },
-  { value: 'sort_stock_high_low', label: 'Stock: High → Low' },
-  { value: 'sort_stock_low_high', label: 'Stock: Low → High' },
-  { value: 'sort_name_az',        label: 'Name: A–Z'         },
+  { value: 'sort_newest',          label: 'Newest'            },
+  { value: 'sort_price_high_low',  label: 'Price: High → Low' },
+  { value: 'sort_price_low_high',  label: 'Price: Low → High' },
+  { value: 'sort_most_wishlisted', label: 'Most Wishlisted'   },
+  { value: 'sort_top_rated',       label: 'Top Rated'         },
+  { value: 'sort_stock_high_low',  label: 'Stock: High → Low' },
+  { value: 'sort_stock_low_high',  label: 'Stock: Low → High' },
+  { value: 'sort_visible_first',   label: 'Visible First'     },
+  { value: 'sort_hidden_first',    label: 'Hidden First'      },
+  { value: 'sort_name_az',         label: 'Name: A → Z'       },
 ];

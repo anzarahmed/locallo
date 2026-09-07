@@ -212,7 +212,7 @@ export default function ProductList(): JSX.Element {
 
           <div className="flex items-center gap-2 ml-auto">
             <span className="text-[11px] font-semibold text-gray-400 uppercase tracking-wide shrink-0">
-              Sort
+              Sort by
             </span>
             <div className="relative">
               <select
@@ -233,7 +233,7 @@ export default function ProductList(): JSX.Element {
         </div>
 
         {/* Product grid — 1 col mobile, 2 cols desktop */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4 items-start">
           {loading ? (
             Array.from({ length: 6 }).map((_, i) => <ProductCardSkeleton key={i} />)
           ) : products.length === 0 ? (
@@ -410,7 +410,7 @@ function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onT
         </div>
       </button>
 
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+      <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-50">
         <div className="flex items-baseline gap-2">
           <span className="text-base font-bold text-teal-600">
             ₹{product.sellingPrice.toLocaleString('en-IN')}
@@ -504,7 +504,7 @@ function ProductCardSkeleton(): JSX.Element {
           <div className="h-3 bg-gray-100 rounded w-1/2" />
         </div>
       </div>
-      <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
+      <div className="flex items-center justify-between mt-2.5 pt-2.5 border-t border-gray-50">
         <div className="h-5 bg-gray-100 rounded w-20" />
         <div className="flex gap-2">
           <div className="w-9 h-9 rounded-full bg-gray-100" />
