@@ -245,6 +245,7 @@ export default function ProductList(): JSX.Element {
                 key={product.id}
                 product={product}
                 loadingVariants={loadingVariantsForId === product.id}
+                onView={() => navigate(`/products/${product.id}`)}
                 onEdit={() => navigate(`/products/${product.id}/edit`)}
                 onVariants={() => navigate(`/products/${product.id}/variants`)}
                 onToggle={() => void handleToggle(product)}
@@ -349,6 +350,7 @@ export default function ProductList(): JSX.Element {
 interface ProductCardProps {
   product: Product;
   loadingVariants: boolean;
+  onView: () => void;
   onEdit: () => void;
   onVariants: () => void;
   onToggle: () => void;
@@ -358,14 +360,14 @@ interface ProductCardProps {
   onPromote: () => void;
 }
 
-function ProductCard({ product, loadingVariants, onEdit, onVariants, onToggle, onDelete, onPreview, onSell, onPromote }: ProductCardProps): JSX.Element {
+function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onToggle, onDelete, onPreview, onSell, onPromote }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
   const thumbnailSrc = product.thumbnails?.[0] ?? product.images?.[0];
   const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
 
   return (
     <div className="bg-white rounded-2xl shadow-sm p-4">
-      <div className="flex gap-3">
+      <button type="button" onClick={onView} className="flex gap-3 w-full text-left group cursor-pointer">
         <div className="w-20 h-20 rounded-xl bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
           {imageUrl && !imgError ? (
             <img
@@ -381,7 +383,7 @@ function ProductCard({ product, loadingVariants, onEdit, onVariants, onToggle, o
 
         <div className="flex-1 min-w-0 pt-0.5">
           <div className="flex items-start gap-2">
-            <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 flex-1">
+            <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 flex-1 group-hover:text-teal-600 transition-colors">
               {product.name}
             </p>
             {!product.isActive && (
@@ -405,7 +407,7 @@ function ProductCard({ product, loadingVariants, onEdit, onVariants, onToggle, o
             <span className="text-xs text-gray-400">Stock: {product.stock}</span>
           </div>
         </div>
-      </div>
+      </button>
 
       <div className="flex items-center justify-between mt-3 pt-3 border-t border-gray-50">
         <div className="flex items-baseline gap-2">

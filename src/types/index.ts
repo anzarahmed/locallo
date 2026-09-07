@@ -100,7 +100,10 @@ export interface Product {
   isBoosted?: boolean;
   viewCount?: number;
   pickupAddress?: string | null;
+  pickupLat?: number | string | null;
+  pickupLong?: number | string | null;
   createdAt: string;
+  updatedAt?: string;
 }
 
 export interface TopProduct {

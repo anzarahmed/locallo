@@ -48,7 +48,7 @@ export default function Dashboard(): JSX.Element {
     void load();
   }, []);
 
-  const businessName = profile?.profile?.businessName ?? seller?.fullName ?? 'Seller';
+  const displayName = profile?.fullName ?? seller?.fullName ?? profile?.profile?.businessName ?? 'Seller';
 
   function fmtGrowthPercent(val: number): string {
     if (val === 0) return '+0%';
@@ -74,16 +74,16 @@ export default function Dashboard(): JSX.Element {
         <div className="flex items-center justify-between">
           <div>
             <p className="text-white/70 text-sm font-normal">Welcome back,</p>
-            <h1 className="text-white text-[22px] font-bold leading-tight mt-0.5">{businessName}</h1>
+            <h1 className="text-white text-[22px] font-bold leading-tight mt-0.5">{displayName}</h1>
           </div>
           <div
             className="w-12 h-12 rounded-full flex items-center justify-center text-white font-bold text-base border-2 border-white/30 shrink-0 overflow-hidden"
             style={{ background: 'rgba(255,255,255,0.25)' }}
           >
             {profile?.photo ? (
-              <img src={resolveImage(profile.photo)} alt={businessName} className="w-full h-full object-cover" />
+              <img src={resolveImage(profile.photo)} alt={displayName} className="w-full h-full object-cover" />
             ) : (
-              initials(businessName)
+              initials(displayName)
             )}
           </div>
         </div>
@@ -250,6 +250,7 @@ function StatCard({
 
 /* ── Product row ── */
 function ProductRow({ product, rank }: { product: TopProduct; rank: number }): JSX.Element {
+  const navigate = useNavigate();
   const imageUrl = product.image ? resolveImage(product.image) : null;
   const [imgError, setImgError] = useState(false);
 
@@ -274,7 +275,13 @@ function ProductRow({ product, rank }: { product: TopProduct; rank: number }): J
 
       {/* Name + stock */}
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-800 truncate">{product.title}</p>
+        <button
+          type="button"
+          onClick={() => navigate(`/products/${product.id}`)}
+          className="block w-full text-left text-sm font-semibold text-gray-800 truncate hover:text-teal-600 transition-colors cursor-pointer"
+        >
+          {product.title}
+        </button>
         <p className="text-xs text-gray-400 mt-0.5">{product.totalStock} in stock</p>
       </div>
 

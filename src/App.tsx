@@ -12,6 +12,7 @@ const VerifyOtp   = lazy(() => import('./pages/auth/VerifyOtp'));
 const Dashboard   = lazy(() => import('./pages/dashboard/Dashboard'));
 const Profile     = lazy(() => import('./pages/profile/Profile'));
 const ProductList = lazy(() => import('./pages/products/ProductList'));
+const ProductDetail = lazy(() => import('./pages/products/ProductDetail'));
 const AddProduct  = lazy(() => import('./pages/products/AddProduct'));
 const EditProduct = lazy(() => import('./pages/products/EditProduct'));
 const VariantList = lazy(() => import('./pages/products/variants/VariantList'));
@@ -55,6 +56,7 @@ function AppRoutes(): JSX.Element {
           <Route path="/profile"               element={<Profile />} />
           <Route path="/products"              element={<ProductList />} />
           <Route path="/products/add"          element={<AddProduct />} />
+          <Route path="/products/:id"          element={<ProductDetail />} />
           <Route path="/products/:id/edit"     element={<EditProduct />} />
           <Route path="/products/:id/variants" element={<VariantList />} />
           <Route path="/settings"              element={<Settings />} />
