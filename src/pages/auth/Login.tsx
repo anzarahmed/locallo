@@ -7,10 +7,10 @@ import { requestOtp } from '../../services/authService';
 import { ApiError } from '../../lib/axios';
 import { useToast } from '../../hooks/useToast';
 import type { JSX } from 'react';
-import { COUNTRY_CODES } from '../../constants';
+import { COUNTRY_CODE } from '../../constants';
 
 const initialValues: RequestOtpValues = {
-  countryCode: '+91',
+  countryCode: COUNTRY_CODE,
   phoneNumber: '',
 };
 
@@ -64,25 +64,21 @@ export default function Login(): JSX.Element {
           >
             <div className="flex items-center gap-1.5 pl-4 pr-3 py-4 border-r border-gray-200 shrink-0">
               <Phone size={15} className="text-gray-400" />
-              <select
-                name="countryCode"
-                value={formik.values.countryCode}
-                onChange={formik.handleChange}
-                className="text-sm text-gray-700 bg-transparent outline-none cursor-pointer"
-              >
-                {COUNTRY_CODES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.label}
-                  </option>
-                ))}
-              </select>
+              <span className="text-sm text-gray-700">{COUNTRY_CODE}</span>
             </div>
             <input
               type="tel"
+              inputMode="numeric"
+              maxLength={10}
               name="phoneNumber"
               placeholder="Phone number"
               value={formik.values.phoneNumber}
-              onChange={formik.handleChange}
+              onChange={(e) =>
+                formik.setFieldValue(
+                  'phoneNumber',
+                  e.target.value.replace(/\D/g, '').slice(0, 10),
+                )
+              }
               onBlur={formik.handleBlur}
               className="flex-1 px-4 py-4 text-sm text-gray-800 placeholder-gray-400 outline-none bg-transparent"
             />

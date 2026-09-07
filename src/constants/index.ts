@@ -2,13 +2,9 @@ export const MAX_SECONDARY_IMAGES = 3;
 
 export const PAGE_LIMIT = 20;
 
-export const COUNTRY_CODES = [
-  { code: '+91',  label: '+91'  },
-  { code: '+1',   label: '+1'   },
-  { code: '+44',  label: '+44'  },
-  { code: '+971', label: '+971' },
-  { code: '+65',  label: '+65'  },
-] as const;
+// India-only until multi-country support is introduced. Matches the fixed +91
+// used by the Customer and Seller mobile apps.
+export const COUNTRY_CODE = '+91';
 
 export type FilterTab = 'all' | 'visible' | 'hidden';
 
