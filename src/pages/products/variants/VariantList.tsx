@@ -1,9 +1,9 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Camera, Eye, EyeOff, Loader2, Package, Pencil, Plus, ShoppingBag, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Camera, Eye, EyeOff, Loader2, Package, Pencil, Plus, Rocket, ShoppingBag, Trash2, X } from 'lucide-react';
 import {
   getProductVariants, toggleVariant, deleteVariant, markVariantSold, updateVariant,
-  uploadProductImage,
+  uploadProductImage, getActiveBoost,
 } from '../../../services/sellerService';
 import { MAX_SECONDARY_IMAGES } from '../../../constants';
 import { useToast } from '../../../hooks/useToast';
@@ -12,7 +12,8 @@ import { resolveImage } from '../../../lib/imageUtils';
 import { hasDiscount } from '../../../lib/formatters';
 import ConfirmDeleteModal from '../../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../../components/ui/SellModal';
-import type { Product, ProductVariant, AttributeField } from '../../../types';
+import BoostProductModal from '../../../components/ui/BoostProductModal';
+import type { Product, ProductVariant, ProductBoost, AttributeField } from '../../../types';
 import VariantSheet from './VariantSheet';
 
 interface VariantGroup {
@@ -51,10 +52,15 @@ export default function VariantList(): JSX.Element {
   const [deleting, setDeleting] = useState(false);
   const [sellVariant, setSellVariant] = useState<ProductVariant | null>(null);
   const [selling, setSelling] = useState(false);
+  const [boost, setBoost] = useState<ProductBoost | null>(null);
+  const [promoteTarget, setPromoteTarget] = useState<{ variant: ProductVariant | null } | null>(null);
 
   const schema = product?.category?.attributeSchema ?? [];
   const sdField = schema.find(f => f.isVariant === true && f.isStockDependent === true);
   const groups = sdField ? groupVariants(variants, sdField.key) : null;
+
+  const wholeProductBoosted = boost != null && boost.variantId === null;
+  const boostedVariantId = boost?.variantId ?? null;
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -65,8 +71,15 @@ export default function VariantList(): JSX.Element {
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to load variants');
         navigate(`/products/${id}/edit`);
+        return;
       } finally {
         setLoading(false);
+      }
+      try {
+        const { boost: active } = await getActiveBoost(id!);
+        setBoost(active);
+      } catch {
+        // boost status is non-critical — the seller can still open the wizard
       }
     }
     void load();
@@ -193,6 +206,12 @@ export default function VariantList(): JSX.Element {
 
       {/* Content */}
       <div className="px-6 md:px-8 -mt-8 relative z-10 pb-8">
+        {!loading && wholeProductBoosted && (
+          <div className="mb-3 flex items-center gap-2 rounded-2xl bg-violet-50 border border-violet-200 px-4 py-3 text-xs font-semibold text-violet-700">
+            <Rocket size={13} className="shrink-0" />
+            This whole product is currently boosted. Start a variant boost once it ends.
+          </div>
+        )}
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
             {Array.from({ length: 4 }).map((_, i) => <VariantCardSkeleton key={i} />)}
@@ -212,6 +231,9 @@ export default function VariantList(): JSX.Element {
                 onEditGroup={g => setEditingGroup(g)}
                 onDelete={v => setDeleteTarget(v)}
                 onSell={v => setSellVariant(v)}
+                onPromote={v => setPromoteTarget({ variant: v })}
+                boostedVariantId={boostedVariantId}
+                wholeProductBoosted={wholeProductBoosted}
               />
             ))}
           </div>
@@ -226,6 +248,8 @@ export default function VariantList(): JSX.Element {
                 onEdit={() => openEdit(variant)}
                 onDelete={() => setDeleteTarget(variant)}
                 onSell={() => setSellVariant(variant)}
+                onPromote={() => setPromoteTarget({ variant })}
+                isBoosted={wholeProductBoosted || boostedVariantId === variant.id}
               />
             ))}
           </div>
@@ -276,6 +300,16 @@ export default function VariantList(): JSX.Element {
           onClose={() => setSellVariant(null)}
         />
       )}
+
+      {promoteTarget && product && (
+        <BoostProductModal
+          product={product}
+          variant={promoteTarget.variant}
+          schema={schema}
+          onClose={() => setPromoteTarget(null)}
+          onBoosted={(b) => { setBoost(b); setPromoteTarget(null); }}
+        />
+      )}
     </div>
   );
 }
@@ -290,10 +324,14 @@ interface GroupedVariantCardProps {
   onEditGroup: (g: VariantGroup) => void;
   onDelete: (v: ProductVariant) => void;
   onSell: (v: ProductVariant) => void;
+  onPromote: (v: ProductVariant) => void;
+  boostedVariantId: string | null;
+  wholeProductBoosted: boolean;
 }
 
 function GroupedVariantCard({
-  group, schema, sdField, onToggle, onEdit, onEditGroup, onDelete, onSell,
+  group, schema, sdField, onToggle, onEdit, onEditGroup, onDelete, onSell, onPromote,
+  boostedVariantId, wholeProductBoosted,
 }: GroupedVariantCardProps): JSX.Element {
   const firstVariant = group.variants[0];
   const thumbnailSrc = firstVariant.thumbnails?.[0] ?? firstVariant.images[0];
@@ -359,6 +397,8 @@ function GroupedVariantCard({
           const sdOpt = sdField.options?.find(o => o.value === sdValue);
           const sdLabel = sdOpt?.label ?? sdValue;
 
+          const rowBoosted = wholeProductBoosted || boostedVariantId === v.id;
+
           return (
             <div key={v.id} className="flex items-center gap-2 px-3 py-2.5">
               <span className="text-xs font-semibold text-gray-700 min-w-[40px] shrink-0">{sdLabel}</span>
@@ -381,7 +421,22 @@ function GroupedVariantCard({
                 </span>
               )}
 
+              {rowBoosted && (
+                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full shrink-0">
+                  <Rocket size={9} />
+                  Boosted
+                </span>
+              )}
+
               <div className="flex items-center gap-1 shrink-0">
+                <button
+                  type="button"
+                  onClick={() => onPromote(v)}
+                  title="Promote this variant"
+                  className="w-7 h-7 rounded-full bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors"
+                >
+                  <Rocket size={12} />
+                </button>
                 <button
                   type="button"
                   onClick={() => onSell(v)}
@@ -663,9 +718,11 @@ interface VariantCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onSell: () => void;
+  onPromote: () => void;
+  isBoosted: boolean;
 }
 
-function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell }: VariantCardProps): JSX.Element {
+function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell, onPromote, isBoosted }: VariantCardProps): JSX.Element {
   const thumbnailSrc = variant.thumbnails?.[0] ?? variant.images[0];
   const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
   const [imgError, setImgError] = useState(false);
@@ -710,6 +767,12 @@ function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell }: Va
                 Hidden
               </span>
             )}
+            {isBoosted && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-full">
+                <Rocket size={10} />
+                Boosted
+              </span>
+            )}
           </div>
 
           <div className="flex items-baseline gap-1.5 mt-2">
@@ -726,7 +789,16 @@ function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell }: Va
         </div>
       </div>
 
-      <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-50">
+      <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-gray-50">
+        <button
+          type="button"
+          onClick={onPromote}
+          className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-violet-600 text-white text-[11px] font-semibold leading-none hover:bg-violet-700 transition-colors shrink-0"
+        >
+          <Rocket size={12} />
+          {isBoosted ? 'Boost' : 'Promote'}
+        </button>
+        <div className="flex justify-end gap-2">
         <button
           type="button"
           onClick={onSell}
@@ -760,6 +832,7 @@ function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell }: Va
         >
           <Trash2 size={15} />
         </button>
+        </div>
       </div>
     </div>
   );

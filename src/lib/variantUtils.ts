@@ -31,6 +31,27 @@ export function hasStockDependentAttr(variantFields: AttributeField[]): boolean 
   return variantFields.some(f => f.isStockDependent === true);
 }
 
+export function variantLabel(
+  attributes: Record<string, unknown>,
+  schema: AttributeField[],
+): string {
+  const fields = schema.filter(f => f.isVariant);
+  const source = fields.length > 0 ? fields : schema;
+  const parts = source
+    .map(f => {
+      const v = attributes[f.key];
+      if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) return null;
+      if ((f.type === 'select' || f.type === 'multiselect') && f.options) {
+        const vals = Array.isArray(v) ? (v as string[]) : [v as string];
+        return vals.map(val => f.options?.find(o => o.value === val)?.label ?? val).join(', ');
+      }
+      return String(v);
+    })
+    .filter(Boolean);
+  if (parts.length > 0) return parts.join(' · ');
+  return Object.values(attributes).filter(Boolean).join(' · ') || 'Variant';
+}
+
 export function buildProductVariantAttrs(
   variantFields: AttributeField[],
   selections: VariantSelections,

@@ -2,20 +2,23 @@ import { useEffect, useState, type JSX } from 'react';
 import { useFormik } from 'formik';
 import {
   X, Globe, Map, Building2, Users, IndianRupee, ClipboardCheck,
-  Eye, Info, Loader2, ChevronDown, Rocket, type LucideIcon,
+  Eye, Info, Loader2, ChevronDown, Rocket, Package, type LucideIcon,
 } from 'lucide-react';
 import { createBoost, getActiveBoost, cancelBoost } from '../../services/sellerService';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { estimateImpressions, formatAudienceLabel, AUDIENCE_TYPE_CODE } from '../../lib/boostUtils';
+import { variantLabel } from '../../lib/variantUtils';
 import { STATES, STATE_CITY_MAP } from '../../lib/statesCities';
 import { boostSchema, type BoostFormValues } from '../../validation/boostSchemas';
 import { MIN_DAILY_BUDGET, MAX_DAILY_BUDGET, DEFAULT_DAILY_BUDGET, DAILY_BUDGET_STEP } from '../../constants';
-import type { Product, ProductBoost, BoostAudienceType } from '../../types';
+import type { Product, ProductBoost, ProductVariant, AttributeField, BoostAudienceType } from '../../types';
 
 interface BoostProductModalProps {
   product: Product;
+  variant?: ProductVariant | null;
+  schema?: AttributeField[];
   onClose: () => void;
   onBoosted: (boost: ProductBoost) => void;
 }
@@ -26,9 +29,10 @@ const STEPS: { key: 1 | 2 | 3; label: string; icon: LucideIcon }[] = [
   { key: 3, label: 'Review', icon: ClipboardCheck },
 ];
 
-export default function BoostProductModal({ product, onClose, onBoosted }: BoostProductModalProps): JSX.Element {
+export default function BoostProductModal({ product, variant, schema, onClose, onBoosted }: BoostProductModalProps): JSX.Element {
   const toast = useToast();
   const { seller } = useAuth();
+  const targetLabel = variant ? variantLabel(variant.attributes, schema ?? []) : null;
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -72,6 +76,7 @@ export default function BoostProductModal({ product, onClose, onBoosted }: Boost
         state: values.audienceType !== 'pan_india' ? values.state : undefined,
         city: values.audienceType === 'city' ? values.city : undefined,
         budget: Number(values.dailyBudget),
+        variantId: variant?.id ?? undefined,
       });
 
       if (typeof window.Razorpay !== 'function') {
@@ -86,7 +91,7 @@ export default function BoostProductModal({ product, onClose, onBoosted }: Boost
         currency: boost.currency,
         order_id: boost.razorpayOrderId,
         name: 'Localo',
-        description: `Boost for ${product.name}`,
+        description: `Boost for ${product.name}${targetLabel ? ` (${targetLabel})` : ''}`,
         prefill: {
           name: seller?.businessName ?? seller?.fullName ?? undefined,
           contact: seller?.mobile,
@@ -162,6 +167,9 @@ export default function BoostProductModal({ product, onClose, onBoosted }: Boost
           <div className="min-w-0">
             <h3 className="text-base font-bold text-gray-800">Boost Your Product</h3>
             <p className="text-xs text-gray-400 mt-0.5 truncate">{product.name}</p>
+            {targetLabel && (
+              <p className="text-[11px] font-semibold text-violet-600 mt-0.5 truncate">Variant: {targetLabel}</p>
+            )}
           </div>
           <button
             type="button"
@@ -180,6 +188,11 @@ export default function BoostProductModal({ product, onClose, onBoosted }: Boost
         ) : existingBoost ? (
           <ExistingBoostView
             boost={existingBoost}
+            promoting={
+              existingBoost.variant
+                ? variantLabel(existingBoost.variant.attributes, schema ?? [])
+                : 'Whole product'
+            }
             onClose={onClose}
             onCancel={existingBoost.paymentStatus === 'pending' ? handleCancelStuckBoost : undefined}
             cancelling={cancelling}
@@ -203,7 +216,7 @@ export default function BoostProductModal({ product, onClose, onBoosted }: Boost
                   onChange={(v) => { void formik.setFieldValue('dailyBudget', v); }}
                 />
               )}
-              {step === 3 && <ReviewStep values={formik.values} />}
+              {step === 3 && <ReviewStep values={formik.values} promoting={targetLabel ?? 'Whole product'} />}
             </div>
 
             <div className="px-5 py-4 border-t border-gray-50 flex gap-3 shrink-0">
@@ -439,12 +452,13 @@ function BudgetStep({ dailyBudget, onChange }: BudgetStepProps): JSX.Element {
 }
 
 /* ── Step 3: Review ── */
-function ReviewStep({ values }: { values: BoostFormValues }): JSX.Element {
+function ReviewStep({ values, promoting }: { values: BoostFormValues; promoting: string }): JSX.Element {
   const budgetNum = Number(values.dailyBudget) || 0;
   const { min, max } = estimateImpressions(budgetNum);
   const audienceLabel = formatAudienceLabel(values.audienceType, values.state, values.city);
 
   const rows: { icon: LucideIcon; label: string; value: string }[] = [
+    { icon: Package, label: 'Promoting', value: promoting },
     { icon: Users, label: 'Audience', value: audienceLabel },
     { icon: IndianRupee, label: 'Boost budget', value: `₹${budgetNum.toLocaleString('en-IN')}` },
     { icon: Eye, label: 'Estimated impressions', value: `${min.toLocaleString('en-IN')} – ${max.toLocaleString('en-IN')}` },
@@ -475,12 +489,13 @@ function ReviewStep({ values }: { values: BoostFormValues }): JSX.Element {
 /* ── Already-boosted view ── */
 interface ExistingBoostViewProps {
   boost: ProductBoost;
+  promoting: string;
   onClose: () => void;
   onCancel?: () => void;
   cancelling: boolean;
 }
 
-function ExistingBoostView({ boost, onClose, onCancel, cancelling }: ExistingBoostViewProps): JSX.Element {
+function ExistingBoostView({ boost, promoting, onClose, onCancel, cancelling }: ExistingBoostViewProps): JSX.Element {
   const audienceLabel = formatAudienceLabel(boost.audienceType, boost.state, boost.city);
   return (
     <div className="px-5 pb-5">
@@ -501,6 +516,15 @@ function ExistingBoostView({ boost, onClose, onCancel, cancelling }: ExistingBoo
       </div>
 
       <div className="bg-gray-50 rounded-2xl divide-y divide-gray-100">
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-teal-700 shrink-0">
+            <Package size={15} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-400">Promoting</p>
+            <p className="text-sm font-bold text-gray-800 truncate">{promoting}</p>
+          </div>
+        </div>
         <div className="flex items-center gap-3 px-4 py-3.5">
           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-teal-700 shrink-0">
             <Users size={15} />

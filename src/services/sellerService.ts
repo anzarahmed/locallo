@@ -144,6 +144,7 @@ export interface CreateBoostPayload {
   state?: string;
   city?: string;
   budget: number;
+  variantId?: string | null;
 }
 
 export function createBoost(

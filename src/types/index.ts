@@ -221,6 +221,8 @@ export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
 export interface ProductBoost {
   id: string;
   productId: string;
+  variantId: string | null;
+  variant?: { id: string; attributes: Record<string, unknown>; isActive: boolean } | null;
   audienceType: BoostAudienceType;
   state: string | null;
   city: string | null;
