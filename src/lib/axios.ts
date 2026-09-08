@@ -27,6 +27,9 @@ async function request<T>(fn: () => Promise<{ data: { success: boolean; message:
       if (err.response.status === 401) {
         window.dispatchEvent(new Event('seller:unauthorized'));
       }
+      if (err.response.status === 413) {
+        throw new ApiError(413, 'File is too large to upload. Please choose a smaller image.');
+      }
       throw new ApiError(err.response.status, err.response.data?.message ?? 'Request failed');
     }
     throw err;

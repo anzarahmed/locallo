@@ -6,7 +6,7 @@ import { MAX_SECONDARY_IMAGES } from '../../../constants';
 import { variantFormSchema, type VariantFormValues } from '../../../validation/variantSchemas';
 import { useToast } from '../../../hooks/useToast';
 import { ApiError } from '../../../lib/axios';
-import { resolveImage } from '../../../lib/imageUtils';
+import { resolveImage, validateImageFile } from '../../../lib/imageUtils';
 import { inputCls } from '../../../lib/classUtils';
 import {
   generateCombinations, getCombinationKey, hasStockDependentAttr, type VariantSelections,
@@ -142,6 +142,11 @@ export default function VariantSheet({
     const slots = MAX_SECONDARY_IMAGES - images.length;
     const toUpload = files.slice(0, slots);
     toUpload.forEach(file => {
+      const invalid = validateImageFile(file);
+      if (invalid) {
+        toast.error(`${file.name}: ${invalid}`);
+        return;
+      }
       setIsUploading(true);
       uploadProductImage(file)
         .then(({ url }) => setImages(prev => [...prev, url]))

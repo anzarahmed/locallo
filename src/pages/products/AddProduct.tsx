@@ -10,7 +10,7 @@ import {
 import { addProductSchema, type AddProductFormValues } from '../../validation/productSchemas';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
-import { resolveImage } from '../../lib/imageUtils';
+import { resolveImage, validateImageFile } from '../../lib/imageUtils';
 import { normalizeAttrValues, type AttrValue } from '../../lib/attributeUtils';
 import { inputCls } from '../../lib/classUtils';
 import { MAX_SECONDARY_IMAGES } from '../../constants';
@@ -134,6 +134,11 @@ export default function AddProduct(): JSX.Element {
     const file = e.target.files?.[0];
     if (!file) return;
     e.target.value = '';
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
     void handlePrimaryUpload(file);
   }
 
@@ -155,7 +160,14 @@ export default function AddProduct(): JSX.Element {
     if (files.length === 0) return;
     const slots = MAX_SECONDARY_IMAGES - secondaryImages.length;
     const toUpload = files.slice(0, slots);
-    toUpload.forEach(f => void handleSecondaryUpload(f));
+    for (const f of toUpload) {
+      const invalid = validateImageFile(f);
+      if (invalid) {
+        toast.error(`${f.name}: ${invalid}`);
+        continue;
+      }
+      void handleSecondaryUpload(f);
+    }
   }
 
   function setAttr(key: string, value: AttrValue): void {
