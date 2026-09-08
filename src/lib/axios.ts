@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { MAX_IMAGE_SIZE_MB } from '../constants';
 
 const BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:3000';
 
@@ -28,7 +29,7 @@ async function request<T>(fn: () => Promise<{ data: { success: boolean; message:
         window.dispatchEvent(new Event('seller:unauthorized'));
       }
       if (err.response.status === 413) {
-        throw new ApiError(413, 'File is too large to upload. Please choose a smaller image.');
+        throw new ApiError(413, `Image size should not exceed ${MAX_IMAGE_SIZE_MB} MB. Please choose a smaller image.`);
       }
       throw new ApiError(err.response.status, err.response.data?.message ?? 'Request failed');
     }
