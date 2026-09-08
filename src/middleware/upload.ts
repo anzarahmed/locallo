@@ -37,22 +37,37 @@ function isAllowedIconFile(file: Express.Multer.File): boolean {
   return ALLOWED_ICON_EXTENSIONS.includes(ext);
 }
 
+function handleUploadError(res: Response, err: unknown, maxCount: number): boolean {
+  if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+    sendError(res, 'Each image must be 5 MB or smaller', 400);
+    return true;
+  }
+  if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_COUNT') {
+    sendError(res, `You can upload up to ${maxCount} images at a time`, 400);
+    return true;
+  }
+  if (err) {
+    sendError(res, err instanceof Error ? err.message : 'Image upload failed', 400);
+    return true;
+  }
+  return false;
+}
+
+export function uploadSingle(field: string) {
+  const middleware = upload.single(field);
+  return (req: Request, res: Response, next: NextFunction): void => {
+    middleware(req, res, (err: unknown) => {
+      if (handleUploadError(res, err, 1)) return;
+      next();
+    });
+  };
+}
+
 export function uploadArray(field: string, maxCount: number) {
   const middleware = upload.array(field, maxCount);
   return (req: Request, res: Response, next: NextFunction): void => {
     middleware(req, res, (err: unknown) => {
-      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-        sendError(res, 'Each image must be 5 MB or smaller', 400);
-        return;
-      }
-      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_COUNT') {
-        sendError(res, `You can upload up to ${maxCount} images at a time`, 400);
-        return;
-      }
-      if (err) {
-        sendError(res, err instanceof Error ? err.message : 'Image upload failed', 400);
-        return;
-      }
+      if (handleUploadError(res, err, maxCount)) return;
       next();
     });
   };

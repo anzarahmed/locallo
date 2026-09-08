@@ -19,7 +19,7 @@ import { createProductBoost, getActiveProductBoost, cancelProductBoost } from '.
 import { getOffers, getAcceptedOffers, getOffer, acceptOffer } from '../../controllers/seller/offerController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/seller/notificationController';
 import { validate } from '../../middleware/validate';
-import upload from '../../middleware/upload';
+import { uploadSingle } from '../../middleware/upload';
 import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema, setCustomDaySchema } from '../../validation/seller/sellerSchemas';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/sellerAuthSchemas';
 import { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
@@ -54,8 +54,8 @@ router.get('/custom-day',    requireSeller, getCustomDayOverride);
 router.put('/custom-day',    requireSeller, validate(setCustomDaySchema), setCustomDayOverride);
 router.delete('/custom-day', requireSeller, clearCustomDayOverride);
 
-router.post('/products/images',          requireSeller, upload.single('image'), uploadImage);
-router.post('/products/analyze-image',   requireSeller, upload.single('image'), analyzeImage);
+router.post('/products/images',          requireSeller, uploadSingle('image'), uploadImage);
+router.post('/products/analyze-image',   requireSeller, uploadSingle('image'), analyzeImage);
 router.post('/products',              requireSeller, validate(createProductSchema), createProduct);
 router.get('/products',               requireSeller, getProducts);
 router.get('/products/:id',           requireSeller, getProduct);
