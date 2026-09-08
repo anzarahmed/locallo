@@ -17,6 +17,11 @@ const BUCKET = process.env.AWS_S3_BUCKET!;
 const SIGNED_URL_TTL = 60 * 60; // 1 hour
 const THUMBNAIL_SIZE = 300;
 
+// When set, public assets are served through the CloudFront CDN (edge-cached,
+// stable long-lived URLs) instead of per-request S3 presigned URLs. Unset falls
+// back to presigning so a machine without the CDN still works.
+const CDN_URL = process.env.CLOUDFRONT_URL?.replace(/\/+$/, '') || null;
+
 export function resolveMimeType(buffer: Buffer, originalname: string, declaredMime: string): string {
   if (declaredMime !== 'application/octet-stream') return declaredMime;
   if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) return 'image/jpeg';
@@ -30,7 +35,7 @@ export function resolveMimeType(buffer: Buffer, originalname: string, declaredMi
   return extMap[ext] ?? 'image/jpeg';
 }
 
-// Extracts the S3 key from a canonical URL, presigned URL, or plain key
+// Extracts the S3 key from a canonical URL, presigned URL, CloudFront URL, or plain key
 function toKey(urlOrKey: string): string {
   if (!urlOrKey.startsWith('http')) return urlOrKey.replace(/^\//, '');
   return new URL(urlOrKey).pathname.slice(1);
@@ -111,12 +116,22 @@ export async function saveReviewImage(file: Express.Multer.File, customerId: str
   return key;
 }
 
-export async function getPresignedUrl(keyOrUrl: string, expiresIn = SIGNED_URL_TTL): Promise<string> {
+// Raw S3 presigned URL — time-limited, uncacheable. Use only for sensitive
+// documents that must not have a permanent public URL (KYC, brand documents).
+export async function getS3PresignedUrl(keyOrUrl: string, expiresIn = SIGNED_URL_TTL): Promise<string> {
   return getSignedUrl(
     s3,
     new GetObjectCommand({ Bucket: BUCKET, Key: toKey(keyOrUrl) }),
     { expiresIn },
   );
+}
+
+// Public asset URL — CloudFront when CLOUDFRONT_URL is set, else a presigned URL.
+// expiresIn only applies to the presigned fallback.
+export async function getPresignedUrl(keyOrUrl: string, expiresIn = SIGNED_URL_TTL): Promise<string> {
+  const key = toKey(keyOrUrl);
+  if (CDN_URL) return `${CDN_URL}/${key}`;
+  return getS3PresignedUrl(key, expiresIn);
 }
 
 export async function getPresignedUrlOrNull(keyOrUrl: string | null | undefined, expiresIn = SIGNED_URL_TTL): Promise<string | null> {

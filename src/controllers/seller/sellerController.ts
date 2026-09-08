@@ -7,14 +7,14 @@ import { Brand } from '../../models/Brand';
 import type { User } from '../../models/User';
 import type { SellerProfile } from '../../models/SellerProfile';
 import type { KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
-import { saveImage, getPresignedUrl, getPresignedUrlOrNull } from '../../utils/imageStorage';
+import { saveImage, getPresignedUrl, getPresignedUrlOrNull, getS3PresignedUrl } from '../../utils/imageStorage';
 
 const KYC_DOCUMENT_TYPES: KycDocumentType[] = ['aadhar', 'pan', 'registrationCertificate', 'other'];
 const BRAND_DOCUMENT_TYPES: BrandDocumentType[] = ['certification', 'other'];
 
 async function signKycDocuments(docs: KycDocuments): Promise<KycDocuments> {
   const entries = await Promise.all(
-    (Object.keys(docs) as KycDocumentType[]).map(async (type) => [type, docs[type] ? await getPresignedUrl(docs[type] as string) : null] as const),
+    (Object.keys(docs) as KycDocumentType[]).map(async (type) => [type, docs[type] ? await getS3PresignedUrl(docs[type] as string) : null] as const),
   );
   return Object.fromEntries(entries) as unknown as KycDocuments;
 }
@@ -23,7 +23,7 @@ async function signBrandDocuments(docs: BrandDocuments): Promise<BrandDocuments>
   const entries = await Promise.all(
     Object.entries(docs).map(async ([brandId, set]) => {
       const signedEntries = await Promise.all(
-        (Object.keys(set) as BrandDocumentType[]).map(async (type) => [type, set[type] ? await getPresignedUrl(set[type] as string) : null] as const),
+        (Object.keys(set) as BrandDocumentType[]).map(async (type) => [type, set[type] ? await getS3PresignedUrl(set[type] as string) : null] as const),
       );
       return [brandId, Object.fromEntries(signedEntries)] as const;
     }),
