@@ -486,7 +486,7 @@ export default function AddProduct(): JSX.Element {
                 />
               </div>
             </FormField>
-            <FormField label="MRP" error={form.touched.mrp ? form.errors.mrp as string : undefined}>
+            <FormField label="MRP" required error={form.touched.mrp ? form.errors.mrp as string : undefined}>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
                 <input

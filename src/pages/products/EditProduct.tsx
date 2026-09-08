@@ -5,7 +5,7 @@ import { ArrowLeft, Camera, X, Plus, Loader2, ChevronDown, ChevronRight, Eye, St
 import {
   getProfile, getSellerProduct, updateProduct, uploadProductImage, createVariant, getProductReviews,
 } from '../../services/sellerService';
-import { addProductSchema, type AddProductFormValues } from '../../validation/productSchemas';
+import { editProductSchema, type AddProductFormValues } from '../../validation/productSchemas';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage, validateImageFile } from '../../lib/imageUtils';
@@ -127,7 +127,7 @@ export default function EditProduct(): JSX.Element {
   const form = useFormik<AddProductFormValues>({
     initialValues,
     enableReinitialize: true,
-    validationSchema: addProductSchema,
+    validationSchema: editProductSchema,
     validateOnBlur: true,
     validateOnChange: false,
     onSubmit: handleSubmit,
