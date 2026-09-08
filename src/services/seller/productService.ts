@@ -223,6 +223,8 @@ export async function getSellerProducts(
           literal(`EXISTS (SELECT 1 FROM product_boosts WHERE product_id = "Product".id AND status = 'active')`),
           'isBoosted',
         ],
+        [literal(AVG_RATING_SQL), 'avgRating'],
+        [literal(REVIEW_COUNT_SQL), 'reviewCount'],
       ],
     },
     include: [{ model: Category, attributes: ['id', 'name', 'slug'] }],
@@ -253,7 +255,11 @@ export async function getSellerProduct(sellerId: string, productId: string): Pro
   const product = await Product.findOne({
     where: { id: productId, sellerId },
     attributes: {
-      include: [[literal(VIEW_COUNT_SQL), 'viewCount']],
+      include: [
+        [literal(VIEW_COUNT_SQL), 'viewCount'],
+        [literal(AVG_RATING_SQL), 'avgRating'],
+        [literal(REVIEW_COUNT_SQL), 'reviewCount'],
+      ],
     },
     include: [
       { model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] },

@@ -7,6 +7,14 @@ import {
 import { parsePagination } from '../../utils/pagination';
 import * as productService from '../../services/seller/productService';
 
+function normalizeRating(obj: Record<string, unknown>): Record<string, unknown> {
+  return {
+    ...obj,
+    avgRating: obj.avgRating != null ? Math.round(parseFloat(String(obj.avgRating)) * 10) / 10 : 0,
+    reviewCount: obj.reviewCount != null ? Number(obj.reviewCount) : 0,
+  };
+}
+
 export async function uploadImage(req: Request, res: Response): Promise<void> {
   if (!req.file) {
     sendError(res, 'No image file provided', 400);
@@ -52,14 +60,14 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
   const { rows, count } = await productService.getSellerProducts(
     req.seller!.id, page, limit, filter, sortBy,
   );
-  const products = await signModelRows(rows);
+  const products = (await signModelRows(rows)).map(normalizeRating);
   sendSuccess(res, { products, total: count, page, limit }, 'Products fetched');
 }
 
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
     const product = await productService.getSellerProduct(req.seller!.id, String(req.params.id));
-    const signed = await withSignedImages(product.toJSON() as Record<string, unknown>);
+    const signed = normalizeRating(await withSignedImages(product.toJSON() as Record<string, unknown>));
     sendSuccess(res, { product: signed }, 'Product fetched');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Product not found');
