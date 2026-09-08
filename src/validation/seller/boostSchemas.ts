@@ -18,4 +18,5 @@ export const createBoostSchema = Yup.object({
     .integer('Must be a whole number')
     .min(1, 'Daily budget must be greater than 0')
     .required('Daily budget is required'),
+  variantId: Yup.string().uuid('Invalid variant').nullable().notRequired(),
 });

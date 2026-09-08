@@ -44,11 +44,13 @@ interface ListItemContext {
   variantsByProduct: Map<string, ProductVariant[]>;
   search?: string;
   isBoosted: boolean;
+  boostedVariant?: ProductVariant | null;
   distanceKm?: number;
 }
 
 async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductListItem> {
-  const chosen = variantSelection.pickVariantForSearch(ctx.variantsByProduct.get(p.id) ?? [], ctx.search);
+  const chosen = ctx.boostedVariant
+    ?? variantSelection.pickVariantForSearch(ctx.variantsByProduct.get(p.id) ?? [], ctx.search);
 
   const displayKey = chosen?.images?.[0] ?? p.images[0] ?? null;
   const sellingPrice = Number(chosen?.sellingPrice ?? p.sellingPrice);
@@ -110,7 +112,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
   ]);
 
   const boostedItems = await Promise.all(
-    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: true })),
+    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: true, boostedVariant: b.variant })),
   );
 
   const organicItems = await Promise.all(
@@ -181,7 +183,7 @@ export async function getTrendingProducts(req: Request, res: Response): Promise<
   ]);
 
   const boostedItems = await Promise.all(
-    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true })),
+    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant })),
   );
 
   const organicItems = await Promise.all(

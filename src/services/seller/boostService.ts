@@ -1,5 +1,6 @@
 import { Op } from 'sequelize';
 import { Product } from '../../models/Product';
+import { ProductVariant } from '../../models/ProductVariant';
 import { ProductBoost } from '../../models/ProductBoost';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
@@ -26,6 +27,7 @@ interface CreateBoostInput {
   state?: string;
   city?: string;
   budget: number;
+  variantId?: string | null;
 }
 
 export async function createBoost(
@@ -36,6 +38,17 @@ export async function createBoost(
   const product = await Product.findOne({ where: { id: productId, sellerId } });
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });
+  }
+
+  let variantId: string | null = null;
+  if (input.variantId) {
+    const variant = await ProductVariant.findOne({
+      where: { id: input.variantId, productId, isActive: true },
+    });
+    if (!variant) {
+      throw Object.assign(new Error('Variant not found'), { status: 404 });
+    }
+    variantId = variant.id;
   }
 
   await ProductBoost.update(
@@ -62,6 +75,7 @@ export async function createBoost(
   return ProductBoost.create({
     sellerId,
     productId,
+    variantId,
     audienceType,
     state: audienceType === 'state' || audienceType === 'city' ? input.state : null,
     city: audienceType === 'city' ? input.city : null,
@@ -80,6 +94,7 @@ export async function getActiveBoost(sellerId: string, productId: string): Promi
   return ProductBoost.findOne({
     where: { sellerId, productId, status: { [Op.in]: ['active', 'pending'] } },
     order: [['createdAt', 'DESC']],
+    include: [{ model: ProductVariant, attributes: ['id', 'attributes', 'isActive'] }],
   });
 }
 

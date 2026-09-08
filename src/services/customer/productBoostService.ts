@@ -1,13 +1,17 @@
 import { Op, col, where as sequelizeWhere } from 'sequelize';
 import { ProductBoost } from '../../models/ProductBoost';
 import { Product } from '../../models/Product';
+import { ProductVariant } from '../../models/ProductVariant';
 import { TRENDING_ATTRIBUTES, SELLER_VERIFIED_CONDITION } from './productService';
 
 export const BOOST_SLOTS = 4;
 
+const BOOST_VARIANT_ATTRIBUTES = ['id', 'productId', 'attributes', 'images', 'stock', 'sellingPrice', 'mrp', 'isActive'];
+
 export interface EligibleBoost {
   boostId: string;
   product: Product;
+  variant: ProductVariant | null;
 }
 
 interface EligibilityParams {
@@ -47,13 +51,27 @@ export async function getEligibleBoosts(params: EligibilityParams): Promise<Elig
   const products = await Product.findAll({ attributes: TRENDING_ATTRIBUTES, where: productWhere });
   const productById = new Map(products.map(p => [p.id, p]));
 
+  const variantIds = [...new Set(boosts.map(b => b.variantId).filter((v): v is string => !!v))];
+  const variantById = new Map<string, ProductVariant>();
+  if (variantIds.length > 0) {
+    const variants = await ProductVariant.findAll({
+      where: { id: { [Op.in]: variantIds }, isActive: true },
+      attributes: BOOST_VARIANT_ATTRIBUTES,
+    });
+    for (const v of variants) variantById.set(v.id, v);
+  }
+
   const seenProductIds = new Set<string>();
   const eligible: EligibleBoost[] = [];
   for (const boost of boosts) {
     const product = productById.get(boost.productId);
     if (!product || seenProductIds.has(boost.productId)) continue;
     seenProductIds.add(boost.productId);
-    eligible.push({ boostId: boost.id, product });
+    eligible.push({
+      boostId: boost.id,
+      product,
+      variant: boost.variantId ? (variantById.get(boost.variantId) ?? null) : null,
+    });
   }
   return eligible;
 }

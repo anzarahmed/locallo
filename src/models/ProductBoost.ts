@@ -13,6 +13,7 @@ import {
 } from 'sequelize-typescript';
 import { User } from './User';
 import { Product } from './Product';
+import { ProductVariant } from './ProductVariant';
 import type { BoostAudienceType, BoostStatus, PaymentStatus } from '../types';
 
 @Table({ tableName: 'product_boosts', timestamps: true, underscored: true })
@@ -31,6 +32,11 @@ export class ProductBoost extends Model {
   @ForeignKey(() => Product)
   @Column(DataType.UUID)
   declare productId: string;
+
+  @AllowNull(true)
+  @ForeignKey(() => ProductVariant)
+  @Column(DataType.UUID)
+  declare variantId: string | null;
 
   @AllowNull(false)
   @Column(DataType.STRING(20))
@@ -93,6 +99,9 @@ export class ProductBoost extends Model {
 
   @BelongsTo(() => Product)
   declare product: Product;
+
+  @BelongsTo(() => ProductVariant)
+  declare variant: ProductVariant | null;
 
   @CreatedAt
   declare createdAt: Date;
