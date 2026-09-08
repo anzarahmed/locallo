@@ -311,7 +311,8 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                   <div className="flex items-center gap-3 mt-1.5">
                     <span className="flex items-center gap-1 text-xs text-gray-400">
                       <Star size={12} className="text-amber-400 fill-amber-400" />
-                      0.0
+                      {(product.avgRating ?? 0).toFixed(1)}
+                      {(product.reviewCount ?? 0) > 0 && ` (${product.reviewCount})`}
                     </span>
                     <span className="flex items-center gap-1 text-xs text-gray-400">
                       <Heart size={12} className="text-pink-400" />

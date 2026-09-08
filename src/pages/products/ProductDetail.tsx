@@ -319,7 +319,9 @@ export default function ProductDetail(): JSX.Element {
                     </span>
                   )}
                   <span className="flex items-center gap-1">
-                    <Star size={11} className="text-amber-400 fill-amber-400" /> 0.0
+                    <Star size={11} className="text-amber-400 fill-amber-400" />
+                    {(product.avgRating ?? 0).toFixed(1)}
+                    {(product.reviewCount ?? 0) > 0 && ` (${product.reviewCount} review${product.reviewCount === 1 ? '' : 's'})`}
                   </span>
                   <span className="flex items-center gap-1">
                     <Heart size={11} className="text-pink-400" /> 0 saved

@@ -99,6 +99,8 @@ export interface Product {
   hasVariants?: boolean;
   isBoosted?: boolean;
   viewCount?: number;
+  avgRating?: number;
+  reviewCount?: number;
   pickupAddress?: string | null;
   pickupLat?: number | string | null;
   pickupLong?: number | string | null;
@@ -112,6 +114,8 @@ export interface TopProduct {
   image: string | null;
   totalStock: number;
   isActive: boolean;
+  avgRating: number;
+  reviewCount: number;
 }
 
 export interface SoldLog {

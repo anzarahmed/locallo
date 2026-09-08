@@ -260,7 +260,15 @@ function ProductRow({ product, rank }: { product: TopProduct; rank: number }): J
         >
           {product.title}
         </button>
-        <p className="text-xs text-gray-400 mt-0.5">{product.totalStock} in stock</p>
+        <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
+          <span className="flex items-center gap-0.5">
+            <Star size={11} className="text-amber-400 fill-amber-400" />
+            {product.avgRating.toFixed(1)}
+            {product.reviewCount > 0 && <span className="text-gray-300">&nbsp;({product.reviewCount})</span>}
+          </span>
+          <span>·</span>
+          <span>{product.totalStock} in stock</span>
+        </div>
       </div>
 
       {/* Growth indicator */}

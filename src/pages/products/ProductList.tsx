@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, Heart, ChevronDown, ScanEye, ShoppingBag, Loader2 } from 'lucide-react';
+import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, ChevronDown, ScanEye, ShoppingBag, Loader2 } from 'lucide-react';
 import { getProducts, toggleProduct, deleteProduct, markProductSold, markVariantSold, getProductVariants } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
@@ -387,11 +387,10 @@ function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onT
           <div className="flex items-center gap-2.5 mt-1.5">
             <span className="flex items-center gap-0.5 text-xs text-gray-400">
               <Star size={11} className="text-amber-400 fill-amber-400" />
-              0
-            </span>
-            <span className="flex items-center gap-0.5 text-xs text-gray-400">
-              <Heart size={11} className="text-pink-400" />
-              0
+              {(product.avgRating ?? 0).toFixed(1)}
+              {(product.reviewCount ?? 0) > 0 && (
+                <span className="text-gray-300">&nbsp;({product.reviewCount})</span>
+              )}
             </span>
             <span className="text-xs text-gray-400">Stock: {product.stock}</span>
           </div>
