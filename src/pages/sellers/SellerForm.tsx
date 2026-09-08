@@ -523,6 +523,19 @@ export default function SellerForm(): JSX.Element {
     onSubmit: handleSubmit,
   });
 
+  const formTopRef = useRef<HTMLDivElement | null>(null);
+
+  // The form is long; after a rejected save the error banner or the first
+  // invalid field is usually scrolled out of view. Bring the reason back on
+  // screen so the admin can see why the seller wasn't saved.
+  useEffect((): void => {
+    if (f.submitCount === 0 || f.isSubmitting) return;
+    if (f.isValid && typeof f.status !== 'string') return;
+    const target =
+      formTopRef.current?.querySelector<HTMLElement>('[role="alert"]') ?? formTopRef.current;
+    target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }, [f.submitCount, f.isSubmitting, f.isValid, f.status]);
+
   const backButton = (
     <button
       onClick={(): void => { navigate('/sellers'); }}
@@ -618,7 +631,7 @@ export default function SellerForm(): JSX.Element {
   }
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-5" ref={formTopRef}>
       {backButton}
       <PageHeader />
 
@@ -626,6 +639,13 @@ export default function SellerForm(): JSX.Element {
         <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" role="alert">
           <AlertCircle className="w-4 h-4 shrink-0" />
           {f.status}
+        </div>
+      )}
+
+      {f.submitCount > 0 && !f.isValid && typeof f.status !== 'string' && (
+        <div className="flex items-center gap-2.5 px-4 py-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-700" role="alert">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          Please fix the highlighted fields before saving.
         </div>
       )}
 
