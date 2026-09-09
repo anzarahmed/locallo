@@ -61,7 +61,7 @@ export function buildProductVariantAttrs(
     const sel = selections[field.key];
     if (!sel || sel === '' || (Array.isArray(sel) && sel.length === 0)) continue;
     if (field.type === 'select') {
-      result[field.key] = [sel as string];
+      result[field.key] = Array.isArray(sel) ? sel : [sel];
     } else if (field.type === 'multiselect') {
       result[field.key] = sel as string[];
     } else {
