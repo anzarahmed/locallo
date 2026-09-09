@@ -43,7 +43,11 @@ function validateAttributes(
           errors.push(`${field.label} contains invalid option(s): ${invalid.join(', ')}`);
         }
       } else if (field.type === 'select') {
-        if (!allowed.includes(value as string)) {
+        // A variant select arrives as [value] (or [[values]] for a stock-dependent
+        // field) from the product form — normalise to a flat list before checking.
+        const values = (Array.isArray(value) ? value : [value])
+          .map(v => (Array.isArray(v) ? v[0] : v));
+        if (values.some(v => !allowed.includes(v as string))) {
           errors.push(`${field.label} must be one of: ${allowed.join(', ')}`);
         }
       }
