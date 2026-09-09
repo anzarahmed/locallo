@@ -9,7 +9,7 @@ import { editProductSchema, type AddProductFormValues } from '../../validation/p
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage, validateImageFile } from '../../lib/imageUtils';
-import { normalizeAttrValues, type AttrValue } from '../../lib/attributeUtils';
+import { normalizeAttrValues, findMissingRequiredAttrs, type AttrValue } from '../../lib/attributeUtils';
 import { inputCls } from '../../lib/classUtils';
 import { MAX_SECONDARY_IMAGES } from '../../constants';
 import {
@@ -204,17 +204,6 @@ export default function EditProduct(): JSX.Element {
       return;
     }
 
-    const missingRequired = nonVariantFields.filter(f => {
-      if (!f.required) return false;
-      const v = attributes[f.key];
-      return !v || (Array.isArray(v) && v.length === 0) || v === '';
-    });
-    if (missingRequired.length > 0) {
-      toast.error(`Required fields missing: ${missingRequired.map(f => f.label).join(', ')}`);
-      helpers.setSubmitting(false);
-      return;
-    }
-
     const hasCombinations = !hasVariants && combinations.length > 0;
     const usePerComboStock = hasCombinations && stockDependent;
     const nonVariantAttrs = Object.fromEntries(
@@ -224,6 +213,19 @@ export default function EditProduct(): JSX.Element {
       ...nonVariantAttrs,
       ...(hasCombinations ? buildProductVariantAttrs(variantFields, variantSelections) : {}),
     };
+
+    // Variant options aren't editable once a product has its own variant rows —
+    // skip their required check here, they're enforced on the Variants page.
+    const attrCheck: Record<string, unknown> = {
+      ...attributes,
+      ...buildProductVariantAttrs(variantFields, variantSelections),
+    };
+    const missingRequired = findMissingRequiredAttrs(attributeSchema, attrCheck, hasVariants);
+    if (missingRequired.length > 0) {
+      toast.error(`Required fields missing: ${missingRequired.map(f => f.label).join(', ')}`);
+      helpers.setSubmitting(false);
+      return;
+    }
 
     try {
       const { product: updated } = await updateProduct(id!, {
@@ -769,6 +771,7 @@ function VariantOptionField({ field, onChange, value }: VariantOptionFieldProps)
   const labelEl = (
     <div className="mb-1.5">
       <span className="text-xs font-semibold text-gray-500">{field.label}</span>
+      {field.required && <span className="text-rose-400 ml-0.5">*</span>}
       {field.type === 'multiselect' && (
         <span className="text-gray-400 text-xs ml-1.5">(select all that apply)</span>
       )}
@@ -803,7 +806,7 @@ function VariantOptionField({ field, onChange, value }: VariantOptionFieldProps)
     );
   }
 
-  if (field.type === 'select' && field.options && field.options.length > 0) {
+  if ((field.type === 'select' || field.type === 'color') && field.options && field.options.length > 0) {
     const selected = typeof value === 'string' ? value : '';
     return (
       <div>

@@ -2,6 +2,28 @@ import type { AttributeField } from '../types';
 
 export type AttrValue = string | number | string[];
 
+function isBlankAttr(v: unknown): boolean {
+  return v === undefined || v === null || v === '' ||
+    (Array.isArray(v) && v.length === 0);
+}
+
+/**
+ * Returns the required fields whose value is missing. `values` must already merge
+ * non-variant attributes with the current variant selections. Pass skipVariant
+ * when variant options are managed elsewhere (a product that already has variants).
+ */
+export function findMissingRequiredAttrs(
+  schema: AttributeField[],
+  values: Record<string, unknown>,
+  skipVariant = false,
+): AttributeField[] {
+  return schema.filter(f => {
+    if (!f.required) return false;
+    if (f.isVariant && skipVariant) return false;
+    return isBlankAttr(values[f.key]);
+  });
+}
+
 export function normalizeAttrValues(
   rawAttrs: Record<string, unknown>,
   schema: AttributeField[],

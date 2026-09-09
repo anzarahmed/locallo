@@ -11,7 +11,7 @@ import { addProductSchema, type AddProductFormValues } from '../../validation/pr
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage, validateImageFile } from '../../lib/imageUtils';
-import { normalizeAttrValues, type AttrValue } from '../../lib/attributeUtils';
+import { normalizeAttrValues, findMissingRequiredAttrs, type AttrValue } from '../../lib/attributeUtils';
 import { inputCls } from '../../lib/classUtils';
 import { MAX_SECONDARY_IMAGES } from '../../constants';
 import {
@@ -206,11 +206,9 @@ export default function AddProduct(): JSX.Element {
       return;
     }
 
-    const missingRequired = nonVariantFields.filter(f => {
-      if (!f.required) return false;
-      const v = attributes[f.key];
-      return !v || (Array.isArray(v) && v.length === 0) || v === '';
-    });
+    const productAttrs: Record<string, unknown> = { ...attributes, ...buildProductVariantAttrs(variantFields, variantSelections) };
+
+    const missingRequired = findMissingRequiredAttrs(attributeSchema, productAttrs);
     if (missingRequired.length > 0) {
       toast.error(`Required fields missing: ${missingRequired.map(f => f.label).join(', ')}`);
       helpers.setSubmitting(false);
@@ -218,8 +216,6 @@ export default function AddProduct(): JSX.Element {
     }
 
     const hasCombinations = combinations.length > 0;
-
-    const productAttrs: Record<string, unknown> = { ...attributes, ...buildProductVariantAttrs(variantFields, variantSelections) };
 
     type VRow = { attributes: Record<string, string>; stock: number };
     let productRows: VRow[] | undefined;
@@ -677,6 +673,7 @@ function VariantOptionField({ field, onChange, value }: VariantOptionFieldProps)
   const labelEl = (
     <div className="mb-1.5">
       <span className="text-xs font-semibold text-gray-500">{field.label}</span>
+      {field.required && <span className="text-rose-400 ml-0.5">*</span>}
       {field.type === 'multiselect' && (
         <span className="text-gray-400 text-xs ml-1.5">(select all that apply)</span>
       )}
@@ -711,8 +708,8 @@ function VariantOptionField({ field, onChange, value }: VariantOptionFieldProps)
     );
   }
 
-  if (field.type === 'select' && field.options && field.options.length > 0) {
-    if (field.isStockDependent) {
+  if ((field.type === 'select' || field.type === 'color') && field.options && field.options.length > 0) {
+    if (field.type === 'select' && field.isStockDependent) {
       // SD field (e.g. sizes): allow multiple selections so all sizes can be added at once
       const selected = Array.isArray(value) ? value : (typeof value === 'string' && value ? [value] : []);
       return (
