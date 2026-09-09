@@ -400,11 +400,10 @@ export default function AddProduct(): JSX.Element {
           </div>
         )}
 
-        {/* Secondary Images */}
+        {/* Additional Images */}
         <div className="bg-white rounded-2xl shadow-sm p-4">
           <div className="flex items-baseline gap-1.5 mb-3">
-            <p className="text-sm font-semibold text-gray-700">Secondary Images</p>
-            <span className="text-xs text-gray-400 font-normal">up to {MAX_SECONDARY_IMAGES}</span>
+            <p className="text-sm font-semibold text-gray-700">Additional Images (up to {MAX_SECONDARY_IMAGES})</p>
           </div>
 
           {secondaryImages.length === 0 && !isUploading ? (
@@ -484,32 +483,6 @@ export default function AddProduct(): JSX.Element {
               className={`${inputCls(!!form.touched.description && !!form.errors.description)} resize-none`}
             />
           </FormField>
-        </div>
-
-        {/* Category + Pricing */}
-        <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-          <p className="text-sm font-semibold text-gray-700">Category & Pricing</p>
-
-          <FormField label="Category" required error={form.touched.categoryId ? form.errors.categoryId as string : undefined}>
-            <div className="relative">
-              <select
-                value={form.values.categoryId}
-                onChange={e => {
-                  const id = Number(e.target.value);
-                  void form.setFieldValue('categoryId', id);
-                  applyCategory(id);
-                }}
-                onBlur={() => void form.setFieldTouched('categoryId')}
-                className={`w-full appearance-none ${inputCls(!!form.touched.categoryId && !!form.errors.categoryId)} pr-8`}
-              >
-                <option value={0} disabled>Select a category</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-            </div>
-          </FormField>
 
           <div className="grid grid-cols-2 gap-3">
             <FormField label="Selling Price" required error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}>
@@ -560,6 +533,49 @@ export default function AddProduct(): JSX.Element {
                 placeholder="0"
                 className={`${inputCls(!!form.touched.costPrice && !!form.errors.costPrice)} pl-7`}
               />
+            </div>
+          </FormField>
+
+          {/* Simple stock — hidden when the category drives per-combination stock */}
+          {(!stockDependent || combinations.length === 0) && (
+            <FormField label="Stock" required error={form.touched.stock ? form.errors.stock as string : undefined}>
+              <input
+                name="stock"
+                type="number"
+                min={0}
+                step="1"
+                value={form.values.stock}
+                onChange={form.handleChange}
+                onBlur={form.handleBlur}
+                placeholder="0"
+                className={inputCls(!!form.touched.stock && !!form.errors.stock)}
+              />
+            </FormField>
+          )}
+        </div>
+
+        {/* Category */}
+        <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
+          <p className="text-sm font-semibold text-gray-700">Category</p>
+
+          <FormField label="Category" required error={form.touched.categoryId ? form.errors.categoryId as string : undefined}>
+            <div className="relative">
+              <select
+                value={form.values.categoryId}
+                onChange={e => {
+                  const id = Number(e.target.value);
+                  void form.setFieldValue('categoryId', id);
+                  applyCategory(id);
+                }}
+                onBlur={() => void form.setFieldTouched('categoryId')}
+                className={`w-full appearance-none ${inputCls(!!form.touched.categoryId && !!form.errors.categoryId)} pr-8`}
+              >
+                <option value={0} disabled>Select a category</option>
+                {categories.map(cat => (
+                  <option key={cat.id} value={cat.id}>{cat.name}</option>
+                ))}
+              </select>
+              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
             </div>
           </FormField>
         </div>
@@ -639,26 +655,6 @@ export default function AddProduct(): JSX.Element {
                 />
               ))}
             </div>
-          </div>
-        )}
-
-        {/* Inventory — shown when not stock-dependent or no combinations yet */}
-        {(!stockDependent || combinations.length === 0) && (
-          <div className="bg-white rounded-2xl shadow-sm p-4">
-            <p className="text-sm font-semibold text-gray-700 mb-4">Inventory</p>
-            <FormField label="Stock Quantity" required error={form.touched.stock ? form.errors.stock as string : undefined}>
-              <input
-                name="stock"
-                type="number"
-                min={0}
-                step="1"
-                value={form.values.stock}
-                onChange={form.handleChange}
-                onBlur={form.handleBlur}
-                placeholder="0"
-                className={inputCls(!!form.touched.stock && !!form.errors.stock)}
-              />
-            </FormField>
           </div>
         )}
 

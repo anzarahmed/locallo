@@ -397,11 +397,10 @@ export default function EditProduct(): JSX.Element {
             )}
           </div>
 
-          {/* Secondary Images */}
+          {/* Additional Images */}
           <div className="bg-white rounded-2xl shadow-sm p-4">
             <div className="flex items-baseline gap-1.5 mb-3">
-              <p className="text-sm font-semibold text-gray-700">Secondary Images</p>
-              <span className="text-xs text-gray-400 font-normal">up to {MAX_SECONDARY_IMAGES}</span>
+              <p className="text-sm font-semibold text-gray-700">Additional Images (up to {MAX_SECONDARY_IMAGES})</p>
             </div>
 
             {secondaryImages.length === 0 && !isUploading ? (
@@ -479,27 +478,6 @@ export default function EditProduct(): JSX.Element {
                 className={`${inputCls(!!form.touched.description && !!form.errors.description)} resize-none`}
               />
             </FormField>
-          </div>
-
-          {/* Category + Pricing */}
-          <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-            <p className="text-sm font-semibold text-gray-700">Category & Pricing</p>
-
-            <FormField label="Category">
-              <div className="relative">
-                <select
-                  value={form.values.categoryId}
-                  disabled
-                  className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-500 cursor-not-allowed pr-8"
-                >
-                  <option value={0} disabled>Select a category</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
-              </div>
-            </FormField>
 
             <div className="grid grid-cols-2 gap-3">
               <FormField label="Selling Price" required error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}>
@@ -544,6 +522,54 @@ export default function EditProduct(): JSX.Element {
                   onBlur={form.handleBlur}
                   className={`${inputCls(!!form.touched.costPrice && !!form.errors.costPrice)} pl-7`}
                 />
+              </div>
+            </FormField>
+
+            {/* Simple stock — hidden when the category drives per-combination stock */}
+            {(hasVariants || !stockDependent || combinations.length === 0) && (
+              <FormField
+                label="Stock"
+                required={!hasVariants}
+                error={!hasVariants && form.touched.stock ? form.errors.stock as string : undefined}
+              >
+                {hasVariants ? (
+                  <div className="w-full border border-gray-200 rounded-xl text-sm px-3 py-2.5 bg-gray-50 flex items-center justify-between">
+                    <span className="font-semibold text-gray-700">{form.values.stock}</span>
+                    <span className="text-xs text-gray-400">Sum of variants</span>
+                  </div>
+                ) : (
+                  <input
+                    name="stock"
+                    type="number"
+                    min={0}
+                    step="1"
+                    value={form.values.stock}
+                    onChange={form.handleChange}
+                    onBlur={form.handleBlur}
+                    className={inputCls(!!form.touched.stock && !!form.errors.stock)}
+                  />
+                )}
+              </FormField>
+            )}
+          </div>
+
+          {/* Category */}
+          <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
+            <p className="text-sm font-semibold text-gray-700">Category</p>
+
+            <FormField label="Category">
+              <div className="relative">
+                <select
+                  value={form.values.categoryId}
+                  disabled
+                  className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-500 cursor-not-allowed pr-8"
+                >
+                  <option value={0} disabled>Select a category</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id}>{cat.name}</option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
               </div>
             </FormField>
           </div>
@@ -623,36 +649,6 @@ export default function EditProduct(): JSX.Element {
                   />
                 ))}
               </div>
-            </div>
-          )}
-
-          {/* Inventory — shown when no per-combo stock */}
-          {(hasVariants || (!stockDependent || combinations.length === 0)) && (
-            <div className="bg-white rounded-2xl shadow-sm p-4">
-              <p className="text-sm font-semibold text-gray-700 mb-4">Inventory</p>
-              <FormField
-                label="Stock Quantity"
-                required={!hasVariants}
-                error={!hasVariants && form.touched.stock ? form.errors.stock as string : undefined}
-              >
-                {hasVariants ? (
-                  <div className="w-full border border-gray-200 rounded-xl text-sm px-3 py-2.5 bg-gray-50 flex items-center justify-between">
-                    <span className="font-semibold text-gray-700">{form.values.stock}</span>
-                    <span className="text-xs text-gray-400">Sum of variants</span>
-                  </div>
-                ) : (
-                  <input
-                    name="stock"
-                    type="number"
-                    min={0}
-                    step="1"
-                    value={form.values.stock}
-                    onChange={form.handleChange}
-                    onBlur={form.handleBlur}
-                    className={inputCls(!!form.touched.stock && !!form.errors.stock)}
-                  />
-                )}
-              </FormField>
             </div>
           )}
 
