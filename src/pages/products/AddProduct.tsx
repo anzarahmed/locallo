@@ -34,6 +34,7 @@ export default function AddProduct(): JSX.Element {
 
   const [categories, setCategories] = useState<SellerCategory[]>([]);
   const [primaryImage, setPrimaryImage] = useState<string | null>(null);
+  const [primaryImageError, setPrimaryImageError] = useState<string | null>(null);
   const [secondaryImages, setSecondaryImages] = useState<string[]>([]);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -95,6 +96,7 @@ export default function AddProduct(): JSX.Element {
     try {
       const result = await analyzeProductImage(file);
       setPrimaryImage(result.imageUrl);
+      setPrimaryImageError(null);
 
       if (result.suggestions) {
         const s = result.suggestions;
@@ -113,8 +115,23 @@ export default function AddProduct(): JSX.Element {
             ? result.attributeSchema
             : (matchedCat.attributeSchema ?? []);
           setAttributeSchema(schema);
-          setAttributes(normalizeAttrValues(s.attributes, schema));
-          setVariantSelections({});
+
+          // AI-detected attributes (e.g. Color) may map to either a non-variant field
+          // or a variant field — route each to the state the matching input reads from,
+          // otherwise a variant Color detected from the image never surfaces in the form.
+          const normalized = normalizeAttrValues(s.attributes, schema);
+          const variantKeys = new Set(schema.filter(f => f.isVariant).map(f => f.key));
+          const nonVariantAttrs: Record<string, AttrValue> = {};
+          const seededSelections: VariantSelections = {};
+          for (const [key, val] of Object.entries(normalized)) {
+            if (variantKeys.has(key)) {
+              seededSelections[key] = Array.isArray(val) ? val : String(val);
+            } else {
+              nonVariantAttrs[key] = val;
+            }
+          }
+          setAttributes(nonVariantAttrs);
+          setVariantSelections(seededSelections);
           setComboStocks({});
         }
         setAiHint({
@@ -170,6 +187,11 @@ export default function AddProduct(): JSX.Element {
     }
   }
 
+  function handleAddClick(): void {
+    setPrimaryImageError(primaryImage ? null : 'Primary image is required');
+    void form.submitForm();
+  }
+
   function setAttr(key: string, value: AttrValue): void {
     setAttributes(prev => ({ ...prev, [key]: value }));
   }
@@ -179,7 +201,7 @@ export default function AddProduct(): JSX.Element {
     helpers: FormikHelpers<AddProductFormValues>,
   ): Promise<void> {
     if (!primaryImage) {
-      toast.error('Please upload a primary product image');
+      setPrimaryImageError('Primary image is required');
       helpers.setSubmitting(false);
       return;
     }
@@ -302,7 +324,7 @@ export default function AddProduct(): JSX.Element {
               </div>
             </div>
           ) : (
-            <label className={`flex flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed border-gray-200 py-10 cursor-pointer hover:border-teal-400 transition-colors ${isAnalyzing ? 'pointer-events-none opacity-70' : ''}`}>
+            <label className={`flex flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed py-10 cursor-pointer hover:border-teal-400 transition-colors ${primaryImageError ? 'border-rose-300' : 'border-gray-200'} ${isAnalyzing ? 'pointer-events-none opacity-70' : ''}`}>
               <input
                 type="file"
                 accept="image/jpeg,image/png,image/webp"
@@ -325,6 +347,10 @@ export default function AddProduct(): JSX.Element {
                 </>
               )}
             </label>
+          )}
+
+          {primaryImageError && (
+            <p className="text-xs text-rose-500 mt-1.5">{primaryImageError}</p>
           )}
         </div>
 
@@ -627,7 +653,7 @@ export default function AddProduct(): JSX.Element {
         <div className="max-w-2xl mx-auto">
           <button
             type="button"
-            onClick={() => void form.submitForm()}
+            onClick={handleAddClick}
             disabled={form.isSubmitting}
             className="w-full py-3.5 rounded-2xl text-white text-sm font-bold disabled:opacity-60 transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
