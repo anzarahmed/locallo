@@ -329,13 +329,12 @@ export async function updateSellerProduct(
   if (data.attributes !== undefined) {
     mergedAttributes = { ...existingAttrs };
     for (const [key, val] of Object.entries(data.attributes as Record<string, unknown>)) {
-      if (!variantKeys.has(key)) mergedAttributes[key] = val;
+      // Once a product has its own variant rows, variant attributes live on the
+      // variants, not the product — ignore them here. Before that, they're stored
+      // on the product itself (same as on create) so required checks can see them.
+      if (!hasVariants || !variantKeys.has(key)) mergedAttributes[key] = val;
     }
   }
-  console.log('[updateProduct] existingAttrs:', JSON.stringify(existingAttrs));
-  console.log('[updateProduct] data.attributes:', JSON.stringify(data.attributes));
-  console.log('[updateProduct] variantKeys:', [...variantKeys]);
-  console.log('[updateProduct] mergedAttributes:', JSON.stringify(mergedAttributes));
 
   if (schema.length > 0) {
     validateAttributes(mergedAttributes, schema, hasVariants);

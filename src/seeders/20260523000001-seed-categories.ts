@@ -402,7 +402,7 @@ const CATEGORIES: CategorySeed[] = [
           { label: 'Rattan / Cane',          value: 'rattan' },
           { label: 'Mixed',                  value: 'mixed' },
         ] },
-      { key: 'color',             label: 'Color / Finish',      type: 'color',       required: false, isVariant: true,
+      { key: 'color',             label: 'Color / Finish',      type: 'color',       required: true,  isVariant: true,
         options: [
           { label: 'Natural Wood', value: 'natural_wood' }, { label: 'Walnut',      value: 'walnut' },
           { label: 'White',        value: 'white' }, { label: 'Black',       value: 'black' },
