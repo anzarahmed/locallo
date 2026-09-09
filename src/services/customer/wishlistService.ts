@@ -2,8 +2,9 @@ import { Op } from 'sequelize';
 import { Wishlist } from '../../models/Wishlist';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
+import { SellerProfile } from '../../models/SellerProfile';
 
-const LIST_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images'];
+const LIST_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images', 'sellerId'];
 const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'stock', 'sellingPrice', 'mrp', 'isActive'];
 
 export async function toggleWishlist(
@@ -59,6 +60,23 @@ export async function listWishlist(
   });
 
   return { rows, count };
+}
+
+export async function getSellerLocations(
+  sellerIds: string[],
+): Promise<Map<string, { lat: number | null; long: number | null }>> {
+  const map = new Map<string, { lat: number | null; long: number | null }>();
+  if (sellerIds.length === 0) return map;
+
+  const profiles = await SellerProfile.findAll({
+    attributes: ['userId', 'lat', 'long'],
+    where: { userId: { [Op.in]: sellerIds } },
+  });
+
+  for (const p of profiles) {
+    map.set(p.userId, { lat: p.lat ?? null, long: p.long ?? null });
+  }
+  return map;
 }
 
 export async function getWishlistedProductIds(
