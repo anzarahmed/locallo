@@ -9,9 +9,10 @@ interface AttrInputProps {
   field: AttributeField;
   value: AttrValue;
   onChange: (v: AttrValue) => void;
+  error?: string;
 }
 
-export default function AttrInput({ field, value, onChange }: AttrInputProps): JSX.Element {
+export default function AttrInput({ field, value, onChange, error }: AttrInputProps): JSX.Element {
   const str = Array.isArray(value) ? '' : String(value as string | number);
   const arr = Array.isArray(value) ? (value as string[]) : [];
 
@@ -26,6 +27,8 @@ export default function AttrInput({ field, value, onChange }: AttrInputProps): J
       {field.unit && <span className="text-gray-400 font-normal ml-1">({field.unit})</span>}
     </label>
   );
+
+  const errorEl = error ? <p className="text-xs text-rose-500 mt-1.5">{error}</p> : null;
 
   if (field.type === 'multiselect') {
     return (
@@ -47,6 +50,7 @@ export default function AttrInput({ field, value, onChange }: AttrInputProps): J
             </button>
           ))}
         </div>
+        {errorEl}
       </div>
     );
   }
@@ -60,14 +64,14 @@ export default function AttrInput({ field, value, onChange }: AttrInputProps): J
           onChange={e => onChange(e.target.value)}
           rows={3}
           placeholder={field.unit ?? ''}
-          className={`${inputCls(false)} resize-none`}
+          className={`${inputCls(!!error)} resize-none`}
         />
       ) : field.type === 'select' ? (
         <div className="relative">
           <select
             value={str}
             onChange={e => onChange(e.target.value)}
-            className={`w-full appearance-none ${inputCls(false)} pr-8`}
+            className={`w-full appearance-none ${inputCls(!!error)} pr-8`}
           >
             <option value="">Select…</option>
             {field.options?.map(opt => (
@@ -86,9 +90,10 @@ export default function AttrInput({ field, value, onChange }: AttrInputProps): J
               : e.target.value
           )}
           placeholder={field.unit ?? ''}
-          className={inputCls(false)}
+          className={inputCls(!!error)}
         />
       )}
+      {errorEl}
     </div>
   );
 }

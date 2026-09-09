@@ -24,6 +24,21 @@ export function findMissingRequiredAttrs(
   });
 }
 
+/**
+ * Maps each missing required field to an inline error message keyed by field key.
+ * Same argument contract as findMissingRequiredAttrs; wording matches the backend.
+ */
+export function buildRequiredAttrErrors(
+  schema: AttributeField[],
+  values: Record<string, unknown>,
+  skipVariant = false,
+): Record<string, string> {
+  return Object.fromEntries(
+    findMissingRequiredAttrs(schema, values, skipVariant)
+      .map(f => [f.key, `${f.label} is required`]),
+  );
+}
+
 export function normalizeAttrValues(
   rawAttrs: Record<string, unknown>,
   schema: AttributeField[],

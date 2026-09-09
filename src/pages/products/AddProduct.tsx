@@ -11,7 +11,7 @@ import { addProductSchema, type AddProductFormValues } from '../../validation/pr
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage, validateImageFile } from '../../lib/imageUtils';
-import { normalizeAttrValues, findMissingRequiredAttrs, type AttrValue } from '../../lib/attributeUtils';
+import { normalizeAttrValues, buildRequiredAttrErrors, type AttrValue } from '../../lib/attributeUtils';
 import { inputCls } from '../../lib/classUtils';
 import { MAX_SECONDARY_IMAGES } from '../../constants';
 import {
@@ -40,6 +40,7 @@ export default function AddProduct(): JSX.Element {
   const [isUploading, setIsUploading] = useState(false);
   const [attributeSchema, setAttributeSchema] = useState<AttributeField[]>([]);
   const [attributes, setAttributes] = useState<Record<string, AttrValue>>({});
+  const [attrErrors, setAttrErrors] = useState<Record<string, string>>({});
   const [aiHint, setAiHint] = useState<AiHint | null>(null);
   const [variantSelections, setVariantSelections] = useState<VariantSelections>({});
   const [comboStocks, setComboStocks] = useState<Record<string, string>>({});
@@ -77,16 +78,27 @@ export default function AddProduct(): JSX.Element {
     onSubmit: handleSubmit,
   });
 
+  function clearAttrError(key: string): void {
+    setAttrErrors(prev => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
   function applyCategory(id: number): void {
     const cat = categories.find(c => c.id === id);
     setAttributeSchema(cat?.attributeSchema ?? []);
     setAttributes({});
+    setAttrErrors({});
     setVariantSelections({});
     setComboStocks({});
   }
 
   function setVariantSelection(key: string, value: string | string[]): void {
     setVariantSelections(prev => ({ ...prev, [key]: value }));
+    clearAttrError(key);
     // Reset stock when selections change
     setComboStocks({});
   }
@@ -131,6 +143,7 @@ export default function AddProduct(): JSX.Element {
             }
           }
           setAttributes(nonVariantAttrs);
+          setAttrErrors({});
           setVariantSelections(seededSelections);
           setComboStocks({});
         }
@@ -187,13 +200,21 @@ export default function AddProduct(): JSX.Element {
     }
   }
 
+  function buildProductAttrs(): Record<string, unknown> {
+    return { ...attributes, ...buildProductVariantAttrs(variantFields, variantSelections) };
+  }
+
   function handleAddClick(): void {
     setPrimaryImageError(primaryImage ? null : 'Primary image is required');
+    // Surface attribute errors on the same click that triggers Formik validation,
+    // so basic-field and attribute errors show together rather than one submit apart.
+    setAttrErrors(buildRequiredAttrErrors(attributeSchema, buildProductAttrs()));
     void form.submitForm();
   }
 
   function setAttr(key: string, value: AttrValue): void {
     setAttributes(prev => ({ ...prev, [key]: value }));
+    clearAttrError(key);
   }
 
   async function handleSubmit(
@@ -206,11 +227,10 @@ export default function AddProduct(): JSX.Element {
       return;
     }
 
-    const productAttrs: Record<string, unknown> = { ...attributes, ...buildProductVariantAttrs(variantFields, variantSelections) };
-
-    const missingRequired = findMissingRequiredAttrs(attributeSchema, productAttrs);
-    if (missingRequired.length > 0) {
-      toast.error(`Required fields missing: ${missingRequired.map(f => f.label).join(', ')}`);
+    const productAttrs = buildProductAttrs();
+    const nextAttrErrors = buildRequiredAttrErrors(attributeSchema, productAttrs);
+    setAttrErrors(nextAttrErrors);
+    if (Object.keys(nextAttrErrors).length > 0) {
       helpers.setSubmitting(false);
       return;
     }
@@ -556,6 +576,7 @@ export default function AddProduct(): JSX.Element {
                   field={field}
                   value={attributes[field.key] ?? ''}
                   onChange={v => setAttr(field.key, v)}
+                  error={attrErrors[field.key]}
                 />
               ))}
           </div>
@@ -576,6 +597,7 @@ export default function AddProduct(): JSX.Element {
                   field={field}
                   value={attributes[field.key] ?? (field.type === 'multiselect' ? [] : '')}
                   onChange={v => setAttr(field.key, v)}
+                  error={attrErrors[field.key]}
                 />
               ))}
           </div>
@@ -596,6 +618,7 @@ export default function AddProduct(): JSX.Element {
                 field={field}
                 value={variantSelections[field.key]}
                 onChange={v => setVariantSelection(field.key, v)}
+                error={attrErrors[field.key]}
               />
             ))}
           </div>
@@ -667,9 +690,10 @@ interface VariantOptionFieldProps {
   field: AttributeField;
   value: string | string[] | undefined;
   onChange: (v: string | string[]) => void;
+  error?: string;
 }
 
-function VariantOptionField({ field, onChange, value }: VariantOptionFieldProps): JSX.Element {
+function VariantOptionField({ field, onChange, value, error }: VariantOptionFieldProps): JSX.Element {
   const labelEl = (
     <div className="mb-1.5">
       <span className="text-xs font-semibold text-gray-500">{field.label}</span>
@@ -680,99 +704,93 @@ function VariantOptionField({ field, onChange, value }: VariantOptionFieldProps)
     </div>
   );
 
+  let body: JSX.Element;
+
   if (field.type === 'multiselect' && field.options && field.options.length > 0) {
     const selected = Array.isArray(value) ? value : [];
-    return (
-      <div>
-        {labelEl}
-        <div className="flex flex-wrap gap-2">
-          {field.options.map((opt: AttributeFieldOption) => {
-            const active = selected.includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onChange(active ? selected.filter(v => v !== opt.value) : [...selected, opt.value])}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  active
-                    ? 'bg-teal-600 border-teal-600 text-white'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  if ((field.type === 'select' || field.type === 'color') && field.options && field.options.length > 0) {
-    if (field.type === 'select' && field.isStockDependent) {
-      // SD field (e.g. sizes): allow multiple selections so all sizes can be added at once
-      const selected = Array.isArray(value) ? value : (typeof value === 'string' && value ? [value] : []);
-      return (
-        <div>
-          {labelEl}
-          <div className="flex flex-wrap gap-2">
-            {field.options.map((opt: AttributeFieldOption) => {
-              const active = selected.includes(opt.value);
-              return (
-                <button
-                  key={opt.value}
-                  type="button"
-                  onClick={() => onChange(active ? selected.filter(v => v !== opt.value) : [...selected, opt.value])}
-                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                    active
-                      ? 'bg-teal-600 border-teal-600 text-white'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
-                  }`}
-                >
-                  {opt.label}
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      );
-    }
-    const selected = typeof value === 'string' ? value : '';
-    return (
-      <div>
-        {labelEl}
-        <div className="flex flex-wrap gap-2">
-          {field.options.map((opt: AttributeFieldOption) => (
+    body = (
+      <div className="flex flex-wrap gap-2">
+        {field.options.map((opt: AttributeFieldOption) => {
+          const active = selected.includes(opt.value);
+          return (
             <button
               key={opt.value}
               type="button"
-              onClick={() => onChange(selected === opt.value ? '' : opt.value)}
+              onClick={() => onChange(active ? selected.filter(v => v !== opt.value) : [...selected, opt.value])}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                selected === opt.value
+                active
                   ? 'bg-teal-600 border-teal-600 text-white'
                   : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
               }`}
             >
               {opt.label}
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
     );
-  }
-
-  // text / number / textarea
-  const strVal = typeof value === 'string' ? value : '';
-  return (
-    <div>
-      {labelEl}
+  } else if (field.type === 'select' && field.isStockDependent && field.options && field.options.length > 0) {
+    // SD field (e.g. sizes): allow multiple selections so all sizes can be added at once
+    const selected = Array.isArray(value) ? value : (typeof value === 'string' && value ? [value] : []);
+    body = (
+      <div className="flex flex-wrap gap-2">
+        {field.options.map((opt: AttributeFieldOption) => {
+          const active = selected.includes(opt.value);
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onChange(active ? selected.filter(v => v !== opt.value) : [...selected, opt.value])}
+              className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                active
+                  ? 'bg-teal-600 border-teal-600 text-white'
+                  : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
+              }`}
+            >
+              {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    );
+  } else if ((field.type === 'select' || field.type === 'color') && field.options && field.options.length > 0) {
+    const selected = typeof value === 'string' ? value : '';
+    body = (
+      <div className="flex flex-wrap gap-2">
+        {field.options.map((opt: AttributeFieldOption) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(selected === opt.value ? '' : opt.value)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              selected === opt.value
+                ? 'bg-teal-600 border-teal-600 text-white'
+                : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    );
+  } else {
+    const strVal = typeof value === 'string' ? value : '';
+    body = (
       <input
         type={field.type === 'number' ? 'number' : 'text'}
         value={strVal}
         onChange={e => onChange(e.target.value)}
         placeholder={field.unit ? `e.g. ${field.unit}` : `Enter ${field.label}`}
-        className={inputCls(false)}
+        className={inputCls(!!error)}
       />
+    );
+  }
+
+  return (
+    <div>
+      {labelEl}
+      {body}
+      {error && <p className="text-xs text-rose-500 mt-1.5">{error}</p>}
     </div>
   );
 }

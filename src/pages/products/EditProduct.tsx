@@ -9,7 +9,7 @@ import { editProductSchema, type AddProductFormValues } from '../../validation/p
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage, validateImageFile } from '../../lib/imageUtils';
-import { normalizeAttrValues, findMissingRequiredAttrs, type AttrValue } from '../../lib/attributeUtils';
+import { normalizeAttrValues, buildRequiredAttrErrors, type AttrValue } from '../../lib/attributeUtils';
 import { inputCls } from '../../lib/classUtils';
 import { MAX_SECONDARY_IMAGES } from '../../constants';
 import {
@@ -40,6 +40,7 @@ export default function EditProduct(): JSX.Element {
   const [isUploading, setIsUploading] = useState(false);
   const [attributeSchema, setAttributeSchema] = useState<AttributeField[]>([]);
   const [attributes, setAttributes] = useState<Record<string, AttrValue>>({});
+  const [attrErrors, setAttrErrors] = useState<Record<string, string>>({});
   const [initialValues, setInitialValues] = useState<AddProductFormValues>(EMPTY_VALUES);
   const [hasVariants, setHasVariants] = useState(false);
   const [variantCount, setVariantCount] = useState(0);
@@ -75,6 +76,7 @@ export default function EditProduct(): JSX.Element {
         const schema = product.category?.attributeSchema ?? [];
         setAttributeSchema(schema);
         setAttributes(normalizeAttrValues(product.attributes ?? {}, schema));
+        setAttrErrors({});
         setInitialValues({
           name:         product.name,
           description:  product.description ?? '',
@@ -133,8 +135,18 @@ export default function EditProduct(): JSX.Element {
     onSubmit: handleSubmit,
   });
 
+  function clearAttrError(key: string): void {
+    setAttrErrors(prev => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
+  }
+
   function setVariantSelection(key: string, value: string | string[]): void {
     setVariantSelections(prev => ({ ...prev, [key]: value }));
+    clearAttrError(key);
     setComboStocks({});
   }
 
@@ -192,6 +204,24 @@ export default function EditProduct(): JSX.Element {
 
   function setAttr(key: string, value: AttrValue): void {
     setAttributes(prev => ({ ...prev, [key]: value }));
+    clearAttrError(key);
+  }
+
+  function collectAttrErrors(): Record<string, string> {
+    // Variant options aren't editable once a product has its own variant rows —
+    // skip their required check here, they're enforced on the Variants page.
+    const attrCheck: Record<string, unknown> = {
+      ...attributes,
+      ...buildProductVariantAttrs(variantFields, variantSelections),
+    };
+    return buildRequiredAttrErrors(attributeSchema, attrCheck, hasVariants);
+  }
+
+  function handleSaveClick(): void {
+    // Surface attribute errors on the same click that triggers Formik validation,
+    // so basic-field and attribute errors show together rather than one submit apart.
+    setAttrErrors(collectAttrErrors());
+    void form.submitForm();
   }
 
   async function handleSubmit(
@@ -214,15 +244,9 @@ export default function EditProduct(): JSX.Element {
       ...(hasCombinations ? buildProductVariantAttrs(variantFields, variantSelections) : {}),
     };
 
-    // Variant options aren't editable once a product has its own variant rows —
-    // skip their required check here, they're enforced on the Variants page.
-    const attrCheck: Record<string, unknown> = {
-      ...attributes,
-      ...buildProductVariantAttrs(variantFields, variantSelections),
-    };
-    const missingRequired = findMissingRequiredAttrs(attributeSchema, attrCheck, hasVariants);
-    if (missingRequired.length > 0) {
-      toast.error(`Required fields missing: ${missingRequired.map(f => f.label).join(', ')}`);
+    const nextAttrErrors = collectAttrErrors();
+    setAttrErrors(nextAttrErrors);
+    if (Object.keys(nextAttrErrors).length > 0) {
       helpers.setSubmitting(false);
       return;
     }
@@ -536,6 +560,7 @@ export default function EditProduct(): JSX.Element {
                     field={field}
                     value={attributes[field.key] ?? ''}
                     onChange={v => setAttr(field.key, v)}
+                    error={attrErrors[field.key]}
                   />
                 ))}
             </div>
@@ -556,6 +581,7 @@ export default function EditProduct(): JSX.Element {
                     field={field}
                     value={attributes[field.key] ?? (field.type === 'multiselect' ? [] : '')}
                     onChange={v => setAttr(field.key, v)}
+                    error={attrErrors[field.key]}
                   />
                 ))}
             </div>
@@ -576,6 +602,7 @@ export default function EditProduct(): JSX.Element {
                   field={field}
                   value={variantSelections[field.key]}
                   onChange={v => setVariantSelection(field.key, v)}
+                  error={attrErrors[field.key]}
                 />
               ))}
             </div>
@@ -747,7 +774,7 @@ export default function EditProduct(): JSX.Element {
         <div className="max-w-2xl mx-auto">
           <button
             type="button"
-            onClick={() => void form.submitForm()}
+            onClick={handleSaveClick}
             disabled={form.isSubmitting || pageLoading}
             className="w-full py-3.5 rounded-2xl text-white text-sm font-bold disabled:opacity-60 transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
@@ -765,9 +792,10 @@ interface VariantOptionFieldProps {
   field: AttributeField;
   value: string | string[] | undefined;
   onChange: (v: string | string[]) => void;
+  error?: string;
 }
 
-function VariantOptionField({ field, onChange, value }: VariantOptionFieldProps): JSX.Element {
+function VariantOptionField({ field, onChange, value, error }: VariantOptionFieldProps): JSX.Element {
   const labelEl = (
     <div className="mb-1.5">
       <span className="text-xs font-semibold text-gray-500">{field.label}</span>
@@ -778,70 +806,69 @@ function VariantOptionField({ field, onChange, value }: VariantOptionFieldProps)
     </div>
   );
 
+  let body: JSX.Element;
+
   if (field.type === 'multiselect' && field.options && field.options.length > 0) {
     const selected = Array.isArray(value) ? value : [];
-    return (
-      <div>
-        {labelEl}
-        <div className="flex flex-wrap gap-2">
-          {field.options.map((opt: AttributeFieldOption) => {
-            const active = selected.includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => onChange(active ? selected.filter(v => v !== opt.value) : [...selected, opt.value])}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  active
-                    ? 'bg-teal-600 border-teal-600 text-white'
-                    : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  }
-
-  if ((field.type === 'select' || field.type === 'color') && field.options && field.options.length > 0) {
-    const selected = typeof value === 'string' ? value : '';
-    return (
-      <div>
-        {labelEl}
-        <div className="flex flex-wrap gap-2">
-          {field.options.map((opt: AttributeFieldOption) => (
+    body = (
+      <div className="flex flex-wrap gap-2">
+        {field.options.map((opt: AttributeFieldOption) => {
+          const active = selected.includes(opt.value);
+          return (
             <button
               key={opt.value}
               type="button"
-              onClick={() => onChange(selected === opt.value ? '' : opt.value)}
+              onClick={() => onChange(active ? selected.filter(v => v !== opt.value) : [...selected, opt.value])}
               className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                selected === opt.value
+                active
                   ? 'bg-teal-600 border-teal-600 text-white'
                   : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
               }`}
             >
               {opt.label}
             </button>
-          ))}
-        </div>
+          );
+        })}
       </div>
     );
-  }
-
-  const strVal = typeof value === 'string' ? value : '';
-  return (
-    <div>
-      {labelEl}
+  } else if ((field.type === 'select' || field.type === 'color') && field.options && field.options.length > 0) {
+    const selected = typeof value === 'string' ? value : '';
+    body = (
+      <div className="flex flex-wrap gap-2">
+        {field.options.map((opt: AttributeFieldOption) => (
+          <button
+            key={opt.value}
+            type="button"
+            onClick={() => onChange(selected === opt.value ? '' : opt.value)}
+            className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+              selected === opt.value
+                ? 'bg-teal-600 border-teal-600 text-white'
+                : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
+            }`}
+          >
+            {opt.label}
+          </button>
+        ))}
+      </div>
+    );
+  } else {
+    const strVal = typeof value === 'string' ? value : '';
+    body = (
       <input
         type={field.type === 'number' ? 'number' : 'text'}
         value={strVal}
         onChange={e => onChange(e.target.value)}
         placeholder={field.unit ? `e.g. ${field.unit}` : `Enter ${field.label}`}
-        className={inputCls(false)}
+        className={inputCls(!!error)}
       />
+    );
+  }
+
+  return (
+    <div>
+      {labelEl}
+      {body}
+      {error && <p className="text-xs text-rose-500 mt-1.5">{error}</p>}
     </div>
   );
 }
