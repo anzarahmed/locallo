@@ -132,6 +132,18 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
         setProduct(productRes.product);
         setVariants(variantRes.variants);
         setActiveImg(0);
+
+        const variantFields = productRes.product.category?.attributeSchema?.filter(f => f.isVariant === true) ?? [];
+        const defaultVariant = variantRes.variants.find(v => v.isActive) ?? variantRes.variants[0];
+        if (variantFields.length > 0 && defaultVariant) {
+          const attrs = defaultVariant.attributes as Record<string, string>;
+          const defaults: Record<string, string> = {};
+          variantFields.forEach(f => {
+            const val = attrs[f.key];
+            if (val !== undefined && val !== null) defaults[f.key] = String(val);
+          });
+          setSelectedAttrs(defaults);
+        }
       })
       .catch(err => {
         setError(err instanceof ApiError ? err.message : 'Failed to load product');
