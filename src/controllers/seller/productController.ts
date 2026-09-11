@@ -12,6 +12,7 @@ function normalizeRating(obj: Record<string, unknown>): Record<string, unknown> 
     ...obj,
     avgRating: obj.avgRating != null ? Math.round(parseFloat(String(obj.avgRating)) * 10) / 10 : 0,
     reviewCount: obj.reviewCount != null ? Number(obj.reviewCount) : 0,
+    wishlistCount: obj.wishlistCount != null ? Number(obj.wishlistCount) : 0,
   };
 }
 

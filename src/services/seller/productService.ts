@@ -263,6 +263,7 @@ export async function getSellerProduct(sellerId: string, productId: string): Pro
         [literal(VIEW_COUNT_SQL), 'viewCount'],
         [literal(AVG_RATING_SQL), 'avgRating'],
         [literal(REVIEW_COUNT_SQL), 'reviewCount'],
+        [literal(WISHLIST_COUNT_SQL), 'wishlistCount'],
       ],
     },
     include: [
