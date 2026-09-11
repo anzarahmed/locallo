@@ -194,18 +194,22 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
       <div className="bg-white w-full sm:max-w-sm sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[90vh] overflow-hidden shadow-2xl">
 
         {/* Preview header bar */}
-        <div className="shrink-0 bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-center justify-between gap-3">
-          <div className="flex items-center gap-2 min-w-0">
-            <span className="text-xs font-bold text-amber-700 uppercase tracking-wide shrink-0">
+        <div
+          className="shrink-0 grid grid-cols-[28px_1fr_28px] items-start gap-3 px-4 py-3.5"
+          style={{ background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)' }}
+        >
+          <div />
+          <div className="text-center min-w-0">
+            <p className="text-white text-[15px] font-bold tracking-wide">
               Customer Preview
-            </span>
-            <span className="text-xs text-amber-600 truncate hidden sm:block">
+            </p>
+            <p className="text-white/80 text-xs mt-0.5 leading-snug">
               This is how customers see your product
-            </span>
+            </p>
           </div>
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-amber-100 flex items-center justify-center text-amber-700 hover:bg-amber-200 transition-colors shrink-0"
+            className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors shrink-0"
           >
             <X size={14} />
           </button>
