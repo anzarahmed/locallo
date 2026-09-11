@@ -19,6 +19,7 @@ interface VariantSheetProps {
   product: Product;
   variant: ProductVariant | null;
   existingVariants: ProductVariant[];
+  lockedAttributes?: Record<string, string>;
   onSaved: (variant: ProductVariant) => void;
   onClose: () => void;
 }
@@ -28,6 +29,7 @@ export default function VariantSheet({
   product,
   variant,
   existingVariants,
+  lockedAttributes,
   onSaved,
   onClose,
 }: VariantSheetProps): JSX.Element {
@@ -37,6 +39,8 @@ export default function VariantSheet({
   const attributeSchema = product.category?.attributeSchema ?? [];
   const variantFields   = attributeSchema.filter(f => f.isVariant === true);
   const stockDependent  = hasStockDependentAttr(variantFields);
+  const lockedFields    = variantFields.filter(f => lockedAttributes && f.key in lockedAttributes);
+  const openFields      = variantFields.filter(f => !(lockedAttributes && f.key in lockedAttributes));
 
   /* Slide-up animation */
   const [visible, setVisible] = useState(false);
@@ -53,7 +57,9 @@ export default function VariantSheet({
   );
 
   /* Add-mode state */
-  const [variantSelections, setVariantSelections] = useState<VariantSelections>({});
+  const [variantSelections, setVariantSelections] = useState<VariantSelections>(
+    () => lockedAttributes ? { ...lockedAttributes } : {},
+  );
   const [comboStocks, setComboStocks] = useState<Record<string, string>>({});
   const allCombinations = isEdit ? [] : generateCombinations(variantFields, variantSelections);
   const combinations    = allCombinations.filter(c => !existingComboKeys.has(getCombinationKey(c)));
@@ -243,7 +249,7 @@ export default function VariantSheet({
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           <div>
             <h2 className="text-base font-bold text-gray-800">
-              {isEdit ? 'Edit Variant' : 'Add Variant'}
+              {isEdit ? 'Edit Variant' : lockedAttributes ? 'Add to Group' : 'Add Variant'}
             </h2>
             {product.category && (
               <p className="text-xs text-gray-400 mt-0.5">{product.category.name}</p>
@@ -284,12 +290,31 @@ export default function VariantSheet({
           ) : (
             /* ── Add mode: variant option selectors → combination matrix ── */
             <>
+              {lockedFields.length > 0 && (
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                    Group
+                  </p>
+                  <div className="flex flex-wrap gap-1.5">
+                    {lockedFields.map(field => {
+                      const val = lockedAttributes![field.key];
+                      const opt = field.options?.find(o => o.value === val);
+                      return (
+                        <span key={field.key} className="text-xs bg-teal-50 text-teal-700 px-2.5 py-0.5 rounded-full font-medium">
+                          {field.label}: {opt?.label ?? val}
+                        </span>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {variantFields.length > 0 ? (
                 <div className="space-y-4">
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
                     Variant Options
                   </p>
-                  {variantFields.map(field => (
+                  {openFields.map(field => (
                     <SheetVariantOptionField
                       key={field.key}
                       field={field}

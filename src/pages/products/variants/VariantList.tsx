@@ -50,6 +50,7 @@ export default function VariantList(): JSX.Element {
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [sheetOpen, setSheetOpen] = useState(false);
   const [editingVariant, setEditingVariant] = useState<ProductVariant | null>(null);
+  const [addGroupTarget, setAddGroupTarget] = useState<VariantGroup | null>(null);
   const [editingGroup, setEditingGroup] = useState<VariantGroup | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProductVariant | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -99,17 +100,26 @@ export default function VariantList(): JSX.Element {
 
   function openAdd(): void {
     setEditingVariant(null);
+    setAddGroupTarget(null);
+    setSheetOpen(true);
+  }
+
+  function openAddToGroup(group: VariantGroup): void {
+    setEditingVariant(null);
+    setAddGroupTarget(group);
     setSheetOpen(true);
   }
 
   function openEdit(variant: ProductVariant): void {
     setEditingVariant(variant);
+    setAddGroupTarget(null);
     setSheetOpen(true);
   }
 
   function handleSheetClose(): void {
     setSheetOpen(false);
     setEditingVariant(null);
+    setAddGroupTarget(null);
   }
 
   async function handleSheetSaved(variant: ProductVariant): Promise<void> {
@@ -127,6 +137,7 @@ export default function VariantList(): JSX.Element {
     }
     setSheetOpen(false);
     setEditingVariant(null);
+    setAddGroupTarget(null);
   }
 
   function handleGroupSaved(updated: ProductVariant[]): void {
@@ -232,6 +243,7 @@ export default function VariantList(): JSX.Element {
                 onToggle={v => void handleToggle(v)}
                 onEdit={v => openEdit(v)}
                 onEditGroup={g => setEditingGroup(g)}
+                onAddToGroup={g => openAddToGroup(g)}
                 onDelete={v => setDeleteTarget(v)}
                 onSell={v => setSellVariant(v)}
                 onPromote={v => setPromoteTarget({ variant: v })}
@@ -266,6 +278,7 @@ export default function VariantList(): JSX.Element {
           product={product}
           variant={editingVariant}
           existingVariants={variants}
+          lockedAttributes={addGroupTarget?.nonSdAttrs}
           onSaved={handleSheetSaved}
           onClose={handleSheetClose}
         />
@@ -325,6 +338,7 @@ interface GroupedVariantCardProps {
   onToggle: (v: ProductVariant) => void;
   onEdit: (v: ProductVariant) => void;
   onEditGroup: (g: VariantGroup) => void;
+  onAddToGroup: (g: VariantGroup) => void;
   onDelete: (v: ProductVariant) => void;
   onSell: (v: ProductVariant) => void;
   onPromote: (v: ProductVariant) => void;
@@ -333,7 +347,7 @@ interface GroupedVariantCardProps {
 }
 
 function GroupedVariantCard({
-  group, schema, sdField, onToggle, onEdit, onEditGroup, onDelete, onSell, onPromote,
+  group, schema, sdField, onToggle, onEdit, onEditGroup, onAddToGroup, onDelete, onSell, onPromote,
   boostedVariantId, wholeProductBoosted,
 }: GroupedVariantCardProps): JSX.Element {
   const firstVariant = group.variants[0];
@@ -383,14 +397,25 @@ function GroupedVariantCard({
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={() => onEditGroup(group)}
-          className="shrink-0 flex items-center gap-1.5 px-3 h-8 rounded-xl bg-teal-50 text-teal-600 text-xs font-semibold hover:bg-teal-100 transition-colors self-start"
-        >
-          <Pencil size={11} />
-          Edit
-        </button>
+        <div className="flex items-center gap-1.5 shrink-0 self-start">
+          <button
+            type="button"
+            onClick={() => onAddToGroup(group)}
+            title={`Add ${sdField.label.toLowerCase()} to this group`}
+            className="flex items-center gap-1.5 px-3 h-8 rounded-xl bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 transition-colors"
+          >
+            <Plus size={11} />
+            Add {sdField.label}
+          </button>
+          <button
+            type="button"
+            onClick={() => onEditGroup(group)}
+            className="flex items-center gap-1.5 px-3 h-8 rounded-xl bg-teal-50 text-teal-600 text-xs font-semibold hover:bg-teal-100 transition-colors"
+          >
+            <Pencil size={11} />
+            Edit
+          </button>
+        </div>
       </div>
 
       {/* SD attribute rows (e.g. S / M / L) */}
