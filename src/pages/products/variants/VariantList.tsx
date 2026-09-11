@@ -359,6 +359,11 @@ function GroupedVariantCard({
 
   const nonSdEntries = Object.entries(group.nonSdAttrs);
 
+  const usedSdValues = new Set(
+    group.variants.map(v => String((v.attributes as Record<string, string>)[sdField.key] ?? ''))
+  );
+  const hasRemainingOptions = (sdField.options ?? []).some(o => !usedSdValues.has(o.value));
+
   return (
     <div className="bg-white rounded-2xl shadow-sm p-4">
       {/* Header: image + non-SD attributes (e.g. color) + edit button */}
@@ -398,15 +403,17 @@ function GroupedVariantCard({
         </div>
 
         <div className="flex items-center gap-1.5 shrink-0 self-start">
-          <button
-            type="button"
-            onClick={() => onAddToGroup(group)}
-            title={`Add ${sdField.label.toLowerCase()} to this group`}
-            className="flex items-center gap-1.5 px-3 h-8 rounded-xl bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 transition-colors"
-          >
-            <Plus size={11} />
-            Add {sdField.label}
-          </button>
+          {hasRemainingOptions && (
+            <button
+              type="button"
+              onClick={() => onAddToGroup(group)}
+              title="Add option to this group"
+              className="flex items-center gap-1.5 px-3 h-8 rounded-xl bg-teal-600 text-white text-xs font-semibold hover:bg-teal-700 transition-colors"
+            >
+              <Plus size={11} />
+              Add Option
+            </button>
+          )}
           <button
             type="button"
             onClick={() => onEditGroup(group)}
