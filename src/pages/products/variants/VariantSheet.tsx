@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useFormik, type FormikHelpers } from 'formik';
-import { X, Camera, Plus, Loader2 } from 'lucide-react';
+import { X, ImagePlus, Loader2, Lock } from 'lucide-react';
 import { uploadProductImage, createBatchVariants, updateVariant } from '../../../services/sellerService';
 import { MAX_SECONDARY_IMAGES } from '../../../constants';
 import { variantFormSchema, type VariantFormValues } from '../../../validation/variantSchemas';
@@ -67,6 +67,9 @@ export default function VariantSheet({
   /* Images */
   const [images, setImages] = useState<string[]>(isEdit ? variant.images : []);
   const [isUploading, setIsUploading] = useState(false);
+
+  /* Add mode: show "<Field> is required" once the user has tried to submit without selecting */
+  const [attemptedSubmit, setAttemptedSubmit] = useState(false);
 
   /* Edit mode: price/stock form */
   const form = useFormik<VariantFormValues>({
@@ -183,6 +186,7 @@ export default function VariantSheet({
 
     /* Add mode: create one variant per combination */
     if (allCombinations.length === 0) {
+      setAttemptedSubmit(true);
       toast.error('Select at least one option to create a variant');
       helpers.setSubmitting(false);
       return;
@@ -251,9 +255,6 @@ export default function VariantSheet({
             <h2 className="text-base font-bold text-gray-800">
               {isEdit ? 'Edit Variant' : lockedAttributes ? 'Add to Group' : 'Add Variant'}
             </h2>
-            {product.category && (
-              <p className="text-xs text-gray-400 mt-0.5">{product.category.name}</p>
-            )}
           </div>
           <button
             type="button"
@@ -267,53 +268,166 @@ export default function VariantSheet({
         {/* Scrollable body */}
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-6">
 
+          {/* Variant of */}
+          <div className="rounded-2xl px-4 py-3 bg-teal-50/70 border border-teal-100">
+            <p className="text-[11px] font-bold text-teal-700 uppercase tracking-wide mb-1">Variant of</p>
+            <p className="text-sm font-bold text-gray-800">{product.name}</p>
+            {product.category && (
+              <p className="text-xs text-gray-400 mt-0.5">{product.category.name}</p>
+            )}
+          </div>
+
           {isEdit ? (
-            /* ── Edit mode: show read-only attribute pills + editable price/stock ── */
-            <div className="space-y-4">
+            /* ── Edit mode: show read-only attribute pills ── */
+            <div>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                Variant Details
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {Object.entries(variant.attributes).map(([key, val]) => {
+                  const field = attributeSchema.find(f => f.key === key);
+                  const opt = field?.options?.find(o => o.value === String(val));
+                  return (
+                    <span key={key} className="text-xs bg-teal-50 text-teal-700 px-3 py-1.5 rounded-full border border-teal-100">
+                      <span className="font-bold">{field?.label ?? key}:</span>{' '}
+                      <span className="text-gray-700 font-medium">{opt?.label ?? String(val)}</span>
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          ) : (
+            lockedFields.length > 0 && (
               <div>
                 <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                  Attributes
+                  Group
                 </p>
                 <div className="flex flex-wrap gap-1.5">
-                  {Object.entries(variant.attributes).map(([key, val]) => {
-                    const field = attributeSchema.find(f => f.key === key);
-                    const opt = field?.options?.find(o => o.value === String(val));
+                  {lockedFields.map(field => {
+                    const val = lockedAttributes![field.key];
+                    const opt = field.options?.find(o => o.value === val);
                     return (
-                      <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
-                        {field?.label ?? key}: {opt?.label ?? String(val)}
+                      <span key={field.key} className="text-xs bg-teal-50 text-teal-700 px-2.5 py-0.5 rounded-full font-medium">
+                        {field.label}: {opt?.label ?? val}
                       </span>
                     );
                   })}
                 </div>
               </div>
+            )
+          )}
+
+          {/* Images */}
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              {isEdit ? 'Variant' : 'Product'} Images (up to {MAX_SECONDARY_IMAGES})
+            </p>
+
+            <div className="flex gap-2 flex-wrap">
+              {images.map((url, i) => (
+                <div key={url} className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                  <img
+                    src={resolveImage(url)}
+                    alt={`Variant ${i + 1}`}
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setImages(prev => prev.filter(u => u !== url))}
+                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                  >
+                    <X size={9} />
+                  </button>
+                </div>
+              ))}
+              {images.length < MAX_SECONDARY_IMAGES && (
+                <label className={`w-20 h-20 rounded-xl border-2 border-dashed border-teal-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-teal-400 transition-colors shrink-0 ${isUploading ? 'pointer-events-none opacity-60' : ''}`}>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    multiple
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                  {isUploading ? (
+                    <Loader2 size={18} className="text-teal-400 animate-spin" />
+                  ) : (
+                    <>
+                      <ImagePlus size={18} className="text-teal-500" />
+                      <span className="text-[10px] font-semibold text-teal-600">Add Image</span>
+                    </>
+                  )}
+                </label>
+              )}
             </div>
-          ) : (
-            /* ── Add mode: variant option selectors → combination matrix ── */
+          </div>
+
+          {/* Pricing */}
+          <div className="grid grid-cols-2 gap-3">
+            <PriceField
+              label="Selling Price"
+              name="sellingPrice"
+              value={form.values.sellingPrice}
+              error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}
+              onChange={form.handleChange}
+              onBlur={form.handleBlur}
+              hasError={!!form.touched.sellingPrice && !!form.errors.sellingPrice}
+              required
+            />
+            <PriceField
+              label="MRP"
+              name="mrp"
+              value={form.values.mrp}
+              error={form.touched.mrp ? form.errors.mrp as string : undefined}
+              onChange={form.handleChange}
+              onBlur={form.handleBlur}
+              hasError={!!form.touched.mrp && !!form.errors.mrp}
+              readOnly
+              required={!isEdit}
+            />
+          </div>
+
+          {/* Stock — edit mode always; add mode only when not derived from a combination matrix */}
+          {(isEdit || !stockDependent) && (
+            <div>
+              <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                Stock<span className="text-rose-400 ml-0.5">*</span>
+              </label>
+              <input
+                name="stock"
+                type="number"
+                min={0}
+                step="1"
+                value={form.values.stock}
+                onChange={form.handleChange}
+                onBlur={form.handleBlur}
+                placeholder="0"
+                className={inputCls(!!form.touched.stock && !!form.errors.stock)}
+              />
+              {form.touched.stock && form.errors.stock && (
+                <p className="text-xs text-rose-500 mt-1.5">{form.errors.stock as string}</p>
+              )}
+            </div>
+          )}
+
+          {!isEdit && (
             <>
-              {lockedFields.length > 0 && (
+              {/* Category (fixed — inherited from the parent product) */}
+              {product.category && (
                 <div>
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-                    Group
+                    Category
                   </p>
-                  <div className="flex flex-wrap gap-1.5">
-                    {lockedFields.map(field => {
-                      const val = lockedAttributes![field.key];
-                      const opt = field.options?.find(o => o.value === val);
-                      return (
-                        <span key={field.key} className="text-xs bg-teal-50 text-teal-700 px-2.5 py-0.5 rounded-full font-medium">
-                          {field.label}: {opt?.label ?? val}
-                        </span>
-                      );
-                    })}
+                  <div className="flex items-center gap-2 rounded-xl border border-teal-100 bg-teal-50/50 px-3.5 py-2.5">
+                    <Lock size={14} className="text-teal-600 shrink-0" />
+                    <span className="text-sm font-medium text-teal-700">{product.category.name}</span>
                   </div>
                 </div>
               )}
 
+              {/* Variant option selectors */}
               {variantFields.length > 0 ? (
                 <div className="space-y-4">
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                    Variant Options
-                  </p>
                   {openFields.map(field => (
                     <SheetVariantOptionField
                       key={field.key}
@@ -321,6 +435,7 @@ export default function VariantSheet({
                       value={variantSelections[field.key]}
                       usedValues={usedValuesForField(field)}
                       onChange={v => setVariantSelection(field.key, v)}
+                      showError={attemptedSubmit}
                     />
                   ))}
                 </div>
@@ -354,119 +469,6 @@ export default function VariantSheet({
               )}
             </>
           )}
-
-          {/* Images */}
-          <div>
-            <div className="flex items-baseline gap-1.5 mb-2">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Images</p>
-              <span className="text-xs text-gray-400 normal-case font-normal">
-                optional · up to {MAX_SECONDARY_IMAGES} · uses product images if none uploaded
-              </span>
-            </div>
-
-            {images.length === 0 && !isUploading ? (
-              <label className="flex flex-col items-center justify-center gap-2 rounded-xl border-2 border-dashed border-gray-200 py-6 cursor-pointer hover:border-teal-400 transition-colors">
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  multiple
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
-                <div className="w-9 h-9 rounded-full bg-gray-50 flex items-center justify-center">
-                  <Camera size={18} className="text-gray-400" />
-                </div>
-                <p className="text-xs text-gray-400">Upload variant images</p>
-              </label>
-            ) : (
-              <div className="flex gap-2 flex-wrap">
-                {images.map((url, i) => (
-                  <div key={url} className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                    <img
-                      src={resolveImage(url)}
-                      alt={`Variant ${i + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => setImages(prev => prev.filter(u => u !== url))}
-                      className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                    >
-                      <X size={9} />
-                    </button>
-                  </div>
-                ))}
-                {images.length < MAX_SECONDARY_IMAGES && (
-                  <label className={`w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-teal-400 transition-colors shrink-0 ${isUploading ? 'pointer-events-none opacity-60' : ''}`}>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      multiple
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                    {isUploading
-                      ? <Loader2 size={16} className="text-teal-400 animate-spin" />
-                      : <Plus size={16} className="text-gray-300" />
-                    }
-                  </label>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Pricing & Stock */}
-          <div className="space-y-4">
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">
-              {isEdit ? 'Pricing & Stock' : 'Pricing'}
-            </p>
-
-            <div className="grid grid-cols-2 gap-3">
-              <PriceField
-                label="Selling Price"
-                name="sellingPrice"
-                value={form.values.sellingPrice}
-                error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}
-                onChange={form.handleChange}
-                onBlur={form.handleBlur}
-                hasError={!!form.touched.sellingPrice && !!form.errors.sellingPrice}
-                required
-              />
-              <PriceField
-                label="MRP"
-                name="mrp"
-                value={form.values.mrp}
-                error={form.touched.mrp ? form.errors.mrp as string : undefined}
-                onChange={form.handleChange}
-                onBlur={form.handleBlur}
-                hasError={!!form.touched.mrp && !!form.errors.mrp}
-                readOnly
-              />
-            </div>
-
-            {/* Stock only in edit mode or when not stock-dependent in add mode */}
-            {(isEdit || !stockDependent) && (
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                  Stock{(isEdit || !stockDependent) && <span className="text-rose-400 ml-0.5">*</span>}
-                </label>
-                <input
-                  name="stock"
-                  type="number"
-                  min={0}
-                  step="1"
-                  value={form.values.stock}
-                  onChange={form.handleChange}
-                  onBlur={form.handleBlur}
-                  placeholder="0"
-                  className={inputCls(!!form.touched.stock && !!form.errors.stock)}
-                />
-                {form.touched.stock && form.errors.stock && (
-                  <p className="text-xs text-rose-500 mt-1.5">{form.errors.stock as string}</p>
-                )}
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Footer */}
@@ -499,9 +501,13 @@ interface SheetVariantOptionFieldProps {
   value: string | string[] | undefined;
   usedValues: Set<string>;
   onChange: (v: string | string[]) => void;
+  showError: boolean;
 }
 
-function SheetVariantOptionField({ field, value, usedValues, onChange }: SheetVariantOptionFieldProps): JSX.Element {
+function SheetVariantOptionField({ field, value, usedValues, onChange, showError }: SheetVariantOptionFieldProps): JSX.Element {
+  const isEmpty = field.type === 'multiselect' ? !Array.isArray(value) || value.length === 0 : !value;
+  const hasError = showError && isEmpty;
+
   const labelEl = (
     <div className="mb-1.5">
       <span className="text-xs font-semibold text-gray-500">
@@ -512,6 +518,10 @@ function SheetVariantOptionField({ field, value, usedValues, onChange }: SheetVa
         <span className="text-gray-400 text-xs ml-1.5">(select all that apply)</span>
       )}
     </div>
+  );
+
+  const errorEl = hasError && (
+    <p className="text-xs text-rose-500 mt-1.5">{field.label} is required</p>
   );
 
   if (field.type === 'multiselect' && field.options && field.options.length > 0) {
@@ -534,7 +544,9 @@ function SheetVariantOptionField({ field, value, usedValues, onChange }: SheetVa
                     ? 'opacity-35 cursor-not-allowed border-gray-200 text-gray-400'
                     : active
                       ? 'bg-teal-600 border-teal-600 text-white'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
+                      : hasError
+                        ? 'bg-white border-rose-300 text-gray-600 hover:border-teal-400'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
                 }`}
               >
                 {opt.label}
@@ -542,6 +554,7 @@ function SheetVariantOptionField({ field, value, usedValues, onChange }: SheetVa
             );
           })}
         </div>
+        {errorEl}
       </div>
     );
   }
@@ -565,7 +578,9 @@ function SheetVariantOptionField({ field, value, usedValues, onChange }: SheetVa
                     ? 'opacity-35 cursor-not-allowed border-gray-200 text-gray-400'
                     : selected === opt.value
                       ? 'bg-teal-600 border-teal-600 text-white'
-                      : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
+                      : hasError
+                        ? 'bg-white border-rose-300 text-gray-600 hover:border-teal-400'
+                        : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
                 }`}
               >
                 {opt.label}
@@ -573,6 +588,7 @@ function SheetVariantOptionField({ field, value, usedValues, onChange }: SheetVa
             );
           })}
         </div>
+        {errorEl}
       </div>
     );
   }
@@ -586,8 +602,11 @@ function SheetVariantOptionField({ field, value, usedValues, onChange }: SheetVa
         value={strVal}
         onChange={e => onChange(e.target.value)}
         placeholder={field.unit ? `e.g. ${field.unit}` : `Enter ${field.label}`}
-        className="w-full border border-gray-200 rounded-xl text-sm text-gray-700 px-3 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+        className={`w-full border rounded-xl text-sm text-gray-700 px-3 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 ${
+          hasError ? 'border-rose-300' : 'border-gray-200'
+        }`}
       />
+      {errorEl}
     </div>
   );
 }
