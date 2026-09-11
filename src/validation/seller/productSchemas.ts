@@ -9,7 +9,12 @@ export const createProductSchema = Yup.object({
   name:          Yup.string().max(255).required('Product name is required'),
   description:   Yup.string().required('Description is required'),
   sellingPrice:  Yup.number().positive('Selling price must be positive').required('Selling price is required'),
-  mrp:           Yup.number().positive('MRP must be positive').optional(),
+  mrp:           Yup.number().positive('MRP must be positive').optional()
+    .test('mrp-gte-selling-price', 'MRP must be greater than or equal to Selling Price', function (mrp) {
+      const { sellingPrice } = this.parent as { sellingPrice: number | undefined };
+      if (mrp == null || sellingPrice == null) return true;
+      return mrp >= sellingPrice;
+    }),
   costPrice:     Yup.number().positive('Cost price must be positive').required('Cost price is required'),
   categoryId:    Yup.number().integer().positive().required('Category is required'),
   stock:         Yup.number().integer().min(0, 'Stock cannot be negative').when('rows', {
