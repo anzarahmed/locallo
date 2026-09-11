@@ -208,6 +208,10 @@ export async function updateVariant(
     ...(data.mrp          !== undefined && { mrp:          data.mrp }),
     ...(data.isActive     !== undefined && { isActive:     data.isActive }),
   });
+  // Sequelize's instance.update() only RETURNINGs on INSERT, not UPDATE — without
+  // reload(), DECIMAL fields stay as the raw JS number passed in instead of the
+  // DB-cast string (e.g. 999 vs "999.00"), so the response wouldn't match a GET.
+  await variant.reload();
 
   await syncProductStock(productId);
 
