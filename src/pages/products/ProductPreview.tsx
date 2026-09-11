@@ -58,13 +58,20 @@ function ProductImage({ src, alt }: { src: string; alt: string }): JSX.Element {
           <p className="text-xs text-gray-400">Image unavailable</p>
         </div>
       ) : (
-        <img
-          src={src}
-          alt={alt}
-          onLoad={() => setStatus('loaded')}
-          onError={() => setStatus('error')}
-          className={`w-full h-full object-cover transition-opacity duration-200 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
-        />
+        <>
+          <img
+            src={src}
+            aria-hidden="true"
+            className={`absolute inset-0 w-full h-full object-cover scale-110 blur-xl opacity-60 transition-opacity duration-200 ${status === 'loaded' ? 'opacity-60' : 'opacity-0'}`}
+          />
+          <img
+            src={src}
+            alt={alt}
+            onLoad={() => setStatus('loaded')}
+            onError={() => setStatus('error')}
+            className={`relative w-full h-full object-contain transition-opacity duration-200 ${status === 'loaded' ? 'opacity-100' : 'opacity-0'}`}
+          />
+        </>
       )}
     </div>
   );
@@ -283,16 +290,16 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                     <button
                       key={i}
                       onClick={() => setActiveImg(i)}
-                      className={`shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 transition-all ${
+                      className={`shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 bg-gray-100 transition-all ${
                         i === activeImg
                           ? 'border-teal-500 ring-2 ring-teal-100'
-                          : 'border-transparent bg-gray-100 hover:border-gray-300'
+                          : 'border-transparent hover:border-gray-300'
                       }`}
                     >
                       <img
                         src={resolveImage(img)}
                         alt=""
-                        className="w-full h-full object-cover"
+                        className="w-full h-full object-contain"
                       />
                     </button>
                   ))}
