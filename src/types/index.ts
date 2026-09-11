@@ -101,6 +101,7 @@ export interface Product {
   viewCount?: number;
   avgRating?: number;
   reviewCount?: number;
+  wishlistCount?: number;
   pickupAddress?: string | null;
   pickupLat?: number | string | null;
   pickupLong?: number | string | null;

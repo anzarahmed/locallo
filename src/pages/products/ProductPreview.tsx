@@ -327,7 +327,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                     </span>
                     <span className="flex items-center gap-1 text-xs text-gray-400">
                       <Heart size={12} className="text-pink-400" />
-                      0 saved
+                      {product.wishlistCount ?? 0} saved
                     </span>
                     <span className="flex items-center gap-1 text-xs text-gray-400">
                       <Eye size={12} className="text-gray-400" />
