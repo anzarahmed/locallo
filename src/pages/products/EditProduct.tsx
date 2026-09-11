@@ -57,6 +57,7 @@ export default function EditProduct(): JSX.Element {
   const nonVariantFields = attributeSchema.filter(f => !f.isVariant);
   const stockDependent = hasStockDependentAttr(variantFields);
   const combinations = generateCombinations(variantFields, variantSelections);
+  const visibleAttributeFields = attributeSchema.filter(f => !f.isVariant || !hasVariants);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -574,34 +575,23 @@ export default function EditProduct(): JSX.Element {
             </FormField>
           </div>
 
-          {/* Product Attributes — non-variant text / number / textarea */}
-          {nonVariantFields.some(f => f.type === 'text' || f.type === 'number' || f.type === 'textarea') && (
+          {/* Product Attributes — every field from the category's attributeSchema, in
+              schema-defined order (variant and non-variant fields interleaved), matching
+              the mobile app's Add Product screen; variant fields are omitted once the
+              product already has its own variant rows (edited on the Variants page instead) */}
+          {visibleAttributeFields.length > 0 && (
             <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
               <p className="text-sm font-semibold text-gray-700">Product Attributes</p>
-              {nonVariantFields
-                .filter(f => f.type === 'text' || f.type === 'number' || f.type === 'textarea')
-                .map(field => (
-                  <AttrInput
+              {visibleAttributeFields.map(field => (
+                field.isVariant ? (
+                  <VariantOptionField
                     key={field.key}
                     field={field}
-                    value={attributes[field.key] ?? ''}
-                    onChange={v => setAttr(field.key, v)}
+                    value={variantSelections[field.key]}
+                    onChange={v => setVariantSelection(field.key, v)}
                     error={attrErrors[field.key]}
                   />
-                ))}
-            </div>
-          )}
-
-          {/* Available Options — non-variant select / multiselect / color */}
-          {nonVariantFields.some(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color') && (
-            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-gray-700">Available Options</p>
-                <p className="text-xs text-gray-400 mt-0.5">Select all options this product is available in</p>
-              </div>
-              {nonVariantFields
-                .filter(f => f.type === 'select' || f.type === 'multiselect' || f.type === 'color')
-                .map(field => (
+                ) : (
                   <AttrInput
                     key={field.key}
                     field={field}
@@ -609,27 +599,7 @@ export default function EditProduct(): JSX.Element {
                     onChange={v => setAttr(field.key, v)}
                     error={attrErrors[field.key]}
                   />
-                ))}
-            </div>
-          )}
-
-          {/* Variant Options — only when no existing variants yet */}
-          {!hasVariants && variantFields.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-              <div>
-                <p className="text-sm font-semibold text-gray-700">Variant Options</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  Select options for the first variant — add more from the Variants page
-                </p>
-              </div>
-              {variantFields.map(field => (
-                <VariantOptionField
-                  key={field.key}
-                  field={field}
-                  value={variantSelections[field.key]}
-                  onChange={v => setVariantSelection(field.key, v)}
-                  error={attrErrors[field.key]}
-                />
+                )
               ))}
             </div>
           )}
