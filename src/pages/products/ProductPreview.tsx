@@ -1,10 +1,10 @@
 import { useState, useEffect, type JSX } from 'react';
-import { X, Package, ChevronLeft, ChevronRight, Star, Heart, MapPin, Store, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { getSellerProduct, getProductVariants } from '../../services/sellerService';
+import { X, Package, ChevronLeft, ChevronRight, Star, Heart, MapPin, Store, Navigation, Eye, EyeOff, Loader2 } from 'lucide-react';
+import { getSellerProduct, getProductVariants, getProfile } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { formatPrice, discountPct } from '../../lib/formatters';
-import type { Product, ProductVariant, AttributeField } from '../../types';
+import type { Product, ProductVariant, AttributeField, SellerProfile } from '../../types';
 
 function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
   if (raw === null || raw === undefined || raw === '') {
@@ -114,6 +114,7 @@ interface ProductPreviewProps {
 export default function ProductPreview({ productId, onClose }: ProductPreviewProps): JSX.Element {
   const [product, setProduct] = useState<Product | null>(null);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
+  const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState(0);
@@ -127,23 +128,29 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
     Promise.all([
       getSellerProduct(productId),
       getProductVariants(productId).catch(() => ({ variants: [] as ProductVariant[], product: null })),
+      getProfile().catch(() => null),
     ])
-      .then(([productRes, variantRes]) => {
+      .then(([productRes, variantRes, profileRes]) => {
         setProduct(productRes.product);
         setVariants(variantRes.variants);
+        setSellerProfile(profileRes?.profile ?? null);
         setActiveImg(0);
 
         const variantFields = productRes.product.category?.attributeSchema?.filter(f => f.isVariant === true) ?? [];
-        const defaultVariant = variantRes.variants.find(v => v.isActive) ?? variantRes.variants[0];
-        if (variantFields.length > 0 && defaultVariant) {
-          const attrs = defaultVariant.attributes as Record<string, string>;
-          const defaults: Record<string, string> = {};
-          variantFields.forEach(f => {
-            const val = attrs[f.key];
-            if (val !== undefined && val !== null) defaults[f.key] = String(val);
-          });
-          setSelectedAttrs(defaults);
-        }
+        const defaults: Record<string, string> = {};
+        variantFields.forEach(field => {
+          const usedValues = new Set(
+            variantRes.variants.map(v => String((v.attributes as Record<string, string>)[field.key])),
+          );
+          if (field.type === 'color') {
+            const firstVal = [...usedValues].filter(Boolean)[0];
+            if (firstVal) defaults[field.key] = firstVal;
+          } else if (field.options) {
+            const firstOpt = field.options.find(o => usedValues.has(o.value));
+            if (firstOpt) defaults[field.key] = firstOpt.value;
+          }
+        });
+        setSelectedAttrs(defaults);
       })
       .catch(err => {
         setError(err instanceof ApiError ? err.message : 'Failed to load product');
@@ -228,7 +235,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto flex-1">
+        <div className="overflow-y-auto overflow-x-hidden flex-1">
           {loading ? (
             <Skeleton />
           ) : error ? (
@@ -490,38 +497,51 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                   </div>
                 )}
 
-                {/* Seller info */}
-                <div className="bg-gray-50 rounded-xl px-4 py-3 flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-full bg-teal-100 flex items-center justify-center shrink-0">
-                    <Store size={16} className="text-teal-600" />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-sm font-semibold text-gray-900 truncate">
-                      {/* Seller business name comes from profile, not product, so show placeholder */}
-                      Your Business Name
-                    </p>
-                    {product.pickupAddress ? (
-                      <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5 truncate">
-                        <MapPin size={10} className="shrink-0" />
-                        {product.pickupAddress}
-                      </p>
-                    ) : (
-                      <p className="text-xs text-gray-400 mt-0.5">Seller</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Add to cart button (decorative) */}
+                {/* Add to wishlist button (decorative) */}
                 <button
                   disabled
-                  className={`w-full py-3.5 rounded-2xl text-sm font-bold tracking-wide transition-colors ${
-                    displayStock === 0
-                      ? 'bg-gray-200 text-gray-400 cursor-not-allowed'
-                      : 'bg-teal-600 text-white opacity-80 cursor-not-allowed'
-                  }`}
+                  className="w-full py-3.5 rounded-2xl text-sm font-bold tracking-wide text-white opacity-80 cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(90deg, #FFB300 0%, #E53000 100%)' }}
                 >
-                  {displayStock === 0 ? 'Out of stock' : 'Add to Cart'}
+                  <Heart size={16} />
+                  Add to Wishlist
                 </button>
+
+                {/* Get direction button (decorative) */}
+                <button
+                  disabled
+                  className="w-full py-3.5 rounded-2xl text-sm font-bold tracking-wide text-white opacity-80 cursor-not-allowed flex items-center justify-center gap-2"
+                  style={{ background: 'linear-gradient(90deg, #26B8B2 0%, #14817C 100%)' }}
+                >
+                  <Navigation size={16} />
+                  Get Direction to Shop
+                </button>
+
+                {/* Shop info card */}
+                <div className="border border-orange-100 rounded-2xl px-4 py-3.5">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-sky-50 flex items-center justify-center shrink-0">
+                      <Store size={18} className="text-sky-500" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-sm font-bold text-gray-900 truncate">
+                        {sellerProfile?.businessName ?? 'Your Business Name'}
+                      </p>
+                      {(sellerProfile?.city ?? product.pickupAddress) && (
+                        <p className="text-xs text-gray-400 flex items-center gap-1 mt-0.5 truncate">
+                          <MapPin size={10} className="shrink-0" />
+                          {sellerProfile?.city ?? product.pickupAddress}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between mt-2.5">
+                    <p className="text-xs text-gray-400 flex-1 min-w-0 truncate">Visit shop &amp; browse all products</p>
+                    <span className="text-xs font-semibold text-orange-500 whitespace-nowrap shrink-0 ml-2">
+                      View all →
+                    </span>
+                  </div>
+                </div>
 
                 <p className="text-center text-xs text-gray-300">
                   Preview only — buttons are not functional
