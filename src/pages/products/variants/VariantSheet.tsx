@@ -24,6 +24,10 @@ interface VariantSheetProps {
   onClose: () => void;
 }
 
+function isVariantFieldEmpty(field: AttributeField, value: string | string[] | undefined): boolean {
+  return field.type === 'multiselect' ? !Array.isArray(value) || value.length === 0 : !value;
+}
+
 export default function VariantSheet({
   productId,
   product,
@@ -185,7 +189,25 @@ export default function VariantSheet({
     }
 
     /* Add mode: create one variant per combination */
-    if (allCombinations.length === 0) {
+    if (openFields.length > 0) {
+      const missingFields = openFields.filter(f => isVariantFieldEmpty(f, variantSelections[f.key]));
+      if (missingFields.length === openFields.length) {
+        setAttemptedSubmit(true);
+        toast.error('Select at least one option to create a variant');
+        helpers.setSubmitting(false);
+        return;
+      }
+      if (missingFields.length > 0) {
+        setAttemptedSubmit(true);
+        toast.error(
+          missingFields.length === 1
+            ? `${missingFields[0]!.label} is required`
+            : `${missingFields.map(f => f.label).join(', ')} are required`,
+        );
+        helpers.setSubmitting(false);
+        return;
+      }
+    } else if (allCombinations.length === 0) {
       setAttemptedSubmit(true);
       toast.error('Select at least one option to create a variant');
       helpers.setSubmitting(false);
@@ -505,8 +527,7 @@ interface SheetVariantOptionFieldProps {
 }
 
 function SheetVariantOptionField({ field, value, usedValues, onChange, showError }: SheetVariantOptionFieldProps): JSX.Element {
-  const isEmpty = field.type === 'multiselect' ? !Array.isArray(value) || value.length === 0 : !value;
-  const hasError = showError && isEmpty;
+  const hasError = showError && isVariantFieldEmpty(field, value);
 
   const labelEl = (
     <div className="mb-1.5">
