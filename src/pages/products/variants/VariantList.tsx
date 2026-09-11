@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Camera, Eye, EyeOff, Loader2, Package, Pencil, Plus, Rocket, ShoppingBag, Trash2, X } from 'lucide-react';
 import {
   getProductVariants, toggleVariant, deleteVariant, markVariantSold, updateVariant,
@@ -40,7 +40,10 @@ function groupVariants(variants: ProductVariant[], sdKey: string): VariantGroup[
 export default function VariantList(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const toast = useToast();
+
+  const backTo = (location.state as { from?: string } | null)?.from ?? `/products/${id}/edit`;
 
   const [loading, setLoading] = useState(true);
   const [product, setProduct] = useState<Product | null>(null);
@@ -181,7 +184,7 @@ export default function VariantList(): JSX.Element {
           <div className="flex items-center gap-3">
             <button
               type="button"
-              onClick={() => navigate(`/products/${id}/edit`)}
+              onClick={() => navigate(backTo)}
               className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors shrink-0"
             >
               <ArrowLeft size={18} />

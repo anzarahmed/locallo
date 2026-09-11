@@ -246,7 +246,7 @@ export default function ProductList(): JSX.Element {
                 loadingVariants={loadingVariantsForId === product.id}
                 onView={() => navigate(`/products/${product.id}`)}
                 onEdit={() => navigate(`/products/${product.id}/edit`)}
-                onVariants={() => navigate(`/products/${product.id}/variants`)}
+                onVariants={() => navigate(`/products/${product.id}/variants`, { state: { from: '/products' } })}
                 onToggle={() => void handleToggle(product)}
                 onDelete={() => setDeleteTarget(product)}
                 onPreview={() => setPreviewId(product.id)}

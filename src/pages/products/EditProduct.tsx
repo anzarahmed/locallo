@@ -280,7 +280,11 @@ export default function EditProduct(): JSX.Element {
       }
 
       toast.success('Product updated');
-      navigate(updated.hasVariants || hasCombinations ? `/products/${id}/variants` : '/products');
+      if (updated.hasVariants || hasCombinations) {
+        navigate(`/products/${id}/variants`, { state: { from: `/products/${id}/edit` } });
+      } else {
+        navigate('/products');
+      }
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Failed to update product';
       helpers.setStatus(msg);
@@ -625,7 +629,7 @@ export default function EditProduct(): JSX.Element {
           {/* Variants link */}
           <button
             type="button"
-            onClick={() => navigate(`/products/${id}/variants`)}
+            onClick={() => navigate(`/products/${id}/variants`, { state: { from: `/products/${id}/edit` } })}
             className="w-full bg-white rounded-2xl shadow-sm px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
           >
             <div>

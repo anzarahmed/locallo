@@ -269,7 +269,11 @@ export default function AddProduct(): JSX.Element {
       });
 
       toast.success('Product added successfully');
-      navigate(product.hasVariants ? `/products/${product.id}/variants` : '/products');
+      if (product.hasVariants) {
+        navigate(`/products/${product.id}/variants`, { state: { from: '/products' } });
+      } else {
+        navigate('/products');
+      }
     } catch (err) {
       const msg = err instanceof ApiError ? err.message : 'Failed to create product';
       helpers.setStatus(msg);

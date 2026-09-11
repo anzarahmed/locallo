@@ -388,7 +388,7 @@ export default function ProductDetail(): JSX.Element {
                 </button>
                 <button
                   type="button"
-                  onClick={() => navigate(`/products/${product.id}/variants`)}
+                  onClick={() => navigate(`/products/${product.id}/variants`, { state: { from: `/products/${product.id}` } })}
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
                 >
                   <Layers size={14} /> Variants
