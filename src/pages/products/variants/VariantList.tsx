@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Camera, Eye, EyeOff, Loader2, Package, Pencil, Plus, Rocket, ShoppingBag, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Camera, Eye, EyeOff, Loader2, Package, Pencil, Plus, Rocket, Search, ShoppingBag, Trash2, X } from 'lucide-react';
 import {
   getProductVariants, toggleVariant, deleteVariant, markVariantSold, updateVariant,
   uploadProductImage, getActiveBoost,
@@ -38,6 +38,16 @@ function groupVariants(variants: ProductVariant[], sdKey: string): VariantGroup[
   return Array.from(map.values());
 }
 
+function variantMatches(variant: ProductVariant, schema: AttributeField[], query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  return Object.entries(variant.attributes as Record<string, string>).some(([key, value]) => {
+    const field = schema.find(f => f.key === key);
+    const display = field?.options?.find(o => o.value === value)?.label ?? String(value);
+    return display.toLowerCase().includes(q);
+  });
+}
+
 export default function VariantList(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
@@ -59,10 +69,13 @@ export default function VariantList(): JSX.Element {
   const [selling, setSelling] = useState(false);
   const [boost, setBoost] = useState<ProductBoost | null>(null);
   const [promoteTarget, setPromoteTarget] = useState<{ variant: ProductVariant | null } | null>(null);
+  const [search, setSearch] = useState('');
 
   const schema = product?.category?.attributeSchema ?? [];
   const sdField = schema.find(f => f.isVariant === true && f.isStockDependent === true);
-  const groups = sdField ? groupVariants(variants, sdField.key) : null;
+  const filteredVariants = variants.filter(v => variantMatches(v, schema, search));
+  const groups = sdField ? groupVariants(filteredVariants, sdField.key) : null;
+  const noSearchResults = search.trim() !== '' && variants.length > 0 && filteredVariants.length === 0;
 
   const wholeProductBoosted = boost != null && boost.variantId === null;
   const boostedVariantId = boost?.variantId ?? null;
@@ -226,6 +239,18 @@ export default function VariantList(): JSX.Element {
 
       {/* Content */}
       <div className="px-6 md:px-8 -mt-8 relative z-10 pb-8">
+        {!loading && variants.length > 0 && (
+          <div className="relative mb-3">
+            <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              value={search}
+              onChange={e => setSearch(e.target.value)}
+              placeholder="Search variants by color, size…"
+              className="w-full bg-white rounded-2xl shadow-sm pl-11 pr-4 py-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
+            />
+          </div>
+        )}
         {!loading && wholeProductBoosted && (
           <div className="mb-3 flex items-center gap-2 rounded-2xl bg-violet-50 border border-violet-200 px-4 py-3 text-xs font-semibold text-violet-700">
             <Rocket size={13} className="shrink-0" />
@@ -238,6 +263,8 @@ export default function VariantList(): JSX.Element {
           </div>
         ) : variants.length === 0 ? (
           <EmptyState onAdd={openAdd} />
+        ) : noSearchResults ? (
+          <NoSearchResults />
         ) : groups ? (
           <div className="space-y-3">
             {groups.map(group => (
@@ -260,7 +287,7 @@ export default function VariantList(): JSX.Element {
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-            {variants.map(variant => (
+            {filteredVariants.map(variant => (
               <VariantCard
                 key={variant.id}
                 variant={variant}
@@ -899,6 +926,17 @@ function VariantCardSkeleton(): JSX.Element {
         <div className="w-9 h-9 rounded-full bg-gray-100" />
         <div className="w-9 h-9 rounded-full bg-gray-100" />
       </div>
+    </div>
+  );
+}
+
+/* ── No search results ── */
+function NoSearchResults(): JSX.Element {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm py-14 text-center">
+      <Search size={32} className="text-gray-200 mx-auto mb-3" />
+      <p className="text-sm font-semibold text-gray-500">No variants match your search</p>
+      <p className="text-xs text-gray-400 mt-1 px-8">Try a different color, size, or option</p>
     </div>
   );
 }
