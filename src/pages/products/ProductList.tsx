@@ -13,6 +13,7 @@ import SellModal from '../../components/ui/SellModal';
 import VariantPickerModal from '../../components/ui/VariantPickerModal';
 import type { Product, ProductVariant, AttributeField } from '../../types';
 import Tooltip from '../../components/ui/Tooltip';
+import noProductsIllustration from '../../assets/no-products.png';
 import ProductPreview from './ProductPreview';
 
 export default function ProductList(): JSX.Element {
@@ -506,15 +507,11 @@ interface EmptyStateProps {
 }
 
 function EmptyState({ filter, onAdd }: EmptyStateProps): JSX.Element {
-  const message =
-    filter === 'visible' ? 'No visible products'
-    : filter === 'hidden' ? 'No hidden products'
-    : 'No products yet';
-
   return (
     <div className="py-16 text-center">
-      <Package size={40} className="text-gray-200 mx-auto mb-3" />
-      <p className="text-sm font-semibold text-gray-500">{message}</p>
+      <img src={noProductsIllustration} alt="Sorry!" className="w-64 mx-auto mb-1" />
+      <p className="text-sm font-semibold text-gray-700">No Product Found...</p>
+      <p className="text-xs text-gray-400 mt-1">You Can Try Our Different Product...</p>
       {filter === 'all' && (
         <button
           onClick={onAdd}
