@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
 import { ModulePrefsProvider } from './hooks/useModulePrefs';
 import Toaster from './components/ui/Toaster';
+import ScrollToTop from './components/ScrollToTop';
 import type { JSX } from 'react';
 
 const AppLayout   = lazy(() => import('./components/layout/AppLayout'));
@@ -45,6 +46,7 @@ const PageFallback = (): JSX.Element => <div className="min-h-screen bg-gray-50"
 function AppRoutes(): JSX.Element {
   return (
     <Suspense fallback={<PageFallback />}>
+      <ScrollToTop />
       <Routes>
         {/* Guest routes */}
         <Route path="/login"      element={<GuestGuard><Login /></GuestGuard>} />
