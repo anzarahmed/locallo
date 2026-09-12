@@ -8,6 +8,7 @@ import { createBoost, getActiveBoost, cancelBoost } from '../../services/sellerS
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
+import { loadScript } from '../../lib/loadScript';
 import { estimateImpressions, formatAudienceLabel, AUDIENCE_TYPE_CODE } from '../../lib/boostUtils';
 import { variantLabel } from '../../lib/variantUtils';
 import { STATES, STATE_CITY_MAP } from '../../lib/statesCities';
@@ -22,6 +23,8 @@ interface BoostProductModalProps {
   onClose: () => void;
   onBoosted: (boost: ProductBoost) => void;
 }
+
+const RAZORPAY_CHECKOUT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
 
 const STEPS: { key: 1 | 2 | 3; label: string; icon: LucideIcon }[] = [
   { key: 1, label: 'Audience', icon: Users },
@@ -55,6 +58,10 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
     return () => { cancelled = true; };
   }, [product.id]);
 
+  useEffect(() => {
+    void loadScript(RAZORPAY_CHECKOUT_URL).catch(() => {});
+  }, []);
+
   const formik = useFormik<BoostFormValues>({
     initialValues: {
       audienceType: '',
@@ -78,6 +85,8 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
         budget: Number(values.dailyBudget),
         variantId: variant?.id ?? undefined,
       });
+
+      await loadScript(RAZORPAY_CHECKOUT_URL).catch(() => {});
 
       if (typeof window.Razorpay !== 'function') {
         toast.error('Payment gateway failed to load. Please refresh and try again.');
