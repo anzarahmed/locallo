@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { createBrowserRouter, createRoutesFromElements, RouterProvider, Route, Navigate, Outlet } from 'react-router-dom';
 import { lazy, Suspense } from 'react';
 import { AuthProvider, useAuth } from './hooks/useAuth';
 import { ToastProvider } from './hooks/useToast';
@@ -43,52 +43,60 @@ function GuestGuard({ children }: { children: JSX.Element }): JSX.Element {
 
 const PageFallback = (): JSX.Element => <div className="min-h-screen bg-gray-50" />;
 
-function AppRoutes(): JSX.Element {
+// AuthProvider calls useNavigate internally, so providers must live inside the
+// router tree (as a root route) rather than wrapping RouterProvider — this is
+// also what lets useBlocker (unsaved-changes guards) see every in-app navigation,
+// including sidebar/bottom-nav links and browser back/forward, which a plain
+// BrowserRouter cannot block.
+function RootProviders(): JSX.Element {
   return (
-    <Suspense fallback={<PageFallback />}>
-      <ScrollToTop />
-      <Routes>
-        {/* Guest routes */}
-        <Route path="/login"      element={<GuestGuard><Login /></GuestGuard>} />
-        <Route path="/verify-otp" element={<GuestGuard><VerifyOtp /></GuestGuard>} />
-
-        {/* Authenticated routes */}
-        <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
-          <Route path="/dashboard"             element={<Dashboard />} />
-          <Route path="/profile"               element={<Profile />} />
-          <Route path="/products"              element={<ProductList />} />
-          <Route path="/products/add"          element={<AddProduct />} />
-          <Route path="/products/:id"          element={<ProductDetail />} />
-          <Route path="/products/:id/edit"     element={<EditProduct />} />
-          <Route path="/products/:id/variants" element={<VariantList />} />
-          <Route path="/settings"              element={<Settings />} />
-          <Route path="/sold-logs"             element={<SoldLogs />} />
-          <Route path="/purchase-logs"         element={<PurchaseLogs />} />
-          <Route path="/offers"                element={<AcceptedOffers />} />
-          <Route path="/offers/:id"            element={<OfferDetail />} />
-          <Route path="/offers/:id/accept"     element={<AcceptOfferProducts />} />
-          <Route path="/notifications"         element={<NotificationList />} />
-          <Route path="/pnl"                   element={<Pnl />} />
-          <Route path="/expenses"              element={<Expenses />} />
-        </Route>
-
-        <Route path="*" element={<Navigate to="/login" replace />} />
-      </Routes>
-    </Suspense>
+    <ToastProvider>
+      <ModulePrefsProvider>
+        <AuthProvider>
+          <ScrollToTop />
+          <Suspense fallback={<PageFallback />}>
+            <Outlet />
+          </Suspense>
+        </AuthProvider>
+        <Toaster />
+      </ModulePrefsProvider>
+    </ToastProvider>
   );
 }
 
+const router = createBrowserRouter(
+  createRoutesFromElements(
+    <Route element={<RootProviders />}>
+      {/* Guest routes */}
+      <Route path="/login"      element={<GuestGuard><Login /></GuestGuard>} />
+      <Route path="/verify-otp" element={<GuestGuard><VerifyOtp /></GuestGuard>} />
+
+      {/* Authenticated routes */}
+      <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
+        <Route path="/dashboard"             element={<Dashboard />} />
+        <Route path="/profile"               element={<Profile />} />
+        <Route path="/products"              element={<ProductList />} />
+        <Route path="/products/add"          element={<AddProduct />} />
+        <Route path="/products/:id"          element={<ProductDetail />} />
+        <Route path="/products/:id/edit"     element={<EditProduct />} />
+        <Route path="/products/:id/variants" element={<VariantList />} />
+        <Route path="/settings"              element={<Settings />} />
+        <Route path="/sold-logs"             element={<SoldLogs />} />
+        <Route path="/purchase-logs"         element={<PurchaseLogs />} />
+        <Route path="/offers"                element={<AcceptedOffers />} />
+        <Route path="/offers/:id"            element={<OfferDetail />} />
+        <Route path="/offers/:id/accept"     element={<AcceptOfferProducts />} />
+        <Route path="/notifications"         element={<NotificationList />} />
+        <Route path="/pnl"                   element={<Pnl />} />
+        <Route path="/expenses"              element={<Expenses />} />
+      </Route>
+
+      <Route path="*" element={<Navigate to="/login" replace />} />
+    </Route>,
+  ),
+  { basename: '/seller' },
+);
+
 export default function App(): JSX.Element {
-  return (
-    <BrowserRouter basename="/seller">
-      <ToastProvider>
-        <ModulePrefsProvider>
-          <AuthProvider>
-            <AppRoutes />
-          </AuthProvider>
-          <Toaster />
-        </ModulePrefsProvider>
-      </ToastProvider>
-    </BrowserRouter>
-  );
+  return <RouterProvider router={router} />;
 }

@@ -1,5 +1,5 @@
-import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useCallback, useEffect, useRef, useState, type JSX, type ChangeEvent } from 'react';
+import { useNavigate, useParams, useBlocker } from 'react-router-dom';
 import { useFormik, type FormikHelpers } from 'formik';
 import { ArrowLeft, Camera, X, Plus, Loader2, ChevronDown, ChevronRight, Eye, Star } from 'lucide-react';
 import {
@@ -18,6 +18,7 @@ import {
 } from '../../lib/variantUtils';
 import FormField from '../../components/ui/FormField';
 import AttrInput from '../../components/ui/AttrInput';
+import ConfirmLeaveModal from '../../components/ui/ConfirmLeaveModal';
 import type { SellerCategory, AttributeField, AttributeFieldOption, ProductReview } from '../../types';
 
 const EMPTY_VALUES: AddProductFormValues = {
@@ -53,6 +54,10 @@ export default function EditProduct(): JSX.Element {
   const [reviewsPage, setReviewsPage] = useState(1);
   const [reviewsLoading, setReviewsLoading] = useState(true);
 
+  const initialPrimaryImageRef = useRef<string | null>(null);
+  const initialSecondaryImagesRef = useRef<string[]>([]);
+  const initialAttributesRef = useRef<Record<string, AttrValue>>({});
+
   const variantFields = attributeSchema.filter(f => f.isVariant === true);
   const nonVariantFields = attributeSchema.filter(f => !f.isVariant);
   const stockDependent = hasStockDependentAttr(variantFields);
@@ -68,15 +73,21 @@ export default function EditProduct(): JSX.Element {
         ]);
         setCategories(profileData.profile.categories);
         const allImages = product.images ?? [];
-        setPrimaryImage(allImages[0] ?? null);
-        setSecondaryImages(allImages.slice(1, 1 + MAX_SECONDARY_IMAGES));
+        const primary = allImages[0] ?? null;
+        const secondary = allImages.slice(1, 1 + MAX_SECONDARY_IMAGES);
+        setPrimaryImage(primary);
+        setSecondaryImages(secondary);
+        initialPrimaryImageRef.current = primary;
+        initialSecondaryImagesRef.current = secondary;
         const count = product.variants?.length ?? 0;
         setHasVariants(count > 0);
         setVariantCount(count);
         setViewCount(product.viewCount ?? 0);
         const schema = product.category?.attributeSchema ?? [];
         setAttributeSchema(schema);
-        setAttributes(normalizeAttrValues(product.attributes ?? {}, schema));
+        const normalizedAttrs = normalizeAttrValues(product.attributes ?? {}, schema);
+        setAttributes(normalizedAttrs);
+        initialAttributesRef.current = normalizedAttrs;
         setAttrErrors({});
         setInitialValues({
           name:         product.name,
@@ -135,6 +146,48 @@ export default function EditProduct(): JSX.Element {
     validateOnChange: false,
     onSubmit: handleSubmit,
   });
+
+  function computeDirty(): boolean {
+    if (form.dirty) return true;
+    if (primaryImage !== initialPrimaryImageRef.current) return true;
+    if (JSON.stringify(secondaryImages) !== JSON.stringify(initialSecondaryImagesRef.current)) return true;
+    if (JSON.stringify(attributes) !== JSON.stringify(initialAttributesRef.current)) return true;
+    if (Object.values(variantSelections).some(v => Array.isArray(v) ? v.length > 0 : !!v)) return true;
+    if (Object.keys(comboStocks).length > 0) return true;
+    return false;
+  }
+
+  // Kept in sync after every render so the blocker (and the save flow, which
+  // flips it off imperatively right before its own navigate) always reads the
+  // latest dirty state without waiting on a re-render.
+  const dirtyRef = useRef(false);
+  useEffect(() => {
+    dirtyRef.current = computeDirty();
+  });
+
+  // A stable function form (rather than a boolean re-passed each render) so the
+  // blocker is registered with the router once and evaluates dirtyRef.current
+  // fresh at the moment of every navigation attempt — sidebar/bottom-nav links,
+  // programmatic navigate() calls, and browser back/forward alike.
+  const blocker = useBlocker(useCallback(() => dirtyRef.current, []));
+
+  function confirmLeave(): void {
+    blocker.proceed?.();
+  }
+
+  function cancelLeave(): void {
+    blocker.reset?.();
+  }
+
+  useEffect(() => {
+    function handleBeforeUnload(e: BeforeUnloadEvent): void {
+      if (!dirtyRef.current) return;
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, []);
 
   function clearAttrError(key: string): void {
     setAttrErrors(prev => {
@@ -280,6 +333,7 @@ export default function EditProduct(): JSX.Element {
       }
 
       toast.success('Product updated');
+      dirtyRef.current = false;
       if (updated.hasVariants || hasCombinations) {
         navigate(`/products/${id}/variants`, { state: { from: `/products/${id}/edit` } });
       } else {
@@ -755,6 +809,10 @@ export default function EditProduct(): JSX.Element {
           </button>
         </div>
       </div>
+
+      {blocker.state === 'blocked' && (
+        <ConfirmLeaveModal onConfirm={confirmLeave} onCancel={cancelLeave} />
+      )}
     </div>
   );
 }
