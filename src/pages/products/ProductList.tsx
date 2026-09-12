@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, ChevronDown, ScanEye, ShoppingBag, Loader2 } from 'lucide-react';
+import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, ChevronDown, ScanEye, ShoppingBag, Loader2, Rocket } from 'lucide-react';
 import { getProducts, toggleProduct, deleteProduct, markProductSold, markVariantSold, getProductVariants } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
@@ -11,7 +11,8 @@ import { FILTER_TABS, SORT_OPTIONS, PAGE_LIMIT, type FilterTab } from '../../con
 import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../components/ui/SellModal';
 import VariantPickerModal from '../../components/ui/VariantPickerModal';
-import type { Product, ProductVariant, AttributeField } from '../../types';
+import BoostProductModal from '../../components/ui/BoostProductModal';
+import type { Product, ProductVariant, AttributeField, ProductBoost } from '../../types';
 import Tooltip from '../../components/ui/Tooltip';
 import noProductsIllustration from '../../assets/no-products.png';
 import ProductPreview from './ProductPreview';
@@ -39,6 +40,7 @@ export default function ProductList(): JSX.Element {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [loadingVariantsForId, setLoadingVariantsForId] = useState<string | null>(null);
   const [selling, setSelling] = useState(false);
+  const [promoteProduct, setPromoteProduct] = useState<Product | null>(null);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -157,6 +159,11 @@ export default function ProductList(): JSX.Element {
     }
   }
 
+  function handleBoosted(boost: ProductBoost): void {
+    setProducts(prev => prev.map(p => p.id === boost.productId ? { ...p, isBoosted: true } : p));
+    setPromoteProduct(null);
+  }
+
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 
   return (
@@ -253,6 +260,7 @@ export default function ProductList(): JSX.Element {
                 onDelete={() => setDeleteTarget(product)}
                 onPreview={() => setPreviewId(product.id)}
                 onSell={() => void handleSellClick(product)}
+                onPromote={() => setPromoteProduct(product)}
               />
             ))
           )}
@@ -334,6 +342,14 @@ export default function ProductList(): JSX.Element {
           onClose={() => setSellProduct(null)}
         />
       )}
+
+      {promoteProduct && (
+        <BoostProductModal
+          product={promoteProduct}
+          onClose={() => setPromoteProduct(null)}
+          onBoosted={handleBoosted}
+        />
+      )}
     </div>
   );
 }
@@ -349,11 +365,13 @@ interface ProductCardProps {
   onDelete: () => void;
   onPreview: () => void;
   onSell: () => void;
+  onPromote: () => void;
 }
 
-function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onToggle, onDelete, onPreview, onSell }: ProductCardProps): JSX.Element {
+function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onToggle, onDelete, onPreview, onSell, onPromote }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
   const showVariants = categorySupportsVariants(product.category?.attributeSchema);
+  const hasVariants = (product.variantCount ?? 0) > 0;
   const thumbnailSrc = product.thumbnails?.[0] ?? product.images?.[0];
   const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
 
@@ -381,6 +399,12 @@ function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onT
             {!product.isActive && (
               <span className="shrink-0 text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
                 Hidden
+              </span>
+            )}
+            {product.isBoosted && (
+              <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-full mt-0.5">
+                <Rocket size={9} />
+                Boosted
               </span>
             )}
           </div>
@@ -413,6 +437,17 @@ function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onT
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
+          {!hasVariants && (
+            <Tooltip label={product.isBoosted ? 'Boosted' : 'Promote product'}>
+              <button
+                onClick={onPromote}
+                aria-label={product.isBoosted ? 'Boosted' : 'Promote product'}
+                className="w-8 h-8 rounded-full bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors"
+              >
+                <Rocket size={14} />
+              </button>
+            </Tooltip>
+          )}
           <Tooltip label={product.stock === 0 ? 'Out of stock' : 'Mark as sold'}>
             <button
               onClick={onSell}
