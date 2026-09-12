@@ -96,6 +96,26 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
   }
   const boostedProductIds = chosenBoosts.map((b) => b.product.id);
 
+  const boostedCategoryIds = [...new Set(chosenBoosts.map((b) => b.product.categoryId))];
+  const [boostedVariantsByProduct, boostedAttributeSchemas] = await Promise.all([
+    variantSelection.getActiveVariantsByProduct(boostedProductIds),
+    productService.getCategoryAttributeSchemas(boostedCategoryIds),
+  ]);
+
+  const fullyExcludeProductIds: string[] = [];
+  const excludeVariantByProduct = new Map<string, string>();
+  for (const b of chosenBoosts) {
+    const variants = boostedVariantsByProduct.get(b.product.id) ?? [];
+    const displayed = b.variant ?? variantSelection.pickVariantForSearch(
+      variants, search, b.product.name, boostedAttributeSchemas.get(b.product.categoryId),
+    );
+    if (displayed && variants.some((v) => v.id !== displayed.id)) {
+      excludeVariantByProduct.set(b.product.id, displayed.id);
+    } else {
+      fullyExcludeProductIds.push(b.product.id);
+    }
+  }
+
   const { rows, count } = await productService.browseProducts(
     {
       categoryId,
@@ -105,7 +125,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
       search,
       lat: searchByLocation?.lat,
       lng: searchByLocation?.lng,
-      excludeProductIds: boostedProductIds,
+      excludeProductIds: fullyExcludeProductIds,
     },
     page,
     limit - chosenBoosts.length,
@@ -124,19 +144,25 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
     chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: true, boostedVariant: b.variant, attributeSchemasByCategory })),
   );
 
-  const organicItems = await Promise.all(
-    rows.map((p) =>
-      toListItem(p, {
-        offersById,
-        wishlistedIds,
-        variantsByProduct,
-        search,
-        isBoosted: false,
-        distanceKm: hasLocation ? Number(p.get('distanceKm') as string | number) : undefined,
-        attributeSchemasByCategory,
-      }),
-    ),
+  const organicItemsResolved = await Promise.all(
+    rows.map(async (p) => {
+      const distanceKm = hasLocation ? Number(p.get('distanceKm') as string | number) : undefined;
+      const excludeVariantId = excludeVariantByProduct.get(p.id);
+      if (excludeVariantId) {
+        const alt = variantSelection.pickAlternateVariantForSearch(
+          variantsByProduct.get(p.id) ?? [],
+          excludeVariantId,
+          search,
+          p.name,
+          attributeSchemasByCategory.get(p.categoryId),
+        );
+        if (!alt) return null;
+        return toListItem(p, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: false, boostedVariant: alt, distanceKm, attributeSchemasByCategory });
+      }
+      return toListItem(p, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: false, distanceKm, attributeSchemasByCategory });
+    }),
   );
+  const organicItems = organicItemsResolved.filter((item): item is ProductListItem => item !== null);
 
   if (chosenBoosts.length > 0) {
     await productBoostService.incrementImpressions(chosenBoosts.map((b) => b.boostId));

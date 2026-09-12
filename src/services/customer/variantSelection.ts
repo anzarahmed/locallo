@@ -70,3 +70,32 @@ export function pickVariantForSearch(
 
   return best;
 }
+
+export function pickAlternateVariantForSearch(
+  variants: ProductVariant[],
+  excludeVariantId: string,
+  search?: string,
+  productName?: string,
+  attributeSchema?: AttributeField[],
+): ProductVariant | null {
+  const candidates = variants.filter((v) => v.id !== excludeVariantId);
+  if (candidates.length === 0) return null;
+
+  const tokens = (search ?? '').toLowerCase().split(/\s+/).filter(Boolean);
+  const remainingTokens = tokens.filter((token) => !matchesToken(productName ?? '', token));
+  if (remainingTokens.length === 0) return null;
+
+  let best: ProductVariant | null = null;
+  let bestScore = 0;
+
+  for (const variant of candidates) {
+    const haystack = attributeHaystack(variant.attributes as Record<string, unknown>, attributeSchema);
+    const score = remainingTokens.reduce((sum, token) => sum + (matchesToken(haystack, token) ? 1 : 0), 0);
+    if (score > bestScore) {
+      bestScore = score;
+      best = variant;
+    }
+  }
+
+  return best;
+}
