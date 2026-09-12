@@ -5,6 +5,7 @@ import { Category } from '../../models/Category';
 import { SellerProfile } from '../../models/SellerProfile';
 import { OfferProduct } from '../../models/OfferProduct';
 import { Review } from '../../models/Review';
+import { normalizeForMatch, isNumericToken } from '../../utils/searchTokens';
 import type { AttributeField } from '../../types';
 
 interface BrowseFilter {
@@ -39,7 +40,7 @@ interface ProductSellerDetail {
 
 export const TRENDING_LIMIT = 15;
 const SIMILAR_LIMIT = 10;
-export const TRENDING_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images'];
+export const TRENDING_ATTRIBUTES = ['id', 'name', 'categoryId', 'mrp', 'sellingPrice', 'images'];
 
 const SAFE_PRODUCT_ATTRIBUTES = [
   'id', 'sellerId', 'categoryId', 'name', 'description',
@@ -52,6 +53,68 @@ const SELLER_LONG_SUBQUERY = '(SELECT long FROM seller_profiles WHERE seller_pro
 export const SELLER_VERIFIED_CONDITION = literal(
   'EXISTS (SELECT 1 FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id" AND seller_profiles.is_verified = true)',
 );
+
+type Escape = (value: string) => string;
+
+function matchConditionSql(columnExpr: string, token: string, escape: Escape): string {
+  const parts = [`${columnExpr} ILIKE ${escape(`%${token}%`)}`];
+
+  const normalizedToken = normalizeForMatch(token);
+  if (normalizedToken) {
+    parts.push(`regexp_replace(lower(${columnExpr}), '[^a-z0-9]', '', 'g') ILIKE ${escape(`%${normalizedToken}%`)}`);
+  }
+
+  if (isNumericToken(token)) {
+    parts.push(`${columnExpr} ~* ('\\y' || ${escape(token)} || '\\y')`);
+  }
+
+  return `(${parts.join(' OR ')})`;
+}
+
+function attributeMatchSql(token: string, escape: Escape): string {
+  const valueCondition = matchConditionSql('a.value', token, escape);
+
+  const labelCondition =
+    'EXISTS (SELECT 1 FROM jsonb_array_elements(COALESCE((SELECT attribute_schema FROM categories WHERE id = "Product"."category_id"), \'[]\'::jsonb)) AS field, ' +
+    "jsonb_array_elements(COALESCE(field->'options', '[]'::jsonb)) AS opt " +
+    "WHERE field->>'key' = a.key AND opt->>'value' = a.value " +
+    `AND ${matchConditionSql("(opt->>'label')", token, escape)})`;
+
+  return `(${valueCondition} OR ${labelCondition})`;
+}
+
+export interface SearchCondition {
+  condition: ReturnType<typeof literal>;
+  titleMatchScoreExpr: ReturnType<typeof literal>;
+}
+
+export function buildSearchCondition(search: string, escape: Escape): SearchCondition | null {
+  const tokens = search.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  if (tokens.length === 0) return null;
+
+  const titleConditions = tokens.map((token) => matchConditionSql('"Product"."name"', token, escape));
+
+  const variantConditions = tokens.map((token, i) => {
+    const attrCondition = attributeMatchSql(token, escape);
+    return `(${titleConditions[i]} OR EXISTS (SELECT 1 FROM jsonb_each_text(pv.attributes) a WHERE ${attrCondition}))`;
+  });
+
+  const titleOnlyBranch = `(${titleConditions.join(' AND ')})`;
+  const variantBranch =
+    'EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = "Product".id AND pv.is_active = true ' +
+    `AND ${variantConditions.join(' AND ')})`;
+
+  const scoreTerms = titleConditions.map((cond) => `(CASE WHEN ${cond} THEN 1 ELSE 0 END)`).join(' + ');
+
+  return {
+    condition: literal(`(${titleOnlyBranch} OR ${variantBranch})`),
+    titleMatchScoreExpr: literal(`(${scoreTerms})`),
+  };
+}
+
+export function getSequelizeEscape(): Escape {
+  return Product.sequelize!.escape.bind(Product.sequelize) as Escape;
+}
 
 function distanceExpression(lat: number, lng: number): ReturnType<typeof literal> {
   return literal(
@@ -72,20 +135,13 @@ export async function browseProducts(
   if (filters.categoryId !== undefined) where.categoryId = filters.categoryId;
   if (filters.sellerId !== undefined)   where.sellerId   = filters.sellerId;
 
+  let titleMatchScoreExpr: ReturnType<typeof literal> | undefined;
+
   if (filters.search) {
-    const escape = Product.sequelize!.escape.bind(Product.sequelize);
-    const tokens = filters.search.trim().toLowerCase().split(/\s+/).filter(Boolean);
-    for (const token of tokens) {
-      const like = escape(`%${token}%`);
-      andClauses.push({
-        [Op.or]: [
-          { name: { [Op.iLike]: `%${token}%` } },
-          literal(
-            'EXISTS (SELECT 1 FROM product_variants pv, jsonb_each_text(pv.attributes) a ' +
-            `WHERE pv.product_id = "Product".id AND pv.is_active = true AND a.value ILIKE ${like})`,
-          ),
-        ],
-      });
+    const built = buildSearchCondition(filters.search, getSequelizeEscape());
+    if (built) {
+      andClauses.push(built.condition);
+      titleMatchScoreExpr = built.titleMatchScoreExpr;
     }
   }
 
@@ -117,13 +173,22 @@ export async function browseProducts(
 
   const hasLocation = filters.lat !== undefined && filters.lng !== undefined;
 
-  const attributes = hasLocation
-    ? [...TRENDING_ATTRIBUTES, [distanceExpression(filters.lat as number, filters.lng as number), 'distanceKm']]
-    : TRENDING_ATTRIBUTES;
+  const attributes: unknown[] = [...TRENDING_ATTRIBUTES];
+  if (hasLocation) {
+    attributes.push([distanceExpression(filters.lat as number, filters.lng as number), 'distanceKm']);
+  }
+  if (titleMatchScoreExpr) {
+    attributes.push([titleMatchScoreExpr, 'titleMatchScore']);
+  }
 
-  const order = hasLocation
-    ? [[literal('"distanceKm"'), 'ASC'], ['createdAt', 'DESC']]
-    : [['createdAt', 'DESC']];
+  const order: unknown[] = [];
+  if (titleMatchScoreExpr) {
+    order.push([literal('"titleMatchScore"'), 'DESC']);
+  }
+  if (hasLocation) {
+    order.push([literal('"distanceKm"'), 'ASC']);
+  }
+  order.push(['createdAt', 'DESC']);
 
   return Product.findAndCountAll({
     attributes: attributes as never,
@@ -276,4 +341,20 @@ export async function getSimilarProducts(productId: string): Promise<Product[]> 
     order: [['createdAt', 'DESC']],
     limit: SIMILAR_LIMIT,
   });
+}
+
+export async function getCategoryAttributeSchemas(categoryIds: number[]): Promise<Map<number, AttributeField[]>> {
+  const map = new Map<number, AttributeField[]>();
+  if (categoryIds.length === 0) return map;
+
+  const categoryRows = await Category.findAll({
+    where: { id: { [Op.in]: categoryIds } },
+    attributes: ['id', 'attributeSchema'],
+  });
+
+  for (const category of categoryRows) {
+    map.set(category.id, (category.attributeSchema as AttributeField[] | undefined) ?? []);
+  }
+
+  return map;
 }

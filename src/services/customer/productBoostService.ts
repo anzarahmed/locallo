@@ -2,7 +2,7 @@ import { Op, col, where as sequelizeWhere } from 'sequelize';
 import { ProductBoost } from '../../models/ProductBoost';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
-import { TRENDING_ATTRIBUTES, SELLER_VERIFIED_CONDITION } from './productService';
+import { TRENDING_ATTRIBUTES, SELLER_VERIFIED_CONDITION, buildSearchCondition, getSequelizeEscape } from './productService';
 
 export const BOOST_SLOTS = 4;
 
@@ -18,6 +18,7 @@ interface EligibilityParams {
   categoryId?: number;
   state?: string;
   city?: string;
+  search?: string;
   excludeProductIds?: string[];
 }
 
@@ -41,12 +42,18 @@ export async function getEligibleBoosts(params: EligibilityParams): Promise<Elig
   const candidateProductIds = [...new Set(boosts.map(b => b.productId))].filter(id => !excludeSet.has(id));
   if (candidateProductIds.length === 0) return [];
 
+  const andClauses: unknown[] = [SELLER_VERIFIED_CONDITION];
   const productWhere: Record<string, unknown> = {
     id: { [Op.in]: candidateProductIds },
     isActive: true,
-    [Op.and]: [SELLER_VERIFIED_CONDITION],
+    [Op.and]: andClauses,
   };
   if (params.categoryId !== undefined) productWhere.categoryId = params.categoryId;
+
+  if (params.search) {
+    const built = buildSearchCondition(params.search, getSequelizeEscape());
+    if (built) andClauses.push(built.condition);
+  }
 
   const products = await Product.findAll({ attributes: TRENDING_ATTRIBUTES, where: productWhere });
   const productById = new Map(products.map(p => [p.id, p]));
