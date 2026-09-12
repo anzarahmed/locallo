@@ -36,7 +36,7 @@ interface BrandObj { id: number; name: string; slug: string }
 
 async function resolveCats(ids: number[]): Promise<CategoryObj[]> {
   if (ids.length === 0) return [];
-  const rows = await Category.findAll({ where: { id: ids }, attributes: ['id', 'name', 'slug', 'attributeSchema'] });
+  const rows = await Category.findAll({ where: { id: ids, isActive: true }, attributes: ['id', 'name', 'slug', 'attributeSchema'] });
   return rows.map(c => ({ id: c.id, name: c.name, slug: c.slug, attributeSchema: c.attributeSchema ?? [] }));
 }
 
