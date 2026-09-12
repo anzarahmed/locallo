@@ -395,7 +395,7 @@ function GroupedVariantCard({
                 const opt = field?.options?.find(o => o.value === val);
                 return (
                   <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
-                    {field?.label ?? key}: {opt?.label ?? val}
+                    {field?.label ?? key}: <span className={field?.type === 'color' ? 'capitalize' : undefined}>{opt?.label ?? val}</span>
                   </span>
                 );
               })}
@@ -442,7 +442,7 @@ function GroupedVariantCard({
 
           return (
             <div key={v.id} className="flex items-center gap-2 px-3 py-2.5">
-              <span className="text-xs font-semibold text-gray-700 min-w-[40px] shrink-0">{sdLabel}</span>
+              <span className={`text-xs font-semibold text-gray-700 min-w-[40px] shrink-0 ${sdField.type === 'color' ? 'capitalize' : ''}`}>{sdLabel}</span>
 
               <span className="text-xs font-bold text-teal-600">
                 ₹{v.sellingPrice.toLocaleString('en-IN')}
@@ -618,7 +618,7 @@ function GroupEditSheet({
               {nonSdEntries.length > 0 ? nonSdEntries.map(([key, val]) => {
                 const field = schema.find(f => f.key === key);
                 const opt = field?.options?.find(o => o.value === val);
-                return <span key={key} className="text-xs text-gray-400">{opt?.label ?? val}</span>;
+                return <span key={key} className={`text-xs text-gray-400 ${field?.type === 'color' ? 'capitalize' : ''}`}>{opt?.label ?? val}</span>;
               }) : (
                 <span className="text-xs text-gray-400">{group.variants.length} variants</span>
               )}
@@ -686,7 +686,7 @@ function GroupEditSheet({
               return (
                 <div key={v.id} className="bg-gray-50 rounded-xl p-3.5">
                   <p className="text-xs font-semibold text-gray-600 mb-3">
-                    {sdField.label}: <span className="text-teal-700">{sdLabel}</span>
+                    {sdField.label}: <span className={`text-teal-700 ${sdField.type === 'color' ? 'capitalize' : ''}`}>{sdLabel}</span>
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
@@ -796,7 +796,7 @@ function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell, onPr
               const displayVal = field?.options?.find(o => o.value === String(value))?.label ?? String(value);
               return (
                 <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
-                  {fieldLabel}: {displayVal}
+                  {fieldLabel}: <span className={field?.type === 'color' ? 'capitalize' : undefined}>{displayVal}</span>
                 </span>
               );
             })}

@@ -312,7 +312,7 @@ export default function VariantSheet({
                   return (
                     <span key={key} className="text-xs bg-teal-50 text-teal-700 px-3 py-1.5 rounded-full border border-teal-100">
                       <span className="font-bold">{field?.label ?? key}:</span>{' '}
-                      <span className="text-gray-700 font-medium">{opt?.label ?? String(val)}</span>
+                      <span className={`text-gray-700 font-medium ${field?.type === 'color' ? 'capitalize' : ''}`}>{opt?.label ?? String(val)}</span>
                     </span>
                   );
                 })}
@@ -330,7 +330,7 @@ export default function VariantSheet({
                     const opt = field.options?.find(o => o.value === val);
                     return (
                       <span key={field.key} className="text-xs bg-teal-50 text-teal-700 px-2.5 py-0.5 rounded-full font-medium">
-                        {field.label}: {opt?.label ?? val}
+                        {field.label}: <span className={field.type === 'color' ? 'capitalize' : undefined}>{opt?.label ?? val}</span>
                       </span>
                     );
                   })}
@@ -594,7 +594,7 @@ function SheetVariantOptionField({ field, value, usedValues, onChange, showError
                 type="button"
                 onClick={() => !used && onChange(selected === opt.value ? '' : opt.value)}
                 disabled={used}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${field.type === 'color' ? 'capitalize' : ''} ${
                   used
                     ? 'opacity-35 cursor-not-allowed border-gray-200 text-gray-400'
                     : selected === opt.value
@@ -648,7 +648,7 @@ function SheetStockRow({ combo, variantFields, stock, onChange }: SheetStockRowP
           const field = variantFields.find(f => f.key === key);
           const opt = field?.options?.find(o => o.value === val);
           return (
-            <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
+            <span key={key} className={`text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium ${field?.type === 'color' ? 'capitalize' : ''}`}>
               {opt?.label ?? val}
             </span>
           );
