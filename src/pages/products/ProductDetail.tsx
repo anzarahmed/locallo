@@ -16,7 +16,8 @@ function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
   if (raw === null || raw === undefined || raw === '') return <span className="text-gray-400">—</span>;
 
   if (field.type === 'color') {
-    return <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">{String(raw)}</span>;
+    const opt = field.options?.find(o => o.value === raw);
+    return <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">{opt?.label ?? String(raw)}</span>;
   }
 
   if (field.type === 'multiselect' && Array.isArray(raw) && field.options) {

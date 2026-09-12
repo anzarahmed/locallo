@@ -12,9 +12,10 @@ function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
   }
 
   if (field.type === 'color') {
+    const opt = field.options?.find(o => o.value === raw);
     return (
       <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">
-        {String(raw)}
+        {opt?.label ?? String(raw)}
       </span>
     );
   }
@@ -366,13 +367,15 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                       if (field.type === 'color') {
                         const availableValues = [...usedValues].filter(Boolean);
                         if (availableValues.length === 0) return null;
+                        const labelFor = (val: string): string =>
+                          field.options?.find(o => o.value === val)?.label ?? val;
                         return (
                           <div key={field.key}>
                             <p className="text-xs font-semibold text-gray-500 mb-2">
                               {field.label}
                               {selectedAttrs[field.key] && (
                                 <span className="font-normal text-gray-400 ml-1.5">
-                                  — {selectedAttrs[field.key]}
+                                  — {labelFor(selectedAttrs[field.key])}
                                 </span>
                               )}
                             </p>
@@ -389,7 +392,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                                         : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
                                     }`}
                                   >
-                                    {val}
+                                    {labelFor(val)}
                                   </button>
                                 );
                               })}

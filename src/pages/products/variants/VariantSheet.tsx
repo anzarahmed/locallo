@@ -580,7 +580,7 @@ function SheetVariantOptionField({ field, value, usedValues, onChange, showError
     );
   }
 
-  if (field.type === 'select' && field.options && field.options.length > 0) {
+  if ((field.type === 'select' || field.type === 'color') && field.options && field.options.length > 0) {
     const selected = typeof value === 'string' ? value : '';
     return (
       <div>
