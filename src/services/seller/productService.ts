@@ -231,7 +231,7 @@ export async function getSellerProducts(
         [literal(REVIEW_COUNT_SQL), 'reviewCount'],
       ],
     },
-    include: [{ model: Category, attributes: ['id', 'name', 'slug'] }],
+    include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }],
     order: resolveOrder(sortBy),
     limit,
     offset: (page - 1) * limit,
