@@ -538,51 +538,55 @@ export default function EditProduct(): JSX.Element {
               />
             </FormField>
 
-            <div className="grid grid-cols-2 gap-3">
-              <FormField label="Selling Price" required error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
-                  <input
-                    name="sellingPrice"
-                    type="number"
-                    min={0}
-                    step="0.01"
-                    value={form.values.sellingPrice}
-                    onChange={form.handleChange}
-                    onBlur={form.handleBlur}
-                    className={`${inputCls(!!form.touched.sellingPrice && !!form.errors.sellingPrice)} pl-7`}
-                  />
+            {!hasVariants && (
+              <>
+                <div className="grid grid-cols-2 gap-3">
+                  <FormField label="Selling Price" required error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
+                      <input
+                        name="sellingPrice"
+                        type="number"
+                        min={0}
+                        step="0.01"
+                        value={form.values.sellingPrice}
+                        onChange={form.handleChange}
+                        onBlur={form.handleBlur}
+                        className={`${inputCls(!!form.touched.sellingPrice && !!form.errors.sellingPrice)} pl-7`}
+                      />
+                    </div>
+                  </FormField>
+                  <FormField label="MRP" error={form.touched.mrp ? form.errors.mrp as string : undefined}>
+                    <div className="relative">
+                      <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
+                      <input
+                        name="mrp"
+                        type="number"
+                        value={form.values.mrp}
+                        readOnly
+                        className={`${inputCls(false)} pl-7 bg-gray-50 text-gray-500 cursor-not-allowed`}
+                      />
+                    </div>
+                  </FormField>
                 </div>
-              </FormField>
-              <FormField label="MRP" error={form.touched.mrp ? form.errors.mrp as string : undefined}>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
-                  <input
-                    name="mrp"
-                    type="number"
-                    value={form.values.mrp}
-                    readOnly
-                    className={`${inputCls(false)} pl-7 bg-gray-50 text-gray-500 cursor-not-allowed`}
-                  />
-                </div>
-              </FormField>
-            </div>
 
-            <FormField label="Cost Price" required error={form.touched.costPrice ? form.errors.costPrice as string : undefined}>
-              <div className="relative">
-                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
-                <input
-                  name="costPrice"
-                  type="number"
-                  min={0}
-                  step="0.01"
-                  value={form.values.costPrice}
-                  onChange={form.handleChange}
-                  onBlur={form.handleBlur}
-                  className={`${inputCls(!!form.touched.costPrice && !!form.errors.costPrice)} pl-7`}
-                />
-              </div>
-            </FormField>
+                <FormField label="Cost Price" required error={form.touched.costPrice ? form.errors.costPrice as string : undefined}>
+                  <div className="relative">
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
+                    <input
+                      name="costPrice"
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      value={form.values.costPrice}
+                      onChange={form.handleChange}
+                      onBlur={form.handleBlur}
+                      className={`${inputCls(!!form.touched.costPrice && !!form.errors.costPrice)} pl-7`}
+                    />
+                  </div>
+                </FormField>
+              </>
+            )}
 
             {/* Simple stock — hidden when the category drives per-combination stock */}
             {(hasVariants || !stockDependent || combinations.length === 0) && (
