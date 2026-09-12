@@ -9,6 +9,7 @@ import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { formatPrice, discountPct } from '../../lib/formatters';
 import type { AttributeField, Product, ProductVariant } from '../../types';
+import { categorySupportsVariants } from '../../lib/variantUtils';
 import ProductPreview from './ProductPreview';
 
 function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
@@ -182,6 +183,7 @@ export default function ProductDetail(): JSX.Element {
   }, [id]);
 
   const schema = product?.category?.attributeSchema ?? [];
+  const showVariants = categorySupportsVariants(schema);
   const discount = product ? discountPct(product.sellingPrice, product.mrp) : null;
 
   const profit = product && product.costPrice != null ? product.sellingPrice - product.costPrice : null;
@@ -386,13 +388,15 @@ export default function ProductDetail(): JSX.Element {
                 >
                   <Pencil size={14} /> Edit
                 </button>
-                <button
-                  type="button"
-                  onClick={() => navigate(`/products/${product.id}/variants`, { state: { from: `/products/${product.id}` } })}
-                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
-                >
-                  <Layers size={14} /> Variants
-                </button>
+                {showVariants && (
+                  <button
+                    type="button"
+                    onClick={() => navigate(`/products/${product.id}/variants`, { state: { from: `/products/${product.id}` } })}
+                    className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border border-gray-200 text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    <Layers size={14} /> Variants
+                  </button>
+                )}
                 <button
                   type="button"
                   onClick={() => setShowPreview(true)}

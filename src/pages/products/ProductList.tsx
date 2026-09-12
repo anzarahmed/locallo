@@ -6,6 +6,7 @@ import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { hasDiscount } from '../../lib/formatters';
+import { categorySupportsVariants } from '../../lib/variantUtils';
 import { FILTER_TABS, SORT_OPTIONS, PAGE_LIMIT, type FilterTab } from '../../constants';
 import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../components/ui/SellModal';
@@ -351,6 +352,7 @@ interface ProductCardProps {
 
 function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onToggle, onDelete, onPreview, onSell }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
+  const showVariants = categorySupportsVariants(product.category?.attributeSchema);
   const thumbnailSrc = product.thumbnails?.[0] ?? product.images?.[0];
   const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
 
@@ -447,15 +449,17 @@ function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onT
               <Pencil size={14} />
             </button>
           </Tooltip>
-          <Tooltip label="Manage variants">
-            <button
-              onClick={onVariants}
-              aria-label="Manage variants"
-              className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
-            >
-              <Layers size={14} />
-            </button>
-          </Tooltip>
+          {showVariants && (
+            <Tooltip label="Manage variants">
+              <button
+                onClick={onVariants}
+                aria-label="Manage variants"
+                className="w-8 h-8 rounded-full bg-teal-50 flex items-center justify-center text-teal-600 hover:bg-teal-100 transition-colors"
+              >
+                <Layers size={14} />
+              </button>
+            </Tooltip>
+          )}
           <Tooltip label="Delete product">
             <button
               onClick={onDelete}

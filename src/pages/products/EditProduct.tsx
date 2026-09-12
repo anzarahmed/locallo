@@ -627,21 +627,23 @@ export default function EditProduct(): JSX.Element {
           )}
 
           {/* Variants link */}
-          <button
-            type="button"
-            onClick={() => navigate(`/products/${id}/variants`, { state: { from: `/products/${id}/edit` } })}
-            className="w-full bg-white rounded-2xl shadow-sm px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
-          >
-            <div>
-              <p className="text-sm font-semibold text-gray-700">Variants</p>
-              <p className="text-xs text-gray-400 mt-0.5">
-                {variantCount > 0
-                  ? `${variantCount} variant${variantCount === 1 ? '' : 's'} · tap to manage`
-                  : 'Add size, color & other options with separate stock'}
-              </p>
-            </div>
-            <ChevronRight size={18} className="text-gray-400 shrink-0" />
-          </button>
+          {variantFields.length > 0 && (
+            <button
+              type="button"
+              onClick={() => navigate(`/products/${id}/variants`, { state: { from: `/products/${id}/edit` } })}
+              className="w-full bg-white rounded-2xl shadow-sm px-4 py-3.5 flex items-center justify-between hover:bg-gray-50 transition-colors text-left"
+            >
+              <div>
+                <p className="text-sm font-semibold text-gray-700">Variants</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {variantCount > 0
+                    ? `${variantCount} variant${variantCount === 1 ? '' : 's'} · tap to manage`
+                    : 'Add size, color & other options with separate stock'}
+                </p>
+              </div>
+              <ChevronRight size={18} className="text-gray-400 shrink-0" />
+            </button>
+          )}
 
           {/* Reviews */}
           <div className="bg-white rounded-2xl shadow-sm p-4">

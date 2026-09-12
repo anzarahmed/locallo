@@ -10,6 +10,7 @@ import { useToast } from '../../../hooks/useToast';
 import { ApiError } from '../../../lib/axios';
 import { resolveImage } from '../../../lib/imageUtils';
 import { hasDiscount } from '../../../lib/formatters';
+import { categorySupportsVariants } from '../../../lib/variantUtils';
 import ConfirmDeleteModal from '../../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../../components/ui/SellModal';
 import BoostProductModal from '../../../components/ui/BoostProductModal';
@@ -70,6 +71,11 @@ export default function VariantList(): JSX.Element {
     async function load(): Promise<void> {
       try {
         const data = await getProductVariants(id!);
+        if (!categorySupportsVariants(data.product.category?.attributeSchema)) {
+          toast.error('Variants are not supported for this category');
+          navigate(backTo);
+          return;
+        }
         setProduct(data.product);
         setVariants(data.variants);
       } catch (err) {

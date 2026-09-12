@@ -31,6 +31,10 @@ export function hasStockDependentAttr(variantFields: AttributeField[]): boolean 
   return variantFields.some(f => f.isStockDependent === true);
 }
 
+export function categorySupportsVariants(schema: AttributeField[] | undefined): boolean {
+  return (schema ?? []).some(f => f.isVariant === true);
+}
+
 export function variantLabel(
   attributes: Record<string, unknown>,
   schema: AttributeField[],
