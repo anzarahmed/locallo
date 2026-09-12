@@ -103,14 +103,14 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
   ]);
 
   const fullyExcludeProductIds: string[] = [];
-  const excludeVariantByProduct = new Map<string, string>();
+  const excludeVariantByProduct = new Map<string, ProductVariant>();
   for (const b of chosenBoosts) {
     const variants = boostedVariantsByProduct.get(b.product.id) ?? [];
     const displayed = b.variant ?? variantSelection.pickVariantForSearch(
       variants, search, b.product.name, boostedAttributeSchemas.get(b.product.categoryId),
     );
     if (displayed && variants.some((v) => v.id !== displayed.id)) {
-      excludeVariantByProduct.set(b.product.id, displayed.id);
+      excludeVariantByProduct.set(b.product.id, displayed);
     } else {
       fullyExcludeProductIds.push(b.product.id);
     }
@@ -147,11 +147,11 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
   const organicItemsResolved = await Promise.all(
     rows.map(async (p) => {
       const distanceKm = hasLocation ? Number(p.get('distanceKm') as string | number) : undefined;
-      const excludeVariantId = excludeVariantByProduct.get(p.id);
-      if (excludeVariantId) {
+      const excludedVariant = excludeVariantByProduct.get(p.id);
+      if (excludedVariant) {
         const alt = variantSelection.pickAlternateVariantForSearch(
           variantsByProduct.get(p.id) ?? [],
-          excludeVariantId,
+          excludedVariant,
           search,
           p.name,
           attributeSchemasByCategory.get(p.categoryId),
