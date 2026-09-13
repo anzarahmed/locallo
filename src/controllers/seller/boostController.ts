@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import * as boostService from '../../services/seller/boostService';
+import type { PaymentStatus } from '../../types';
 
 export async function createProductBoost(req: Request, res: Response): Promise<void> {
   try {
@@ -32,6 +33,7 @@ export async function cancelProductBoost(req: Request, res: Response): Promise<v
 
 export async function getBoostPayments(req: Request, res: Response): Promise<void> {
   const { page, limit } = parsePagination(req);
-  const { rows, count } = await boostService.getBoosts(req.seller!.id, page, limit);
+  const paymentStatus = req.query.paymentStatus ? (String(req.query.paymentStatus) as PaymentStatus) : undefined;
+  const { rows, count } = await boostService.getBoosts(req.seller!.id, page, limit, paymentStatus);
   sendSuccess(res, { payments: rows, total: count, page, limit }, 'Payments fetched');
 }

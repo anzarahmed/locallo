@@ -198,9 +198,13 @@ export async function getBoosts(
   sellerId: string,
   page: number,
   limit: number,
+  paymentStatus?: PaymentStatus,
 ): Promise<{ rows: BoostPaymentRow[]; count: number }> {
+  const where: Record<string, unknown> = { sellerId };
+  if (paymentStatus) where.paymentStatus = paymentStatus;
+
   const { rows, count } = await ProductBoost.findAndCountAll({
-    where: { sellerId },
+    where,
     include: [{ model: Product, attributes: ['name', 'images'], required: false }],
     order: [['createdAt', 'DESC']],
     limit,
