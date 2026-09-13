@@ -89,3 +89,12 @@ export type OfferConfig = PercentageOffConfig | FlatAmountOffConfig | BogoConfig
 export type BoostAudienceType = 'pan_india' | 'state' | 'city';
 export type BoostStatus = 'pending' | 'active' | 'completed' | 'cancelled';
 export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
+
+export type ActivityType = 'seller_added' | 'seller_verified' | 'product_added' | 'category_added' | 'subadmin_added';
+
+export interface ActivityItem {
+  id: string;
+  type: ActivityType;
+  message: string;
+  timestamp: string;
+}
