@@ -98,3 +98,10 @@ export interface ActivityItem {
   message: string;
   timestamp: string;
 }
+
+export interface DashboardStats {
+  totalActiveSellers: number;
+  totalCustomers: number;
+  totalActiveProducts: number;
+  totalPaymentsThisMonth: number;
+}

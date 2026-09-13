@@ -3,7 +3,34 @@ import { SellerProfile } from '../../models/SellerProfile';
 import { Product } from '../../models/Product';
 import { Category } from '../../models/Category';
 import { Admin } from '../../models/Admin';
-import type { ActivityItem } from '../../types';
+import { User } from '../../models/User';
+import { ProductBoost } from '../../models/ProductBoost';
+import type { ActivityItem, DashboardStats } from '../../types';
+
+export async function getDashboardStats(): Promise<DashboardStats> {
+  const now = new Date();
+  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+
+  const [totalActiveSellers, totalCustomers, totalActiveProducts, totalPaymentsThisMonth] = await Promise.all([
+    User.count({ where: { role: 'SELLER', isActive: true } }),
+    User.count({ where: { role: 'CUSTOMER' } }),
+    Product.count({ where: { isActive: true } }),
+    ProductBoost.sum('amount', {
+      where: {
+        paymentStatus: 'paid',
+        createdAt: { [Op.gte]: startOfMonth, [Op.lt]: startOfNextMonth },
+      },
+    }),
+  ]);
+
+  return {
+    totalActiveSellers,
+    totalCustomers,
+    totalActiveProducts,
+    totalPaymentsThisMonth: totalPaymentsThisMonth ?? 0,
+  };
+}
 
 export async function getRecentActivity(limit: number): Promise<ActivityItem[]> {
   const [sellersAdded, sellersVerified, productsAdded, categoriesAdded, subAdminsAdded] = await Promise.all([

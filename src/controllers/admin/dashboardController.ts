@@ -18,3 +18,12 @@ export async function getRecentActivity(req: Request, res: Response): Promise<vo
     handleServiceError(err, res, 'Failed to fetch recent activity');
   }
 }
+
+export async function getDashboardStats(req: Request, res: Response): Promise<void> {
+  try {
+    const stats = await dashboardService.getDashboardStats();
+    sendSuccess(res, stats, 'Dashboard stats fetched');
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to fetch dashboard stats');
+  }
+}

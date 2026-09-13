@@ -21,7 +21,7 @@ import {
 import {
   fetchRolePermissions, saveRolePermissions, fetchMyPermissions,
 } from '../../controllers/admin/rolePermissionController';
-import { getRecentActivity } from '../../controllers/admin/dashboardController';
+import { getRecentActivity, getDashboardStats } from '../../controllers/admin/dashboardController';
 import { validate } from '../../middleware/validate';
 import upload, { uploadIcon, uploadDocument } from '../../middleware/upload';
 import { requireAdmin, requireSuperAdmin, requirePermission } from '../../middleware/auth';
@@ -54,6 +54,7 @@ router.get('/me/permissions', requireAdmin, fetchMyPermissions);
 
 // Dashboard (any authenticated admin)
 router.get('/dashboard/recent-activity', requireAdmin, getRecentActivity);
+router.get('/dashboard/stats',           requireAdmin, getDashboardStats);
 
 // Sub-admin management (super_admin only)
 router.get   ('/sub-admins',          requireAdmin, requireSuperAdmin, getSubAdmins);
