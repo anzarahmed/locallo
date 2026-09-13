@@ -12,6 +12,7 @@ import {
   getProduct  as getAdminProduct,
   toggleProduct, deleteProduct,
 } from '../../controllers/admin/productController';
+import { getPayments } from '../../controllers/admin/paymentController';
 import { requestOtp as requestMobileOtp, verifyOtp as verifyMobileOtp } from '../../controllers/admin/mobileVerificationController';
 import { getCustomers, getCustomer, patchCustomerStatus } from '../../controllers/admin/customerController';
 import {
@@ -124,5 +125,8 @@ router.get   ('/products',              requireAdmin, requirePermission('product
 router.get   ('/products/:id',          requireAdmin, requirePermission('products', 'view'),   getAdminProduct);
 router.patch ('/products/:id/toggle',   requireAdmin, requirePermission('products', 'edit'),   toggleProduct);
 router.delete('/products/:id',          requireAdmin, requirePermission('products', 'delete'), deleteProduct);
+
+// Payments
+router.get   ('/payments',              requireAdmin, requirePermission('payments', 'list'),   getPayments);
 
 export default router;
