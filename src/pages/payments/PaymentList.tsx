@@ -55,7 +55,11 @@ export default function PaymentList(): JSX.Element {
     async function load(): Promise<void> {
       setLoading(true);
       try {
-        const data = await getPayments({ page, limit: PAGE_LIMIT });
+        const data = await getPayments({
+          page,
+          limit: PAGE_LIMIT,
+          ...(statusFilter !== 'all' && { paymentStatus: statusFilter }),
+        });
         setPayments(data.payments);
         setTotal(data.total);
       } catch (err) {
@@ -65,16 +69,12 @@ export default function PaymentList(): JSX.Element {
       }
     }
     void load();
-  }, [page]); // toast is stable
+  }, [page, statusFilter]); // toast is stable
 
   function handleFilterChange(f: StatusFilter): void {
     setStatusFilter(f);
     setPage(1);
   }
-
-  const visiblePayments = statusFilter === 'all'
-    ? payments
-    : payments.filter(p => p.paymentStatus === statusFilter);
 
   const totalPages = Math.ceil(total / PAGE_LIMIT);
 
@@ -125,11 +125,11 @@ export default function PaymentList(): JSX.Element {
         {/* Payment entries */}
         {loading ? (
           <PaymentTable rows={<PaymentSkeletonRows />} />
-        ) : visiblePayments.length === 0 ? (
+        ) : payments.length === 0 ? (
           <div className="mb-4"><EmptyState /></div>
         ) : (
           <PaymentTable
-            rows={visiblePayments.map(payment => <PaymentRow key={payment.id} payment={payment} />)}
+            rows={payments.map(payment => <PaymentRow key={payment.id} payment={payment} />)}
           />
         )}
 
