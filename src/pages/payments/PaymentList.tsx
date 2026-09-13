@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useState, type JSX, type ReactNode } from 'react';
 import { CreditCard, ShoppingBag } from 'lucide-react';
 import { getPayments } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
@@ -124,15 +124,13 @@ export default function PaymentList(): JSX.Element {
 
         {/* Payment entries */}
         {loading ? (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-            {Array.from({ length: 5 }).map((_, i) => <PaymentSkeleton key={i} />)}
-          </div>
+          <PaymentTable rows={<PaymentSkeletonRows />} />
         ) : visiblePayments.length === 0 ? (
           <div className="mb-4"><EmptyState /></div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-            {visiblePayments.map(payment => <PaymentCard key={payment.id} payment={payment} />)}
-          </div>
+          <PaymentTable
+            rows={visiblePayments.map(payment => <PaymentRow key={payment.id} payment={payment} />)}
+          />
         )}
 
         {/* Pagination */}
@@ -185,51 +183,69 @@ function PaymentThumb({ src }: { src: string | null }): JSX.Element {
   );
 }
 
-/* ── Payment card ── */
-function PaymentCard({ payment }: { payment: Payment }): JSX.Element {
+/* ── Payment table ── */
+function PaymentTable({ rows }: { rows: ReactNode }): JSX.Element {
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-4">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex items-start gap-3 flex-1 min-w-0">
-          <PaymentThumb src={payment.productImage} />
-
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-semibold text-gray-800 truncate">{payment.productName}</p>
-            <p className="text-xs text-gray-400 mt-1">{audienceLabel(payment)}</p>
-            <p className="text-xs text-gray-400 mt-1.5">{formatCreatedAt(payment.createdAt)}</p>
-          </div>
-        </div>
-
-        {/* Right: amount + status badge */}
-        <div className="shrink-0 text-right">
-          <p className="text-sm font-bold text-gray-800">₹{payment.amount}</p>
-          <span
-            className={`inline-block mt-1.5 text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_BADGE[payment.paymentStatus]}`}
-          >
-            {payment.paymentStatus}
-          </span>
-        </div>
-      </div>
+    <div className="bg-white rounded-2xl shadow-sm overflow-x-auto mb-4">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-gray-100">
+            <th className="text-left font-semibold text-gray-500 px-4 py-3 whitespace-nowrap">Product</th>
+            <th className="text-left font-semibold text-gray-500 px-4 py-3 whitespace-nowrap">Audience</th>
+            <th className="text-left font-semibold text-gray-500 px-4 py-3 whitespace-nowrap">Date</th>
+            <th className="text-right font-semibold text-gray-500 px-4 py-3 whitespace-nowrap">Amount</th>
+            <th className="text-right font-semibold text-gray-500 px-4 py-3 whitespace-nowrap">Status</th>
+          </tr>
+        </thead>
+        <tbody>{rows}</tbody>
+      </table>
     </div>
   );
 }
 
-/* ── Skeleton ── */
-function PaymentSkeleton(): JSX.Element {
+/* ── Payment row ── */
+function PaymentRow({ payment }: { payment: Payment }): JSX.Element {
   return (
-    <div className="bg-white rounded-2xl shadow-sm p-4 animate-pulse">
-      <div className="flex items-start gap-3">
-        <div className="w-9 h-9 rounded-xl bg-gray-100 shrink-0 mt-0.5" />
-        <div className="flex-1">
-          <div className="h-4 bg-gray-100 rounded w-2/3 mb-2" />
-          <div className="h-3 bg-gray-100 rounded w-1/3" />
+    <tr className="border-b border-gray-50 last:border-0">
+      <td className="px-4 py-3">
+        <div className="flex items-center gap-3 min-w-0">
+          <PaymentThumb src={payment.productImage} />
+          <p className="text-sm font-semibold text-gray-800 truncate max-w-[220px]">{payment.productName}</p>
         </div>
-        <div className="shrink-0">
-          <div className="h-4 w-12 bg-gray-100 rounded ml-auto" />
-          <div className="h-3 w-16 bg-gray-100 rounded-full mt-1.5" />
-        </div>
-      </div>
-    </div>
+      </td>
+      <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{audienceLabel(payment)}</td>
+      <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{formatCreatedAt(payment.createdAt)}</td>
+      <td className="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">₹{payment.amount}</td>
+      <td className="px-4 py-3 text-right whitespace-nowrap">
+        <span
+          className={`inline-block text-[10px] font-semibold px-2 py-0.5 rounded-full capitalize ${STATUS_BADGE[payment.paymentStatus]}`}
+        >
+          {payment.paymentStatus}
+        </span>
+      </td>
+    </tr>
+  );
+}
+
+/* ── Skeleton ── */
+function PaymentSkeletonRows(): JSX.Element {
+  return (
+    <>
+      {Array.from({ length: 5 }).map((_, i) => (
+        <tr key={i} className="border-b border-gray-50 last:border-0 animate-pulse">
+          <td className="px-4 py-3">
+            <div className="flex items-center gap-3">
+              <div className="w-9 h-9 rounded-xl bg-gray-100 shrink-0" />
+              <div className="h-4 bg-gray-100 rounded w-32" />
+            </div>
+          </td>
+          <td className="px-4 py-3"><div className="h-3 bg-gray-100 rounded w-20" /></td>
+          <td className="px-4 py-3"><div className="h-3 bg-gray-100 rounded w-24" /></td>
+          <td className="px-4 py-3"><div className="h-4 bg-gray-100 rounded w-12 ml-auto" /></td>
+          <td className="px-4 py-3"><div className="h-3 bg-gray-100 rounded-full w-16 ml-auto" /></td>
+        </tr>
+      ))}
+    </>
   );
 }
 
