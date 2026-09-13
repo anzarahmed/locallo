@@ -2,7 +2,8 @@ import { useEffect, useState, type JSX } from 'react';
 import { useFormik } from 'formik';
 import {
   X, Globe, Map, Building2, Users, IndianRupee, ClipboardCheck,
-  Eye, Info, Loader2, ChevronDown, Rocket, Package, type LucideIcon,
+  Eye, Info, Loader2, ChevronDown, Rocket, Package, Target, BarChart3, Zap,
+  type LucideIcon,
 } from 'lucide-react';
 import { createBoost, getActiveBoost, cancelBoost } from '../../services/sellerService';
 import { useAuth } from '../../hooks/useAuth';
@@ -560,6 +561,35 @@ function ExistingBoostView({ boost, promoting, onClose, onCancel, cancelling }: 
             <p className="text-xs text-gray-400">Estimated impressions</p>
             <p className="text-sm font-bold text-gray-800 truncate">
               {boost.estimatedImpressionsMin.toLocaleString('en-IN')} – {boost.estimatedImpressionsMax.toLocaleString('en-IN')}
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-teal-700 shrink-0">
+            <Target size={15} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-400">Maximum impression</p>
+            <p className="text-sm font-bold text-gray-800 truncate">{boost.estimatedImpressionsMax.toLocaleString('en-IN')}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-teal-700 shrink-0">
+            <BarChart3 size={15} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-400">Impression count</p>
+            <p className="text-sm font-bold text-gray-800 truncate">{boost.impressionCount.toLocaleString('en-IN')}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3 px-4 py-3.5">
+          <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-teal-700 shrink-0">
+            <Zap size={15} />
+          </div>
+          <div className="min-w-0">
+            <p className="text-xs text-gray-400">Balance impression</p>
+            <p className="text-sm font-bold text-gray-800 truncate">
+              {Math.max(boost.estimatedImpressionsMax - boost.impressionCount, 0).toLocaleString('en-IN')}
             </p>
           </div>
         </div>

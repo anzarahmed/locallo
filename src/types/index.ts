@@ -234,6 +234,7 @@ export interface ProductBoost {
   dailyBudget: number;
   estimatedImpressionsMin: number;
   estimatedImpressionsMax: number;
+  impressionCount: number;
   status: BoostStatus;
   razorpayOrderId: string;
   paymentStatus: PaymentStatus;
