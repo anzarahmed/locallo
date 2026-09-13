@@ -109,6 +109,7 @@ export interface NotificationSettings {
   offersAndPromotions: boolean;
   wishlistPriceDrops: boolean;
   sellerUpdates: boolean;
+  useAiForPrimaryImage: boolean;
 }
 
 export function getCustomDay(): Promise<{ customDayOverride: CustomDayOverride | null }> {

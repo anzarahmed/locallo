@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX } from 'react';
-import { Bell, Mail, MessageSquare, Tag, Heart, Store } from 'lucide-react';
+import { Bell, Mail, MessageSquare, Tag, Heart, Store, Sparkles } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { getSettings, updateSettings, type NotificationSettings } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
@@ -12,6 +12,7 @@ const DEFAULT_SETTINGS: NotificationSettings = {
   offersAndPromotions: true,
   wishlistPriceDrops: true,
   sellerUpdates:      true,
+  useAiForPrimaryImage: true,
 };
 
 interface NotifRow {
@@ -112,6 +113,38 @@ export default function Settings(): JSX.Element {
                     />
                   </div>
                 ))}
+          </div>
+        </div>
+
+        {/* AI Assistance card */}
+        <div className="bg-white rounded-2xl shadow-sm overflow-hidden">
+          <div className="px-5 pt-5 pb-2">
+            <p className="text-xs font-semibold tracking-widest text-gray-400 uppercase">
+              AI Assistance
+            </p>
+          </div>
+
+          <div className="divide-y divide-gray-50">
+            {loading ? (
+              <SkeletonRow />
+            ) : (
+              <div className="flex items-center gap-4 px-5 py-4">
+                <div className="w-9 h-9 rounded-full bg-teal-50 flex items-center justify-center shrink-0">
+                  <Sparkles size={17} className="text-teal-600" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-800">Use AI for primary image</p>
+                  <p className="text-xs text-gray-400 mt-0.5 truncate">
+                    Auto-fill product details from your first photo using AI
+                  </p>
+                </div>
+                <ToggleSwitch
+                  active={settings.useAiForPrimaryImage}
+                  onToggle={() => handleToggle('useAiForPrimaryImage')}
+                  disabled={saving !== null}
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>
