@@ -48,6 +48,9 @@ export const PATHS = {
     BY_ID:  (id: string) => `/api/admins/products/${id}`,
     TOGGLE: (id: string) => `/api/admins/products/${id}/toggle`,
   },
+  PAYMENTS: {
+    LIST:   '/api/admins/payments',
+  },
   CUSTOMERS: {
     LIST:   '/api/admins/customers',
     BY_ID:  (id: string) => `/api/admins/customers/${id}`,

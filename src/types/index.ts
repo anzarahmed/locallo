@@ -1,5 +1,5 @@
 export type AdminRole = 'super_admin' | 'manager' | 'operator';
-export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands' | 'banners' | 'faqs' | 'cmsPages' | 'offers';
+export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands' | 'banners' | 'faqs' | 'cmsPages' | 'offers' | 'payments';
 export type PermissionAction = 'list' | 'view' | 'add' | 'edit' | 'delete';
 export type PermissionMap = Partial<Record<PermissionModule, PermissionAction[]>>;
 export type SellerStatus = 'active' | 'inactive' | 'pending';
@@ -198,4 +198,27 @@ export interface Product {
   seller?: ProductSeller;
   category?: ProductCategory;
   variants?: ProductVariant[];
+}
+
+export type BoostAudienceType = 'pan_india' | 'state' | 'city';
+export type BoostStatus = 'pending' | 'active' | 'completed' | 'cancelled';
+export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
+
+export interface Payment {
+  id: string;
+  productId: string;
+  productName: string;
+  productImage: string | null;
+  sellerId: string;
+  sellerName: string;
+  audienceType: BoostAudienceType;
+  state: string | null;
+  city: string | null;
+  dailyBudget: number;
+  impressionCount: number;
+  status: BoostStatus;
+  paymentStatus: PaymentStatus;
+  amount: number;
+  currency: string;
+  createdAt: string;
 }

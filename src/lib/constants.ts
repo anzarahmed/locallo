@@ -8,6 +8,13 @@ export const STATUS_FILTER_OPTIONS = [
   { label: 'Inactive', value: 'false' },
 ] as const;
 
+export const PAYMENT_STATUS_FILTER_OPTIONS = [
+  { label: 'Paid',      value: 'paid'      },
+  { label: 'Pending',   value: 'pending'   },
+  { label: 'Failed',    value: 'failed'    },
+  { label: 'Cancelled', value: 'cancelled' },
+] as const;
+
 export const VERIFIED_FILTER_OPTIONS = [
   { label: 'Verified',   value: 'true'  },
   { label: 'Unverified', value: 'false' },
