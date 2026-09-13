@@ -32,6 +32,7 @@ export interface NotificationSettings {
   offersAndPromotions: boolean;
   wishlistPriceDrops: boolean;
   sellerUpdates: boolean;
+  useAiForPrimaryImage: boolean;
 }
 
 export interface CustomDayTime {

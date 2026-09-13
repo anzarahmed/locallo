@@ -27,6 +27,7 @@ export const updateNotificationSettingsSchema = Yup.object({
   offersAndPromotions:  Yup.boolean().required(),
   wishlistPriceDrops:   Yup.boolean().required(),
   sellerUpdates:        Yup.boolean().required(),
+  useAiForPrimaryImage: Yup.boolean().required(),
 });
 
 const dayScheduleSchema = Yup.object({

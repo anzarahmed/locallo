@@ -1,6 +1,7 @@
 import { Category } from '../../models/Category';
 import { saveImage, getPresignedUrl, resolveMimeType } from '../../utils/imageStorage';
 import { analyzeProductImage, mapAnalysisToAttributes } from '../../utils/imageAnalyzer';
+import { getSellerSettings } from './sellerService';
 import type { AttributeField } from '../../types';
 
 export interface ImageAnalysisResponse {
@@ -24,7 +25,8 @@ export async function analyzeAndSaveImage(
   const imageKey = await saveImage(file, sellerId);
   const imageUrl = await getPresignedUrl(imageKey);
 
-  if (!process.env.GEMINI_API_KEY) {
+  const settings = await getSellerSettings(sellerId);
+  if (!settings.useAiForPrimaryImage || !process.env.GEMINI_API_KEY) {
     return { imageUrl, suggestions: null, attributeSchema: [] };
   }
 
