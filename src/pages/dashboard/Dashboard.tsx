@@ -1,21 +1,29 @@
 import { useEffect, useState, type JSX } from 'react';
-import { Users, ShoppingBag, TrendingUp, DollarSign, type LucideIcon } from 'lucide-react';
-import { getRecentActivity } from '../../services/dashboardService';
-import type { ActivityItem, ActivityType } from '../../services/dashboardService';
+import { Store, Users, ShoppingBag, DollarSign, type LucideIcon } from 'lucide-react';
+import { getRecentActivity, getDashboardStats } from '../../services/dashboardService';
+import type { ActivityItem, ActivityType, DashboardStats } from '../../services/dashboardService';
 
-interface StatCard {
+interface StatCardConfig {
+  key: keyof DashboardStats;
   label: string;
-  value: string;
-  change: string;
   icon: LucideIcon;
   color: string;
+  format: (value: number) => string;
 }
 
-const STATS: StatCard[] = [
-  { label: 'Total Sellers',   value: '1,284',  change: '+12%', icon: Users,       color: 'bg-indigo-50 text-indigo-600' },
-  { label: 'Active Listings', value: '24,530', change: '+8%',  icon: ShoppingBag, color: 'bg-emerald-50 text-emerald-600' },
-  { label: 'Monthly Revenue', value: '₹4.2L',  change: '+23%', icon: DollarSign,  color: 'bg-amber-50 text-amber-600' },
-  { label: 'Growth Rate',     value: '18.4%',  change: '+3%',  icon: TrendingUp,  color: 'bg-rose-50 text-rose-600' },
+function formatCount(value: number): string {
+  return value.toLocaleString('en-IN');
+}
+
+function formatCurrency(value: number): string {
+  return `₹${value.toLocaleString('en-IN')}`;
+}
+
+const STAT_CARDS: StatCardConfig[] = [
+  { key: 'totalActiveSellers',    label: 'Total Active Sellers',      icon: Store,       color: 'bg-indigo-50 text-indigo-600',  format: formatCount },
+  { key: 'totalCustomers',        label: 'Total Customers',           icon: Users,       color: 'bg-emerald-50 text-emerald-600', format: formatCount },
+  { key: 'totalActiveProducts',   label: 'Total Active Products',     icon: ShoppingBag, color: 'bg-amber-50 text-amber-600',    format: formatCount },
+  { key: 'totalPaymentsThisMonth', label: 'Total Payment (This Month)', icon: DollarSign,  color: 'bg-rose-50 text-rose-600',      format: formatCurrency },
 ];
 
 const ACTIVITY_COLORS: Record<ActivityType, string> = {
@@ -44,6 +52,9 @@ export default function Dashboard(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [statsLoading, setStatsLoading] = useState(true);
+
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
@@ -63,19 +74,38 @@ export default function Dashboard(): JSX.Element {
     };
   }, []);
 
+  useEffect(() => {
+    let cancelled = false;
+    setStatsLoading(true);
+    getDashboardStats()
+      .then((res) => {
+        if (!cancelled) setStats(res);
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (!cancelled) setStatsLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
-        {STATS.map(({ label, value, change, icon: Icon, color }) => (
-          <div key={label} className="bg-white rounded-xl border border-gray-200 p-5 flex items-start gap-4">
+        {STAT_CARDS.map(({ key, label, icon: Icon, color, format }) => (
+          <div key={key} className="bg-white rounded-xl border border-gray-200 p-5 flex items-start gap-4">
             <div className={`p-3 rounded-xl ${color}`}>
               <Icon className="w-5 h-5" />
             </div>
             <div>
               <p className="text-sm text-gray-500">{label}</p>
-              <p className="text-2xl font-bold text-gray-900 mt-0.5">{value}</p>
-              <p className="text-xs text-emerald-600 font-medium mt-1">{change} this month</p>
+              {statsLoading || !stats ? (
+                <div className="h-7 w-20 rounded bg-gray-200 animate-pulse mt-1" />
+              ) : (
+                <p className="text-2xl font-bold text-gray-900 mt-0.5">{format(stats[key])}</p>
+              )}
             </div>
           </div>
         ))}

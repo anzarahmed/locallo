@@ -13,3 +13,14 @@ export interface ActivityItem {
 export function getRecentActivity(limit = 5): Promise<{ activities: ActivityItem[] }> {
   return apiGet<{ activities: ActivityItem[] }>(`${PATHS.DASHBOARD.RECENT_ACTIVITY}?limit=${limit}`);
 }
+
+export interface DashboardStats {
+  totalActiveSellers: number;
+  totalCustomers: number;
+  totalActiveProducts: number;
+  totalPaymentsThisMonth: number;
+}
+
+export function getDashboardStats(): Promise<DashboardStats> {
+  return apiGet<DashboardStats>(PATHS.DASHBOARD.STATS);
+}

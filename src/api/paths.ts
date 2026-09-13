@@ -65,6 +65,7 @@ export const PATHS = {
   },
   DASHBOARD: {
     RECENT_ACTIVITY: '/api/admins/dashboard/recent-activity',
+    STATS: '/api/admins/dashboard/stats',
   },
   SUB_ADMINS: {
     LIST:   '/api/admins/sub-admins',
