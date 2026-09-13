@@ -1,5 +1,6 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
+import { parsePagination } from '../../utils/pagination';
 import * as boostService from '../../services/seller/boostService';
 
 export async function createProductBoost(req: Request, res: Response): Promise<void> {
@@ -27,4 +28,10 @@ export async function cancelProductBoost(req: Request, res: Response): Promise<v
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to cancel boost');
   }
+}
+
+export async function getBoostPayments(req: Request, res: Response): Promise<void> {
+  const { page, limit } = parsePagination(req);
+  const { rows, count } = await boostService.getBoosts(req.seller!.id, page, limit);
+  sendSuccess(res, { payments: rows, total: count, page, limit }, 'Payments fetched');
 }

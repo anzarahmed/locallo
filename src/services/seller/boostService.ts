@@ -6,7 +6,8 @@ import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 import { createRazorpayOrder } from '../../utils/razorpay';
 import { sendBoostPaymentConfirmedEmail, sendBoostPaymentFailedEmail } from '../../utils/mailer';
-import type { BoostAudienceType } from '../../types';
+import { getPresignedUrl } from '../../utils/imageStorage';
+import type { BoostAudienceType, BoostStatus, PaymentStatus } from '../../types';
 
 const IMPRESSIONS_PER_RUPEE = 20;
 
@@ -174,4 +175,61 @@ export async function cancelBoost(sellerId: string, productId: string): Promise<
   });
   if (!boost) return;
   await boost.update({ paymentStatus: 'cancelled', status: 'cancelled' });
+}
+
+export interface BoostPaymentRow {
+  id: string;
+  productId: string;
+  productName: string;
+  productImage: string | null;
+  audienceType: BoostAudienceType;
+  state: string | null;
+  city: string | null;
+  dailyBudget: number;
+  impressionCount: number;
+  status: BoostStatus;
+  paymentStatus: PaymentStatus;
+  amount: number;
+  currency: string;
+  createdAt: Date;
+}
+
+export async function getBoosts(
+  sellerId: string,
+  page: number,
+  limit: number,
+): Promise<{ rows: BoostPaymentRow[]; count: number }> {
+  const { rows, count } = await ProductBoost.findAndCountAll({
+    where: { sellerId },
+    include: [{ model: Product, attributes: ['name', 'images'], required: false }],
+    order: [['createdAt', 'DESC']],
+    limit,
+    offset: (page - 1) * limit,
+  });
+
+  const signed = await Promise.all(
+    rows.map(async (boost): Promise<BoostPaymentRow> => {
+      const json = boost.toJSON() as ProductBoost & { product?: { name?: string; images?: string[] } };
+      const firstKey = json.product?.images?.[0] ?? null;
+      const productImage = firstKey ? await getPresignedUrl(firstKey) : null;
+      return {
+        id:              json.id,
+        productId:       json.productId,
+        productName:     json.product?.name ?? 'Product',
+        productImage,
+        audienceType:    json.audienceType,
+        state:           json.state,
+        city:            json.city,
+        dailyBudget:     json.dailyBudget,
+        impressionCount: json.impressionCount,
+        status:          json.status,
+        paymentStatus:   json.paymentStatus,
+        amount:          json.amount,
+        currency:        json.currency,
+        createdAt:       json.createdAt,
+      };
+    }),
+  );
+
+  return { rows: signed, count };
 }

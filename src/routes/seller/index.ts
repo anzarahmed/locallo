@@ -15,7 +15,7 @@ import { getPurchaseLogs } from '../../controllers/seller/purchaseController';
 import { addLedger, getLedgers, editLedger, removeLedger } from '../../controllers/seller/ledgerController';
 import { addExpense, getExpenses, editExpense, removeExpense } from '../../controllers/seller/expenseController';
 import { getPnlSummary } from '../../controllers/seller/pnlController';
-import { createProductBoost, getActiveProductBoost, cancelProductBoost } from '../../controllers/seller/boostController';
+import { createProductBoost, getActiveProductBoost, cancelProductBoost, getBoostPayments } from '../../controllers/seller/boostController';
 import { getOffers, getAcceptedOffers, getOffer, acceptOffer } from '../../controllers/seller/offerController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/seller/notificationController';
 import { validate } from '../../middleware/validate';
@@ -77,6 +77,7 @@ router.post('/products/:id/sell', requireSeller, validate(markSoldSchema), markP
 router.post('/products/:id/boost',        requireSeller, validate(createBoostSchema), createProductBoost);
 router.get('/products/:id/boost',         requireSeller, getActiveProductBoost);
 router.patch('/products/:id/boost/cancel', requireSeller, cancelProductBoost);
+router.get('/payments', requireSeller, getBoostPayments);
 
 router.get('/sold-logs', requireSeller, getSoldLogs);
 router.get('/purchase-logs', requireSeller, getPurchaseLogs);
