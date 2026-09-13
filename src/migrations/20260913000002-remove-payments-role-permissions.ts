@@ -9,14 +9,14 @@ function rows(role: string, actions: readonly string[]): object[] {
 }
 
 async function up(queryInterface: QueryInterface): Promise<void> {
+  await queryInterface.bulkDelete('role_permissions', { module: 'payments' });
+}
+
+async function down(queryInterface: QueryInterface): Promise<void> {
   await queryInterface.bulkInsert('role_permissions', [
     ...rows('manager', ALL_ACTIONS),
     ...rows('operator', OPERATOR_ACTIONS),
   ]);
-}
-
-async function down(queryInterface: QueryInterface): Promise<void> {
-  await queryInterface.bulkDelete('role_permissions', { module: 'payments' });
 }
 
 export { up, down };

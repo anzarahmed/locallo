@@ -131,7 +131,7 @@ router.get   ('/products/:id',          requireAdmin, requirePermission('product
 router.patch ('/products/:id/toggle',   requireAdmin, requirePermission('products', 'edit'),   toggleProduct);
 router.delete('/products/:id',          requireAdmin, requirePermission('products', 'delete'), deleteProduct);
 
-// Payments
-router.get   ('/payments',              requireAdmin, requirePermission('payments', 'list'),   getPayments);
+// Payments (super_admin only)
+router.get   ('/payments',              requireAdmin, requireSuperAdmin,   getPayments);
 
 export default router;
