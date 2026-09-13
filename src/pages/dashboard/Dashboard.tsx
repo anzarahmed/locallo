@@ -1,17 +1,13 @@
-import { type JSX } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import { Users, ShoppingBag, TrendingUp, DollarSign, type LucideIcon } from 'lucide-react';
+import { getRecentActivity } from '../../services/dashboardService';
+import type { ActivityItem, ActivityType } from '../../services/dashboardService';
 
 interface StatCard {
   label: string;
   value: string;
   change: string;
   icon: LucideIcon;
-  color: string;
-}
-
-interface ActivityItem {
-  msg: string;
-  time: string;
   color: string;
 }
 
@@ -22,14 +18,51 @@ const STATS: StatCard[] = [
   { label: 'Growth Rate',     value: '18.4%',  change: '+3%',  icon: TrendingUp,  color: 'bg-rose-50 text-rose-600' },
 ];
 
-const ACTIVITIES: ActivityItem[] = [
-  { msg: 'New seller registered: Urban Eats',       time: '2 min ago',  color: 'bg-indigo-500' },
-  { msg: 'Seller profile updated: Spice Garden',    time: '15 min ago', color: 'bg-emerald-500' },
-  { msg: 'Seller deactivated: Old Craft Store',     time: '1 hr ago',   color: 'bg-amber-500' },
-  { msg: 'New seller registered: Tech Hub',         time: '3 hr ago',   color: 'bg-indigo-500' },
-];
+const ACTIVITY_COLORS: Record<ActivityType, string> = {
+  seller_added:    'bg-indigo-500',
+  seller_verified: 'bg-emerald-500',
+  product_added:   'bg-blue-500',
+  category_added:  'bg-purple-500',
+  subadmin_added:  'bg-amber-500',
+};
+
+function formatRelativeTime(iso: string): string {
+  const diffMs = Date.now() - new Date(iso).getTime();
+  const diffSec = Math.max(0, Math.floor(diffMs / 1000));
+  if (diffSec < 60) return 'just now';
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin} min ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr} hr ago`;
+  const diffDay = Math.floor(diffHr / 24);
+  if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
+  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
 
 export default function Dashboard(): JSX.Element {
+  const [activities, setActivities] = useState<ActivityItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+    getRecentActivity()
+      .then((res) => {
+        if (!cancelled) setActivities(res.activities);
+      })
+      .catch(() => {
+        if (!cancelled) setError('Failed to load recent activity');
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   return (
     <div className="space-y-6">
       {/* Stats Grid */}
@@ -51,15 +84,31 @@ export default function Dashboard(): JSX.Element {
       {/* Recent Activity */}
       <div className="bg-white rounded-xl border border-gray-200 p-6">
         <h2 className="text-base font-semibold text-gray-900 mb-4">Recent Activity</h2>
-        <div className="space-y-3">
-          {ACTIVITIES.map((item, i) => (
-            <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
-              <div className={`w-2 h-2 rounded-full shrink-0 ${item.color}`} />
-              <p className="text-sm text-gray-700 flex-1">{item.msg}</p>
-              <span className="text-xs text-gray-400 shrink-0">{item.time}</span>
-            </div>
-          ))}
-        </div>
+        {loading ? (
+          <div className="space-y-3">
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
+                <div className="w-2 h-2 rounded-full shrink-0 bg-gray-200 animate-pulse" />
+                <div className="h-3.5 flex-1 rounded bg-gray-200 animate-pulse" />
+                <div className="h-3 w-16 rounded bg-gray-200 animate-pulse shrink-0" />
+              </div>
+            ))}
+          </div>
+        ) : error ? (
+          <p className="text-sm text-gray-500">{error}</p>
+        ) : activities.length === 0 ? (
+          <p className="text-sm text-gray-500">No recent activity</p>
+        ) : (
+          <div className="space-y-3">
+            {activities.map((item) => (
+              <div key={item.id} className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
+                <div className={`w-2 h-2 rounded-full shrink-0 ${ACTIVITY_COLORS[item.type]}`} />
+                <p className="text-sm text-gray-700 flex-1">{item.message}</p>
+                <span className="text-xs text-gray-400 shrink-0">{formatRelativeTime(item.timestamp)}</span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );

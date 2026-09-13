@@ -63,6 +63,9 @@ export const PATHS = {
   ME: {
     PERMISSIONS: '/api/admins/me/permissions',
   },
+  DASHBOARD: {
+    RECENT_ACTIVITY: '/api/admins/dashboard/recent-activity',
+  },
   SUB_ADMINS: {
     LIST:   '/api/admins/sub-admins',
     CREATE: '/api/admins/sub-admins',
