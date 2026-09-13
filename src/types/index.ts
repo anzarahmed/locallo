@@ -243,6 +243,30 @@ export interface ProductBoost {
   createdAt: string;
 }
 
+export interface Payment {
+  id: string;
+  productId: string;
+  productName: string;
+  productImage: string | null;
+  audienceType: BoostAudienceType;
+  state: string | null;
+  city: string | null;
+  dailyBudget: number;
+  impressionCount: number;
+  status: BoostStatus;
+  paymentStatus: PaymentStatus;
+  amount: number;
+  currency: string;
+  createdAt: string;
+}
+
+export interface PaymentsResponse {
+  payments: Payment[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export interface Notification {
   id: string;
   title: string;

@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse, PurchaseLogsResponse, CustomDayOverride, TopProduct, ProductBoost, ProductReviewsResponse } from '../types';
+import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse, PurchaseLogsResponse, CustomDayOverride, TopProduct, ProductBoost, ProductReviewsResponse, PaymentsResponse } from '../types';
 
 export function getDashboardStats(): Promise<DashboardStats> {
   return apiGet(PATHS.DASHBOARD.STATS);
@@ -179,4 +179,8 @@ export function getPurchaseLogs(params?: {
   to?: string;
 }): Promise<PurchaseLogsResponse> {
   return apiGet(PATHS.PURCHASE_LOGS, params);
+}
+
+export function getPayments(params?: { page?: number; limit?: number }): Promise<PaymentsResponse> {
+  return apiGet(PATHS.PAYMENTS, params);
 }
