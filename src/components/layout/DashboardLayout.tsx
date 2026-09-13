@@ -23,7 +23,7 @@ const ROUTE_PERMISSIONS: { prefix: string; module: PermissionModule; action: Per
 ];
 
 // Routes only accessible to super_admin
-const SUPER_ADMIN_ONLY_PREFIXES = ['/sub-admins', '/role-permissions'];
+const SUPER_ADMIN_ONLY_PREFIXES = ['/sub-admins', '/role-permissions', '/payments'];
 
 function resolveTitle(pathname: string): string {
   return (

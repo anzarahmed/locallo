@@ -28,13 +28,14 @@ interface NavItem {
   icon: LucideIcon;
   label: string;
   permission?: { module: PermissionModule; action: PermissionAction };
+  superAdminOnly?: boolean;
 }
 
 const NAV_ITEMS: NavItem[] = [
   { to: '/dashboard',  icon: LayoutDashboard, label: 'Dashboard'  },
   { to: '/sellers',    icon: Users,            label: 'Sellers',    permission: { module: 'sellers',    action: 'list' } },
   { to: '/products',   icon: Package,          label: 'Products',   permission: { module: 'products',   action: 'list' } },
-  { to: '/payments',   icon: CreditCard,       label: 'Payments',   permission: { module: 'payments',   action: 'list' } },
+  { to: '/payments',   icon: CreditCard,       label: 'Payments',   superAdminOnly: true },
   { to: '/categories', icon: Tag,              label: 'Categories', permission: { module: 'categories', action: 'list' } },
   { to: '/brands',     icon: Tags,             label: 'Brands',     permission: { module: 'brands',     action: 'list' } },
   { to: '/banners',    icon: Image,            label: 'Banners',    permission: { module: 'banners',    action: 'list' } },
@@ -76,7 +77,8 @@ export default function Sidebar(): JSX.Element {
   const isSuperAdmin = admin?.role === 'super_admin';
 
   const visibleNavItems = NAV_ITEMS.filter(item =>
-    !item.permission || hasPermission(item.permission.module, item.permission.action),
+    (!item.permission || hasPermission(item.permission.module, item.permission.action)) &&
+    (!item.superAdminOnly || isSuperAdmin),
   );
 
   function handleLogout(): void {
