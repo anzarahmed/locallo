@@ -150,7 +150,9 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
     setVerifying(true);
     try {
       const result = await setKycVerification(seller.id, verified);
-      setSeller({ ...seller, profile: { ...seller.profile, isVerified: result.isVerified, verifiedAt: result.verifiedAt } });
+      const updated: Seller = { ...seller, profile: { ...seller.profile, isVerified: result.isVerified, verifiedAt: result.verifiedAt } };
+      setSeller(updated);
+      onToggled(updated);
       toast.success(verified ? 'Seller verified' : 'Verification revoked');
     } catch {
       toast.error(verified ? 'Aadhar and PAN are required before verification' : 'Failed to revoke verification');

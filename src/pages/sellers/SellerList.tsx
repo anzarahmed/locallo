@@ -357,7 +357,7 @@ export default function SellerList(): JSX.Element {
           sellerId={viewId}
           onClose={() => setViewId(null)}
           onToggled={(updated) => {
-            setSellers(list => list.map(s => s.id === updated.id ? { ...s, isActive: updated.isActive } : s));
+            setSellers(list => list.map(s => s.id === updated.id ? { ...s, isActive: updated.isActive, profile: updated.profile } : s));
           }}
         />
       )}
