@@ -488,7 +488,7 @@ export default function AddProduct(): JSX.Element {
           </FormField>
 
           <div className="grid grid-cols-2 gap-3">
-            <FormField label="Selling Price" required error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}>
+            <FormField label="Selling Price (₹)" required error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
                 <input
@@ -499,12 +499,12 @@ export default function AddProduct(): JSX.Element {
                   value={form.values.sellingPrice}
                   onChange={form.handleChange}
                   onBlur={form.handleBlur}
-                  placeholder="0"
+                  placeholder="0.00"
                   className={`${inputCls(!!form.touched.sellingPrice && !!form.errors.sellingPrice)} pl-7`}
                 />
               </div>
             </FormField>
-            <FormField label="MRP" required error={form.touched.mrp ? form.errors.mrp as string : undefined}>
+            <FormField label="MRP (₹)" required error={form.touched.mrp ? form.errors.mrp as string : undefined}>
               <div className="relative">
                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
                 <input
@@ -515,14 +515,14 @@ export default function AddProduct(): JSX.Element {
                   value={form.values.mrp}
                   onChange={form.handleChange}
                   onBlur={form.handleBlur}
-                  placeholder="0"
+                  placeholder="0.00"
                   className={`${inputCls(!!form.touched.mrp && !!form.errors.mrp)} pl-7`}
                 />
               </div>
             </FormField>
           </div>
 
-          <FormField label="Cost Price" required error={form.touched.costPrice ? form.errors.costPrice as string : undefined}>
+          <FormField label="Cost Price (₹)" required error={form.touched.costPrice ? form.errors.costPrice as string : undefined}>
             <div className="relative">
               <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
               <input
@@ -533,7 +533,7 @@ export default function AddProduct(): JSX.Element {
                 value={form.values.costPrice}
                 onChange={form.handleChange}
                 onBlur={form.handleBlur}
-                placeholder="0"
+                placeholder="0.00"
                 className={`${inputCls(!!form.touched.costPrice && !!form.errors.costPrice)} pl-7`}
               />
             </div>

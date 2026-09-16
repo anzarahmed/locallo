@@ -499,7 +499,7 @@ export default function VariantSheet({
           {/* Pricing */}
           <div className="grid grid-cols-2 gap-3">
             <PriceField
-              label="Selling Price"
+              label="Selling Price (₹)"
               name="sellingPrice"
               value={form.values.sellingPrice}
               error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}
@@ -509,7 +509,7 @@ export default function VariantSheet({
               required
             />
             <PriceField
-              label="MRP"
+              label="MRP (₹)"
               name="mrp"
               value={form.values.mrp}
               error={form.touched.mrp ? form.errors.mrp as string : undefined}
@@ -808,7 +808,7 @@ function PriceField({ label, name, value, error, hasError, required, readOnly, o
           value={value}
           onChange={onChange}
           onBlur={onBlur}
-          placeholder="0"
+          placeholder="0.00"
           readOnly={readOnly}
           className={`${inputCls(hasError)} pl-7${readOnly ? ' bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`}
         />

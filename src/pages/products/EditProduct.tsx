@@ -537,7 +537,7 @@ export default function EditProduct(): JSX.Element {
             {!hasVariants && (
               <>
                 <div className="grid grid-cols-2 gap-3">
-                  <FormField label="Selling Price" required error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}>
+                  <FormField label="Selling Price (₹)" required error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
                       <input
@@ -552,7 +552,7 @@ export default function EditProduct(): JSX.Element {
                       />
                     </div>
                   </FormField>
-                  <FormField label="MRP" error={form.touched.mrp ? form.errors.mrp as string : undefined}>
+                  <FormField label="MRP (₹)" error={form.touched.mrp ? form.errors.mrp as string : undefined}>
                     <div className="relative">
                       <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
                       <input
@@ -566,7 +566,7 @@ export default function EditProduct(): JSX.Element {
                   </FormField>
                 </div>
 
-                <FormField label="Cost Price" required error={form.touched.costPrice ? form.errors.costPrice as string : undefined}>
+                <FormField label="Cost Price (₹)" required error={form.touched.costPrice ? form.errors.costPrice as string : undefined}>
                   <div className="relative">
                     <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-sm select-none">₹</span>
                     <input
