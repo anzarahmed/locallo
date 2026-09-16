@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useFormik, type FormikHelpers } from 'formik';
-import { X, ImagePlus, Loader2, Lock } from 'lucide-react';
+import { X, ImagePlus, Loader2, Lock, Camera } from 'lucide-react';
 import { uploadProductImage, createBatchVariants, updateVariant } from '../../../services/sellerService';
 import { MAX_SECONDARY_IMAGES } from '../../../constants';
 import { variantFormSchema, type VariantFormValues } from '../../../validation/variantSchemas';
@@ -68,8 +68,28 @@ export default function VariantSheet({
   const allCombinations = isEdit ? [] : generateCombinations(variantFields, variantSelections);
   const combinations    = allCombinations.filter(c => !existingComboKeys.has(getCombinationKey(c)));
 
+  /*
+   * Add-to-group ("Add Option") starts from an existing sibling variant's images —
+   * e.g. adding a new size to an existing color group should default to that
+   * color's current photos, same as GroupEditSheet's bulk editor does.
+   */
+  const groupImages = (!isEdit && lockedAttributes)
+    ? existingVariants.find(ev =>
+        Object.entries(lockedAttributes).every(
+          ([k, v]) => String((ev.attributes as Record<string, string>)[k]) === v,
+        ),
+      )?.images ?? []
+    : [];
+
   /* Images */
-  const [images, setImages] = useState<string[]>(isEdit ? variant.images : []);
+  const [primaryImage, setPrimaryImage] = useState<string | null>(
+    isEdit ? (variant.images[0] ?? null) : (groupImages[0] ?? null),
+  );
+  const [primaryImageError, setPrimaryImageError] = useState<string | null>(null);
+  const [isUploadingPrimary, setIsUploadingPrimary] = useState(false);
+  const [secondaryImages, setSecondaryImages] = useState<string[]>(
+    isEdit ? variant.images.slice(1, 1 + MAX_SECONDARY_IMAGES) : groupImages.slice(1, 1 + MAX_SECONDARY_IMAGES),
+  );
   const [isUploading, setIsUploading] = useState(false);
 
   /* Add mode: show "<Field> is required" once the user has tried to submit without selecting */
@@ -148,11 +168,11 @@ export default function VariantSheet({
     setComboStocks({});
   }
 
-  function handleImageChange(e: ChangeEvent<HTMLInputElement>): void {
+  function handleSecondaryImageChange(e: ChangeEvent<HTMLInputElement>): void {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
     if (files.length === 0) return;
-    const slots = MAX_SECONDARY_IMAGES - images.length;
+    const slots = MAX_SECONDARY_IMAGES - secondaryImages.length;
     const toUpload = files.slice(0, slots);
     toUpload.forEach(file => {
       const invalid = validateImageFile(file);
@@ -162,21 +182,53 @@ export default function VariantSheet({
       }
       setIsUploading(true);
       uploadProductImage(file)
-        .then(({ url }) => setImages(prev => [...prev, url]))
+        .then(({ url }) => setSecondaryImages(prev => [...prev, url]))
         .catch(err => toast.error(err instanceof ApiError ? err.message : 'Failed to upload image'))
         .finally(() => setIsUploading(false));
     });
+  }
+
+  async function handlePrimaryUpload(file: File): Promise<void> {
+    setIsUploadingPrimary(true);
+    try {
+      const { url } = await uploadProductImage(file);
+      setPrimaryImage(url);
+      setPrimaryImageError(null);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to upload image');
+    } finally {
+      setIsUploadingPrimary(false);
+    }
+  }
+
+  function handlePrimaryImageChange(e: ChangeEvent<HTMLInputElement>): void {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    const invalid = validateImageFile(file);
+    if (invalid) {
+      toast.error(invalid);
+      return;
+    }
+    void handlePrimaryUpload(file);
   }
 
   async function handleSubmit(
     values: VariantFormValues,
     helpers: FormikHelpers<VariantFormValues>,
   ): Promise<void> {
+    if (!primaryImage) {
+      setPrimaryImageError('Primary image is required');
+      toast.error('Primary image is required');
+      helpers.setSubmitting(false);
+      return;
+    }
+
     if (isEdit) {
       /* Edit mode: update price, stock, images for single variant */
       try {
         const result = await updateVariant(productId, variant.id, {
-          images:       images.length > 0 ? images : (product.images ?? []),
+          images:       [primaryImage, ...secondaryImages],
           sellingPrice: Number(values.sellingPrice),
           ...(values.mrp ? { mrp: Number(values.mrp) } : {}),
           stock:        Number(values.stock),
@@ -221,7 +273,7 @@ export default function VariantSheet({
 
     const sellingPrice = Number(values.sellingPrice);
     const mrp = values.mrp ? Number(values.mrp) : undefined;
-    const variantImages = images.length > 0 ? images : (product.images ?? []);
+    const variantImages = [primaryImage, ...secondaryImages];
 
     try {
       const sdFieldKeys = new Set(variantFields.filter(f => f.isStockDependent).map(f => f.key));
@@ -339,14 +391,74 @@ export default function VariantSheet({
             )
           )}
 
-          {/* Images */}
+          {/* Primary Image */}
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
-              {isEdit ? 'Variant' : 'Product'} Images (up to {MAX_SECONDARY_IMAGES})
+              Primary Image<span className="text-rose-400 ml-0.5">*</span>
+            </p>
+
+            {primaryImage ? (
+              <div className="flex items-center gap-3">
+                <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                  <img
+                    src={resolveImage(primaryImage)}
+                    alt="Variant primary"
+                    className="w-full h-full object-cover"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setPrimaryImage(null)}
+                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                  >
+                    <X size={9} />
+                  </button>
+                </div>
+                <label className={`inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 cursor-pointer hover:text-teal-700 ${isUploadingPrimary ? 'pointer-events-none opacity-50' : ''}`}>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePrimaryImageChange}
+                    className="hidden"
+                  />
+                  {isUploadingPrimary ? (
+                    <><Loader2 size={12} className="animate-spin" /> Uploading…</>
+                  ) : (
+                    'Replace image'
+                  )}
+                </label>
+              </div>
+            ) : (
+              <label className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed py-6 cursor-pointer hover:border-teal-400 transition-colors ${primaryImageError ? 'border-rose-300' : 'border-teal-200'} ${isUploadingPrimary ? 'pointer-events-none opacity-70' : ''}`}>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handlePrimaryImageChange}
+                  className="hidden"
+                />
+                {isUploadingPrimary ? (
+                  <Loader2 size={22} className="text-teal-500 animate-spin" />
+                ) : (
+                  <>
+                    <Camera size={20} className="text-teal-500" />
+                    <span className="text-xs font-semibold text-gray-600">Upload primary photo</span>
+                  </>
+                )}
+              </label>
+            )}
+
+            {primaryImageError && (
+              <p className="text-xs text-rose-500 mt-1.5">{primaryImageError}</p>
+            )}
+          </div>
+
+          {/* Secondary Images */}
+          <div>
+            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              Additional Images (up to {MAX_SECONDARY_IMAGES})
             </p>
 
             <div className="flex gap-2 flex-wrap">
-              {images.map((url, i) => (
+              {secondaryImages.map((url, i) => (
                 <div key={url} className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                   <img
                     src={resolveImage(url)}
@@ -355,20 +467,20 @@ export default function VariantSheet({
                   />
                   <button
                     type="button"
-                    onClick={() => setImages(prev => prev.filter(u => u !== url))}
+                    onClick={() => setSecondaryImages(prev => prev.filter(u => u !== url))}
                     className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
                   >
                     <X size={9} />
                   </button>
                 </div>
               ))}
-              {images.length < MAX_SECONDARY_IMAGES && (
-                <label className={`w-20 h-20 rounded-xl border-2 border-dashed border-teal-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-teal-400 transition-colors shrink-0 ${isUploading ? 'pointer-events-none opacity-60' : ''}`}>
+              {secondaryImages.length < MAX_SECONDARY_IMAGES && (
+                <label className={`w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-teal-400 transition-colors shrink-0 ${isUploading ? 'pointer-events-none opacity-60' : ''}`}>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     multiple
-                    onChange={handleImageChange}
+                    onChange={handleSecondaryImageChange}
                     className="hidden"
                   />
                   {isUploading ? (

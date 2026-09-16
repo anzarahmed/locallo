@@ -321,7 +321,6 @@ export default function VariantList(): JSX.Element {
         <GroupEditSheet
           key={editingGroup.key}
           productId={id!}
-          product={product}
           group={editingGroup}
           sdField={sdField}
           schema={schema}
@@ -550,7 +549,6 @@ function GroupedVariantCard({
 /* ── Group edit sheet — edit price/stock for all variants in a group at once ── */
 interface GroupEditSheetProps {
   productId: string;
-  product: Product;
   group: VariantGroup;
   sdField: AttributeField;
   schema: AttributeField[];
@@ -559,7 +557,7 @@ interface GroupEditSheetProps {
 }
 
 function GroupEditSheet({
-  productId, product, group, sdField, schema, onSaved, onClose,
+  productId, group, sdField, schema, onSaved, onClose,
 }: GroupEditSheetProps): JSX.Element {
   const toast = useToast();
 
@@ -571,7 +569,12 @@ function GroupEditSheet({
       stock: String(v.stock),
     })),
   );
-  const [groupImages, setGroupImages] = useState<string[]>([...group.variants[0].images]);
+  const [groupPrimaryImage, setGroupPrimaryImage] = useState<string | null>(group.variants[0].images[0] ?? null);
+  const [groupPrimaryImageError, setGroupPrimaryImageError] = useState<string | null>(null);
+  const [isUploadingPrimary, setIsUploadingPrimary] = useState(false);
+  const [groupSecondaryImages, setGroupSecondaryImages] = useState<string[]>(
+    group.variants[0].images.slice(1, 1 + MAX_SECONDARY_IMAGES),
+  );
   const [isUploading, setIsUploading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -585,24 +588,41 @@ function GroupEditSheet({
     setRows(prev => prev.map((r, idx) => idx === i ? { ...r, [field]: val } : r));
   }
 
-  function handleImageChange(e: ChangeEvent<HTMLInputElement>): void {
+  function handleSecondaryImageChange(e: ChangeEvent<HTMLInputElement>): void {
     const files = Array.from(e.target.files ?? []);
     e.target.value = '';
     if (files.length === 0) return;
-    const slots = MAX_SECONDARY_IMAGES - groupImages.length;
+    const slots = MAX_SECONDARY_IMAGES - groupSecondaryImages.length;
     const toUpload = files.slice(0, slots);
     setIsUploading(true);
     Promise.all(toUpload.map(file => uploadProductImage(file).then(({ url }) => url)))
-      .then(urls => setGroupImages(prev => [...prev, ...urls]))
+      .then(urls => setGroupSecondaryImages(prev => [...prev, ...urls]))
       .catch(err => toast.error(err instanceof ApiError ? err.message : 'Failed to upload image'))
       .finally(() => setIsUploading(false));
   }
 
-  function removeImage(url: string): void {
-    setGroupImages(prev => prev.filter(u => u !== url));
+  function removeSecondaryImage(url: string): void {
+    setGroupSecondaryImages(prev => prev.filter(u => u !== url));
+  }
+
+  function handlePrimaryImageChange(e: ChangeEvent<HTMLInputElement>): void {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file) return;
+    setIsUploadingPrimary(true);
+    uploadProductImage(file)
+      .then(({ url }) => { setGroupPrimaryImage(url); setGroupPrimaryImageError(null); })
+      .catch(err => toast.error(err instanceof ApiError ? err.message : 'Failed to upload image'))
+      .finally(() => setIsUploadingPrimary(false));
   }
 
   async function handleSave(): Promise<void> {
+    if (!groupPrimaryImage) {
+      setGroupPrimaryImageError('Primary image is required');
+      toast.error('Primary image is required');
+      return;
+    }
+
     setSaving(true);
     try {
       const results = await Promise.all(
@@ -610,7 +630,7 @@ function GroupEditSheet({
           const row = rows[i];
           return updateVariant(productId, v.id, {
             attributes: v.attributes as Record<string, unknown>,
-            images: groupImages.length > 0 ? groupImages : (product.images ?? []),
+            images: [groupPrimaryImage, ...groupSecondaryImages],
             sellingPrice: Number(row.sellingPrice),
             ...(row.mrp ? { mrp: Number(row.mrp) } : {}),
             stock: Number(row.stock),
@@ -663,34 +683,85 @@ function GroupEditSheet({
         {/* Body */}
         <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4">
 
-          {/* Group-level images — shared by all sizes */}
+          {/* Group-level primary image — shared by all sizes */}
           <div>
             <div className="flex items-baseline gap-1.5 mb-2">
-              <span className="text-xs font-semibold text-gray-700">Images</span>
-              <span className="text-[10px] text-gray-400 font-normal">
-                optional · shared across all sizes · uses product images if none uploaded
-              </span>
+              <span className="text-xs font-semibold text-gray-700">Primary Image<span className="text-rose-400 ml-0.5">*</span></span>
+              <span className="text-[10px] text-gray-400 font-normal">shared across all sizes</span>
+            </div>
+
+            {groupPrimaryImage ? (
+              <div className="flex items-center gap-3">
+                <div className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                  <img src={resolveImage(groupPrimaryImage)} alt="Variant primary" className="w-full h-full object-cover" />
+                  <button
+                    type="button"
+                    onClick={() => setGroupPrimaryImage(null)}
+                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                  >
+                    <X size={8} />
+                  </button>
+                </div>
+                <label className={`inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 cursor-pointer hover:text-teal-700 ${isUploadingPrimary ? 'pointer-events-none opacity-50' : ''}`}>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handlePrimaryImageChange}
+                    className="hidden"
+                  />
+                  {isUploadingPrimary ? (
+                    <><Loader2 size={12} className="animate-spin" /> Uploading…</>
+                  ) : (
+                    'Replace image'
+                  )}
+                </label>
+              </div>
+            ) : (
+              <label className={`w-16 h-16 rounded-xl border-2 border-dashed flex items-center justify-center cursor-pointer hover:border-teal-400 transition-colors shrink-0 bg-white ${groupPrimaryImageError ? 'border-rose-300' : 'border-teal-200'} ${isUploadingPrimary ? 'pointer-events-none opacity-60' : ''}`}>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  onChange={handlePrimaryImageChange}
+                  className="hidden"
+                />
+                {isUploadingPrimary
+                  ? <Loader2 size={15} className="text-teal-400 animate-spin" />
+                  : <Camera size={15} className="text-teal-500" />
+                }
+              </label>
+            )}
+
+            {groupPrimaryImageError && (
+              <p className="text-xs text-rose-500 mt-1.5">{groupPrimaryImageError}</p>
+            )}
+          </div>
+
+          {/* Group-level secondary images — shared by all sizes */}
+          <div>
+            <div className="flex items-baseline gap-1.5 mb-2">
+              <span className="text-xs font-semibold text-gray-700">Additional Images (up to {MAX_SECONDARY_IMAGES})</span>
+              <span className="text-[10px] text-gray-400 font-normal">optional · shared across all sizes</span>
             </div>
             <div className="flex gap-2 flex-wrap">
-              {groupImages.map(url => (
+              {groupSecondaryImages.map(url => (
                 <div key={url} className="relative w-16 h-16 rounded-xl overflow-hidden bg-gray-100 shrink-0">
                   <img src={resolveImage(url)} alt="Variant" className="w-full h-full object-cover" />
                   <button
                     type="button"
-                    onClick={() => removeImage(url)}
+                    onClick={() => removeSecondaryImage(url)}
                     className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
                   >
                     <X size={8} />
                   </button>
                 </div>
               ))}
-              {groupImages.length < MAX_SECONDARY_IMAGES && (
+              {groupSecondaryImages.length < MAX_SECONDARY_IMAGES && (
                 <label className={`w-16 h-16 rounded-xl border-2 border-dashed border-gray-200 flex items-center justify-center cursor-pointer hover:border-teal-400 transition-colors shrink-0 bg-white ${isUploading ? 'pointer-events-none opacity-60' : ''}`}>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
                     multiple
-                    onChange={handleImageChange}
+                    onChange={handleSecondaryImageChange}
                     className="hidden"
                   />
                   {isUploading
