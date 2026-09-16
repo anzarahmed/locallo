@@ -207,7 +207,7 @@ export default function VariantSheet({
     if (!file) return;
     const invalid = validateImageFile(file);
     if (invalid) {
-      toast.error(invalid);
+      toast.error(`${file.name}: ${invalid}`);
       return;
     }
     void handlePrimaryUpload(file);

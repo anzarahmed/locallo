@@ -222,7 +222,7 @@ export default function EditProduct(): JSX.Element {
     e.target.value = '';
     const invalid = validateImageFile(file);
     if (invalid) {
-      toast.error(invalid);
+      toast.error(`${file.name}: ${invalid}`);
       return;
     }
     void handlePrimaryReplace(file);
