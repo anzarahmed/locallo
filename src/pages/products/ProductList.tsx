@@ -12,6 +12,7 @@ import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../components/ui/SellModal';
 import VariantPickerModal from '../../components/ui/VariantPickerModal';
 import BoostProductModal from '../../components/ui/BoostProductModal';
+import PromoteVariantPickerModal from '../../components/ui/PromoteVariantPickerModal';
 import type { Product, ProductVariant, AttributeField, ProductBoost } from '../../types';
 import Tooltip from '../../components/ui/Tooltip';
 import noProductsIllustration from '../../assets/no-products.png';
@@ -40,7 +41,17 @@ export default function ProductList(): JSX.Element {
   const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
   const [loadingVariantsForId, setLoadingVariantsForId] = useState<string | null>(null);
   const [selling, setSelling] = useState(false);
-  const [promoteProduct, setPromoteProduct] = useState<Product | null>(null);
+  const [promoteTarget, setPromoteTarget] = useState<{
+    product: Product;
+    variant: ProductVariant | null;
+    schema: AttributeField[];
+  } | null>(null);
+  const [promoteVariantPickerData, setPromoteVariantPickerData] = useState<{
+    product: Product;
+    variants: ProductVariant[];
+    schema: AttributeField[];
+  } | null>(null);
+  const [loadingPromoteVariantsForId, setLoadingPromoteVariantsForId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -161,7 +172,37 @@ export default function ProductList(): JSX.Element {
 
   function handleBoosted(boost: ProductBoost): void {
     setProducts(prev => prev.map(p => p.id === boost.productId ? { ...p, isBoosted: true } : p));
-    setPromoteProduct(null);
+    setPromoteTarget(null);
+  }
+
+  async function handlePromoteClick(product: Product): Promise<void> {
+    if ((product.variantCount ?? 0) > 0) {
+      setLoadingPromoteVariantsForId(product.id);
+      try {
+        const data = await getProductVariants(product.id);
+        setPromoteVariantPickerData({
+          product,
+          variants: data.variants,
+          schema: data.product.category?.attributeSchema ?? [],
+        });
+      } catch (err) {
+        toast.error(err instanceof ApiError ? err.message : 'Failed to load variants');
+      } finally {
+        setLoadingPromoteVariantsForId(null);
+      }
+    } else {
+      setPromoteTarget({ product, variant: null, schema: [] });
+    }
+  }
+
+  function handlePromoteVariantConfirm(variant: ProductVariant): void {
+    if (!promoteVariantPickerData) return;
+    setPromoteTarget({
+      product: promoteVariantPickerData.product,
+      variant,
+      schema: promoteVariantPickerData.schema,
+    });
+    setPromoteVariantPickerData(null);
   }
 
   const totalPages = Math.ceil(total / PAGE_LIMIT);
@@ -253,6 +294,7 @@ export default function ProductList(): JSX.Element {
                 key={product.id}
                 product={product}
                 loadingVariants={loadingVariantsForId === product.id}
+                loadingPromote={loadingPromoteVariantsForId === product.id}
                 onView={() => navigate(`/products/${product.id}`)}
                 onEdit={() => navigate(`/products/${product.id}/edit`)}
                 onVariants={() => navigate(`/products/${product.id}/variants`, { state: { from: '/products' } })}
@@ -260,7 +302,7 @@ export default function ProductList(): JSX.Element {
                 onDelete={() => setDeleteTarget(product)}
                 onPreview={() => setPreviewId(product.id)}
                 onSell={() => void handleSellClick(product)}
-                onPromote={() => setPromoteProduct(product)}
+                onPromote={() => void handlePromoteClick(product)}
               />
             ))
           )}
@@ -343,10 +385,22 @@ export default function ProductList(): JSX.Element {
         />
       )}
 
-      {promoteProduct && (
+      {promoteVariantPickerData && (
+        <PromoteVariantPickerModal
+          productName={promoteVariantPickerData.product.name}
+          variants={promoteVariantPickerData.variants}
+          schema={promoteVariantPickerData.schema}
+          onConfirm={handlePromoteVariantConfirm}
+          onClose={() => setPromoteVariantPickerData(null)}
+        />
+      )}
+
+      {promoteTarget && (
         <BoostProductModal
-          product={promoteProduct}
-          onClose={() => setPromoteProduct(null)}
+          product={promoteTarget.product}
+          variant={promoteTarget.variant}
+          schema={promoteTarget.schema}
+          onClose={() => setPromoteTarget(null)}
           onBoosted={handleBoosted}
         />
       )}
@@ -358,6 +412,7 @@ export default function ProductList(): JSX.Element {
 interface ProductCardProps {
   product: Product;
   loadingVariants: boolean;
+  loadingPromote: boolean;
   onView: () => void;
   onEdit: () => void;
   onVariants: () => void;
@@ -368,10 +423,9 @@ interface ProductCardProps {
   onPromote: () => void;
 }
 
-function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onToggle, onDelete, onPreview, onSell, onPromote }: ProductCardProps): JSX.Element {
+function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit, onVariants, onToggle, onDelete, onPreview, onSell, onPromote }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
   const showVariants = categorySupportsVariants(product.category?.attributeSchema);
-  const hasVariants = (product.variantCount ?? 0) > 0;
   const thumbnailSrc = product.thumbnails?.[0] ?? product.images?.[0];
   const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
 
@@ -437,17 +491,16 @@ function ProductCard({ product, loadingVariants, onView, onEdit, onVariants, onT
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          {!hasVariants && (
-            <Tooltip label={product.isBoosted ? 'Boosted' : 'Promote product'}>
-              <button
-                onClick={onPromote}
-                aria-label={product.isBoosted ? 'Boosted' : 'Promote product'}
-                className="w-8 h-8 rounded-full bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors"
-              >
-                <Rocket size={14} />
-              </button>
-            </Tooltip>
-          )}
+          <button
+            type="button"
+            onClick={onPromote}
+            disabled={loadingPromote}
+            aria-label="Promote product"
+            className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-violet-600 text-white text-[11px] font-semibold leading-none hover:bg-violet-700 transition-colors disabled:opacity-60 shrink-0"
+          >
+            {loadingPromote ? <Loader2 size={12} className="animate-spin" /> : <Rocket size={12} />}
+            Promote Product
+          </button>
           <Tooltip label={product.stock === 0 ? 'Out of stock' : 'Mark as sold'}>
             <button
               onClick={onSell}
