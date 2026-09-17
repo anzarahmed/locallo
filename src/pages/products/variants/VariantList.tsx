@@ -10,33 +10,12 @@ import { useToast } from '../../../hooks/useToast';
 import { ApiError } from '../../../lib/axios';
 import { resolveImage } from '../../../lib/imageUtils';
 import { hasDiscount } from '../../../lib/formatters';
-import { categorySupportsVariants } from '../../../lib/variantUtils';
+import { categorySupportsVariants, groupVariants, type VariantGroup } from '../../../lib/variantUtils';
 import ConfirmDeleteModal from '../../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../../components/ui/SellModal';
 import BoostProductModal from '../../../components/ui/BoostProductModal';
 import type { Product, ProductVariant, ProductBoost, AttributeField } from '../../../types';
 import VariantSheet from './VariantSheet';
-
-interface VariantGroup {
-  key: string;
-  nonSdAttrs: Record<string, string>;
-  variants: ProductVariant[];
-}
-
-function groupVariants(variants: ProductVariant[], sdKey: string): VariantGroup[] {
-  const map = new Map<string, VariantGroup>();
-  for (const v of variants) {
-    const entries = Object.entries(v.attributes as Record<string, string>)
-      .filter(([k]) => k !== sdKey)
-      .sort(([a], [b]) => a.localeCompare(b));
-    const key = entries.map(([k, val]) => `${k}:${val}`).join('|') || '__all__';
-    if (!map.has(key)) {
-      map.set(key, { key, nonSdAttrs: Object.fromEntries(entries), variants: [] });
-    }
-    map.get(key)!.variants.push(v);
-  }
-  return Array.from(map.values());
-}
 
 function variantMatches(variant: ProductVariant, schema: AttributeField[], query: string): boolean {
   const q = query.trim().toLowerCase();
@@ -279,7 +258,6 @@ export default function VariantList(): JSX.Element {
                 onAddToGroup={g => openAddToGroup(g)}
                 onDelete={v => setDeleteTarget(v)}
                 onSell={v => setSellVariant(v)}
-                onPromote={v => setPromoteTarget({ variant: v })}
                 boostedVariantId={boostedVariantId}
                 wholeProductBoosted={wholeProductBoosted}
               />
@@ -373,13 +351,12 @@ interface GroupedVariantCardProps {
   onAddToGroup: (g: VariantGroup) => void;
   onDelete: (v: ProductVariant) => void;
   onSell: (v: ProductVariant) => void;
-  onPromote: (v: ProductVariant) => void;
   boostedVariantId: string | null;
   wholeProductBoosted: boolean;
 }
 
 function GroupedVariantCard({
-  group, schema, sdField, onToggle, onEdit, onEditGroup, onAddToGroup, onDelete, onSell, onPromote,
+  group, schema, sdField, onToggle, onEdit, onEditGroup, onAddToGroup, onDelete, onSell,
   boostedVariantId, wholeProductBoosted,
 }: GroupedVariantCardProps): JSX.Element {
   const firstVariant = group.variants[0];
@@ -496,14 +473,6 @@ function GroupedVariantCard({
               )}
 
               <div className="flex items-center gap-1 shrink-0">
-                <button
-                  type="button"
-                  onClick={() => onPromote(v)}
-                  title="Promote this variant"
-                  className="w-7 h-7 rounded-full bg-violet-50 flex items-center justify-center text-violet-600 hover:bg-violet-100 transition-colors"
-                >
-                  <Rocket size={12} />
-                </button>
                 <button
                   type="button"
                   onClick={() => onSell(v)}

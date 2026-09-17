@@ -1,14 +1,23 @@
-import { useState, type JSX } from 'react';
+import { useMemo, useState, type JSX } from 'react';
 import { Package } from 'lucide-react';
 import { resolveImage } from '../../lib/imageUtils';
-import { variantLabel } from '../../lib/variantUtils';
-import type { ProductVariant, AttributeField } from '../../types';
+import { variantLabel, groupVariants, groupLabel, pickBoostVariant } from '../../lib/variantUtils';
+import type { ProductVariant, AttributeField, ProductBoost } from '../../types';
+
+interface PickerGroup {
+  key: string;
+  label: string;
+  variants: ProductVariant[];
+  thumbnailSrc: string | undefined;
+}
 
 interface PromoteVariantPickerModalProps {
   productName: string;
   variants: ProductVariant[];
   schema: AttributeField[];
+  activeBoost: ProductBoost | null;
   onConfirm: (variant: ProductVariant) => void;
+  onViewBoostDetails: (variant: ProductVariant) => void;
   onClose: () => void;
 }
 
@@ -16,11 +25,46 @@ export default function PromoteVariantPickerModal({
   productName,
   variants,
   schema,
+  activeBoost,
   onConfirm,
+  onViewBoostDetails,
   onClose,
 }: PromoteVariantPickerModalProps): JSX.Element {
-  const [selectedId, setSelectedId] = useState<string | null>(variants[0]?.id ?? null);
-  const selected = variants.find(v => v.id === selectedId) ?? null;
+  const sdField = schema.find(f => f.isVariant === true && f.isStockDependent === true);
+  const boostedVariantId = activeBoost?.variantId ?? null;
+
+  const groups = useMemo<PickerGroup[]>(() => {
+    const activeVariants = variants.filter(v => v.isActive);
+    if (sdField) {
+      return groupVariants(activeVariants, sdField.key).map(g => ({
+        key: g.key,
+        label: groupLabel(g.nonSdAttrs, schema),
+        variants: g.variants,
+        thumbnailSrc: g.variants[0]?.thumbnails?.[0] ?? g.variants[0]?.images[0],
+      }));
+    }
+    return activeVariants.map(v => ({
+      key: v.id,
+      label: variantLabel(v.attributes, schema),
+      variants: [v],
+      thumbnailSrc: v.thumbnails?.[0] ?? v.images[0],
+    }));
+  }, [variants, schema, sdField]);
+
+  const firstSelectableKey =
+    groups.find(g => !g.variants.some(v => v.id === boostedVariantId))?.key ?? null;
+  const [selectedKey, setSelectedKey] = useState<string | null>(firstSelectableKey);
+  const selectedGroup = groups.find(g => g.key === selectedKey) ?? null;
+
+  function handleConfirm(): void {
+    if (!selectedGroup) return;
+    onConfirm(pickBoostVariant(selectedGroup.variants));
+  }
+
+  function handleViewDetails(group: PickerGroup): void {
+    const boostedVariant = group.variants.find(v => v.id === boostedVariantId) ?? group.variants[0];
+    onViewBoostDetails(boostedVariant);
+  }
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 bg-black/40">
@@ -31,33 +75,63 @@ export default function PromoteVariantPickerModal({
         </div>
 
         <div className="overflow-y-auto flex-1 px-4 py-1 flex flex-col gap-2">
-          {variants.map(variant => {
-            const thumbnailSrc = variant.thumbnails?.[0] ?? variant.images[0];
-            const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
-            const selectedRow = variant.id === selectedId;
+          {groups.map(group => {
+            const imageUrl = group.thumbnailSrc ? resolveImage(group.thumbnailSrc) : null;
+            const isBoosted = boostedVariantId != null && group.variants.some(v => v.id === boostedVariantId);
+            const selectedRow = group.key === selectedKey;
+            const optionCount = group.variants.length;
+            const bestStock = Math.max(...group.variants.map(v => v.stock));
+
+            const thumbnail = (
+              <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
+                {imageUrl ? (
+                  <img src={imageUrl} alt="Variant" className="w-full h-full object-cover" />
+                ) : (
+                  <Package size={16} className="text-gray-300" />
+                )}
+              </div>
+            );
+
+            if (isBoosted) {
+              return (
+                <div
+                  key={group.key}
+                  className="w-full p-3 rounded-xl border border-violet-200 bg-violet-50/60 flex gap-3 items-center"
+                >
+                  {thumbnail}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-bold text-gray-700 truncate">{group.label}</p>
+                    <p className="text-xs text-violet-600 font-semibold mt-0.5">
+                      Currently boosted
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleViewDetails(group)}
+                    className="shrink-0 px-3 py-1.5 rounded-lg bg-violet-600 text-white text-xs font-semibold hover:bg-violet-700 transition-colors"
+                  >
+                    View Boost Details
+                  </button>
+                </div>
+              );
+            }
 
             return (
               <button
-                key={variant.id}
+                key={group.key}
                 type="button"
-                onClick={() => setSelectedId(variant.id)}
+                onClick={() => setSelectedKey(group.key)}
                 className={`w-full text-left p-3 rounded-xl border transition-colors flex gap-3 items-center ${
                   selectedRow ? 'border-teal-200 bg-teal-50/60' : 'border-gray-100 hover:bg-gray-50'
                 }`}
               >
-                <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
-                  {imageUrl ? (
-                    <img src={imageUrl} alt="Variant" className="w-full h-full object-cover" />
-                  ) : (
-                    <Package size={16} className="text-gray-300" />
-                  )}
-                </div>
+                {thumbnail}
 
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-bold text-indigo-600 truncate">
-                    {variantLabel(variant.attributes, schema)}
+                  <p className="text-sm font-bold text-indigo-600 truncate">{group.label}</p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {optionCount} option{optionCount !== 1 ? 's' : ''} · Best stock: {bestStock}
                   </p>
-                  <p className="text-xs text-gray-400 mt-0.5">Stock: {variant.stock}</p>
                 </div>
 
                 <span
@@ -70,6 +144,10 @@ export default function PromoteVariantPickerModal({
               </button>
             );
           })}
+
+          {groups.length === 0 && (
+            <p className="text-sm text-gray-400 text-center py-6">No variants available to promote right now.</p>
+          )}
         </div>
 
         <div className="flex items-center justify-end gap-3 px-5 py-4 border-t border-gray-50 shrink-0">
@@ -82,8 +160,8 @@ export default function PromoteVariantPickerModal({
           </button>
           <button
             type="button"
-            onClick={() => selected && onConfirm(selected)}
-            disabled={!selected}
+            onClick={handleConfirm}
+            disabled={!selectedGroup}
             className="px-5 py-2 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-50"
             style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
           >

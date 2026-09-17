@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, ChevronDown, ScanEye, ShoppingBag, Loader2, Rocket } from 'lucide-react';
-import { getProducts, toggleProduct, deleteProduct, markProductSold, markVariantSold, getProductVariants } from '../../services/sellerService';
+import { getProducts, toggleProduct, deleteProduct, markProductSold, markVariantSold, getProductVariants, getActiveBoost } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
@@ -50,6 +50,7 @@ export default function ProductList(): JSX.Element {
     product: Product;
     variants: ProductVariant[];
     schema: AttributeField[];
+    activeBoost: ProductBoost | null;
   } | null>(null);
   const [loadingPromoteVariantsForId, setLoadingPromoteVariantsForId] = useState<string | null>(null);
 
@@ -179,11 +180,15 @@ export default function ProductList(): JSX.Element {
     if ((product.variantCount ?? 0) > 0) {
       setLoadingPromoteVariantsForId(product.id);
       try {
-        const data = await getProductVariants(product.id);
+        const [data, { boost }] = await Promise.all([
+          getProductVariants(product.id),
+          getActiveBoost(product.id),
+        ]);
         setPromoteVariantPickerData({
           product,
           variants: data.variants,
           schema: data.product.category?.attributeSchema ?? [],
+          activeBoost: boost,
         });
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to load variants');
@@ -195,7 +200,7 @@ export default function ProductList(): JSX.Element {
     }
   }
 
-  function handlePromoteVariantConfirm(variant: ProductVariant): void {
+  function openBoostModalForVariant(variant: ProductVariant): void {
     if (!promoteVariantPickerData) return;
     setPromoteTarget({
       product: promoteVariantPickerData.product,
@@ -390,7 +395,9 @@ export default function ProductList(): JSX.Element {
           productName={promoteVariantPickerData.product.name}
           variants={promoteVariantPickerData.variants}
           schema={promoteVariantPickerData.schema}
-          onConfirm={handlePromoteVariantConfirm}
+          activeBoost={promoteVariantPickerData.activeBoost}
+          onConfirm={openBoostModalForVariant}
+          onViewBoostDetails={openBoostModalForVariant}
           onClose={() => setPromoteVariantPickerData(null)}
         />
       )}

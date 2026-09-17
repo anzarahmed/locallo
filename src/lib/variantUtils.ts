@@ -1,6 +1,44 @@
-import type { AttributeField } from '../types';
+import type { AttributeField, ProductVariant } from '../types';
 
 export type VariantSelections = Record<string, string | string[]>;
+
+export interface VariantGroup {
+  key: string;
+  nonSdAttrs: Record<string, string>;
+  variants: ProductVariant[];
+}
+
+export function groupVariants(variants: ProductVariant[], sdKey: string): VariantGroup[] {
+  const map = new Map<string, VariantGroup>();
+  for (const v of variants) {
+    const entries = Object.entries(v.attributes as Record<string, string>)
+      .filter(([k]) => k !== sdKey)
+      .sort(([a], [b]) => a.localeCompare(b));
+    const key = entries.map(([k, val]) => `${k}:${val}`).join('|') || '__all__';
+    if (!map.has(key)) {
+      map.set(key, { key, nonSdAttrs: Object.fromEntries(entries), variants: [] });
+    }
+    map.get(key)!.variants.push(v);
+  }
+  return Array.from(map.values());
+}
+
+export function groupLabel(nonSdAttrs: Record<string, string>, schema: AttributeField[]): string {
+  const entries = Object.entries(nonSdAttrs);
+  if (entries.length === 0) return 'All variants';
+  return entries
+    .map(([key, val]) => {
+      const field = schema.find(f => f.key === key);
+      return field?.options?.find(o => o.value === val)?.label ?? val;
+    })
+    .join(' · ');
+}
+
+export function pickBoostVariant(variants: ProductVariant[]): ProductVariant {
+  const maxStock = Math.max(...variants.map(v => v.stock));
+  if (maxStock <= 0) return variants[0];
+  return variants.find(v => v.stock === maxStock) ?? variants[0];
+}
 
 export function generateCombinations(
   variantFields: AttributeField[],
