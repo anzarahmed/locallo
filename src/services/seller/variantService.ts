@@ -1,4 +1,5 @@
 import type { InferType } from 'yup';
+import sequelize from '../../config/database';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { Category } from '../../models/Category';
@@ -64,11 +65,36 @@ function getVariantKeys(product: Product): string[] {
   return schema.filter(f => f.isVariant).map(f => f.key);
 }
 
+function normalizeAttrValue(v: unknown): string {
+  return String(v ?? '').trim().toLowerCase();
+}
+
 function getComboKey(attrs: Record<string, unknown>, variantKeys: string[]): string {
   return variantKeys
-    .map(key => `${key}:${String(attrs[key] ?? '').trim().toLowerCase()}`)
+    .map(key => `${key}:${normalizeAttrValue(attrs[key])}`)
     .sort()
     .join('|');
+}
+
+// Options of the same non-stock-dependent attributes (e.g. all sizes of one color) are
+// treated as one visual "group" sharing a single image set — mirrors the grouping the
+// seller panel already computes client-side via groupVariants()/sdField in VariantList.
+function findGroupSiblings(
+  product: Product,
+  targetVariant: ProductVariant,
+  allVariants: ProductVariant[],
+): ProductVariant[] {
+  const schema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
+  const sdField = schema.find(f => f.isVariant && f.isStockDependent);
+  if (!sdField) return [];
+
+  const groupKeys = schema.filter(f => f.isVariant && f.key !== sdField.key).map(f => f.key);
+  const targetKey = getComboKey(targetVariant.attributes as Record<string, unknown>, groupKeys);
+
+  return allVariants.filter(v =>
+    v.id !== targetVariant.id &&
+    getComboKey(v.attributes as Record<string, unknown>, groupKeys) === targetKey,
+  );
 }
 
 export async function getProductVariants(
@@ -194,24 +220,46 @@ export async function updateVariant(
   variantId: string,
   sellerId: string,
   data: UpdateVariantInput,
-): Promise<ProductVariant> {
+): Promise<{ variant: ProductVariant; siblings: ProductVariant[] }> {
   const product = await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
 
   const stockBefore = variant.stock;
   const stockDelta = data.stock !== undefined ? data.stock - stockBefore : 0;
 
-  await variant.update({
-    ...(data.images       !== undefined && { images:       await commitImages(data.images.map(normalizeImageKey)) }),
-    ...(data.stock        !== undefined && { stock:        data.stock }),
-    ...(data.sellingPrice !== undefined && { sellingPrice: data.sellingPrice }),
-    ...(data.mrp          !== undefined && { mrp:          data.mrp }),
-    ...(data.isActive     !== undefined && { isActive:     data.isActive }),
+  // S3 side effects happen before the DB transaction opens (same sequencing as
+  // productService.createProduct) — they can't be rolled back if the transaction fails.
+  const committedImages = data.images !== undefined
+    ? await commitImages(data.images.map(normalizeImageKey))
+    : undefined;
+
+  // Sibling options (e.g. other sizes of the same color) share one image set — editing
+  // one option's photos should update every option in its group, not just itself.
+  let siblings: ProductVariant[] = [];
+  if (committedImages !== undefined) {
+    const allVariants = await ProductVariant.findAll({ where: { productId } });
+    siblings = findGroupSiblings(product, variant, allVariants);
+  }
+
+  await sequelize.transaction(async (t) => {
+    await variant.update({
+      ...(committedImages   !== undefined && { images:       committedImages }),
+      ...(data.stock        !== undefined && { stock:        data.stock }),
+      ...(data.sellingPrice !== undefined && { sellingPrice: data.sellingPrice }),
+      ...(data.mrp          !== undefined && { mrp:          data.mrp }),
+      ...(data.isActive     !== undefined && { isActive:     data.isActive }),
+    }, { transaction: t });
+
+    if (committedImages !== undefined && siblings.length > 0) {
+      await Promise.all(siblings.map(s => s.update({ images: committedImages }, { transaction: t })));
+    }
   });
+
   // Sequelize's instance.update() only RETURNINGs on INSERT, not UPDATE — without
   // reload(), DECIMAL fields stay as the raw JS number passed in instead of the
   // DB-cast string (e.g. 999 vs "999.00"), so the response wouldn't match a GET.
   await variant.reload();
+  await Promise.all(siblings.map(s => s.reload()));
 
   await syncProductStock(productId);
 
@@ -229,7 +277,7 @@ export async function updateVariant(
     });
   }
 
-  return variant;
+  return { variant, siblings };
 }
 
 export async function deleteVariant(

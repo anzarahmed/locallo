@@ -54,14 +54,17 @@ export async function createBatchVariants(req: Request, res: Response): Promise<
 
 export async function updateVariant(req: Request, res: Response): Promise<void> {
   try {
-    const variant = await variantService.updateVariant(
+    const { variant, siblings } = await variantService.updateVariant(
       String(req.params.productId),
       String(req.params.variantId),
       req.seller!.id,
       req.body,
     );
-    const signed = await signVariant(variant.toJSON());
-    sendSuccess(res, { variant: signed }, 'Variant updated');
+    const [signedVariant, signedSiblings] = await Promise.all([
+      signVariant(variant.toJSON()),
+      Promise.all(siblings.map(s => signVariant(s.toJSON()))),
+    ]);
+    sendSuccess(res, { variant: signedVariant, siblings: signedSiblings }, 'Variant updated');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to update variant');
   }
