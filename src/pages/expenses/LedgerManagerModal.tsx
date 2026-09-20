@@ -146,8 +146,15 @@ export default function LedgerManagerModal({
                   </>
                 ) : (
                   <>
-                    <span className="text-sm text-gray-700 truncate">{ledger.name}</span>
-                    {confirmId === ledger.id ? (
+                    <span className="text-sm text-gray-700 truncate flex items-center gap-2">
+                      {ledger.name}
+                      {ledger.isDefault && (
+                        <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">
+                          Default
+                        </span>
+                      )}
+                    </span>
+                    {ledger.isDefault ? null : confirmId === ledger.id ? (
                       <div className="flex items-center gap-2 shrink-0">
                         <button
                           onClick={() => void handleDelete(ledger.id)}

@@ -336,6 +336,7 @@ export interface ProductReviewsResponse {
 export interface Ledger {
   id: string;
   name: string;
+  isDefault: boolean;
   createdAt: string;
 }
 
