@@ -8,6 +8,10 @@ import type { Product, ProductVariant, AttributeField, SellerProfile, ProductRev
 
 const HEX_COLOR = /^#[0-9a-fA-F]{3,8}$/;
 
+function capitalize(label: string): string {
+  return label.charAt(0).toUpperCase() + label.slice(1);
+}
+
 function attrDisplayValue(field: AttributeField, raw: unknown): string {
   if (raw === null || raw === undefined || raw === '') return '—';
 
@@ -18,7 +22,8 @@ function attrDisplayValue(field: AttributeField, raw: unknown): string {
 
   if ((field.type === 'select' || field.type === 'color') && field.options) {
     const opt = field.options.find(o => o.value === raw);
-    return opt?.label ?? String(raw);
+    const label = opt?.label ?? String(raw);
+    return field.type === 'color' ? capitalize(label) : label;
   }
 
   return String(raw);
@@ -339,7 +344,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                         const availableValues = [...usedValues].filter(Boolean);
                         if (availableValues.length === 0) return null;
                         const labelFor = (val: string): string =>
-                          field.options?.find(o => o.value === val)?.label ?? val;
+                          capitalize(field.options?.find(o => o.value === val)?.label ?? val);
                         const imageFor = (val: string): string | null => {
                           const match = variants.find(v =>
                             String((v.attributes as Record<string, string>)[field.key]) === val && v.images.length > 0,
