@@ -27,6 +27,11 @@ interface BoostProductModalProps {
 
 const RAZORPAY_CHECKOUT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
 
+function boostVariantLabel(attributes: Record<string, unknown>, schema: AttributeField[]): string {
+  const rest = Object.fromEntries(Object.entries(attributes).filter(([key]) => key !== 'size'));
+  return variantLabel(rest, schema.filter(f => f.key !== 'size'));
+}
+
 const STEPS: { key: 1 | 2 | 3; label: string; icon: LucideIcon }[] = [
   { key: 1, label: 'Audience', icon: Users },
   { key: 2, label: 'Budget', icon: IndianRupee },
@@ -36,7 +41,7 @@ const STEPS: { key: 1 | 2 | 3; label: string; icon: LucideIcon }[] = [
 export default function BoostProductModal({ product, variant, schema, onClose, onBoosted }: BoostProductModalProps): JSX.Element {
   const toast = useToast();
   const { seller } = useAuth();
-  const targetLabel = variant ? variantLabel(variant.attributes, schema ?? []) : null;
+  const targetLabel = variant ? boostVariantLabel(variant.attributes, schema ?? []) : null;
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -177,7 +182,7 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
           <div className="min-w-0">
             <h3 className="text-base font-bold text-gray-800">Boost Your Product</h3>
             <p className="text-xs text-gray-400 mt-0.5 truncate">{product.name}</p>
-            {targetLabel && (
+            {targetLabel && !existingBoost && (
               <p className="text-[11px] font-semibold text-violet-600 mt-0.5 truncate">Variant: {targetLabel}</p>
             )}
           </div>
@@ -200,7 +205,7 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
             boost={existingBoost}
             promoting={
               existingBoost.variant
-                ? variantLabel(existingBoost.variant.attributes, schema ?? [])
+                ? boostVariantLabel(existingBoost.variant.attributes, schema ?? [])
                 : 'Whole product'
             }
             onClose={onClose}
