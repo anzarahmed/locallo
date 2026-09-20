@@ -7,7 +7,7 @@ import {
 import {
   getProfile, uploadProductImage, analyzeProductImage, createProduct,
 } from '../../services/sellerService';
-import { addProductSchema, type AddProductFormValues } from '../../validation/productSchemas';
+import { addProductSchema, addProductSchemaComboStock, type AddProductFormValues } from '../../validation/productSchemas';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage, validateImageFile } from '../../lib/imageUtils';
@@ -16,7 +16,7 @@ import { inputCls } from '../../lib/classUtils';
 import { MAX_SECONDARY_IMAGES } from '../../constants';
 import {
   generateCombinations, getCombinationKey, hasStockDependentAttr,
-  buildProductVariantAttrs, type VariantSelections,
+  buildProductVariantAttrs, validateComboStocks, type VariantSelections,
 } from '../../lib/variantUtils';
 import FormField from '../../components/ui/FormField';
 import AttrInput from '../../components/ui/AttrInput';
@@ -44,10 +44,12 @@ export default function AddProduct(): JSX.Element {
   const [aiHint, setAiHint] = useState<AiHint | null>(null);
   const [variantSelections, setVariantSelections] = useState<VariantSelections>({});
   const [comboStocks, setComboStocks] = useState<Record<string, string>>({});
+  const [comboStockErrors, setComboStockErrors] = useState<Record<string, string>>({});
 
   const variantFields = attributeSchema.filter(f => f.isVariant === true);
   const stockDependent = hasStockDependentAttr(variantFields);
   const combinations = generateCombinations(variantFields, variantSelections);
+  const usesComboStock = stockDependent && combinations.length > 0;
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -71,7 +73,7 @@ export default function AddProduct(): JSX.Element {
       costPrice: '',
       stock: '0',
     },
-    validationSchema: addProductSchema,
+    validationSchema: usesComboStock ? addProductSchemaComboStock : addProductSchema,
     validateOnBlur: true,
     validateOnChange: false,
     onSubmit: handleSubmit,
@@ -93,6 +95,7 @@ export default function AddProduct(): JSX.Element {
     setAttrErrors({});
     setVariantSelections({});
     setComboStocks({});
+    setComboStockErrors({});
   }
 
   function setVariantSelection(key: string, value: string | string[]): void {
@@ -100,6 +103,17 @@ export default function AddProduct(): JSX.Element {
     clearAttrError(key);
     // Reset stock when selections change
     setComboStocks({});
+    setComboStockErrors({});
+  }
+
+  function setComboStock(key: string, value: string): void {
+    setComboStocks(prev => ({ ...prev, [key]: value }));
+    setComboStockErrors(prev => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   }
 
   async function handlePrimaryUpload(file: File): Promise<void> {
@@ -145,6 +159,7 @@ export default function AddProduct(): JSX.Element {
           setAttrErrors({});
           setVariantSelections(seededSelections);
           setComboStocks({});
+          setComboStockErrors({});
         }
         setAiHint({
           categoryName: s.categoryName ?? 'Unknown',
@@ -205,9 +220,12 @@ export default function AddProduct(): JSX.Element {
 
   function handleAddClick(): void {
     setPrimaryImageError(primaryImage ? null : 'Primary image is required');
-    // Surface attribute errors on the same click that triggers Formik validation,
-    // so basic-field and attribute errors show together rather than one submit apart.
+    // Surface attribute/combo-stock errors on the same click that triggers Formik
+    // validation, so all errors show together rather than one submit apart.
     setAttrErrors(buildRequiredAttrErrors(attributeSchema, buildProductAttrs()));
+    if (usesComboStock) {
+      setComboStockErrors(validateComboStocks(combinations, comboStocks));
+    }
     void form.submitForm();
   }
 
@@ -235,6 +253,15 @@ export default function AddProduct(): JSX.Element {
     }
 
     const hasCombinations = combinations.length > 0;
+
+    if (usesComboStock) {
+      const nextComboStockErrors = validateComboStocks(combinations, comboStocks);
+      setComboStockErrors(nextComboStockErrors);
+      if (Object.keys(nextComboStockErrors).length > 0) {
+        helpers.setSubmitting(false);
+        return;
+      }
+    }
 
     type VRow = { attributes: Record<string, string>; stock: number };
     let productRows: VRow[] | undefined;
@@ -621,8 +648,9 @@ export default function AddProduct(): JSX.Element {
                   key={getCombinationKey(combo)}
                   combo={combo}
                   variantFields={variantFields}
-                  stock={comboStocks[getCombinationKey(combo)] ?? '0'}
-                  onChange={v => setComboStocks(prev => ({ ...prev, [getCombinationKey(combo)]: v }))}
+                  stock={comboStocks[getCombinationKey(combo)] ?? ''}
+                  error={comboStockErrors[getCombinationKey(combo)]}
+                  onChange={v => setComboStock(getCombinationKey(combo), v)}
                 />
               ))}
             </div>
@@ -767,32 +795,36 @@ interface CombinationStockRowProps {
   combo: Record<string, string>;
   variantFields: AttributeField[];
   stock: string;
+  error?: string;
   onChange: (v: string) => void;
 }
 
-function CombinationStockRow({ combo, variantFields, stock, onChange }: CombinationStockRowProps): JSX.Element {
+function CombinationStockRow({ combo, variantFields, stock, error, onChange }: CombinationStockRowProps): JSX.Element {
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-      <div className="flex-1 flex flex-wrap gap-1.5">
-        {Object.entries(combo).map(([key, val]) => {
-          const field = variantFields.find(f => f.key === key);
-          const opt = field?.options?.find(o => o.value === val);
-          return (
-            <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
-              {opt?.label ?? val}
-            </span>
-          );
-        })}
+    <div className="py-2 border-b border-gray-50 last:border-0">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 flex flex-wrap gap-1.5">
+          {Object.entries(combo).map(([key, val]) => {
+            const field = variantFields.find(f => f.key === key);
+            const opt = field?.options?.find(o => o.value === val);
+            return (
+              <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
+                {opt?.label ?? val}
+              </span>
+            );
+          })}
+        </div>
+        <input
+          type="number"
+          min={0}
+          step="1"
+          value={stock}
+          onChange={e => onChange(e.target.value)}
+          placeholder="0"
+          className={`w-20 border rounded-xl text-sm text-gray-700 px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-right ${error ? 'border-rose-300' : 'border-gray-200'}`}
+        />
       </div>
-      <input
-        type="number"
-        min={0}
-        step="1"
-        value={stock}
-        onChange={e => onChange(e.target.value)}
-        placeholder="0"
-        className="w-20 border border-gray-200 rounded-xl text-sm text-gray-700 px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-right"
-      />
+      {error && <p className="text-xs text-rose-500 mt-1 text-right">{error}</p>}
     </div>
   );
 }

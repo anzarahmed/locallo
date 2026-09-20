@@ -16,7 +16,15 @@ export const variantFormSchema = Yup.object({
       if (mrp == null || sellingPrice == null || Number.isNaN(sellingPrice)) return true;
       return mrp >= sellingPrice;
     }),
-  stock:        Yup.number().typeError('Enter a whole number').integer('Must be a whole number').min(0, 'Cannot be negative').required('Stock is required'),
+  stock:        Yup.number().typeError('Enter a whole number').integer('Must be a whole number').required('Stock is required')
+    .positive('Stock must be greater than 0'),
+});
+
+// Used in add-mode when the category drives per-combination stock instead — the
+// single Stock field is hidden (each combination gets its own row in the "Stock
+// Quantities" matrix) and its value isn't sent to the API, so it must not block submit.
+export const variantFormSchemaComboStock = variantFormSchema.shape({
+  stock: Yup.number().notRequired(),
 });
 
 export interface VariantFormValues {

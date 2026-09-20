@@ -69,6 +69,27 @@ export function hasStockDependentAttr(variantFields: AttributeField[]): boolean 
   return variantFields.some(f => f.isStockDependent === true);
 }
 
+export function validateStockValue(raw: string | undefined): string | null {
+  if (raw === undefined || raw === '') return 'Stock is required';
+  const n = Number(raw);
+  if (!Number.isFinite(n) || !Number.isInteger(n)) return 'Enter a whole number';
+  if (n <= 0) return 'Stock must be greater than 0';
+  return null;
+}
+
+export function validateComboStocks(
+  combinations: Record<string, string>[],
+  comboStocks: Record<string, string>,
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+  for (const combo of combinations) {
+    const key = getCombinationKey(combo);
+    const error = validateStockValue(comboStocks[key]);
+    if (error) errors[key] = error;
+  }
+  return errors;
+}
+
 export function categorySupportsVariants(schema: AttributeField[] | undefined): boolean {
   return (schema ?? []).some(f => f.isVariant === true);
 }

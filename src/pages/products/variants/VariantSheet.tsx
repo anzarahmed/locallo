@@ -3,13 +3,14 @@ import { useFormik, type FormikHelpers } from 'formik';
 import { X, ImagePlus, Loader2, Lock, Camera } from 'lucide-react';
 import { uploadProductImage, createBatchVariants, updateVariant } from '../../../services/sellerService';
 import { MAX_SECONDARY_IMAGES } from '../../../constants';
-import { variantFormSchema, type VariantFormValues } from '../../../validation/variantSchemas';
+import { variantFormSchema, variantFormSchemaComboStock, type VariantFormValues } from '../../../validation/variantSchemas';
 import { useToast } from '../../../hooks/useToast';
 import { ApiError } from '../../../lib/axios';
 import { resolveImage, validateImageFile } from '../../../lib/imageUtils';
 import { inputCls } from '../../../lib/classUtils';
 import {
-  generateCombinations, getCombinationKey, hasStockDependentAttr, type VariantSelections,
+  generateCombinations, getCombinationKey, hasStockDependentAttr, validateComboStocks,
+  type VariantSelections,
 } from '../../../lib/variantUtils';
 import type { Product, ProductVariant, AttributeField, AttributeFieldOption } from '../../../types';
 
@@ -65,8 +66,13 @@ export default function VariantSheet({
     () => lockedAttributes ? { ...lockedAttributes } : {},
   );
   const [comboStocks, setComboStocks] = useState<Record<string, string>>({});
+  const [comboStockErrors, setComboStockErrors] = useState<Record<string, string>>({});
   const allCombinations = isEdit ? [] : generateCombinations(variantFields, variantSelections);
   const combinations    = allCombinations.filter(c => !existingComboKeys.has(getCombinationKey(c)));
+  // Matches the Stock input's own visibility condition below — the single Stock field
+  // is hidden whenever add-mode is stock-dependent, even before any option is picked
+  // (combinations.length starts at 0), so the schema must skip it under the same condition.
+  const usesComboStock  = !isEdit && stockDependent;
 
   /*
    * Add-to-group ("Add Option") starts from an existing sibling variant's images —
@@ -102,7 +108,7 @@ export default function VariantSheet({
       mrp:          isEdit && variant.mrp != null ? String(variant.mrp) : product.mrp != null ? String(product.mrp) : '',
       stock:        isEdit ? String(variant.stock) : '0',
     },
-    validationSchema: variantFormSchema,
+    validationSchema: usesComboStock ? variantFormSchemaComboStock : variantFormSchema,
     validateOnBlur: true,
     validateOnChange: false,
     onSubmit: handleSubmit,
@@ -166,6 +172,17 @@ export default function VariantSheet({
   function setVariantSelection(key: string, value: string | string[]): void {
     setVariantSelections(prev => ({ ...prev, [key]: value }));
     setComboStocks({});
+    setComboStockErrors({});
+  }
+
+  function setComboStock(key: string, value: string): void {
+    setComboStocks(prev => ({ ...prev, [key]: value }));
+    setComboStockErrors(prev => {
+      if (!(key in prev)) return prev;
+      const next = { ...prev };
+      delete next[key];
+      return next;
+    });
   }
 
   function handleSecondaryImageChange(e: ChangeEvent<HTMLInputElement>): void {
@@ -213,13 +230,29 @@ export default function VariantSheet({
     void handlePrimaryUpload(file);
   }
 
+  function handleSaveClick(): void {
+    // Surface manual (non-Yup) errors on the same click that triggers Formik
+    // validation, so image/option/combo-stock errors show together with the
+    // schema-driven field errors rather than being gated behind schema validity
+    // (Formik skips onSubmit — and therefore these checks — when the schema fails).
+    setPrimaryImageError(primaryImage ? null : 'Primary image is required');
+    if (!isEdit) {
+      if (openFields.length > 0 || allCombinations.length === 0) {
+        setAttemptedSubmit(true);
+      }
+      if (stockDependent && combinations.length > 0) {
+        setComboStockErrors(validateComboStocks(combinations, comboStocks));
+      }
+    }
+    void form.submitForm();
+  }
+
   async function handleSubmit(
     values: VariantFormValues,
     helpers: FormikHelpers<VariantFormValues>,
   ): Promise<void> {
     if (!primaryImage) {
       setPrimaryImageError('Primary image is required');
-      toast.error('Primary image is required');
       helpers.setSubmitting(false);
       return;
     }
@@ -243,19 +276,8 @@ export default function VariantSheet({
     /* Add mode: create one variant per combination */
     if (openFields.length > 0) {
       const missingFields = openFields.filter(f => isVariantFieldEmpty(f, variantSelections[f.key]));
-      if (missingFields.length === openFields.length) {
-        setAttemptedSubmit(true);
-        toast.error('Select at least one option to create a variant');
-        helpers.setSubmitting(false);
-        return;
-      }
       if (missingFields.length > 0) {
         setAttemptedSubmit(true);
-        toast.error(
-          missingFields.length === 1
-            ? `${missingFields[0]!.label} is required`
-            : `${missingFields.map(f => f.label).join(', ')} are required`,
-        );
         helpers.setSubmitting(false);
         return;
       }
@@ -269,6 +291,15 @@ export default function VariantSheet({
       toast.error('All selected combinations already exist');
       helpers.setSubmitting(false);
       return;
+    }
+
+    if (stockDependent) {
+      const nextComboStockErrors = validateComboStocks(combinations, comboStocks);
+      setComboStockErrors(nextComboStockErrors);
+      if (Object.keys(nextComboStockErrors).length > 0) {
+        helpers.setSubmitting(false);
+        return;
+      }
     }
 
     const sellingPrice = Number(values.sellingPrice);
@@ -593,8 +624,9 @@ export default function VariantSheet({
                           key={key}
                           combo={combo}
                           variantFields={variantFields}
-                          stock={comboStocks[key] ?? '0'}
-                          onChange={v => setComboStocks(prev => ({ ...prev, [key]: v }))}
+                          stock={comboStocks[key] ?? ''}
+                          error={comboStockErrors[key]}
+                          onChange={v => setComboStock(key, v)}
                         />
                       );
                     })}
@@ -609,7 +641,7 @@ export default function VariantSheet({
         <div className="px-5 py-4 border-t border-gray-100 shrink-0">
           <button
             type="button"
-            onClick={() => void form.submitForm()}
+            onClick={handleSaveClick}
             disabled={form.isSubmitting}
             className="w-full py-3.5 rounded-2xl text-white text-sm font-bold disabled:opacity-60 transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
@@ -749,32 +781,36 @@ interface SheetStockRowProps {
   combo: Record<string, string>;
   variantFields: AttributeField[];
   stock: string;
+  error?: string;
   onChange: (v: string) => void;
 }
 
-function SheetStockRow({ combo, variantFields, stock, onChange }: SheetStockRowProps): JSX.Element {
+function SheetStockRow({ combo, variantFields, stock, error, onChange }: SheetStockRowProps): JSX.Element {
   return (
-    <div className="flex items-center gap-3 py-2 border-b border-gray-50 last:border-0">
-      <div className="flex-1 flex flex-wrap gap-1.5">
-        {Object.entries(combo).map(([key, val]) => {
-          const field = variantFields.find(f => f.key === key);
-          const opt = field?.options?.find(o => o.value === val);
-          return (
-            <span key={key} className={`text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium ${field?.type === 'color' ? 'capitalize' : ''}`}>
-              {opt?.label ?? val}
-            </span>
-          );
-        })}
+    <div className="py-2 border-b border-gray-50 last:border-0">
+      <div className="flex items-center gap-3">
+        <div className="flex-1 flex flex-wrap gap-1.5">
+          {Object.entries(combo).map(([key, val]) => {
+            const field = variantFields.find(f => f.key === key);
+            const opt = field?.options?.find(o => o.value === val);
+            return (
+              <span key={key} className={`text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium ${field?.type === 'color' ? 'capitalize' : ''}`}>
+                {opt?.label ?? val}
+              </span>
+            );
+          })}
+        </div>
+        <input
+          type="number"
+          min={0}
+          step="1"
+          value={stock}
+          onChange={e => onChange(e.target.value)}
+          placeholder="0"
+          className={`w-20 border rounded-xl text-sm text-gray-700 px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-right ${error ? 'border-rose-300' : 'border-gray-200'}`}
+        />
       </div>
-      <input
-        type="number"
-        min={0}
-        step="1"
-        value={stock}
-        onChange={e => onChange(e.target.value)}
-        placeholder="0"
-        className="w-20 border border-gray-200 rounded-xl text-sm text-gray-700 px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-right"
-      />
+      {error && <p className="text-xs text-rose-500 mt-1 text-right">{error}</p>}
     </div>
   );
 }
