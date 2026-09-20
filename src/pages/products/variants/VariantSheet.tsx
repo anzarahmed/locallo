@@ -96,6 +96,7 @@ export default function VariantSheet({
   const [secondaryImages, setSecondaryImages] = useState<string[]>(
     isEdit ? variant.images.slice(1, 1 + MAX_SECONDARY_IMAGES) : groupImages.slice(1, 1 + MAX_SECONDARY_IMAGES),
   );
+  const [secondaryImageError, setSecondaryImageError] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
 
   /* Add mode: show "<Field> is required" once the user has tried to submit without selecting */
@@ -191,10 +192,11 @@ export default function VariantSheet({
     if (files.length === 0) return;
     const slots = MAX_SECONDARY_IMAGES - secondaryImages.length;
     const toUpload = files.slice(0, slots);
+    const invalidMessages: string[] = [];
     toUpload.forEach(file => {
       const invalid = validateImageFile(file);
       if (invalid) {
-        toast.error(`${file.name}: ${invalid}`);
+        invalidMessages.push(`${file.name}: ${invalid}`);
         return;
       }
       setIsUploading(true);
@@ -203,6 +205,7 @@ export default function VariantSheet({
         .catch(err => toast.error(err instanceof ApiError ? err.message : 'Failed to upload image'))
         .finally(() => setIsUploading(false));
     });
+    setSecondaryImageError(invalidMessages.length > 0 ? invalidMessages.join('; ') : null);
   }
 
   async function handlePrimaryUpload(file: File): Promise<void> {
@@ -224,7 +227,7 @@ export default function VariantSheet({
     if (!file) return;
     const invalid = validateImageFile(file);
     if (invalid) {
-      toast.error(`${file.name}: ${invalid}`);
+      setPrimaryImageError(invalid);
       return;
     }
     void handlePrimaryUpload(file);
@@ -525,6 +528,9 @@ export default function VariantSheet({
                 </label>
               )}
             </div>
+            {secondaryImageError && (
+              <p className="text-xs text-rose-500 mt-2">{secondaryImageError}</p>
+            )}
           </div>
 
           {/* Pricing */}

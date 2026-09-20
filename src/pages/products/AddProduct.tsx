@@ -36,6 +36,7 @@ export default function AddProduct(): JSX.Element {
   const [primaryImage, setPrimaryImage] = useState<string | null>(null);
   const [primaryImageError, setPrimaryImageError] = useState<string | null>(null);
   const [secondaryImages, setSecondaryImages] = useState<string[]>([]);
+  const [secondaryImageError, setSecondaryImageError] = useState<string | null>(null);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [attributeSchema, setAttributeSchema] = useState<AttributeField[]>([]);
@@ -180,7 +181,7 @@ export default function AddProduct(): JSX.Element {
     e.target.value = '';
     const invalid = validateImageFile(file);
     if (invalid) {
-      toast.error(`${file.name}: ${invalid}`);
+      setPrimaryImageError(invalid);
       return;
     }
     void handlePrimaryUpload(file);
@@ -204,14 +205,16 @@ export default function AddProduct(): JSX.Element {
     if (files.length === 0) return;
     const slots = MAX_SECONDARY_IMAGES - secondaryImages.length;
     const toUpload = files.slice(0, slots);
+    const invalidMessages: string[] = [];
     for (const f of toUpload) {
       const invalid = validateImageFile(f);
       if (invalid) {
-        toast.error(`${f.name}: ${invalid}`);
+        invalidMessages.push(`${f.name}: ${invalid}`);
         continue;
       }
       void handleSecondaryUpload(f);
     }
+    setSecondaryImageError(invalidMessages.length > 0 ? invalidMessages.join('; ') : null);
   }
 
   function buildProductAttrs(): Record<string, unknown> {
@@ -484,6 +487,10 @@ export default function AddProduct(): JSX.Element {
                 </label>
               )}
             </div>
+          )}
+
+          {secondaryImageError && (
+            <p className="text-xs text-rose-500 mt-2">{secondaryImageError}</p>
           )}
         </div>
 

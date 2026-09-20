@@ -36,7 +36,9 @@ export default function EditProduct(): JSX.Element {
   const [notFound, setNotFound] = useState(false);
   const [categories, setCategories] = useState<SellerCategory[]>([]);
   const [primaryImage, setPrimaryImage] = useState<string | null>(null);
+  const [primaryImageError, setPrimaryImageError] = useState<string | null>(null);
   const [secondaryImages, setSecondaryImages] = useState<string[]>([]);
+  const [secondaryImageError, setSecondaryImageError] = useState<string | null>(null);
   const [isReplacingPrimary, setIsReplacingPrimary] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const [attributeSchema, setAttributeSchema] = useState<AttributeField[]>([]);
@@ -223,6 +225,7 @@ export default function EditProduct(): JSX.Element {
     try {
       const { url } = await uploadProductImage(file);
       setPrimaryImage(url);
+      setPrimaryImageError(null);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to upload image');
     } finally {
@@ -236,7 +239,7 @@ export default function EditProduct(): JSX.Element {
     e.target.value = '';
     const invalid = validateImageFile(file);
     if (invalid) {
-      toast.error(`${file.name}: ${invalid}`);
+      setPrimaryImageError(invalid);
       return;
     }
     void handlePrimaryReplace(file);
@@ -260,14 +263,16 @@ export default function EditProduct(): JSX.Element {
     if (files.length === 0) return;
     const slots = MAX_SECONDARY_IMAGES - secondaryImages.length;
     const toUpload = files.slice(0, slots);
+    const invalidMessages: string[] = [];
     for (const f of toUpload) {
       const invalid = validateImageFile(f);
       if (invalid) {
-        toast.error(`${f.name}: ${invalid}`);
+        invalidMessages.push(`${f.name}: ${invalid}`);
         continue;
       }
       void handleSecondaryUpload(f);
     }
+    setSecondaryImageError(invalidMessages.length > 0 ? invalidMessages.join('; ') : null);
   }
 
   function setAttr(key: string, value: AttrValue): void {
@@ -286,8 +291,9 @@ export default function EditProduct(): JSX.Element {
   }
 
   function handleSaveClick(): void {
-    // Surface attribute/combo-stock errors on the same click that triggers Formik
-    // validation, so all errors show together rather than one submit apart.
+    // Surface image/attribute/combo-stock errors on the same click that triggers
+    // Formik validation, so all errors show together rather than one submit apart.
+    setPrimaryImageError(primaryImage ? null : 'Primary image is required');
     setAttrErrors(collectAttrErrors());
     if (usesComboStock) {
       setComboStockErrors(validateComboStocks(combinations, comboStocks));
@@ -300,7 +306,7 @@ export default function EditProduct(): JSX.Element {
     helpers: FormikHelpers<AddProductFormValues>,
   ): Promise<void> {
     if (!primaryImage) {
-      toast.error('A primary product image is required');
+      setPrimaryImageError('Primary image is required');
       helpers.setSubmitting(false);
       return;
     }
@@ -454,7 +460,7 @@ export default function EditProduct(): JSX.Element {
                 </div>
               </div>
             ) : (
-              <label className={`flex flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed border-gray-200 py-10 cursor-pointer hover:border-teal-400 transition-colors ${isReplacingPrimary ? 'pointer-events-none opacity-70' : ''}`}>
+              <label className={`flex flex-col items-center justify-center gap-2.5 rounded-xl border-2 border-dashed py-10 cursor-pointer hover:border-teal-400 transition-colors ${primaryImageError ? 'border-rose-300' : 'border-gray-200'} ${isReplacingPrimary ? 'pointer-events-none opacity-70' : ''}`}>
                 <input
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
@@ -475,6 +481,10 @@ export default function EditProduct(): JSX.Element {
                   </>
                 )}
               </label>
+            )}
+
+            {primaryImageError && (
+              <p className="text-xs text-rose-500 mt-1.5">{primaryImageError}</p>
             )}
           </div>
 
@@ -532,6 +542,10 @@ export default function EditProduct(): JSX.Element {
                   </label>
                 )}
               </div>
+            )}
+
+            {secondaryImageError && (
+              <p className="text-xs text-rose-500 mt-2">{secondaryImageError}</p>
             )}
           </div>
 
