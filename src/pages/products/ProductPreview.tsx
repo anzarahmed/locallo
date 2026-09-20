@@ -1,48 +1,27 @@
 import { useState, useEffect, type JSX } from 'react';
-import { X, Package, ChevronLeft, ChevronRight, Star, Heart, MapPin, Store, Navigation, Eye, EyeOff, Loader2 } from 'lucide-react';
-import { getSellerProduct, getProductVariants, getProfile } from '../../services/sellerService';
+import { Package, ChevronLeft, ChevronRight, ChevronDown, Star, Heart, MapPin, Store, Share2, PenLine, EyeOff, Loader2 } from 'lucide-react';
+import { getSellerProduct, getProductVariants, getProfile, getProducts, getProductReviews } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { formatPrice, discountPct } from '../../lib/formatters';
-import type { Product, ProductVariant, AttributeField, SellerProfile } from '../../types';
+import type { Product, ProductVariant, AttributeField, SellerProfile, ProductReview } from '../../types';
 
-function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
-  if (raw === null || raw === undefined || raw === '') {
-    return <span className="text-gray-400">—</span>;
-  }
+const HEX_COLOR = /^#[0-9a-fA-F]{3,8}$/;
 
-  if (field.type === 'color') {
-    const opt = field.options?.find(o => o.value === raw);
-    return (
-      <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">
-        {opt?.label ?? String(raw)}
-      </span>
-    );
-  }
+function attrDisplayValue(field: AttributeField, raw: unknown): string {
+  if (raw === null || raw === undefined || raw === '') return '—';
 
-  if (field.type === 'multiselect' && Array.isArray(raw) && field.options) {
+  if (field.type === 'multiselect' && Array.isArray(raw)) {
     const labels = (raw as string[]).map(v => field.options?.find(o => o.value === v)?.label ?? v);
-    return (
-      <div className="flex flex-wrap gap-1.5">
-        {labels.map(l => (
-          <span key={l} className="text-xs bg-teal-50 text-teal-700 border border-teal-100 rounded-full px-2.5 py-0.5">
-            {l}
-          </span>
-        ))}
-      </div>
-    );
+    return labels.join(', ') || '—';
   }
 
-  if (field.type === 'select' && field.options) {
+  if ((field.type === 'select' || field.type === 'color') && field.options) {
     const opt = field.options.find(o => o.value === raw);
-    return (
-      <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">
-        {opt?.label ?? String(raw)}
-      </span>
-    );
+    return opt?.label ?? String(raw);
   }
 
-  return <span className="text-sm text-gray-800 whitespace-pre-wrap">{String(raw)}</span>;
+  return String(raw);
 }
 
 function ProductImage({ src, alt }: { src: string; alt: string }): JSX.Element {
@@ -82,26 +61,17 @@ function Skeleton(): JSX.Element {
   return (
     <div className="animate-pulse">
       <div className="w-full aspect-square bg-gray-200" />
-      <div className="p-5 space-y-4">
+      <div className="p-4 space-y-4">
         <div className="space-y-2">
-          <div className="h-6 bg-gray-200 rounded w-3/4" />
-          <div className="h-4 bg-gray-200 rounded w-1/3" />
+          <div className="h-4 bg-gray-200 rounded w-16" />
+          <div className="h-16 bg-gray-200 rounded-2xl w-full" />
         </div>
+        <div className="h-4 bg-gray-200 rounded w-full" />
+        <div className="h-4 bg-gray-200 rounded w-5/6" />
         <div className="flex gap-3">
-          <div className="h-10 bg-gray-200 rounded-xl flex-1" />
-          <div className="h-10 bg-gray-200 rounded-xl w-32" />
+          <div className="h-11 bg-gray-200 rounded-full flex-1" />
         </div>
-        <div className="space-y-2">
-          <div className="h-3 bg-gray-200 rounded w-20" />
-          <div className="h-4 bg-gray-200 rounded w-full" />
-          <div className="h-4 bg-gray-200 rounded w-5/6" />
-          <div className="h-4 bg-gray-200 rounded w-4/6" />
-        </div>
-        <div className="space-y-2">
-          <div className="h-3 bg-gray-200 rounded w-24" />
-          <div className="h-4 bg-gray-200 rounded w-full" />
-          <div className="h-4 bg-gray-200 rounded w-2/3" />
-        </div>
+        <div className="h-11 bg-gray-200 rounded-full w-full" />
       </div>
     </div>
   );
@@ -116,16 +86,23 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
   const [product, setProduct] = useState<Product | null>(null);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [sellerProfile, setSellerProfile] = useState<SellerProfile | null>(null);
+  const [similarProducts, setSimilarProducts] = useState<Product[]>([]);
+  const [reviews, setReviews] = useState<ProductReview[]>([]);
+  const [reviewSummary, setReviewSummary] = useState<{ avgRating: number; reviewCount: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeImg, setActiveImg] = useState(0);
   const [selectedAttrs, setSelectedAttrs] = useState<Record<string, string>>({});
+  const [detailsOpen, setDetailsOpen] = useState(true);
 
   useEffect(() => {
     setLoading(true);
     setError(null);
     setSelectedAttrs({});
     setVariants([]);
+    setSimilarProducts([]);
+    setReviews([]);
+    setReviewSummary(null);
     Promise.all([
       getSellerProduct(productId),
       getProductVariants(productId).catch(() => ({ variants: [] as ProductVariant[], product: null })),
@@ -152,6 +129,23 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
           }
         });
         setSelectedAttrs(defaults);
+
+        getProducts({ limit: 50, filter: 'visible' })
+          .then(res => {
+            const rest = res.products.filter(p => p.id !== productRes.product.id && p.categoryId === productRes.product.categoryId);
+            setSimilarProducts(rest.slice(0, 8));
+          })
+          .catch(() => setSimilarProducts([]));
+
+        getProductReviews(productId, { limit: 3 })
+          .then(res => {
+            setReviews(res.reviews);
+            setReviewSummary(res.summary);
+          })
+          .catch(() => {
+            setReviews([]);
+            setReviewSummary(null);
+          });
       })
       .catch(err => {
         setError(err instanceof ApiError ? err.message : 'Failed to load product');
@@ -213,26 +207,30 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/60 backdrop-blur-sm">
       <div className="bg-white w-full sm:max-w-sm sm:rounded-3xl flex flex-col max-h-screen sm:max-h-[90vh] overflow-hidden shadow-2xl">
 
-        {/* Preview header bar */}
-        <div
-          className="shrink-0 grid grid-cols-[28px_1fr_28px] items-start gap-3 px-4 py-3.5"
-          style={{ background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)' }}
-        >
-          <div />
-          <div className="text-center min-w-0">
-            <p className="text-white text-[15px] font-bold tracking-wide">
-              Customer Preview
-            </p>
-            <p className="text-white/80 text-xs mt-0.5 leading-snug">
-              This is how customers see your product
-            </p>
-          </div>
+        {/* Mobile-app-style header: back / title / share / wishlist */}
+        <div className="shrink-0 flex items-center gap-2 px-3 py-3 border-b border-gray-100 bg-white">
           <button
             onClick={onClose}
-            className="w-7 h-7 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors shrink-0"
+            className="p-1.5 -ml-1 rounded-full text-gray-900 hover:bg-gray-100 transition-colors shrink-0"
           >
-            <X size={14} />
+            <ChevronLeft size={20} />
           </button>
+          <h2 className="flex-1 min-w-0 truncate text-[15px] font-semibold text-gray-900">
+            {product?.name ?? 'Product'}
+          </h2>
+          <button disabled className="p-1.5 rounded-full text-gray-700 opacity-60 cursor-default shrink-0">
+            <Share2 size={17} />
+          </button>
+          <button disabled className="p-1.5 rounded-full text-gray-700 opacity-60 cursor-default shrink-0">
+            <Heart size={17} />
+          </button>
+        </div>
+
+        {/* Preview indicator strip */}
+        <div className="shrink-0 bg-amber-50 border-b border-amber-100 px-4 py-1.5 text-center">
+          <span className="text-[10px] font-semibold text-amber-700 tracking-wide uppercase">
+            Customer preview — this is what shoppers see
+          </span>
         </div>
 
         {/* Scrollable body */}
@@ -278,19 +276,6 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                         >
                           <ChevronRight size={16} />
                         </button>
-                        <div className="absolute bottom-3 left-1/2 -translate-x-1/2 flex gap-1.5">
-                          {displayImages.map((_, i) => (
-                            <button
-                              key={i}
-                              onClick={() => setActiveImg(i)}
-                              className={`rounded-full transition-all ${
-                                i === activeImg
-                                  ? 'w-4 h-1.5 bg-white'
-                                  : 'w-1.5 h-1.5 bg-white/60 hover:bg-white/80'
-                              }`}
-                            />
-                          ))}
-                        </div>
                       </>
                     )}
                   </>
@@ -300,23 +285,33 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                     <p className="text-xs text-gray-400">No images</p>
                   </div>
                 )}
-
-                {/* Wishlist button (decorative) */}
-                <button className="absolute top-3 right-3 w-9 h-9 rounded-full bg-white shadow flex items-center justify-center">
-                  <Heart size={18} className="text-gray-400" />
-                </button>
               </div>
+
+              {/* Dot indicator */}
+              {displayImages.length > 1 && (
+                <div className="flex items-center justify-center gap-1.5 pt-3">
+                  {displayImages.map((_, i) => (
+                    <button
+                      key={i}
+                      onClick={() => setActiveImg(i)}
+                      className={`rounded-full transition-all ${
+                        i === activeImg ? 'w-4 h-1.5 bg-orange-500' : 'w-1.5 h-1.5 bg-gray-200 hover:bg-gray-300'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
 
               {/* Thumbnail strip */}
               {displayImages.length > 1 && (
-                <div className="flex gap-2 px-4 pt-3 overflow-x-auto pb-1">
+                <div className="flex gap-2 px-4 pt-2 overflow-x-auto pb-1">
                   {displayImages.map((img, i) => (
                     <button
                       key={i}
                       onClick={() => setActiveImg(i)}
                       className={`shrink-0 w-12 h-12 rounded-lg overflow-hidden border-2 bg-gray-100 transition-all ${
                         i === activeImg
-                          ? 'border-teal-500 ring-2 ring-teal-100'
+                          ? 'border-orange-500 ring-2 ring-orange-100'
                           : 'border-transparent hover:border-gray-300'
                       }`}
                     >
@@ -330,35 +325,11 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                 </div>
               )}
 
-              {/* Product details */}
               <div className="px-4 pt-4 pb-6 space-y-4">
-
-                {/* Name + category */}
-                <div>
-                  <h2 className="text-lg font-bold text-gray-900 leading-snug">{product.name}</h2>
-                  {product.category && (
-                    <p className="text-xs text-gray-400 mt-0.5">{product.category.name}</p>
-                  )}
-                  <div className="flex items-center gap-3 mt-1.5">
-                    <span className="flex items-center gap-1 text-xs text-gray-400">
-                      <Star size={12} className="text-amber-400 fill-amber-400" />
-                      {(product.avgRating ?? 0).toFixed(1)}
-                      {(product.reviewCount ?? 0) > 0 && ` (${product.reviewCount})`}
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-gray-400">
-                      <Heart size={12} className="text-pink-400" />
-                      {product.wishlistCount ?? 0} saved
-                    </span>
-                    <span className="flex items-center gap-1 text-xs text-gray-400">
-                      <Eye size={12} className="text-gray-400" />
-                      {product.viewCount ?? 0} views
-                    </span>
-                  </div>
-                </div>
 
                 {/* Variant selectors */}
                 {variantFields.length > 0 && variants.length > 0 && (
-                  <div className="space-y-3">
+                  <div className="space-y-3.5">
                     {variantFields.map(field => {
                       const usedValues = new Set(
                         variants.map(v => String((v.attributes as Record<string, string>)[field.key])),
@@ -371,28 +342,31 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                           field.options?.find(o => o.value === val)?.label ?? val;
                         return (
                           <div key={field.key}>
-                            <p className="text-xs font-semibold text-gray-500 mb-2">
-                              {field.label}
-                              {selectedAttrs[field.key] && (
-                                <span className="font-normal text-gray-400 ml-1.5">
-                                  — {labelFor(selectedAttrs[field.key])}
-                                </span>
-                              )}
+                            <p className="text-sm text-gray-500 mb-2">
+                              {field.label}:{' '}
+                              <span className="font-semibold text-gray-900">
+                                {selectedAttrs[field.key] ? labelFor(selectedAttrs[field.key]) : '—'}
+                              </span>
                             </p>
-                            <div className="flex gap-2 flex-wrap">
+                            <div className="flex gap-2.5 flex-wrap">
                               {availableValues.map(val => {
                                 const isSelected = selectedAttrs[field.key] === val;
+                                const isHex = HEX_COLOR.test(val);
                                 return (
                                   <button
                                     key={val}
                                     onClick={() => selectAttr(field.key, val)}
-                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
-                                      isSelected
-                                        ? 'border-teal-500 bg-teal-50 text-teal-700'
-                                        : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                                    title={labelFor(val)}
+                                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                                      isSelected ? 'ring-2 ring-offset-2 ring-orange-500' : ''
                                     }`}
+                                    style={isHex ? { backgroundColor: val } : undefined}
                                   >
-                                    {labelFor(val)}
+                                    {!isHex && (
+                                      <span className="w-full h-full rounded-full border-2 border-gray-200 bg-gray-100 flex items-center justify-center text-[9px] font-semibold text-gray-500">
+                                        {labelFor(val).slice(0, 2).toUpperCase()}
+                                      </span>
+                                    )}
                                   </button>
                                 );
                               })}
@@ -406,21 +380,31 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                       if (availableOptions.length === 0) return null;
 
                       if (field.type === 'select' || field.type === 'multiselect') {
+                        const selectedOpt = availableOptions.find(o => o.value === selectedAttrs[field.key]);
                         return (
                           <div key={field.key}>
-                            <p className="text-xs font-semibold text-gray-500 mb-2">{field.label}</p>
-                            <div className="flex gap-2 flex-wrap">
+                            <p className="text-sm text-gray-500 mb-2">
+                              {field.label}:{' '}
+                              <span className="font-semibold text-gray-900">{selectedOpt?.label ?? '—'}</span>
+                            </p>
+                            <div className="flex gap-2.5 flex-wrap">
                               {availableOptions.map(opt => {
                                 const isSelected = selectedAttrs[field.key] === opt.value;
+                                const isShort = opt.label.length <= 3;
                                 return (
                                   <button
                                     key={opt.value}
                                     onClick={() => selectAttr(field.key, opt.value)}
-                                    className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold border-2 transition-all ${
+                                    className={`font-semibold border transition-all ${
+                                      isShort
+                                        ? 'w-10 h-10 rounded-full flex items-center justify-center text-sm'
+                                        : 'min-w-[40px] px-3.5 py-2 rounded-full text-sm'
+                                    } ${
                                       isSelected
-                                        ? 'border-teal-500 bg-teal-50 text-teal-700'
-                                        : 'border-gray-200 text-gray-600 hover:border-gray-300 bg-white'
+                                        ? 'text-white border-transparent'
+                                        : 'border-gray-200 text-gray-700 hover:border-gray-300 bg-white'
                                     }`}
+                                    style={isSelected ? { background: 'linear-gradient(90deg, #FFB300 0%, #E53000 100%)' } : undefined}
                                   >
                                     {opt.label}
                                   </button>
@@ -435,75 +419,84 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                   </div>
                 )}
 
-                {/* Pricing */}
-                <div className="flex items-baseline gap-3 flex-wrap">
-                  <span className="text-2xl font-bold text-gray-900">
-                    {formatPrice(displayPrice)}
-                  </span>
-                  {displayMrp != null && displayMrp > displayPrice && (
-                    <span className="text-sm text-gray-400 line-through">
-                      {formatPrice(displayMrp)}
-                    </span>
-                  )}
-                  {discount !== null && (
-                    <span className="text-xs font-bold text-emerald-600 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
-                      {discount}% off
-                    </span>
-                  )}
-                </div>
+                {/* Info card: category, price, name, rating, stock */}
+                <div className="bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3.5">
+                  <div className="flex items-start justify-between gap-3">
+                    {product.category && (
+                      <span className="text-xs font-semibold text-orange-500">{product.category.name}</span>
+                    )}
+                    <div className="text-right shrink-0">
+                      <p className="text-lg font-bold text-gray-900 leading-tight">{formatPrice(displayPrice)}</p>
+                      {(displayMrp != null && displayMrp > displayPrice) || discount !== null ? (
+                        <p className="flex items-baseline gap-1.5 justify-end whitespace-nowrap">
+                          {displayMrp != null && displayMrp > displayPrice && (
+                            <span className="text-xs text-gray-400 line-through">{formatPrice(displayMrp)}</span>
+                          )}
+                          {discount !== null && (
+                            <span className="text-xs font-semibold text-emerald-600">{discount}% OFF</span>
+                          )}
+                        </p>
+                      ) : null}
+                    </div>
+                  </div>
 
-                {/* Stock */}
-                <div>
-                  {displayStock === 0 ? (
-                    <span className="inline-flex items-center text-xs font-semibold text-red-600 bg-red-50 border border-red-200 px-3 py-1 rounded-full">
-                      Out of stock
+                  <h2 className="text-base font-bold text-gray-900 leading-snug mt-1.5">{product.name}</h2>
+
+                  <div className="flex flex-col items-start gap-1 mt-2">
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                      <Star size={12} className="text-amber-400 fill-amber-400" />
+                      {(product.avgRating ?? 0).toFixed(1)}
+                      {(product.reviewCount ?? 0) > 0 && ` (${product.reviewCount})`}
                     </span>
-                  ) : displayStock <= 5 ? (
-                    <span className="inline-flex items-center text-xs font-semibold text-amber-700 bg-amber-50 border border-amber-200 px-3 py-1 rounded-full">
-                      Only {displayStock} left
-                    </span>
-                  ) : (
-                    <span className="inline-flex items-center text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
-                      In stock
-                    </span>
-                  )}
+                    {displayStock === 0 ? (
+                      <span className="text-xs font-semibold text-red-600">Out of stock</span>
+                    ) : displayStock <= 5 ? (
+                      <span className="text-xs font-semibold text-amber-600">Only {displayStock} left</span>
+                    ) : (
+                      <span className="text-xs font-semibold text-emerald-600">{displayStock} in stock</span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Description */}
                 {product.description && (
-                  <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-1.5">
-                      Description
-                    </p>
-                    <p className="text-sm text-gray-700 leading-relaxed whitespace-pre-wrap">
-                      {product.description}
-                    </p>
-                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed whitespace-pre-wrap">
+                    {product.description}
+                  </p>
                 )}
 
-                {/* Attributes */}
+                {/* Details */}
                 {visibleAttrs.length > 0 && (
                   <div>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-2.5">
+                    <button
+                      onClick={() => setDetailsOpen(o => !o)}
+                      className="w-full flex items-center justify-between text-sm font-bold text-gray-900 mb-2"
+                    >
                       Details
-                    </p>
-                    <dl className="divide-y divide-gray-100 border border-gray-100 rounded-xl overflow-hidden">
-                      {visibleAttrs.map(field => (
-                        <div key={field.key} className="flex items-start gap-3 px-3 py-2.5 bg-white">
-                          <dt className="text-xs text-gray-400 w-28 shrink-0 pt-0.5">{field.label}</dt>
-                          <dd className="flex-1 min-w-0">
-                            {renderAttrValue(field, product.attributes?.[field.key])}
-                          </dd>
-                        </div>
-                      ))}
-                    </dl>
+                      <ChevronDown size={16} className={`text-gray-400 transition-transform ${detailsOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {detailsOpen && (
+                      <div className="border border-gray-200 rounded-xl divide-y divide-gray-200 overflow-hidden">
+                        {visibleAttrs.map(field => (
+                          <div
+                            key={field.key}
+                            className="flex items-center justify-between gap-3 px-4 py-3"
+                          >
+                            <span className="text-sm text-gray-500">{field.label}</span>
+                            <span className="text-sm font-semibold text-gray-900 text-right">
+                              {attrDisplayValue(field, product.attributes?.[field.key])}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
                   </div>
                 )}
 
                 {/* Add to wishlist button (decorative) */}
                 <button
                   disabled
-                  className="w-full py-3.5 rounded-2xl text-sm font-bold tracking-wide text-white opacity-80 cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-full text-sm font-bold tracking-wide text-white opacity-80 cursor-not-allowed flex items-center justify-center gap-2"
                   style={{ background: 'linear-gradient(90deg, #FFB300 0%, #E53000 100%)' }}
                 >
                   <Heart size={16} />
@@ -513,10 +506,10 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                 {/* Get direction button (decorative) */}
                 <button
                   disabled
-                  className="w-full py-3.5 rounded-2xl text-sm font-bold tracking-wide text-white opacity-80 cursor-not-allowed flex items-center justify-center gap-2"
+                  className="w-full py-3.5 rounded-full text-sm font-bold tracking-wide text-white opacity-80 cursor-not-allowed flex items-center justify-center gap-2"
                   style={{ background: 'linear-gradient(90deg, #26B8B2 0%, #14817C 100%)' }}
                 >
-                  <Navigation size={16} />
+                  <MapPin size={16} />
                   Get Direction to Shop
                 </button>
 
@@ -544,6 +537,99 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                       View all →
                     </span>
                   </div>
+                </div>
+
+                {/* Similar products */}
+                {similarProducts.length > 0 && (
+                  <div>
+                    <h3 className="text-sm font-bold text-gray-900 mb-2.5">Similar Products</h3>
+                    <div className="flex gap-3 overflow-x-auto pb-1 -mx-4 px-4">
+                      {similarProducts.map(p => {
+                        const pDiscount = discountPct(p.sellingPrice, p.mrp);
+                        return (
+                          <div key={p.id} className="shrink-0 w-28">
+                            <div className="w-28 h-28 rounded-xl overflow-hidden bg-gray-100 border border-gray-100">
+                              {p.images?.[0] ? (
+                                <img
+                                  src={resolveImage(p.images[0])}
+                                  alt={p.name}
+                                  className="w-full h-full object-cover"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package size={20} className="text-gray-300" />
+                                </div>
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-700 mt-1.5 line-clamp-2 leading-snug">{p.name}</p>
+                            <div className="flex items-baseline gap-1.5 mt-0.5">
+                              <span className="text-xs font-bold text-gray-900">{formatPrice(p.sellingPrice)}</span>
+                              {pDiscount !== null && (
+                                <span className="text-[10px] text-gray-400 line-through">{formatPrice(p.mrp)}</span>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
+                {/* Customer reviews */}
+                <div>
+                  <div className="flex items-center justify-between mb-2.5">
+                    <h3 className="text-sm font-bold text-gray-900">Customer Reviews</h3>
+                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                      <Star size={12} className="text-amber-400 fill-amber-400" />
+                      {(reviewSummary?.avgRating ?? product.avgRating ?? 0).toFixed(1)}
+                    </span>
+                  </div>
+                  <button
+                    disabled
+                    className="w-full py-2.5 rounded-full text-xs font-semibold text-orange-500 border border-orange-300 opacity-80 cursor-not-allowed flex items-center justify-center gap-1.5"
+                  >
+                    <PenLine size={13} />
+                    Write a review
+                  </button>
+
+                  {reviews.length > 0 && (
+                    <div className="space-y-2.5 mt-3">
+                      {reviews.map(review => {
+                        const initials = review.customer.name
+                          .split(' ')
+                          .map(w => w[0])
+                          .slice(0, 2)
+                          .join('')
+                          .toUpperCase();
+                        return (
+                          <div key={review.id} className="flex items-start gap-3 border border-gray-100 rounded-2xl px-4 py-3">
+                            <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600 shrink-0 overflow-hidden">
+                              {review.customer.image ? (
+                                <img src={resolveImage(review.customer.image)} alt="" className="w-full h-full object-cover" />
+                              ) : (
+                                initials || '?'
+                              )}
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <p className="text-sm font-bold text-gray-900 truncate">{review.customer.name}</p>
+                              <div className="flex items-center gap-0.5 mt-0.5">
+                                {[1, 2, 3, 4, 5].map(i => (
+                                  <Star
+                                    key={i}
+                                    size={11}
+                                    className={i <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}
+                                  />
+                                ))}
+                              </div>
+                              {review.review && (
+                                <p className="text-xs text-gray-600 mt-1 leading-relaxed">{review.review}</p>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
 
                 <p className="text-center text-xs text-gray-300">
