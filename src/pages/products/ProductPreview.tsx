@@ -340,6 +340,12 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                         if (availableValues.length === 0) return null;
                         const labelFor = (val: string): string =>
                           field.options?.find(o => o.value === val)?.label ?? val;
+                        const imageFor = (val: string): string | null => {
+                          const match = variants.find(v =>
+                            String((v.attributes as Record<string, string>)[field.key]) === val && v.images.length > 0,
+                          );
+                          return match ? resolveImage(match.images[0]) : null;
+                        };
                         return (
                           <div key={field.key}>
                             <p className="text-sm text-gray-500 mb-2">
@@ -348,22 +354,26 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                                 {selectedAttrs[field.key] ? labelFor(selectedAttrs[field.key]) : '—'}
                               </span>
                             </p>
-                            <div className="flex gap-2.5 flex-wrap">
+                            <div className="flex gap-3 flex-wrap">
                               {availableValues.map(val => {
                                 const isSelected = selectedAttrs[field.key] === val;
                                 const isHex = HEX_COLOR.test(val);
+                                const imgSrc = imageFor(val);
                                 return (
                                   <button
                                     key={val}
                                     onClick={() => selectAttr(field.key, val)}
                                     title={labelFor(val)}
-                                    className={`w-9 h-9 rounded-full flex items-center justify-center transition-all ${
+                                    className={`w-12 h-12 rounded-full overflow-hidden flex items-center justify-center transition-all shrink-0 ${
                                       isSelected ? 'ring-2 ring-offset-2 ring-orange-500' : ''
                                     }`}
-                                    style={isHex ? { backgroundColor: val } : undefined}
                                   >
-                                    {!isHex && (
-                                      <span className="w-full h-full rounded-full border-2 border-gray-200 bg-gray-100 flex items-center justify-center text-[9px] font-semibold text-gray-500">
+                                    {imgSrc ? (
+                                      <img src={imgSrc} alt={labelFor(val)} className="w-full h-full object-cover" />
+                                    ) : isHex ? (
+                                      <span className="w-full h-full rounded-full border border-gray-200" style={{ backgroundColor: val }} />
+                                    ) : (
+                                      <span className="w-full h-full rounded-full border-2 border-gray-200 bg-gray-100 flex items-center justify-center text-[10px] font-semibold text-gray-500">
                                         {labelFor(val).slice(0, 2).toUpperCase()}
                                       </span>
                                     )}
@@ -387,7 +397,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                               {field.label}:{' '}
                               <span className="font-semibold text-gray-900">{selectedOpt?.label ?? '—'}</span>
                             </p>
-                            <div className="flex gap-2.5 flex-wrap">
+                            <div className="flex gap-3 flex-wrap">
                               {availableOptions.map(opt => {
                                 const isSelected = selectedAttrs[field.key] === opt.value;
                                 const isShort = opt.label.length <= 3;
@@ -397,8 +407,8 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                                     onClick={() => selectAttr(field.key, opt.value)}
                                     className={`font-semibold border transition-all ${
                                       isShort
-                                        ? 'w-10 h-10 rounded-full flex items-center justify-center text-sm'
-                                        : 'min-w-[40px] px-3.5 py-2 rounded-full text-sm'
+                                        ? 'w-12 h-12 rounded-full flex items-center justify-center text-sm'
+                                        : 'min-w-[44px] px-3.5 py-2.5 rounded-full text-sm'
                                     } ${
                                       isSelected
                                         ? 'text-white border-transparent'
