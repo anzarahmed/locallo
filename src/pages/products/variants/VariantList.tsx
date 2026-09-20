@@ -356,7 +356,7 @@ interface GroupedVariantCardProps {
 }
 
 function GroupedVariantCard({
-  group, schema, sdField, onToggle, onEdit, onEditGroup, onAddToGroup, onDelete, onSell,
+  group, schema, sdField, onToggle, onEdit, onAddToGroup, onDelete, onSell,
   boostedVariantId, wholeProductBoosted,
 }: GroupedVariantCardProps): JSX.Element {
   const firstVariant = group.variants[0];
@@ -423,14 +423,14 @@ function GroupedVariantCard({
               Add Option
             </button>
           )}
-          <button
+          {/* <button
             type="button"
             onClick={() => onEditGroup(group)}
             className="flex items-center gap-1.5 px-3 h-8 rounded-xl bg-teal-50 text-teal-600 text-xs font-semibold hover:bg-teal-100 transition-colors"
           >
             <Pencil size={11} />
             Edit
-          </button>
+          </button> */}
         </div>
       </div>
 
