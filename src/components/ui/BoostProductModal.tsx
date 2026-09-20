@@ -28,8 +28,10 @@ interface BoostProductModalProps {
 const RAZORPAY_CHECKOUT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
 
 function boostVariantLabel(attributes: Record<string, unknown>, schema: AttributeField[]): string {
-  const rest = Object.fromEntries(Object.entries(attributes).filter(([key]) => key !== 'size'));
-  return variantLabel(rest, schema.filter(f => f.key !== 'size'));
+  const sdField = schema.find(f => f.isVariant === true && f.isStockDependent === true);
+  if (!sdField) return variantLabel(attributes, schema);
+  const rest = Object.fromEntries(Object.entries(attributes).filter(([key]) => key !== sdField.key));
+  return variantLabel(rest, schema.filter(f => f.key !== sdField.key));
 }
 
 const STEPS: { key: 1 | 2 | 3; label: string; icon: LucideIcon }[] = [
