@@ -114,8 +114,9 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
       getProfile().catch(() => null),
     ])
       .then(([productRes, variantRes, profileRes]) => {
+        const activeVariants = variantRes.variants.filter(v => v.isActive);
         setProduct(productRes.product);
-        setVariants(variantRes.variants);
+        setVariants(activeVariants);
         setSellerProfile(profileRes?.profile ?? null);
         setActiveImg(0);
 
@@ -123,7 +124,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
         const defaults: Record<string, string> = {};
         variantFields.forEach(field => {
           const usedValues = new Set(
-            variantRes.variants.map(v => String((v.attributes as Record<string, string>)[field.key])),
+            activeVariants.map(v => String((v.attributes as Record<string, string>)[field.key])),
           );
           if (field.type === 'color') {
             const firstVal = [...usedValues].filter(Boolean)[0];
