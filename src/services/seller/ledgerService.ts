@@ -25,7 +25,7 @@ export async function createDefaultLedgers(sellerId: string, transaction?: Trans
   if (missing.length === 0) return;
 
   await SellerLedger.bulkCreate(
-    missing.map((name) => ({ sellerId, name })),
+    missing.map((name) => ({ sellerId, name, isDefault: true })),
     { transaction },
   );
 }
@@ -47,6 +47,9 @@ export async function updateLedger(sellerId: string, ledgerId: string, name: str
   if (!ledger) {
     throw Object.assign(new Error('Ledger not found'), { status: 404 });
   }
+  if (ledger.isDefault) {
+    throw Object.assign(new Error('Default ledgers cannot be renamed'), { status: 403 });
+  }
 
   const conflict = await SellerLedger.findOne({ where: { sellerId, name } });
   if (conflict && conflict.id !== ledgerId) {
@@ -61,6 +64,9 @@ export async function deleteLedger(sellerId: string, ledgerId: string): Promise<
   const ledger = await SellerLedger.findOne({ where: { id: ledgerId, sellerId } });
   if (!ledger) {
     throw Object.assign(new Error('Ledger not found'), { status: 404 });
+  }
+  if (ledger.isDefault) {
+    throw Object.assign(new Error('Default ledgers cannot be deleted'), { status: 403 });
   }
   await ledger.destroy();
 }

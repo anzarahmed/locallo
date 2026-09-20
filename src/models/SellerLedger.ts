@@ -31,6 +31,11 @@ export class SellerLedger extends Model {
   @Column(DataType.STRING(255))
   declare name: string;
 
+  @AllowNull(false)
+  @Default(false)
+  @Column(DataType.BOOLEAN)
+  declare isDefault: boolean;
+
   @BelongsTo(() => User)
   declare seller: User;
 
