@@ -456,7 +456,7 @@ function GroupedVariantCard({
                 v.stock <= 5 ? 'text-amber-500 font-medium' :
                 'text-gray-400'
               }`}>
-                {v.stock === 0 ? 'Out of stock' : `${v.stock} in stock`}
+                {v.stock === 0 ? 'Out of stock' : `${v.stock} items in stock`}
               </span>
 
               {!v.isActive && (
