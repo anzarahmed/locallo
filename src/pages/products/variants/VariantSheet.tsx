@@ -21,7 +21,7 @@ interface VariantSheetProps {
   variant: ProductVariant | null;
   existingVariants: ProductVariant[];
   lockedAttributes?: Record<string, string>;
-  onSaved: (variant: ProductVariant) => void;
+  onSaved: (variants: ProductVariant[]) => void;
   onClose: () => void;
 }
 
@@ -269,7 +269,7 @@ export default function VariantSheet({
           ...(values.mrp ? { mrp: Number(values.mrp) } : {}),
           stock:        Number(values.stock),
         });
-        onSaved(result.variant);
+        onSaved([result.variant, ...result.siblings]);
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to save variant');
       }
@@ -336,7 +336,7 @@ export default function VariantSheet({
         ...(mrp !== undefined ? { mrp } : {}),
         rows,
       });
-      onSaved(result.variants[0]!);
+      onSaved(result.variants);
       toast.success(`Created ${result.variants.length} variant${result.variants.length === 1 ? '' : 's'}`);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to save variant');
@@ -429,6 +429,11 @@ export default function VariantSheet({
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
               Primary Image<span className="text-rose-400 ml-0.5">*</span>
+              {isEdit && sdField && (
+                <span className="text-[10px] text-gray-400 font-normal normal-case tracking-normal ml-1.5">
+                  applies to all {sdField.label.toLowerCase()} options in this group
+                </span>
+              )}
             </p>
 
             {primaryImage ? (
@@ -489,6 +494,11 @@ export default function VariantSheet({
           <div>
             <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
               Additional Images (up to {MAX_SECONDARY_IMAGES})
+              {isEdit && sdField && (
+                <span className="text-[10px] text-gray-400 font-normal normal-case tracking-normal ml-1.5">
+                  applies to all {sdField.label.toLowerCase()} options in this group
+                </span>
+              )}
             </p>
 
             <div className="flex gap-2 flex-wrap">

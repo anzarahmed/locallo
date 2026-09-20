@@ -120,17 +120,17 @@ export default function VariantList(): JSX.Element {
     setAddGroupTarget(null);
   }
 
-  async function handleSheetSaved(variant: ProductVariant): Promise<void> {
-    const isUpdate = variants.some(v => v.id === variant.id);
+  async function handleSheetSaved(updatedVariants: ProductVariant[]): Promise<void> {
+    const isUpdate = updatedVariants.every(v => variants.some(ev => ev.id === v.id));
     if (isUpdate) {
-      setVariants(prev => prev.map(v => v.id === variant.id ? variant : v));
-      toast.success('Variant updated');
+      setVariants(prev => prev.map(v => updatedVariants.find(u => u.id === v.id) ?? v));
+      toast.success(updatedVariants.length > 1 ? 'Variants updated' : 'Variant updated');
     } else {
       try {
         const data = await getProductVariants(id!);
         setVariants(data.variants);
       } catch {
-        setVariants(prev => [...prev, variant]);
+        setVariants(prev => [...prev, ...updatedVariants]);
       }
     }
     setSheetOpen(false);
