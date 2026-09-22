@@ -361,7 +361,7 @@ export default function VariantSheet({
         <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100 shrink-0">
           <div>
             <h2 className="text-base font-bold text-gray-800">
-              {isEdit ? 'Edit Variant' : lockedAttributes ? 'Add to Group' : 'Add Variant'}
+              {isEdit ? 'Edit Variant' : 'Add Variant'}
             </h2>
           </div>
           <button
