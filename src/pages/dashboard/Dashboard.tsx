@@ -40,16 +40,6 @@ export default function Dashboard(): JSX.Element {
 
   const displayName = profile?.fullName ?? seller?.fullName ?? profile?.profile?.businessName ?? 'Seller';
 
-  function fmtGrowthPercent(val: number): string {
-    if (val === 0) return '+0%';
-    return (val > 0 ? '+' : '') + val.toFixed(1).replace(/\.0$/, '') + '%';
-  }
-
-  function fmtGrowthCount(val: number): string {
-    if (val === 0) return '+0';
-    return (val > 0 ? '+' : '') + val;
-  }
-
   return (
     <div className="min-h-screen bg-gray-100">
       {/* ── Teal header ── */}
@@ -78,7 +68,6 @@ export default function Dashboard(): JSX.Element {
             accentClass="bg-teal-500"
             value={loading || !stats ? null : stats.totalViews.toLocaleString()}
             label="Total Views"
-            growth={stats ? fmtGrowthPercent(stats.viewsGrowthPercent) : '+0%'}
             sublabel="this month"
           />
           <StatCard
@@ -88,7 +77,6 @@ export default function Dashboard(): JSX.Element {
             accentClass="bg-pink-400"
             value={loading || !stats ? null : stats.wishlistSaves.toLocaleString()}
             label="Wishlist Saves"
-            growth={stats ? fmtGrowthPercent(stats.wishlistGrowthPercent) : '+0%'}
             sublabel="this month"
           />
           <StatCard
@@ -98,7 +86,6 @@ export default function Dashboard(): JSX.Element {
             accentClass="bg-teal-500"
             value={loading || !stats ? null : String(stats.totalProducts)}
             label="Products"
-            growth={stats ? fmtGrowthCount(stats.productsAddedThisWeek) : '+0'}
             sublabel="this week"
           />
           <StatCard
@@ -108,8 +95,6 @@ export default function Dashboard(): JSX.Element {
             accentClass="bg-amber-400"
             value={loading || !stats ? null : stats.avgRating.toFixed(1)}
             label="Shop Rating"
-            growth={stats ? `${stats.reviewCount} reviews` : '0 reviews'}
-            growthNeutral
             sublabel="out of 5.0"
           />
         </div>
@@ -163,8 +148,6 @@ interface StatCardProps {
   accentClass: string;
   value: string | null;
   label: string;
-  growth: string;
-  growthNeutral?: boolean;
   sublabel: string;
 }
 
@@ -175,13 +158,8 @@ function StatCard({
   accentClass,
   value,
   label,
-  growth,
-  growthNeutral,
   sublabel,
 }: StatCardProps): JSX.Element {
-  const isPositive = !growthNeutral && growth.startsWith('+') && growth !== '+0' && growth !== '+0%';
-  const isZero = growthNeutral || growth === '+0' || growth === '+0%';
-
   return (
     <div className="bg-white rounded-2xl shadow-sm overflow-hidden relative">
       {/* Top accent line */}
@@ -193,22 +171,11 @@ function StatCard({
           {bgIcon}
         </div>
 
-        {/* Icon + growth badge row */}
-        <div className="flex items-center justify-between mb-3">
+        {/* Icon */}
+        <div className="mb-3">
           <div className={`w-10 h-10 rounded-xl ${iconBg} flex items-center justify-center`}>
             {icon}
           </div>
-          <span
-            className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-              isPositive
-                ? 'text-emerald-600 bg-emerald-50'
-                : isZero
-                  ? 'text-gray-400 bg-gray-100'
-                  : 'text-red-500 bg-red-50'
-            }`}
-          >
-            {growth}
-          </span>
         </div>
 
         {/* Value */}
