@@ -16,7 +16,7 @@ import { inputCls } from '../../lib/classUtils';
 import { MAX_SECONDARY_IMAGES } from '../../constants';
 import {
   generateCombinations, getCombinationKey, hasStockDependentAttr,
-  buildProductVariantAttrs, validateComboStocks, type VariantSelections,
+  buildProductVariantAttrs, validateComboStocks, categorySupportsVariants, type VariantSelections,
 } from '../../lib/variantUtils';
 import FormField from '../../components/ui/FormField';
 import AttrInput from '../../components/ui/AttrInput';
@@ -51,6 +51,9 @@ export default function AddProduct(): JSX.Element {
   const stockDependent = hasStockDependentAttr(variantFields);
   const combinations = generateCombinations(variantFields, variantSelections);
   const usesComboStock = stockDependent && combinations.length > 0;
+  // Categories with variants manage stock per-variant on the Variants page instead
+  // of a single top-level value, so the simple Stock field is hidden for them.
+  const stockHidden = categorySupportsVariants(attributeSchema);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -74,7 +77,7 @@ export default function AddProduct(): JSX.Element {
       costPrice: '',
       stock: '0',
     },
-    validationSchema: usesComboStock ? addProductSchemaComboStock : addProductSchema,
+    validationSchema: stockHidden ? addProductSchemaComboStock : addProductSchema,
     validateOnBlur: true,
     validateOnChange: false,
     onSubmit: handleSubmit,
@@ -573,8 +576,8 @@ export default function AddProduct(): JSX.Element {
             </div>
           </FormField>
 
-          {/* Simple stock — hidden when the category drives per-combination stock */}
-          {(!stockDependent || combinations.length === 0) && (
+          {/* Simple stock — hidden when the category supports variants */}
+          {!stockHidden && (
             <FormField label="Stock" required error={form.touched.stock ? form.errors.stock as string : undefined}>
               <input
                 name="stock"
