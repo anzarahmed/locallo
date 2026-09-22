@@ -108,14 +108,16 @@ export default function Dashboard(): JSX.Element {
               {Array.from({ length: 3 }).map((_, i) => <ProductRowSkeleton key={i} />)}
             </div>
           ) : products.length === 0 ? (
-            <div className="bg-white rounded-2xl py-12 text-center shadow-sm">
-              <Package size={36} className="text-gray-200 mx-auto mb-3" />
-              <p className="text-sm text-gray-400">No products yet</p>
+            <div className="bg-white rounded-2xl py-14 px-6 text-center shadow-sm">
+              <Package size={44} strokeWidth={1.75} className="text-teal-500 mx-auto mb-4" />
+              <p className="text-base font-bold text-gray-800">No products yet</p>
+              <p className="text-sm text-gray-400 mt-1">Add your first product to start seeing it here</p>
               <button
                 onClick={() => navigate('/products/add')}
-                className="mt-3 text-sm font-semibold text-teal-600 hover:text-teal-700"
+                className="mt-5 px-6 py-2.5 rounded-full text-sm font-semibold text-white shadow-sm hover:opacity-90 transition-opacity"
+                style={{ background: 'linear-gradient(150deg, #26B8B2 0%, #14817C 100%)' }}
               >
-                Add your first product
+                Add Product
               </button>
             </div>
           ) : (
