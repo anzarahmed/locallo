@@ -59,7 +59,7 @@ export default function Login(): JSX.Element {
             className={`flex items-center bg-white border rounded-2xl overflow-hidden transition-colors ${
               formik.touched.phoneNumber && formik.errors.phoneNumber
                 ? 'border-red-400'
-                : 'border-gray-200 focus-within:border-orange-400'
+                : 'border-gray-200 focus-within:border-teal-500'
             }`}
           >
             <div className="flex items-center gap-1.5 pl-4 pr-3 py-4 border-r border-gray-200 shrink-0">
@@ -94,7 +94,7 @@ export default function Login(): JSX.Element {
           disabled={formik.isSubmitting}
           className="w-full py-4 rounded-2xl text-white font-semibold text-sm tracking-wide transition-opacity disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
           style={{
-            background: 'linear-gradient(135deg, #FFB300 0%, #FF6200 50%, #E53000 100%)',
+            background: 'linear-gradient(135deg, #26B8B2 0%, #1A9E98 50%, #14817C 100%)',
           }}
         >
           {formik.isSubmitting ? (

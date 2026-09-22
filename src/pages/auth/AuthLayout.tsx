@@ -13,7 +13,7 @@ export default function AuthLayout({ children }: AuthLayoutProps): JSX.Element {
       <div
         className="w-full flex flex-col items-center justify-center pt-14 pb-16 px-6"
         style={{
-          background: 'linear-gradient(160deg, #FFB300 0%, #FF6200 45%, #E53000 100%)',
+          background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)',
           borderRadius: '0 0 36px 36px',
           minHeight: '42vh',
         }}
@@ -23,8 +23,8 @@ export default function AuthLayout({ children }: AuthLayoutProps): JSX.Element {
           alt="Loccalo"
           className="h-20 w-auto mb-5"
         />
-        <h1 className="text-[22px] font-bold text-white tracking-tight">Welcome to Loccalo</h1>
-        <p className="mt-1.5 text-sm text-white/75">Discover local products you'll love</p>
+        <h1 className="text-[22px] font-bold text-white tracking-tight">Welcome, Seller</h1>
+        <p className="mt-1.5 text-sm text-white/75">Manage your shop on the go</p>
       </div>
 
       {/* Form area */}

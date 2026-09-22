@@ -148,8 +148,8 @@ export default function VerifyOtp(): JSX.Element {
                   : hasError
                     ? 'border-red-300 bg-red-50 text-red-600'
                     : digit
-                      ? 'border-orange-400 bg-white text-gray-800'
-                      : 'border-gray-200 bg-white text-gray-800 focus:border-orange-400'
+                      ? 'border-teal-500 bg-white text-gray-800'
+                      : 'border-gray-200 bg-white text-gray-800 focus:border-teal-500'
               }`}
           />
         ))}
@@ -177,7 +177,7 @@ export default function VerifyOtp(): JSX.Element {
         <button
           type="button"
           onClick={() => navigate('/login')}
-          className="text-sm text-gray-500 underline underline-offset-2 hover:text-orange-500 transition-colors cursor-pointer"
+          className="text-sm text-gray-500 underline underline-offset-2 hover:text-teal-600 transition-colors cursor-pointer"
         >
           Change phone number
         </button>
@@ -194,7 +194,7 @@ export default function VerifyOtp(): JSX.Element {
           <button
             type="button"
             onClick={() => void handleResend()}
-            className="text-sm text-gray-500 underline underline-offset-2 hover:text-orange-500 transition-colors cursor-pointer"
+            className="text-sm text-gray-500 underline underline-offset-2 hover:text-teal-600 transition-colors cursor-pointer"
           >
             Resend OTP
           </button>
