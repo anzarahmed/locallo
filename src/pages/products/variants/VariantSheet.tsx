@@ -378,7 +378,7 @@ export default function VariantSheet({
 
           {/* Variant of */}
           <div className="rounded-2xl px-4 py-3 bg-teal-50/70 border border-teal-100">
-            <p className="text-[11px] font-bold text-teal-700 uppercase tracking-wide mb-1">Variant of</p>
+            <p className="text-[11px] font-bold text-teal-700 tracking-wide mb-1">Variant Of</p>
             <p className="text-sm font-bold text-gray-800">{product.name}</p>
             {product.category && (
               <p className="text-xs text-gray-400 mt-0.5">{product.category.name}</p>
@@ -388,7 +388,7 @@ export default function VariantSheet({
           {isEdit ? (
             /* ── Edit mode: show read-only attribute pills ── */
             <div>
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
                 Variant Details
               </p>
               <div className="flex flex-wrap gap-2">
@@ -407,7 +407,7 @@ export default function VariantSheet({
           ) : (
             lockedFields.length > 0 && (
               <div>
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
                   Group
                 </p>
                 <div className="flex flex-wrap gap-1.5">
@@ -427,10 +427,10 @@ export default function VariantSheet({
 
           {/* Primary Image */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
               Primary Image<span className="text-rose-400 ml-0.5">*</span>
               {isEdit && sdField && (
-                <span className="text-[10px] text-gray-400 font-normal normal-case tracking-normal ml-1.5">
+                <span className="text-[10px] text-gray-400 font-normal tracking-normal ml-1.5">
                   applies to all {sdField.label.toLowerCase()} options in this group
                 </span>
               )}
@@ -492,10 +492,10 @@ export default function VariantSheet({
 
           {/* Secondary Images */}
           <div>
-            <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+            <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
               Additional Images (up to {MAX_SECONDARY_IMAGES})
               {isEdit && sdField && (
-                <span className="text-[10px] text-gray-400 font-normal normal-case tracking-normal ml-1.5">
+                <span className="text-[10px] text-gray-400 font-normal tracking-normal ml-1.5">
                   applies to all {sdField.label.toLowerCase()} options in this group
                 </span>
               )}
@@ -596,7 +596,7 @@ export default function VariantSheet({
               {/* Category (fixed — inherited from the parent product) */}
               {product.category && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+                  <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
                     Category
                   </p>
                   <div className="flex items-center gap-2 rounded-xl border border-teal-100 bg-teal-50/50 px-3.5 py-2.5">
@@ -629,7 +629,7 @@ export default function VariantSheet({
               {/* Combination stock matrix */}
               {stockDependent && combinations.length > 0 && (
                 <div>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                  <p className="text-xs font-semibold text-gray-500 tracking-wide mb-3">
                     Stock Quantities
                   </p>
                   <div className="space-y-2">
