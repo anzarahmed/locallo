@@ -58,11 +58,12 @@ export default function Settings(): JSX.Element {
   }, []);
 
   async function handleToggle(key: keyof NotificationSettings): Promise<void> {
-    const next = { ...settings, [key]: !settings[key] };
+    const value = !settings[key];
+    const next = { ...settings, [key]: value };
     setSettings(next);
     setSaving(key);
     try {
-      const { notificationSettings: saved } = await updateSettings(next);
+      const { notificationSettings: saved } = await updateSettings({ [key]: value });
       setSettings(saved ?? next);
       toast.success('Settings saved');
     } catch (err) {

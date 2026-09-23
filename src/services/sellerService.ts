@@ -128,7 +128,7 @@ export function getSettings(): Promise<{ notificationSettings: NotificationSetti
   return apiGet(PATHS.SETTINGS);
 }
 
-export function updateSettings(data: NotificationSettings): Promise<{ notificationSettings: NotificationSettings }> {
+export function updateSettings(data: Partial<NotificationSettings>): Promise<{ notificationSettings: NotificationSettings }> {
   return apiPut(PATHS.SETTINGS, data);
 }
 
