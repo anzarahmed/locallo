@@ -6,9 +6,10 @@ import { Product } from '../../models/Product';
 import { User } from '../../models/User';
 import { normalizeImageKey } from '../../utils/imageStorage';
 import sequelize from '../../config/database';
-import type { createReviewSchema } from '../../validation/customer/reviewSchemas';
+import type { createReviewSchema, updateReviewSchema } from '../../validation/customer/reviewSchemas';
 
 type CreateReviewInput = InferType<typeof createReviewSchema>;
+type UpdateReviewInput = InferType<typeof updateReviewSchema>;
 
 const MAX_MEDIA_IMAGES = 50;
 
@@ -65,6 +66,26 @@ export async function listReviews(
   );
 
   return { rows, count, media: mediaRows.map((r) => r.img) };
+}
+
+export async function updateReview(
+  customerId: string,
+  reviewId: string,
+  data: UpdateReviewInput,
+): Promise<Review> {
+  const review = await Review.findByPk(reviewId);
+  if (!review) {
+    throw Object.assign(new Error('Review not found'), { status: 404 });
+  }
+  if (review.customerId !== customerId) {
+    throw Object.assign(new Error('You can only update your own review'), { status: 403 });
+  }
+
+  if (data.rating !== undefined) review.rating = data.rating;
+  if (data.content !== undefined) review.content = data.content;
+  if (data.image !== undefined) review.images = data.image.map(normalizeImageKey);
+
+  return review.save();
 }
 
 export async function deleteReview(customerId: string, reviewId: string): Promise<void> {

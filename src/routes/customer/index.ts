@@ -3,7 +3,7 @@ import { requestOtp, verifyOtp } from '../../controllers/customer/customerAuthCo
 import { getProfile, updateProfile, uploadProfileImage, deleteAccount } from '../../controllers/customer/customerProfileController';
 import { getProducts, getProduct, getTrendingProducts, getSimilarProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
-import { addReview, getReviews, removeReview, uploadReviewImages } from '../../controllers/customer/reviewController';
+import { addReview, getReviews, editReview, removeReview, uploadReviewImages } from '../../controllers/customer/reviewController';
 import { getDashboard } from '../../controllers/customer/dashboardController';
 import { getOffers } from '../../controllers/customer/offerController';
 import { getCmsPage } from '../../controllers/customer/cmsPageController';
@@ -16,7 +16,7 @@ import upload, { uploadArray } from '../../middleware/upload';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/customer/customerAuthSchemas';
 import { updateCustomerProfileSchema } from '../../validation/customer/customerProfileSchemas';
 import { searchProductsSchema, trendingQuerySchema } from '../../validation/customer/productSchemas';
-import { createReviewSchema } from '../../validation/customer/reviewSchemas';
+import { createReviewSchema, updateReviewSchema } from '../../validation/customer/reviewSchemas';
 
 const router = Router();
 
@@ -48,6 +48,7 @@ router.post('/wishlist/:productId/:variantId',     requireCustomer, toggleWishli
 router.get('/reviews',  optionalCustomer, getReviews);
 router.post('/reviews', requireCustomer, validate(createReviewSchema), addReview);
 router.post('/reviews/images', requireCustomer, uploadArray('images', 5), uploadReviewImages);
+router.put('/reviews/:id', requireCustomer, validate(updateReviewSchema), editReview);
 router.delete('/reviews/:id', requireCustomer, removeReview);
 
 router.get('/notifications',           requireCustomer, getNotifications);

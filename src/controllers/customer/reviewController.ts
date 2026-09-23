@@ -3,6 +3,7 @@ import { sendSuccess, sendError, handleServiceError } from '../../utils/response
 import { signImages, getPresignedUrlOrNull, saveReviewImage } from '../../utils/imageStorage';
 import { parsePagination } from '../../utils/pagination';
 import * as reviewService from '../../services/customer/reviewService';
+import { reviewIdSchema } from '../../validation/customer/reviewSchemas';
 
 interface ReviewItem {
   id: string;
@@ -92,6 +93,29 @@ export async function getReviews(req: Request, res: Response): Promise<void> {
     );
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to fetch reviews');
+  }
+}
+
+export async function editReview(req: Request, res: Response): Promise<void> {
+  const reviewId = String(req.params.id);
+  if (!reviewIdSchema.isValidSync(reviewId)) {
+    sendError(res, 'Invalid review id', 400);
+    return;
+  }
+
+  try {
+    const review = await reviewService.updateReview(req.customer!.id, reviewId, req.body);
+    const item: ReviewItem = {
+      id: review.id,
+      productId: review.productId,
+      rating: review.rating,
+      content: review.content,
+      images: await signImages(review.images),
+      createdAt: review.createdAt,
+    };
+    sendSuccess(res, item, 'Review updated');
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to update review');
   }
 }
 
