@@ -46,18 +46,25 @@ interface ListItemContext {
   search?: string;
   isBoosted: boolean;
   boostedVariant?: ProductVariant | null;
+  skipStockFilter?: boolean;
   distanceKm?: number;
   attributeSchemasByCategory?: Map<number, AttributeField[]>;
 }
 
-async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductListItem> {
+async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductListItem | null> {
+  const rawVariants = ctx.variantsByProduct.get(p.id) ?? [];
   const chosen = ctx.boostedVariant
     ?? variantSelection.pickVariantForSearch(
-      ctx.variantsByProduct.get(p.id) ?? [],
+      rawVariants,
       ctx.search,
       p.name,
       ctx.attributeSchemasByCategory?.get(p.categoryId),
     );
+
+  if (!ctx.skipStockFilter) {
+    const outOfStock = rawVariants.length > 0 ? chosen === null : p.stock <= 0;
+    if (outOfStock) return null;
+  }
 
   const displayKey = chosen?.images?.[0] ?? p.images[0] ?? null;
   const sellingPrice = Number(chosen?.sellingPrice ?? p.sellingPrice);
@@ -140,9 +147,10 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
     productService.getCategoryAttributeSchemas(categoryIds),
   ]);
 
-  const boostedItems = await Promise.all(
-    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: true, boostedVariant: b.variant, attributeSchemasByCategory })),
+  const boostedItemsResolved = await Promise.all(
+    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: true, boostedVariant: b.variant, skipStockFilter: !!b.variant, attributeSchemasByCategory })),
   );
+  const boostedItems = boostedItemsResolved.filter((item): item is ProductListItem => item !== null);
 
   const organicItemsResolved = await Promise.all(
     rows.map(async (p) => {
@@ -157,7 +165,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
           attributeSchemasByCategory.get(p.categoryId),
         );
         if (!alt) return null;
-        return toListItem(p, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: false, boostedVariant: alt, distanceKm, attributeSchemasByCategory });
+        return toListItem(p, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: false, boostedVariant: alt, skipStockFilter: true, distanceKm, attributeSchemasByCategory });
       }
       return toListItem(p, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: false, distanceKm, attributeSchemasByCategory });
     }),
@@ -218,13 +226,15 @@ export async function getTrendingProducts(req: Request, res: Response): Promise<
     variantSelection.getActiveVariantsByProduct(productIds),
   ]);
 
-  const boostedItems = await Promise.all(
-    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant })),
+  const boostedItemsResolved = await Promise.all(
+    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant, skipStockFilter: !!b.variant })),
   );
+  const boostedItems = boostedItemsResolved.filter((item): item is ProductListItem => item !== null);
 
-  const organicItems = await Promise.all(
+  const organicItemsResolved = await Promise.all(
     rows.map((p) => toListItem(p, { offersById, wishlistedIds, variantsByProduct, isBoosted: false })),
   );
+  const organicItems = organicItemsResolved.filter((item): item is ProductListItem => item !== null);
 
   if (chosenBoosts.length > 0) {
     await productBoostService.incrementImpressions(chosenBoosts.map((b) => b.boostId));
@@ -244,9 +254,10 @@ export async function getSimilarProducts(req: Request, res: Response): Promise<v
       variantSelection.getActiveVariantsByProduct(productIds),
     ]);
 
-    const products = await Promise.all(
+    const productsResolved = await Promise.all(
       rows.map((p) => toListItem(p, { offersById, wishlistedIds, variantsByProduct, isBoosted: false })),
     );
+    const products = productsResolved.filter((item): item is ProductListItem => item !== null);
 
     sendSuccess(res, { products }, 'Similar products fetched');
   } catch (err: unknown) {

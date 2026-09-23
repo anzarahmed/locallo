@@ -42,24 +42,29 @@ function attributeHaystack(attributes: Record<string, unknown>, schema?: Attribu
   return parts.join(' ');
 }
 
+export function hasAnyStock(variants: ProductVariant[]): boolean {
+  return variants.some((v) => v.stock > 0);
+}
+
 export function pickVariantForSearch(
   variants: ProductVariant[],
   search?: string,
   productName?: string,
   attributeSchema?: AttributeField[],
 ): ProductVariant | null {
-  if (variants.length === 0) return null;
+  const inStock = variants.filter((v) => v.stock > 0);
+  if (inStock.length === 0) return null;
 
   const tokens = (search ?? '').toLowerCase().split(/\s+/).filter(Boolean);
-  if (tokens.length === 0) return variants[0];
+  if (tokens.length === 0) return inStock[0];
 
   const remainingTokens = tokens.filter((token) => !matchesToken(productName ?? '', token));
-  if (remainingTokens.length === 0) return variants[0];
+  if (remainingTokens.length === 0) return inStock[0];
 
-  let best = variants[0];
+  let best = inStock[0];
   let bestScore = -1;
 
-  for (const variant of variants) {
+  for (const variant of inStock) {
     const haystack = attributeHaystack(variant.attributes as Record<string, unknown>, attributeSchema);
     const score = remainingTokens.reduce((sum, token) => sum + (matchesToken(haystack, token) ? 1 : 0), 0);
     if (score > bestScore) {
@@ -94,6 +99,7 @@ export function pickAlternateVariantForSearch(
 
   for (const variant of variants) {
     if (variant.id === excludedVariant.id) continue;
+    if (variant.stock <= 0) continue;
     const score = scoreOf(variant);
     if (score > bestScore) {
       bestScore = score;

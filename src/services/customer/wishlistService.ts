@@ -3,6 +3,7 @@ import { Wishlist } from '../../models/Wishlist';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { SellerProfile } from '../../models/SellerProfile';
+import { getActiveVariantsByProduct, hasAnyStock } from './variantSelection';
 
 const LIST_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images', 'sellerId'];
 const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'stock', 'sellingPrice', 'mrp', 'isActive'];
@@ -44,7 +45,7 @@ export async function listWishlist(
     include: [
       {
         model: Product,
-        attributes: LIST_ATTRIBUTES,
+        attributes: [...LIST_ATTRIBUTES, 'stock'],
         where: { isActive: true },
         required: true,
       },
@@ -59,7 +60,13 @@ export async function listWishlist(
     offset: (page - 1) * limit,
   });
 
-  return { rows, count };
+  const activeVariantsByProduct = await getActiveVariantsByProduct(rows.map((w) => w.productId));
+  const inStockRows = rows.filter((w) => {
+    const activeVariants = activeVariantsByProduct.get(w.productId) ?? [];
+    return activeVariants.length > 0 ? hasAnyStock(activeVariants) : w.product.stock > 0;
+  });
+
+  return { rows: inStockRows, count };
 }
 
 export async function getSellerLocations(
