@@ -14,7 +14,7 @@ const attributeFieldSchema = Yup.object({
   isStockDependent: Yup.boolean().optional(),
   unit:            Yup.string().optional(),
   options:         Yup.array(attributeFieldOptionSchema).optional(),
-});
+}).transform(field => (field?.isStockDependent ? { ...field, isVariant: true } : field));
 
 export const createCategorySchema = Yup.object({
   name:            Yup.string().max(100).required('Name is required'),
