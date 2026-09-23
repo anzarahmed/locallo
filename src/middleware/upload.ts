@@ -4,7 +4,8 @@ import { sendError } from '../utils/response';
 
 const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
 const ALLOWED_EXTENSIONS = ['.jpg', '.jpeg', '.png', '.webp'];
-const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
+const MAX_SIZE_MB = 10;
+const MAX_SIZE_BYTES = MAX_SIZE_MB * 1024 * 1024;
 
 function isAllowedFile(file: Express.Multer.File): boolean {
   if (file.mimetype !== 'application/octet-stream') {
@@ -39,7 +40,7 @@ function isAllowedIconFile(file: Express.Multer.File): boolean {
 
 function handleUploadError(res: Response, err: unknown, maxCount: number): boolean {
   if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
-    sendError(res, 'Each image must be 5 MB or smaller', 400);
+    sendError(res, `Each image must be ${MAX_SIZE_MB} MB or smaller`, 400);
     return true;
   }
   if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_COUNT') {
