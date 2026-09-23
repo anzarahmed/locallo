@@ -14,6 +14,7 @@ interface WishlistItem {
   image: string | null;
   mrp: number | null;
   sellingPrice: number;
+  stock: number;
   variantStock: number | null;
   variantAttributes: Record<string, unknown> | null;
   variantIsActive: boolean | null;
@@ -58,6 +59,7 @@ export async function getWishlist(req: Request, res: Response): Promise<void> {
         image: image ? await getPresignedUrl(toThumbnailKey(image)) : null,
         mrp: v?.mrp ?? w.product.mrp,
         sellingPrice: v?.sellingPrice ?? w.product.sellingPrice,
+        stock: v ? v.stock : w.product.stock,
         variantStock: v ? v.stock : null,
         variantAttributes: v ? v.attributes : null,
         variantIsActive: v ? v.isActive : null,

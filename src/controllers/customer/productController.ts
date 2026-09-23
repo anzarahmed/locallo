@@ -20,6 +20,7 @@ interface ProductListItem {
   image: string | null;
   mrp: number | null;
   sellingPrice: number;
+  stock: number;
   variantId: string | null;
   variantStock: number | null;
   variantAttributes: Record<string, unknown> | null;
@@ -74,6 +75,7 @@ async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductList
     image: displayKey ? await getPresignedUrl(toThumbnailKey(displayKey)) : null,
     mrp,
     sellingPrice,
+    stock: chosen ? chosen.stock : p.stock,
     variantId: chosen?.id ?? null,
     variantStock: chosen ? chosen.stock : null,
     variantAttributes: chosen ? (chosen.attributes as Record<string, unknown>) : null,
