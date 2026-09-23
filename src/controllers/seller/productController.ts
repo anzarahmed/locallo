@@ -40,7 +40,7 @@ export async function createProduct(req: Request, res: Response): Promise<void> 
   }
 }
 
-const VALID_FILTERS  = ['all', 'visible', 'hidden'] as const;
+const VALID_FILTERS  = ['all', 'visible', 'hidden', 'active'] as const;
 const VALID_SORT_BY  = [
   'sort_newest', 'sort_price_high_low', 'sort_price_low_high',
   'sort_most_wishlisted', 'sort_top_rated',

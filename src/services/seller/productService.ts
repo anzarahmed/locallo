@@ -171,7 +171,7 @@ export async function createProduct(
   return reloaded;
 }
 
-type ProductFilter = 'all' | 'visible' | 'hidden';
+type ProductFilter = 'all' | 'visible' | 'hidden' | 'active';
 type ProductSortBy =
   | 'sort_newest'
   | 'sort_price_high_low'
@@ -214,6 +214,7 @@ export async function getSellerProducts(
   const where: Record<string, unknown> = { sellerId };
   if (filter === 'visible') where.isActive = true;
   if (filter === 'hidden')  where.isActive = false;
+  if (filter === 'active')  where.stock = { [Op.gte]: 1 };
 
   return Product.findAndCountAll({
     where,
