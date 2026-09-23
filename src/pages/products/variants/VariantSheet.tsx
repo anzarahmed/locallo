@@ -116,14 +116,14 @@ export default function VariantSheet({
   });
 
   /*
-   * Compute which option values to gray-out for a given variant field:
+   * Compute which option values to hide for a given variant field:
    *
    * Non-SD field (color):
-   *   - If no SD field exists → block when any variant uses that color (nothing else to add)
-   *   - If SD field exists   → block only when ALL SD options are already taken for that color
+   *   - If no SD field exists → hide when any variant uses that color (nothing else to add)
+   *   - If SD field exists   → hide only when ALL SD options are already taken for that color
    *
    * SD field (sizes):
-   *   - Block values where (currently selected non-SD attrs + this value) already exists
+   *   - Hide values where (currently selected non-SD attrs + this value) already exists
    */
   function usedValuesForField(field: AttributeField): Set<string> {
     if (!field.isStockDependent) {
@@ -148,11 +148,14 @@ export default function VariantSheet({
       );
     }
 
-    // SD field: block sizes where the current non-SD selection + size already exists
+    return usedSdValuesFor(field, variantSelections);
+  }
+
+  function usedSdValuesFor(field: AttributeField, selections: VariantSelections): Set<string> {
     const nonSdSelections = variantFields
       .filter(f => f.isVariant && !f.isStockDependent)
       .reduce<Record<string, string>>((acc, f) => {
-        const sel = variantSelections[f.key];
+        const sel = selections[f.key];
         if (typeof sel === 'string' && sel) acc[f.key] = sel;
         return acc;
       }, {});
@@ -170,8 +173,19 @@ export default function VariantSheet({
     );
   }
 
+  // Used options are hidden rather than disabled, so a size picked before switching
+  // color must be dropped once it becomes taken — otherwise it stays selected but invisible.
   function setVariantSelection(key: string, value: string | string[]): void {
-    setVariantSelections(prev => ({ ...prev, [key]: value }));
+    setVariantSelections(prev => {
+      const next: VariantSelections = { ...prev, [key]: value };
+      if (sdField && key !== sdField.key) {
+        const used = usedSdValuesFor(sdField, next);
+        const sdSel = next[sdField.key];
+        if (Array.isArray(sdSel)) next[sdField.key] = sdSel.filter(v => !used.has(v));
+        else if (typeof sdSel === 'string' && used.has(sdSel)) next[sdField.key] = '';
+      }
+      return next;
+    });
     setComboStocks({});
     setComboStockErrors({});
   }
@@ -705,36 +719,42 @@ function SheetVariantOptionField({ field, value, usedValues, onChange, showError
     <p className="text-xs text-rose-500 mt-1.5">{field.label} is required</p>
   );
 
+  const availableOptions = (field.options ?? []).filter(opt => !usedValues.has(opt.value));
+
+  const allUsedEl = (
+    <p className="text-xs text-gray-400 bg-gray-50 rounded-xl p-3 leading-relaxed">
+      All {field.label.toLowerCase()} options already have variants.
+    </p>
+  );
+
   if (field.type === 'multiselect' && field.options && field.options.length > 0) {
     const selected = Array.isArray(value) ? value : [];
     return (
       <div>
         {labelEl}
-        <div className="flex flex-wrap gap-2">
-          {field.options.map((opt: AttributeFieldOption) => {
-            const used   = usedValues.has(opt.value);
-            const active = selected.includes(opt.value);
-            return (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => !used && onChange(active ? selected.filter(v => v !== opt.value) : [...selected, opt.value])}
-                disabled={used}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
-                  used
-                    ? 'opacity-35 cursor-not-allowed border-gray-200 text-gray-400'
-                    : active
+        {availableOptions.length === 0 ? allUsedEl : (
+          <div className="flex flex-wrap gap-2">
+            {availableOptions.map((opt: AttributeFieldOption) => {
+              const active = selected.includes(opt.value);
+              return (
+                <button
+                  key={opt.value}
+                  type="button"
+                  onClick={() => onChange(active ? selected.filter(v => v !== opt.value) : [...selected, opt.value])}
+                  className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
+                    active
                       ? 'bg-teal-600 border-teal-600 text-white'
                       : hasError
                         ? 'bg-white border-rose-300 text-gray-600 hover:border-teal-400'
                         : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
-                }`}
-              >
-                {opt.label}
-              </button>
-            );
-          })}
-        </div>
+                  }`}
+                >
+                  {opt.label}
+                </button>
+              );
+            })}
+          </div>
+        )}
         {errorEl}
       </div>
     );
@@ -745,30 +765,26 @@ function SheetVariantOptionField({ field, value, usedValues, onChange, showError
     return (
       <div>
         {labelEl}
-        <div className="flex flex-wrap gap-2">
-          {field.options.map((opt: AttributeFieldOption) => {
-            const used = usedValues.has(opt.value);
-            return (
+        {availableOptions.length === 0 ? allUsedEl : (
+          <div className="flex flex-wrap gap-2">
+            {availableOptions.map((opt: AttributeFieldOption) => (
               <button
                 key={opt.value}
                 type="button"
-                onClick={() => !used && onChange(selected === opt.value ? '' : opt.value)}
-                disabled={used}
+                onClick={() => onChange(selected === opt.value ? '' : opt.value)}
                 className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${field.type === 'color' ? 'capitalize' : ''} ${
-                  used
-                    ? 'opacity-35 cursor-not-allowed border-gray-200 text-gray-400'
-                    : selected === opt.value
-                      ? 'bg-teal-600 border-teal-600 text-white'
-                      : hasError
-                        ? 'bg-white border-rose-300 text-gray-600 hover:border-teal-400'
-                        : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
+                  selected === opt.value
+                    ? 'bg-teal-600 border-teal-600 text-white'
+                    : hasError
+                      ? 'bg-white border-rose-300 text-gray-600 hover:border-teal-400'
+                      : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
                 }`}
               >
                 {opt.label}
               </button>
-            );
-          })}
-        </div>
+            ))}
+          </div>
+        )}
         {errorEl}
       </div>
     );
