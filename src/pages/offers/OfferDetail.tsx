@@ -105,25 +105,31 @@ export default function OfferDetail(): JSX.Element {
                 </div>
               )}
 
-              {offer.hasStarted ? (
+              {offer.hasStarted && (
                 <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-3.5 py-3">
                   <Lock size={16} className="text-gray-400 shrink-0" />
                   Product selection is locked — this offer has already started.
                 </div>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => navigate(`/offers/${offer.id}/accept`)}
-                  className="w-full py-3 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
-                  style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
-                >
-                  {acceptedProducts.length > 0 ? 'Manage Selected Products' : 'Accept Offer'}
-                </button>
               )}
             </div>
           </div>
         )}
       </div>
+
+      {offer && !offer.hasStarted && (
+        <div className="sticky bottom-16 md:bottom-0 z-20 bg-white border-t border-gray-100 px-6 md:px-8 py-4">
+          <div className="max-w-2xl mx-auto">
+            <button
+              type="button"
+              onClick={() => navigate(`/offers/${offer.id}/accept`)}
+              className="w-full py-3 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
+              style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
+            >
+              {acceptedProducts.length > 0 ? 'Manage Selected Products' : 'Accept Offer'}
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
