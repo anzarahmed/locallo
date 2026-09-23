@@ -62,11 +62,14 @@ export interface Faq {
   isActive: boolean;
 }
 
+export type CmsAudience = 'customer' | 'seller';
+
 export interface CmsPage {
   readonly id: number;
   title: string;
   slug: string;
   content: string;
+  audience: CmsAudience;
   isActive: boolean;
 }
 

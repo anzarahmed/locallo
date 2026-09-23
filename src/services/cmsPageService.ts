@@ -1,8 +1,9 @@
 import { apiGet, apiPost, apiPut, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { CmsPage } from '../types';
+import type { CmsAudience, CmsPage } from '../types';
 
 export interface GetCmsPagesPaginatedParams {
+  audience?: CmsAudience;
   page?: number;
   limit?: number;
   search?: string;
@@ -22,12 +23,14 @@ interface CmsPagePayload {
   title: string;
   slug: string;
   content: string;
+  audience: CmsAudience;
 }
 
 interface UpdateCmsPagePayload {
   title?: string;
   slug?: string;
   content?: string;
+  audience?: CmsAudience;
   isActive?: boolean;
 }
 
@@ -35,6 +38,7 @@ export function getCmsPagesPaginated(
   params: GetCmsPagesPaginatedParams = {},
 ): Promise<GetCmsPagesPaginatedResponse> {
   const q = new URLSearchParams();
+  if (params.audience === 'seller') q.set('audience', params.audience);
   if (params.page)       q.set('page',       String(params.page));
   if (params.limit)      q.set('limit',      String(params.limit));
   if (params.search)     q.set('search',     params.search);

@@ -6,6 +6,7 @@ import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import StatusBadge from '../../components/ui/StatusBadge';
 import AuthField from '../../components/ui/AuthField';
+import SelectField from '../../components/ui/SelectField';
 import RichTextEditor from '../../components/ui/RichTextEditor';
 import { ApiError } from '../../lib/axios';
 import {
@@ -15,8 +16,8 @@ import {
   deleteCmsPage,
   type GetCmsPagesPaginatedParams,
 } from '../../services/cmsPageService';
-import type { CmsPage } from '../../types';
-import { cmsPageSchema, type CmsPageFormValues } from './cmsPageSchemas';
+import type { CmsAudience, CmsPage } from '../../types';
+import { cmsPageSchema, CMS_AUDIENCE_OPTIONS, type CmsPageFormValues } from './cmsPageSchemas';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
 import { DEFAULT_PAGE_SIZE, STATUS_FILTER_OPTIONS } from '../../lib/constants';
@@ -29,15 +30,21 @@ function toPlainText(html: string): string {
   return html.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 }
 
+function publicApiPath(audience: CmsAudience, slug: string): string {
+  const path = `/api/customers/cms-pages/${slug || '<slug>'}`;
+  return audience === 'seller' ? `${path}?audience=seller` : path;
+}
+
 // ── CmsPageModal ─────────────────────────────────────────────────────────────
 
 interface CmsPageModalProps {
   page: CmsPage | null;
+  defaultAudience: CmsAudience;
   onClose: () => void;
   onSaved: (p: CmsPage) => void;
 }
 
-function CmsPageModal({ page, onClose, onSaved }: CmsPageModalProps): JSX.Element {
+function CmsPageModal({ page, defaultAudience, onClose, onSaved }: CmsPageModalProps): JSX.Element {
   const isEdit = Boolean(page);
   const toast  = useToast();
 
@@ -45,6 +52,7 @@ function CmsPageModal({ page, onClose, onSaved }: CmsPageModalProps): JSX.Elemen
     title:   page?.title   ?? '',
     slug:    page?.slug    ?? '',
     content: page?.content ?? '',
+    audience: page?.audience ?? defaultAudience,
   };
 
   async function handleSubmit(
@@ -59,7 +67,7 @@ function CmsPageModal({ page, onClose, onSaved }: CmsPageModalProps): JSX.Elemen
       onSaved(saved);
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 409) {
-        setStatus('A page with that slug already exists.');
+        setStatus(`A ${values.audience} page with that slug already exists.`);
       } else {
         setStatus('Something went wrong. Please try again.');
       }
@@ -100,6 +108,19 @@ function CmsPageModal({ page, onClose, onSaved }: CmsPageModalProps): JSX.Elemen
               </div>
             )}
 
+            <SelectField
+              label="Visible to" name="audience" required
+              value={f.values.audience}
+              onChange={f.handleChange}
+              onBlur={f.handleBlur}
+              touched={f.touched.audience}
+              error={f.errors.audience}
+            >
+              {CMS_AUDIENCE_OPTIONS.map(o => (
+                <option key={o.value} value={o.value}>{o.label}</option>
+              ))}
+            </SelectField>
+
             <AuthField
               label="Title" name="title" placeholder="e.g. Privacy Policy" required
               value={f.values.title}
@@ -117,6 +138,9 @@ function CmsPageModal({ page, onClose, onSaved }: CmsPageModalProps): JSX.Elemen
               touched={f.touched.slug}
               error={f.errors.slug}
             />
+            <p className="-mt-2 text-xs text-gray-500">
+              Served at <span className="font-mono text-gray-700">{publicApiPath(f.values.audience, f.values.slug)}</span>
+            </p>
 
             <RichTextEditor
               label="Content" name="content" required
@@ -232,6 +256,7 @@ export default function CmsPageList(): JSX.Element {
   const [modalPage, setModalPage]       = useState<CmsPage | null | undefined>(undefined);
   const [deleteTarget, setDeleteTarget] = useState<CmsPage | null>(null);
   const [toggling, setToggling]         = useState<number | null>(null);
+  const [audience, setAudience]         = useState<CmsAudience>('customer');
 
   const [sorting, setSorting]                   = useState<SortingState>([]);
   const [columnFilters, setColumnFilters]       = useState<ColumnFiltersState>([]);
@@ -245,7 +270,7 @@ export default function CmsPageList(): JSX.Element {
     return () => clearTimeout(timer);
   }, [columnFilters]);
 
-  useEffect(() => { setPage(1); }, [sorting]);
+  useEffect(() => { setPage(1); }, [sorting, audience]);
 
   useEffect((): void => {
     setLoading(true);
@@ -256,6 +281,7 @@ export default function CmsPageList(): JSX.Element {
     const isActiveStr = debouncedFilters.find(f => f.id === 'isActive')?.value as string | undefined;
 
     const params: GetCmsPagesPaginatedParams = {
+      audience,
       page,
       limit: pageSize,
       ...(search      && { search }),
@@ -267,11 +293,13 @@ export default function CmsPageList(): JSX.Element {
       .then(r => { setPages(r.cmsPages); setTotal(r.total); })
       .catch((): void => { setError('Failed to load pages.'); })
       .finally((): void => { setLoading(false); });
-  }, [page, pageSize, sorting, debouncedFilters, fetchKey]);
+  }, [audience, page, pageSize, sorting, debouncedFilters, fetchKey]);
 
   function handleSaved(saved: CmsPage): void {
     const isAdd = !pages.find(p => p.id === saved.id);
-    if (isAdd) {
+    if (saved.audience !== audience) {
+      setAudience(saved.audience);
+    } else if (isAdd) {
       setPage(1);
       setFetchKey(k => k + 1);
     } else {
@@ -419,6 +447,23 @@ export default function CmsPageList(): JSX.Element {
         )}
       </div>
 
+      <div className="inline-flex p-1 mb-4 bg-gray-100 rounded-lg" role="tablist">
+        {CMS_AUDIENCE_OPTIONS.map(o => (
+          <button
+            key={o.value}
+            type="button"
+            role="tab"
+            aria-selected={audience === o.value}
+            onClick={() => setAudience(o.value)}
+            className={`px-4 py-1.5 text-sm font-medium rounded-md transition-colors ${
+              audience === o.value ? 'bg-white text-indigo-600 shadow-sm' : 'text-gray-600 hover:text-gray-900'
+            }`}
+          >
+            {o.label} Pages
+          </button>
+        ))}
+      </div>
+
       <DataGrid
         columns={columns}
         data={pages}
@@ -435,6 +480,7 @@ export default function CmsPageList(): JSX.Element {
       {modalPage !== undefined && (
         <CmsPageModal
           page={modalPage}
+          defaultAudience={audience}
           onClose={() => setModalPage(undefined)}
           onSaved={handleSaved}
         />
