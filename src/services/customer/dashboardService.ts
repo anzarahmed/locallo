@@ -29,7 +29,7 @@ export async function getDashboardBrands(): Promise<Brand[]> {
 }
 
 export async function getDashboardBanners(): Promise<DashboardBanner[]> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
   const rows = await Banner.findAll({
     where: {
       isActive: true,
