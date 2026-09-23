@@ -1,4 +1,4 @@
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { ProductBoost } from '../../models/ProductBoost';
@@ -98,7 +98,7 @@ export async function createBoost(
 export async function getActiveBoost(sellerId: string, productId: string): Promise<ProductBoost | null> {
   return ProductBoost.findOne({
     where: { sellerId, productId, status: { [Op.in]: ['active', 'pending'] } },
-    order: [['createdAt', 'DESC']],
+    order: [[literal(`status = 'active'`), 'DESC'], ['createdAt', 'DESC']],
     include: [{ model: ProductVariant, attributes: ['id', 'attributes', 'isActive'] }],
   });
 }

@@ -225,7 +225,7 @@ export async function getSellerProducts(
           'variantCount',
         ],
         [
-          literal(`EXISTS (SELECT 1 FROM product_boosts WHERE product_id = "Product".id AND status = 'active')`),
+          literal(`EXISTS (SELECT 1 FROM product_boosts WHERE product_id = "Product".id AND status = 'active' AND payment_status = 'paid')`),
           'isBoosted',
         ],
         [literal(AVG_RATING_SQL), 'avgRating'],
