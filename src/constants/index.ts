@@ -1,6 +1,6 @@
 export const MAX_SECONDARY_IMAGES = 3;
 
-export const MAX_IMAGE_SIZE_MB = 5;
+export const MAX_IMAGE_SIZE_MB = 10;
 
 export const ACCEPTED_IMAGE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 
