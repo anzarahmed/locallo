@@ -21,13 +21,13 @@ export const setCustomDaySchema = Yup.object({
 });
 
 export const updateNotificationSettingsSchema = Yup.object({
-  pushNotifications:    Yup.boolean().required(),
-  emailUpdates:         Yup.boolean().required(),
-  smsAlerts:            Yup.boolean().required(),
-  offersAndPromotions:  Yup.boolean().required(),
-  wishlistPriceDrops:   Yup.boolean().required(),
-  sellerUpdates:        Yup.boolean().required(),
-  useAiForPrimaryImage: Yup.boolean().required(),
+  pushNotifications:    Yup.boolean(),
+  emailUpdates:         Yup.boolean(),
+  smsAlerts:            Yup.boolean(),
+  offersAndPromotions:  Yup.boolean(),
+  wishlistPriceDrops:   Yup.boolean(),
+  sellerUpdates:        Yup.boolean(),
+  useAiForPrimaryImage: Yup.boolean(),
 });
 
 const dayScheduleSchema = Yup.object({

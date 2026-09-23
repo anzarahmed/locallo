@@ -345,10 +345,10 @@ export async function getSellerSettings(userId: string): Promise<NotificationSet
 
 export async function updateSellerSettings(
   userId: string,
-  settings: NotificationSettings,
+  settings: Partial<NotificationSettings>,
 ): Promise<NotificationSettings> {
   const profile = await requireSellerProfile(userId);
-  await profile.update({ notificationSettings: settings });
+  await profile.update({ notificationSettings: { ...profile.notificationSettings, ...settings } });
   return profile.notificationSettings;
 }
 
