@@ -680,9 +680,7 @@ export default function VariantSheet({
               ? 'Saving…'
               : isEdit
                 ? 'Save Changes'
-                : combinations.length > 1
-                  ? `Add ${combinations.length} Variants`
-                  : 'Add Variant'
+                : 'Add Variant'
             }
           </button>
         </div>
