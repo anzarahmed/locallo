@@ -595,8 +595,8 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                 <div>
                   <div className="flex items-center justify-between mb-2.5">
                     <h3 className="text-sm font-bold text-gray-900">Customer Reviews</h3>
-                    <span className="flex items-center gap-1 text-xs text-gray-500">
-                      <Star size={12} className="text-amber-400 fill-amber-400" />
+                    <span className="flex items-center gap-1 text-sm font-bold text-gray-900">
+                      <Star size={15} className="text-amber-400 fill-amber-400" />
                       {(reviewSummary?.avgRating ?? product.avgRating ?? 0).toFixed(1)}
                     </span>
                   </div>
@@ -609,42 +609,66 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                   </button>
 
                   {reviews.length > 0 && (
-                    <div className="space-y-2.5 mt-3">
-                      {reviews.map(review => {
-                        const initials = review.customer.name
-                          .split(' ')
-                          .map(w => w[0])
-                          .slice(0, 2)
-                          .join('')
-                          .toUpperCase();
-                        return (
-                          <div key={review.id} className="flex items-start gap-3 border border-gray-100 rounded-2xl px-4 py-3">
-                            <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600 shrink-0 overflow-hidden">
-                              {review.customer.image ? (
-                                <img src={resolveImage(review.customer.image)} alt="" className="w-full h-full object-cover" />
-                              ) : (
-                                initials || '?'
-                              )}
-                            </div>
-                            <div className="min-w-0 flex-1">
-                              <p className="text-sm font-bold text-gray-900 truncate">{review.customer.name}</p>
-                              <div className="flex items-center gap-0.5 mt-0.5">
-                                {[1, 2, 3, 4, 5].map(i => (
-                                  <Star
-                                    key={i}
-                                    size={11}
-                                    className={i <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}
-                                  />
-                                ))}
+                    <>
+                      {(() => {
+                        const allImages = [...new Set(reviews.flatMap(r => r.images))];
+                        return allImages.length > 0 ? (
+                          <div className="flex gap-2 overflow-x-auto pb-1 mt-3">
+                            {allImages.map((img, i) => (
+                              <div key={i} className="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-100">
+                                <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" />
                               </div>
-                              {review.review && (
-                                <p className="text-xs text-gray-600 mt-1 leading-relaxed">{review.review}</p>
-                              )}
-                            </div>
+                            ))}
                           </div>
-                        );
-                      })}
-                    </div>
+                        ) : null;
+                      })()}
+
+                      <div className="space-y-2.5 mt-3">
+                        {reviews.map(review => {
+                          const initials = review.customer.name
+                            .split(' ')
+                            .map(w => w[0])
+                            .slice(0, 2)
+                            .join('')
+                            .toUpperCase();
+                          return (
+                            <div key={review.id} className="flex items-start gap-3 bg-gray-50 rounded-2xl px-4 py-3">
+                              <div className="w-9 h-9 rounded-full bg-gray-200 flex items-center justify-center text-xs font-semibold text-gray-600 shrink-0 overflow-hidden">
+                                {review.customer.image ? (
+                                  <img src={resolveImage(review.customer.image)} alt="" className="w-full h-full object-cover" />
+                                ) : (
+                                  initials || '?'
+                                )}
+                              </div>
+                              <div className="min-w-0 flex-1">
+                                <p className="text-sm font-bold text-gray-900 truncate">{review.customer.name}</p>
+                                <div className="flex items-center gap-0.5 mt-0.5">
+                                  {[1, 2, 3, 4, 5].map(i => (
+                                    <Star
+                                      key={i}
+                                      size={13}
+                                      className={i <= review.rating ? 'text-amber-400 fill-amber-400' : 'text-gray-200 fill-gray-200'}
+                                    />
+                                  ))}
+                                </div>
+                                {review.review && (
+                                  <p className="text-sm text-gray-600 mt-1.5 leading-relaxed">{review.review}</p>
+                                )}
+                                {review.images.length > 0 && (
+                                  <div className="flex gap-2 overflow-x-auto pb-1 mt-2">
+                                    {review.images.map((img, i) => (
+                                      <div key={i} className="shrink-0 w-16 h-16 rounded-lg overflow-hidden bg-gray-100 border border-gray-100">
+                                        <img src={resolveImage(img)} alt="" className="w-full h-full object-cover" />
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </>
                   )}
                 </div>
 
