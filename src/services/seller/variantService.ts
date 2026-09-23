@@ -316,12 +316,21 @@ export async function deleteVariant(
   productId: string,
   variantId: string,
   sellerId: string,
-): Promise<void> {
-  await requireOwnProduct(sellerId, productId);
+): Promise<{ productDeleted: boolean }> {
+  const product = await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
-  await variant.destroy();
-  await syncProductStock(productId);
-  await syncProductVariantAttrs(productId);
+  const productDeleted = await sequelize.transaction(async (t) => {
+    await variant.destroy({ transaction: t });
+    const remaining = await ProductVariant.count({ where: { productId }, transaction: t });
+    if (remaining > 0) return false;
+    await product.destroy({ transaction: t });
+    return true;
+  });
+  if (!productDeleted) {
+    await syncProductStock(productId);
+    await syncProductVariantAttrs(productId);
+  }
+  return { productDeleted };
 }
 
 export async function toggleVariant(

@@ -72,12 +72,12 @@ export async function updateVariant(req: Request, res: Response): Promise<void> 
 
 export async function deleteVariant(req: Request, res: Response): Promise<void> {
   try {
-    await variantService.deleteVariant(
+    const result = await variantService.deleteVariant(
       String(req.params.productId),
       String(req.params.variantId),
       req.seller!.id,
     );
-    sendSuccess(res, null, 'Variant deleted');
+    sendSuccess(res, result, result.productDeleted ? 'Last variant deleted — product removed' : 'Variant deleted');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to delete variant');
   }
