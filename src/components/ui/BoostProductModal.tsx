@@ -10,7 +10,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { loadScript } from '../../lib/loadScript';
-import { estimateImpressions, formatAudienceLabel, AUDIENCE_TYPE_CODE } from '../../lib/boostUtils';
+import { estimateImpressions, formatImpressionRange, formatAudienceLabel, AUDIENCE_TYPE_CODE } from '../../lib/boostUtils';
 import { variantLabel } from '../../lib/variantUtils';
 import { STATES, STATE_CITY_MAP } from '../../lib/statesCities';
 import { boostSchema, type BoostFormValues } from '../../validation/boostSchemas';
@@ -139,7 +139,8 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
     (formik.values.audienceType === 'state' && formik.values.state !== '') ||
     (formik.values.audienceType === 'city' && formik.values.state !== '' && formik.values.city !== '');
 
-  const canProceedStep2 = Number(formik.values.dailyBudget) >= MIN_DAILY_BUDGET;
+  const canProceedStep2 =
+    Number(formik.values.dailyBudget) >= MIN_DAILY_BUDGET && Number(formik.values.dailyBudget) <= MAX_DAILY_BUDGET;
 
   function handleNext(): void {
     if (step === 1) {
@@ -230,7 +231,10 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
               {step === 2 && (
                 <BudgetStep
                   dailyBudget={formik.values.dailyBudget}
-                  onChange={(v) => { void formik.setFieldValue('dailyBudget', v); }}
+                  onChange={(v) => {
+                    const clamped = v !== '' && Number(v) > MAX_DAILY_BUDGET ? String(MAX_DAILY_BUDGET) : v;
+                    void formik.setFieldValue('dailyBudget', clamped);
+                  }}
                 />
               )}
               {step === 3 && <ReviewStep values={formik.values} promoting={targetLabel ?? 'Whole product'} />}
@@ -460,7 +464,7 @@ function BudgetStep({ dailyBudget, onChange }: BudgetStepProps): JSX.Element {
             </span>
           </span>
           <span className="text-sm font-bold text-gray-800">
-            {min.toLocaleString('en-IN')} – {max.toLocaleString('en-IN')}
+            {formatImpressionRange(min, max)}
           </span>
         </div>
       </div>
@@ -478,7 +482,7 @@ function ReviewStep({ values, promoting }: { values: BoostFormValues; promoting:
     { icon: Package, label: 'Promoting', value: promoting },
     { icon: Users, label: 'Audience', value: audienceLabel },
     { icon: IndianRupee, label: 'Boost budget', value: `₹${budgetNum.toLocaleString('en-IN')}` },
-    { icon: Eye, label: 'Estimated impressions', value: `${min.toLocaleString('en-IN')} – ${max.toLocaleString('en-IN')}` },
+    { icon: Eye, label: 'Estimated impressions', value: formatImpressionRange(min, max) },
   ];
 
   return (
@@ -567,7 +571,7 @@ function ExistingBoostView({ boost, promoting, onClose, onCancel, cancelling }: 
           <div className="min-w-0">
             <p className="text-xs text-gray-400">Estimated impressions</p>
             <p className="text-sm font-bold text-gray-800 truncate">
-              {boost.estimatedImpressionsMin.toLocaleString('en-IN')} – {boost.estimatedImpressionsMax.toLocaleString('en-IN')}
+              {formatImpressionRange(boost.estimatedImpressionsMin, boost.estimatedImpressionsMax)}
             </p>
           </div>
         </div>
