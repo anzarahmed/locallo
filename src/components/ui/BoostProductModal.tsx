@@ -3,7 +3,7 @@ import { useFormik } from 'formik';
 import {
   X, Globe, Map, Building2, Users, IndianRupee, ClipboardCheck,
   Eye, Info, Loader2, ChevronDown, Rocket, Package, Target, BarChart3, Zap,
-  type LucideIcon,
+  createLucideIcon, type LucideIcon,
 } from 'lucide-react';
 import { createBoost, getActiveBoost, cancelBoost } from '../../services/sellerService';
 import { useAuth } from '../../hooks/useAuth';
@@ -14,6 +14,7 @@ import { estimateImpressions, formatImpressionRange, formatAudienceLabel, AUDIEN
 import { variantLabel } from '../../lib/variantUtils';
 import { STATES, STATE_CITY_MAP } from '../../lib/statesCities';
 import { boostSchema, type BoostFormValues } from '../../validation/boostSchemas';
+import Tooltip from './Tooltip';
 import { MIN_DAILY_BUDGET, MAX_DAILY_BUDGET, DEFAULT_DAILY_BUDGET, DAILY_BUDGET_STEP } from '../../constants';
 import type { Product, ProductBoost, ProductVariant, AttributeField, BoostAudienceType } from '../../types';
 
@@ -27,6 +28,15 @@ interface BoostProductModalProps {
 
 const RAZORPAY_CHECKOUT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
 
+const AudienceGroupIcon: LucideIcon = createLucideIcon('audience-group', [
+  ['circle', { cx: '12', cy: '6.5', r: '2.8', key: 'ag-head-c' }],
+  ['circle', { cx: '6', cy: '8.5', r: '2', key: 'ag-head-l' }],
+  ['circle', { cx: '18', cy: '8.5', r: '2', key: 'ag-head-r' }],
+  ['path', { d: 'M3 20a3.4 3.4 0 0 1 3-3.4', key: 'ag-body-l' }],
+  ['path', { d: 'M21 20a3.4 3.4 0 0 0-3-3.4', key: 'ag-body-r' }],
+  ['path', { d: 'M7 20.5v-.3a5 5 0 0 1 10 0v.3', key: 'ag-body-c' }],
+]);
+
 function boostVariantLabel(attributes: Record<string, unknown>, schema: AttributeField[]): string {
   const sdField = schema.find(f => f.isVariant === true && f.isStockDependent === true);
   if (!sdField) return variantLabel(attributes, schema);
@@ -37,7 +47,7 @@ function boostVariantLabel(attributes: Record<string, unknown>, schema: Attribut
 const STEPS: { key: 1 | 2 | 3; label: string; icon: LucideIcon }[] = [
   { key: 1, label: 'Audience', icon: Users },
   { key: 2, label: 'Budget', icon: IndianRupee },
-  { key: 3, label: 'Review', icon: ClipboardCheck },
+  { key: 3, label: 'Payment', icon: ClipboardCheck },
 ];
 
 export default function BoostProductModal({ product, variant, schema, onClose, onBoosted }: BoostProductModalProps): JSX.Element {
@@ -185,9 +195,6 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
           <div className="min-w-0">
             <h3 className="text-base font-bold text-gray-800">Boost Your Product</h3>
             <p className="text-xs text-gray-400 mt-0.5 truncate">{product.name}</p>
-            {targetLabel && !existingBoost && (
-              <p className="text-[11px] font-semibold text-violet-600 mt-0.5 truncate">Variant: {targetLabel}</p>
-            )}
           </div>
           <button
             type="button"
@@ -206,11 +213,7 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
         ) : existingBoost ? (
           <ExistingBoostView
             boost={existingBoost}
-            promoting={
-              existingBoost.variant
-                ? boostVariantLabel(existingBoost.variant.attributes, schema ?? [])
-                : 'Whole product'
-            }
+            promoting={product.name}
             onClose={onClose}
             onCancel={existingBoost.paymentStatus === 'pending' ? handleCancelStuckBoost : undefined}
             cancelling={cancelling}
@@ -237,18 +240,20 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
                   }}
                 />
               )}
-              {step === 3 && <ReviewStep values={formik.values} promoting={targetLabel ?? 'Whole product'} />}
+              {step === 3 && <ReviewStep values={formik.values} promoting={product.name} />}
             </div>
 
             <div className="px-5 py-4 border-t border-gray-50 flex gap-3 shrink-0">
-              <button
-                type="button"
-                onClick={handleBack}
-                disabled={submitting}
-                className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-60"
-              >
-                {step === 1 ? 'Cancel' : 'Back'}
-              </button>
+              {step !== 3 && (
+                <button
+                  type="button"
+                  onClick={handleBack}
+                  disabled={submitting}
+                  className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-60"
+                >
+                  {step === 1 ? 'Cancel' : 'Back'}
+                </button>
+              )}
               <button
                 type="button"
                 onClick={handleNext}
@@ -257,7 +262,7 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
                 style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
               >
                 {submitting && <Loader2 size={15} className="animate-spin" />}
-                {step === 3 ? (submitting ? 'Confirming…' : 'Confirm Boost') : 'Next'}
+                {step === 3 ? (submitting ? 'Processing…' : 'Pay Now') : 'Next'}
               </button>
             </div>
           </>
@@ -459,9 +464,12 @@ function BudgetStep({ dailyBudget, onChange }: BudgetStepProps): JSX.Element {
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-500 flex items-center gap-1">
             Estimated impressions
-            <span title="Approximate number of times your boosted product may be shown to users based on your budget and targeting.">
-              <Info size={12} className="text-gray-300" />
-            </span>
+            <Tooltip
+              label="Approximate number of times your boosted product may be shown to users based on your budget and targeting."
+              wide
+            >
+              <Info size={12} className="text-teal-600" />
+            </Tooltip>
           </span>
           <span className="text-sm font-bold text-gray-800">
             {formatImpressionRange(min, max)}
@@ -480,7 +488,7 @@ function ReviewStep({ values, promoting }: { values: BoostFormValues; promoting:
 
   const rows: { icon: LucideIcon; label: string; value: string }[] = [
     { icon: Package, label: 'Promoting', value: promoting },
-    { icon: Users, label: 'Audience', value: audienceLabel },
+    { icon: AudienceGroupIcon, label: 'Audience', value: audienceLabel },
     { icon: IndianRupee, label: 'Boost budget', value: `₹${budgetNum.toLocaleString('en-IN')}` },
     { icon: Eye, label: 'Estimated impressions', value: formatImpressionRange(min, max) },
   ];
@@ -488,7 +496,7 @@ function ReviewStep({ values, promoting }: { values: BoostFormValues; promoting:
   return (
     <div>
       <p className="text-sm font-bold text-gray-800 mb-1">Review your boost</p>
-      <p className="text-xs text-gray-400 mb-4">Confirm the audience and budget below before you continue.</p>
+      <p className="text-xs text-gray-400 mb-4">Confirm the audience and budget below before you pay.</p>
 
       <div className="bg-gray-50 rounded-2xl divide-y divide-gray-100">
         {rows.map((row) => (
@@ -548,7 +556,7 @@ function ExistingBoostView({ boost, promoting, onClose, onCancel, cancelling }: 
         </div>
         <div className="flex items-center gap-3 px-4 py-3.5">
           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-teal-700 shrink-0">
-            <Users size={15} />
+            <AudienceGroupIcon size={15} />
           </div>
           <div className="min-w-0">
             <p className="text-xs text-gray-400">Audience</p>

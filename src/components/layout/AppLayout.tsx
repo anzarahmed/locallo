@@ -23,7 +23,7 @@ const BASE_NAV: NavItem[] = [
 ];
 
 const PNL_NAV:      NavItem = { to: '/pnl',      icon: <BarChart2 size={20} />, label: 'P&L'      };
-const PROFILE_NAV:  NavItem = { to: '/profile',  icon: <User size={20} />,     label: 'Profile'  };
+const PROFILE_NAV:  NavItem = { to: '/profile',  icon: <User size={20} />,     label: 'Shop Settings'  };
 const SETTINGS_NAV: NavItem = { to: '/settings', icon: <Settings size={20} />, label: 'Settings' };
 
 export default function AppLayout(): JSX.Element {
@@ -230,7 +230,7 @@ function ProfileMenu({ seller, photo, logout, navigate }: ProfileMenuProps): JSX
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
           >
             <User size={15} className="text-gray-400" />
-            Profile
+            Shop Settings
           </button>
 
           <button

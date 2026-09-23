@@ -169,7 +169,7 @@ export default function Profile(): JSX.Element {
           borderRadius: '0 0 28px 28px',
         }}
       >
-        <h1 className="text-white text-xl font-bold">My Profile</h1>
+        <h1 className="text-white text-xl font-bold">Shop Settings</h1>
         <p className="text-white/60 text-sm mt-0.5">{seller?.mobile}</p>
       </div>
 
@@ -185,10 +185,9 @@ export default function Profile(): JSX.Element {
               <input
                 name="businessName"
                 value={profileForm.values.businessName}
-                onChange={profileForm.handleChange}
-                onBlur={profileForm.handleBlur}
+                readOnly
                 placeholder="Artisan Leather Co."
-                className={inputCls(!!profileForm.touched.businessName && !!profileForm.errors.businessName)}
+                className="w-full px-3 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-400 outline-none"
               />
             </Field>
 
@@ -197,10 +196,9 @@ export default function Profile(): JSX.Element {
               <input
                 name="fullName"
                 value={profileForm.values.fullName}
-                onChange={profileForm.handleChange}
-                onBlur={profileForm.handleBlur}
+                readOnly
                 placeholder="Your name"
-                className={inputCls(false)}
+                className="w-full px-3 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-400 outline-none"
               />
             </Field>
 
@@ -211,10 +209,9 @@ export default function Profile(): JSX.Element {
                   name="email"
                   type="email"
                   value={profileForm.values.email}
-                  onChange={profileForm.handleChange}
-                  onBlur={profileForm.handleBlur}
+                  readOnly
                   placeholder="hello@shop.in"
-                  className={inputCls(!!profileForm.touched.email && !!profileForm.errors.email)}
+                  className="w-full px-3 py-3 text-sm rounded-xl border border-gray-200 bg-gray-50 text-gray-400 outline-none"
                 />
               </Field>
               <Field label="Phone">
@@ -460,7 +457,7 @@ function ProfileSkeleton({ mobile }: { mobile?: string }): JSX.Element {
           borderRadius: '0 0 28px 28px',
         }}
       >
-        <h1 className="text-white text-xl font-bold">My Profile</h1>
+        <h1 className="text-white text-xl font-bold">Shop Settings</h1>
         <p className="text-white/60 text-sm mt-0.5">{mobile}</p>
       </div>
 
