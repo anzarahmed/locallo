@@ -97,6 +97,25 @@ function findGroupSiblings(
   );
 }
 
+// Same grouping as findGroupSiblings, but starting from the shared (non-SD) attributes
+// directly rather than an existing variant instance — used when adding a new option
+// (e.g. a new size) to an already-existing group via createBatchVariants.
+function findGroupSiblingsByAttrs(
+  product: Product,
+  groupAttrs: Record<string, unknown>,
+  allVariants: ProductVariant[],
+): ProductVariant[] {
+  const schema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
+  const sdField = schema.find(f => f.isVariant && f.isStockDependent);
+  if (!sdField) return [];
+
+  const groupKeys = schema.filter(f => f.isVariant && f.key !== sdField.key).map(f => f.key);
+  if (groupKeys.length === 0) return [];
+  const targetKey = getComboKey(groupAttrs, groupKeys);
+
+  return allVariants.filter(v => getComboKey(v.attributes as Record<string, unknown>, groupKeys) === targetKey);
+}
+
 export async function getProductVariants(
   productId: string,
   sellerId: string,
@@ -167,8 +186,8 @@ export async function createBatchVariants(
   const rowAttrs = data.rows.map(row => ({ ...sharedAttrs, ...(row.attributes as Record<string, string>) }));
 
   const variantKeys = getVariantKeys(product);
+  const existingVariants = await ProductVariant.findAll({ where: { productId } });
   if (variantKeys.length > 0) {
-    const existingVariants = await ProductVariant.findAll({ where: { productId } });
     const seenKeys = new Set(
       existingVariants.map(v => getComboKey(v.attributes as Record<string, unknown>, variantKeys)),
     );
@@ -181,19 +200,32 @@ export async function createBatchVariants(
     }
   }
 
-  const variants = await Promise.all(
-    rowAttrs.map((attrs, i) =>
-      ProductVariant.create({
-        productId,
-        attributes:   attrs,
-        images,
-        stock:        data.rows[i].stock,
-        sellingPrice: data.sellingPrice,
-        mrp:          data.mrp ?? null,
-        isActive:     data.isActive ?? true,
-      }),
-    ),
-  );
+  // Adding a new option (e.g. a new size) to a group that already has other options
+  // (e.g. other sizes of the same color) should update every existing option's images
+  // to match, the same way editing one option's photos propagates to its siblings.
+  const groupSiblings = findGroupSiblingsByAttrs(product, sharedAttrs, existingVariants);
+
+  const variants = await sequelize.transaction(async (t) => {
+    const created = await Promise.all(
+      rowAttrs.map((attrs, i) =>
+        ProductVariant.create({
+          productId,
+          attributes:   attrs,
+          images,
+          stock:        data.rows[i].stock,
+          sellingPrice: data.sellingPrice,
+          mrp:          data.mrp ?? null,
+          isActive:     data.isActive ?? true,
+        }, { transaction: t }),
+      ),
+    );
+
+    if (groupSiblings.length > 0) {
+      await Promise.all(groupSiblings.map(s => s.update({ images }, { transaction: t })));
+    }
+
+    return created;
+  });
 
   await syncProductStock(productId);
   await syncProductVariantAttrs(productId);
