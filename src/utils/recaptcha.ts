@@ -14,11 +14,8 @@ export interface RecaptchaResult {
   errorCodes?: string[];
 }
 
-export async function verifyRecaptchaToken(token: string): Promise<RecaptchaResult> {
-  const params = new URLSearchParams({
-    secret: process.env.RECAPTCHA_SECRET_KEY as string,
-    response: token,
-  });
+async function callSiteVerify(secret: string, token: string, context: string): Promise<RecaptchaVerifyResponse> {
+  const params = new URLSearchParams({ secret, response: token });
 
   const response = await fetch(RECAPTCHA_VERIFY_URL, {
     method: 'POST',
@@ -27,18 +24,30 @@ export async function verifyRecaptchaToken(token: string): Promise<RecaptchaResu
   });
 
   const text = await response.text();
-  let data: RecaptchaVerifyResponse;
   try {
-    data = JSON.parse(text) as RecaptchaVerifyResponse;
+    return JSON.parse(text) as RecaptchaVerifyResponse;
   } catch {
-    console.error('[recaptcha] non-JSON response:', { status: response.status, body: text });
+    console.error(`[recaptcha] ${context} non-JSON response:`, { status: response.status, body: text });
     throw new Error(`reCAPTCHA: unexpected response (HTTP ${response.status})`);
   }
+}
 
+export async function verifyRecaptchaToken(token: string): Promise<RecaptchaResult> {
+  const data = await callSiteVerify(process.env.RECAPTCHA_SECRET_KEY as string, token, 'v3');
   return {
     success: data.success,
     score: data.score,
     action: data.action,
+    errorCodes: data['error-codes'],
+  };
+}
+
+// v2 checkbox fallback, used when v3's invisible score-based check fails or is unavailable
+// (e.g. blocked by a browser extension). Its siteverify response carries no score/action.
+export async function verifyRecaptchaV2Token(token: string): Promise<RecaptchaResult> {
+  const data = await callSiteVerify(process.env.RECAPTCHA_V2_SECRET_KEY as string, token, 'v2');
+  return {
+    success: data.success,
     errorCodes: data['error-codes'],
   };
 }

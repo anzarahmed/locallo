@@ -4,11 +4,13 @@ export const adminLoginSchema = Yup.object({
   email: Yup.string().email('Invalid email').required('Email is required'),
   password: Yup.string().required('Password is required'),
   captchaToken: Yup.string().optional(),
+  captchaVersion: Yup.string().oneOf(['v2', 'v3']).optional(),
 });
 
 export const forgotPasswordSchema = Yup.object({
   email: Yup.string().email('Invalid email').required('Email is required'),
   captchaToken: Yup.string().optional(),
+  captchaVersion: Yup.string().oneOf(['v2', 'v3']).optional(),
 });
 
 export const resetPasswordSchema = Yup.object({
