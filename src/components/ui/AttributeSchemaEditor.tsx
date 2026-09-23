@@ -77,9 +77,10 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
   }
 
   function toggleFieldVariant(key: string): void {
-    onChange(value.map(f =>
-      f.key === key ? { ...f, isVariant: f.isVariant ? undefined : true } : f,
-    ));
+    onChange(value.map(f => {
+      if (f.key !== key || f.isStockDependent) return f;
+      return { ...f, isVariant: f.isVariant ? undefined : true };
+    }));
   }
 
   function toggleFieldStockDependent(key: string): void {
@@ -87,7 +88,9 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
     if (!field || field.type === 'color') return;
     const turningOn = !field.isStockDependent;
     onChange(value.map(f => {
-      if (f.key === key) return { ...f, isStockDependent: turningOn ? true : undefined };
+      if (f.key === key) {
+        return turningOn ? { ...f, isStockDependent: true, isVariant: true } : { ...f, isStockDependent: undefined };
+      }
       if (turningOn && f.isStockDependent) return { ...f, isStockDependent: undefined };
       return f;
     }));
@@ -100,7 +103,7 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
       key:              field.key,
       type:             field.type,
       required:         field.required ?? false,
-      isVariant:        field.isVariant ?? false,
+      isVariant:        Boolean(field.isVariant || field.isStockDependent),
       isStockDependent: field.isStockDependent ?? false,
       unit:             field.unit ?? '',
       options:          field.options ? [...field.options] : [],
@@ -157,7 +160,7 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
       label:            editDraft.label,
       type:             editDraft.type,
       required:         editDraft.required,
-      isVariant:        editDraft.isVariant || undefined,
+      isVariant:        editDraft.isVariant || editDraft.isStockDependent || undefined,
       isStockDependent: editDraft.isStockDependent || undefined,
       ...(editDraft.unit ? { unit: editDraft.unit } : {}),
       ...(HAS_OPTIONS.includes(editDraft.type) ? { options: editDraft.options } : {}),
@@ -215,7 +218,7 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
       label:            draft.label,
       type:             draft.type,
       required:         draft.required,
-      isVariant:        draft.isVariant || undefined,
+      isVariant:        draft.isVariant || draft.isStockDependent || undefined,
       isStockDependent: draft.isStockDependent || undefined,
       ...(draft.unit ? { unit: draft.unit } : {}),
       ...(HAS_OPTIONS.includes(draft.type) ? { options: draft.options } : {}),
@@ -414,12 +417,14 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                           />
                           <span className="text-xs text-gray-700">Required field</span>
                         </label>
-                        <label className="flex items-center gap-2 cursor-pointer">
+                        <label className={`flex items-center gap-2 ${editDraft.isStockDependent ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                           <input
                             type="checkbox"
-                            checked={editDraft.isVariant}
+                            checked={editDraft.isVariant || editDraft.isStockDependent}
+                            disabled={editDraft.isStockDependent}
                             onChange={e => setEditDraft(d => ({ ...d, isVariant: e.target.checked }))}
-                            className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                            className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500 disabled:cursor-not-allowed"
+                            title={editDraft.isStockDependent ? 'Stock dependent attributes are always variants' : undefined}
                           />
                           <span className="text-xs text-gray-700">Is Variant</span>
                         </label>
@@ -428,7 +433,11 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                             type="checkbox"
                             checked={editDraft.isStockDependent}
                             disabled={editDraft.type === 'color'}
-                            onChange={e => setEditDraft(d => ({ ...d, isStockDependent: e.target.checked }))}
+                            onChange={e => setEditDraft(d => ({
+                              ...d,
+                              isStockDependent: e.target.checked,
+                              ...(e.target.checked ? { isVariant: true } : {}),
+                            }))}
                             className="w-3.5 h-3.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 disabled:cursor-not-allowed"
                           />
                           <span className="text-xs text-gray-700">Stock Dependent</span>
@@ -469,6 +478,8 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                 const hasOpts = field.options && field.options.length > 0;
                 const optsOpen = expandedOpts.has(field.key);
                 const stockBlocked = field.type === 'color';
+                const variantLocked = field.isStockDependent === true;
+                const isVariant = field.isVariant || variantLocked;
                 return (
                   <li key={field.key} className="rounded-lg bg-gray-50 border border-gray-100">
                     <div className="flex items-center gap-2 py-1.5 px-2">
@@ -479,11 +490,20 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                       <button
                         type="button"
                         onClick={(): void => toggleFieldVariant(field.key)}
-                        title={field.isVariant ? 'Click to remove variant attribute' : 'Click to mark as variant attribute'}
+                        disabled={variantLocked}
+                        title={
+                          variantLocked
+                            ? 'Stock dependent attributes are always variants'
+                            : isVariant
+                              ? 'Click to remove variant attribute'
+                              : 'Click to mark as variant attribute'
+                        }
                         className={`text-xs px-1.5 py-0.5 rounded transition-colors ${
-                          field.isVariant
-                            ? 'bg-teal-100 text-teal-700 hover:bg-teal-200'
-                            : 'bg-gray-100 text-gray-400 hover:bg-teal-50 hover:text-teal-600'
+                          variantLocked
+                            ? 'bg-teal-100 text-teal-700 cursor-not-allowed'
+                            : isVariant
+                              ? 'bg-teal-100 text-teal-700 hover:bg-teal-200'
+                              : 'bg-gray-100 text-gray-400 hover:bg-teal-50 hover:text-teal-600'
                         }`}
                       >
                         variant
@@ -626,12 +646,14 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                   />
                   <span className="text-xs text-gray-700">Required field</span>
                 </label>
-                <label className="flex items-center gap-2 cursor-pointer">
+                <label className={`flex items-center gap-2 ${draft.isStockDependent ? 'cursor-not-allowed' : 'cursor-pointer'}`}>
                   <input
                     type="checkbox"
-                    checked={draft.isVariant}
+                    checked={draft.isVariant || draft.isStockDependent}
+                    disabled={draft.isStockDependent}
                     onChange={e => setDraft(d => ({ ...d, isVariant: e.target.checked }))}
-                    className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500"
+                    className="w-3.5 h-3.5 rounded border-gray-300 text-teal-600 focus:ring-teal-500 disabled:cursor-not-allowed"
+                    title={draft.isStockDependent ? 'Stock dependent attributes are always variants' : undefined}
                   />
                   <span className="text-xs text-gray-700">Is Variant</span>
                 </label>
@@ -640,7 +662,11 @@ export default function AttributeSchemaEditor({ value, onChange }: AttributeSche
                     type="checkbox"
                     checked={draft.isStockDependent}
                     disabled={draft.type === 'color'}
-                    onChange={e => setDraft(d => ({ ...d, isStockDependent: e.target.checked }))}
+                    onChange={e => setDraft(d => ({
+                      ...d,
+                      isStockDependent: e.target.checked,
+                      ...(e.target.checked ? { isVariant: true } : {}),
+                    }))}
                     className="w-3.5 h-3.5 rounded border-gray-300 text-amber-600 focus:ring-amber-500 disabled:cursor-not-allowed"
                     title={draft.type === 'color' ? 'Color cannot be stock dependent' : undefined}
                   />
