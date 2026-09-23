@@ -193,7 +193,9 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
       <div className="bg-white rounded-2xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
           <div className="min-w-0">
-            <h3 className="text-base font-bold text-gray-800">Boost Your Product</h3>
+            <h3 className="text-base font-bold text-gray-800">
+              {existingBoost ? 'Boost Details' : 'Boost Your Product'}
+            </h3>
             <p className="text-xs text-gray-400 mt-0.5 truncate">{product.name}</p>
           </div>
           <button

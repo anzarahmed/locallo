@@ -315,6 +315,7 @@ export default function ProductList(): JSX.Element {
                 onPreview={() => setPreviewId(product.id)}
                 onSell={() => void handleSellClick(product)}
                 onPromote={() => void handlePromoteClick(product)}
+                onViewBoost={() => setPromoteTarget({ product, variant: null, schema: [] })}
               />
             ))
           )}
@@ -433,9 +434,10 @@ interface ProductCardProps {
   onPreview: () => void;
   onSell: () => void;
   onPromote: () => void;
+  onViewBoost: () => void;
 }
 
-function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit, onVariants, onToggle, onDelete, onPreview, onSell, onPromote }: ProductCardProps): JSX.Element {
+function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit, onVariants, onToggle, onDelete, onPreview, onSell, onPromote, onViewBoost }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
   const showVariants = categorySupportsVariants(product.category?.attributeSchema);
   const thumbnailSrc = product.thumbnails?.[0] ?? product.images?.[0];
@@ -465,12 +467,6 @@ function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit,
             {!product.isActive && (
               <span className="shrink-0 text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
                 Hidden
-              </span>
-            )}
-            {product.isBoosted && (
-              <span className="shrink-0 inline-flex items-center gap-0.5 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-full mt-0.5">
-                <Rocket size={9} />
-                Boosted
               </span>
             )}
           </div>
@@ -503,16 +499,28 @@ function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit,
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={onPromote}
-            disabled={loadingPromote}
-            aria-label="Promote product"
-            className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-violet-600 text-white text-[11px] font-semibold leading-none hover:bg-violet-700 transition-colors disabled:opacity-60 shrink-0"
-          >
-            {loadingPromote ? <Loader2 size={12} className="animate-spin" /> : <Rocket size={12} />}
-            Promote Product
-          </button>
+          {product.isBoosted ? (
+            <button
+              type="button"
+              onClick={onViewBoost}
+              aria-label="View boost details"
+              className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-orange-50 text-orange-500 text-[11px] font-semibold leading-none hover:bg-orange-100 transition-colors shrink-0"
+            >
+              <Rocket size={12} />
+              Boosted
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={onPromote}
+              disabled={loadingPromote}
+              aria-label="Promote product"
+              className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-violet-600 text-white text-[11px] font-semibold leading-none hover:bg-violet-700 transition-colors disabled:opacity-60 shrink-0"
+            >
+              {loadingPromote ? <Loader2 size={12} className="animate-spin" /> : <Rocket size={12} />}
+              Promote Product
+            </button>
+          )}
           <Tooltip label={product.stock === 0 ? 'Out of stock' : 'Mark as sold'}>
             <button
               onClick={onSell}
