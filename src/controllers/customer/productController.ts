@@ -46,7 +46,6 @@ interface ListItemContext {
   search?: string;
   isBoosted: boolean;
   boostedVariant?: ProductVariant | null;
-  skipStockFilter?: boolean;
   distanceKm?: number;
   attributeSchemasByCategory?: Map<number, AttributeField[]>;
 }
@@ -61,10 +60,8 @@ async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductList
       ctx.attributeSchemasByCategory?.get(p.categoryId),
     );
 
-  if (!ctx.skipStockFilter) {
-    const outOfStock = rawVariants.length > 0 ? chosen === null : p.stock <= 0;
-    if (outOfStock) return null;
-  }
+  const outOfStock = chosen ? chosen.stock <= 0 : (rawVariants.length > 0 || p.stock <= 0);
+  if (outOfStock) return null;
 
   const displayKey = chosen?.images?.[0] ?? p.images[0] ?? null;
   const sellingPrice = Number(chosen?.sellingPrice ?? p.sellingPrice);
@@ -148,7 +145,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
   ]);
 
   const boostedItemsResolved = await Promise.all(
-    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: true, boostedVariant: b.variant, skipStockFilter: !!b.variant, attributeSchemasByCategory })),
+    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: true, boostedVariant: b.variant, attributeSchemasByCategory })),
   );
   const boostedItems = boostedItemsResolved.filter((item): item is ProductListItem => item !== null);
 
@@ -165,7 +162,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
           attributeSchemasByCategory.get(p.categoryId),
         );
         if (!alt) return null;
-        return toListItem(p, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: false, boostedVariant: alt, skipStockFilter: true, distanceKm, attributeSchemasByCategory });
+        return toListItem(p, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: false, boostedVariant: alt, distanceKm, attributeSchemasByCategory });
       }
       return toListItem(p, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: false, distanceKm, attributeSchemasByCategory });
     }),
@@ -227,7 +224,7 @@ export async function getTrendingProducts(req: Request, res: Response): Promise<
   ]);
 
   const boostedItemsResolved = await Promise.all(
-    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant, skipStockFilter: !!b.variant })),
+    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant })),
   );
   const boostedItems = boostedItemsResolved.filter((item): item is ProductListItem => item !== null);
 
