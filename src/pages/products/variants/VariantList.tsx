@@ -13,7 +13,6 @@ import { hasDiscount } from '../../../lib/formatters';
 import { categorySupportsVariants, groupVariants, type VariantGroup } from '../../../lib/variantUtils';
 import ConfirmDeleteModal from '../../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../../components/ui/SellModal';
-import BoostProductModal from '../../../components/ui/BoostProductModal';
 import type { Product, ProductVariant, ProductBoost, AttributeField } from '../../../types';
 import VariantSheet from './VariantSheet';
 
@@ -47,7 +46,6 @@ export default function VariantList(): JSX.Element {
   const [sellVariant, setSellVariant] = useState<ProductVariant | null>(null);
   const [selling, setSelling] = useState(false);
   const [boost, setBoost] = useState<ProductBoost | null>(null);
-  const [promoteTarget, setPromoteTarget] = useState<{ variant: ProductVariant | null } | null>(null);
   const [search, setSearch] = useState('');
 
   const schema = product?.category?.attributeSchema ?? [];
@@ -82,7 +80,7 @@ export default function VariantList(): JSX.Element {
         const { boost: active } = await getActiveBoost(id!);
         setBoost(active);
       } catch {
-        // boost status is non-critical — the seller can still open the wizard
+        // boost status only drives the Boosted badges — non-critical
       }
     }
     void load();
@@ -280,7 +278,6 @@ export default function VariantList(): JSX.Element {
                 onEdit={() => openEdit(variant)}
                 onDelete={() => setDeleteTarget(variant)}
                 onSell={() => setSellVariant(variant)}
-                onPromote={() => setPromoteTarget({ variant })}
                 isBoosted={wholeProductBoosted || boostedVariantId === variant.id}
               />
             ))}
@@ -332,16 +329,6 @@ export default function VariantList(): JSX.Element {
           loading={selling}
           onConfirm={(qty) => void handleSell(qty)}
           onClose={() => setSellVariant(null)}
-        />
-      )}
-
-      {promoteTarget && product && (
-        <BoostProductModal
-          product={product}
-          variant={promoteTarget.variant}
-          schema={schema}
-          onClose={() => setPromoteTarget(null)}
-          onBoosted={(b) => { setBoost(b); setPromoteTarget(null); }}
         />
       )}
     </div>
@@ -834,11 +821,10 @@ interface VariantCardProps {
   onEdit: () => void;
   onDelete: () => void;
   onSell: () => void;
-  onPromote: () => void;
   isBoosted: boolean;
 }
 
-function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell, onPromote, isBoosted }: VariantCardProps): JSX.Element {
+function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell, isBoosted }: VariantCardProps): JSX.Element {
   const thumbnailSrc = variant.thumbnails?.[0] ?? variant.images[0];
   const imageUrl = thumbnailSrc ? resolveImage(thumbnailSrc) : null;
   const [imgError, setImgError] = useState(false);
@@ -905,15 +891,7 @@ function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell, onPr
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 mt-3 pt-3 border-t border-gray-50">
-        <button
-          type="button"
-          onClick={onPromote}
-          className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-violet-600 text-white text-[11px] font-semibold leading-none hover:bg-violet-700 transition-colors shrink-0"
-        >
-          <Rocket size={12} />
-          {isBoosted ? 'Boost' : 'Promote'}
-        </button>
+      <div className="flex items-center justify-end gap-2 mt-3 pt-3 border-t border-gray-50">
         <div className="flex justify-end gap-2">
         <button
           type="button"
