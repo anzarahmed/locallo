@@ -56,7 +56,7 @@ export default function Login(): JSX.Element {
         {/* Phone input */}
         <div>
           <div
-            className={`flex items-center bg-white border rounded-2xl overflow-hidden transition-colors ${
+            className={`flex items-center bg-white border rounded-full overflow-hidden transition-colors ${
               formik.touched.phoneNumber && formik.errors.phoneNumber
                 ? 'border-red-400'
                 : 'border-gray-200 focus-within:border-teal-500'
@@ -92,7 +92,7 @@ export default function Login(): JSX.Element {
         <button
           type="submit"
           disabled={formik.isSubmitting}
-          className="w-full py-4 rounded-2xl text-white font-semibold text-sm tracking-wide transition-opacity disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
+          className="w-full py-4 rounded-full text-white font-semibold text-sm tracking-wide transition-opacity disabled:opacity-60 flex items-center justify-center gap-2 mt-2"
           style={{
             background: 'linear-gradient(135deg, #26B8B2 0%, #1A9E98 50%, #14817C 100%)',
           }}

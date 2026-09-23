@@ -23,8 +23,8 @@ export default function AuthLayout({ children }: AuthLayoutProps): JSX.Element {
           alt="Loccalo"
           className="h-20 w-auto mb-5"
         />
-        <h1 className="text-[22px] font-bold text-white tracking-tight">Welcome, Seller</h1>
-        <p className="mt-1.5 text-sm text-white/75">Manage your shop on the go</p>
+        <h1 className="text-[22px] font-bold text-white tracking-tight">Welcome to Loccalo</h1>
+        <p className="mt-1.5 text-sm text-white/75">Discover local products you'll love</p>
       </div>
 
       {/* Form area */}

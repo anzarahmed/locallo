@@ -141,7 +141,7 @@ export default function VerifyOtp(): JSX.Element {
             onKeyDown={(e) => handleKeyDown(i, e)}
             onPaste={handlePaste}
             disabled={loading || success}
-            className={`w-16 h-16 text-center text-xl font-semibold rounded-full border-2 outline-none transition-all disabled:opacity-70
+            className={`w-16 h-16 text-center text-xl font-semibold rounded-2xl border-2 outline-none transition-all disabled:opacity-70
               ${
                 success
                   ? 'border-emerald-400 bg-emerald-50 text-emerald-600'
@@ -177,7 +177,7 @@ export default function VerifyOtp(): JSX.Element {
         <button
           type="button"
           onClick={() => navigate('/login')}
-          className="text-sm text-gray-500 underline underline-offset-2 hover:text-teal-600 transition-colors cursor-pointer"
+          className="text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors cursor-pointer"
         >
           Change phone number
         </button>
@@ -186,15 +186,14 @@ export default function VerifyOtp(): JSX.Element {
       {/* Resend */}
       <div className="text-center">
         {cooldown > 0 ? (
-          <span className="text-sm text-gray-300 underline underline-offset-2 cursor-not-allowed select-none">
-            Resend OTP in{' '}
-            <span className="font-semibold text-gray-400">{cooldown}s</span>
+          <span className="text-sm text-gray-400 cursor-not-allowed select-none">
+            Resend OTP ({cooldown}s)
           </span>
         ) : (
           <button
             type="button"
             onClick={() => void handleResend()}
-            className="text-sm text-gray-500 underline underline-offset-2 hover:text-teal-600 transition-colors cursor-pointer"
+            className="text-sm font-medium text-teal-600 hover:text-teal-700 transition-colors cursor-pointer"
           >
             Resend OTP
           </button>
