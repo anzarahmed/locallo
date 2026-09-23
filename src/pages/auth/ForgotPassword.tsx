@@ -1,29 +1,58 @@
-import { type JSX } from 'react';
+import { useRef, useState, type JSX } from 'react';
 import logoUrl from '../../assets/logo.png';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Loader2, CheckCircle2 } from 'lucide-react';
 import { useFormik, type FormikHelpers } from 'formik';
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3';
+import type ReCAPTCHA from 'react-google-recaptcha';
 import AuthField from '../../components/ui/AuthField';
+import RecaptchaV2 from '../../components/ui/RecaptchaV2';
 import { forgotSchema, type ForgotValues } from './authSchemas';
 import { forgotPassword } from '../../services/authService';
-import type { ApiError } from '../../lib/axios';
+import { ApiError } from '../../lib/axios';
+
+const CAPTCHA_V2_REQUIRED = 'captcha_v2_required';
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
 export default function ForgotPassword(): JSX.Element {
   const { executeRecaptcha } = useGoogleReCaptcha();
+  const [needsCaptchaV2, setNeedsCaptchaV2] = useState(false);
+  const [captchaV2Token, setCaptchaV2Token] = useState<string | null>(null);
+  const recaptchaV2Ref = useRef<ReCAPTCHA>(null);
 
   async function handleSubmit(
     values: ForgotValues,
     { setSubmitting, setStatus }: FormikHelpers<ForgotValues>,
   ): Promise<void> {
+    if (needsCaptchaV2 && !captchaV2Token) {
+      setStatus('Please complete the verification below to continue.');
+      setSubmitting(false);
+      return;
+    }
+
     try {
-      const captchaToken = await executeRecaptcha?.('forgot_password');
-      await forgotPassword(values.email, captchaToken);
+      let captchaToken: string | undefined;
+      if (needsCaptchaV2) {
+        captchaToken = captchaV2Token as string;
+      } else {
+        try {
+          captchaToken = await executeRecaptcha?.('forgot_password');
+        } catch {
+          captchaToken = undefined;
+        }
+      }
+      await forgotPassword(values.email, captchaToken, needsCaptchaV2 ? 'v2' : 'v3');
       setStatus('sent');
     } catch (err: unknown) {
-      setStatus((err as ApiError).message ?? 'error');
+      if (err instanceof ApiError && err.errors?.includes(CAPTCHA_V2_REQUIRED)) {
+        setNeedsCaptchaV2(true);
+        setCaptchaV2Token(null);
+        recaptchaV2Ref.current?.reset();
+        setStatus('We could not verify you automatically. Please complete the challenge below.');
+      } else {
+        setStatus((err as ApiError).message ?? 'error');
+      }
     } finally {
       setSubmitting(false);
     }
@@ -89,9 +118,11 @@ export default function ForgotPassword(): JSX.Element {
                   error={f.errors.email}
                 />
 
+                {needsCaptchaV2 && <RecaptchaV2 ref={recaptchaV2Ref} onChange={setCaptchaV2Token} />}
+
                 <button
                   type="submit"
-                  disabled={f.isSubmitting}
+                  disabled={f.isSubmitting || (needsCaptchaV2 && !captchaV2Token)}
                   className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
                 >
                   {f.isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}

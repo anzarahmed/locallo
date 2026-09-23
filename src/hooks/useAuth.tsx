@@ -2,6 +2,7 @@ import { createContext, useContext, useState, useEffect, useCallback, useRef, ty
 import { useNavigate } from 'react-router-dom';
 import type { Admin, AuthState, PermissionMap, PermissionModule, PermissionAction } from '../types';
 import * as authService from '../services/authService';
+import type { CaptchaVersion } from '../services/authService';
 import { apiGet } from '../lib/axios';
 import { PATHS } from '../api/paths';
 
@@ -10,7 +11,7 @@ interface AuthContextType extends AuthState {
   permissions: PermissionMap;
   hasPermission: (module: PermissionModule, action: PermissionAction) => boolean;
   refreshPermissions: () => Promise<void>;
-  login: (email: string, password: string, captchaToken?: string) => Promise<void>;
+  login: (email: string, password: string, captchaToken?: string, captchaVersion?: CaptchaVersion) => Promise<void>;
   logout: () => void;
 }
 
@@ -63,8 +64,8 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setPermissions(perms);
   }, []);
 
-  async function login(email: string, password: string, captchaToken?: string): Promise<void> {
-    const { token, admin } = await authService.login(email, password, captchaToken);
+  async function login(email: string, password: string, captchaToken?: string, captchaVersion?: CaptchaVersion): Promise<void> {
+    const { token, admin } = await authService.login(email, password, captchaToken, captchaVersion);
     localStorage.setItem('admin_token', token);
     localStorage.setItem('admin_user', JSON.stringify(admin));
     setState({ token, admin });
