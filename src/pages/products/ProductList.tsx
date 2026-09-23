@@ -50,7 +50,6 @@ export default function ProductList(): JSX.Element {
     product: Product;
     variants: ProductVariant[];
     schema: AttributeField[];
-    activeBoost: ProductBoost | null;
   } | null>(null);
   const [loadingPromoteVariantsForId, setLoadingPromoteVariantsForId] = useState<string | null>(null);
 
@@ -184,11 +183,19 @@ export default function ProductList(): JSX.Element {
           getProductVariants(product.id),
           getActiveBoost(product.id),
         ]);
+        if (boost) {
+          const boostedVariant = data.variants.find(v => v.id === boost.variantId) ?? null;
+          setPromoteTarget({
+            product,
+            variant: boostedVariant,
+            schema: data.product.category?.attributeSchema ?? [],
+          });
+          return;
+        }
         setPromoteVariantPickerData({
           product,
           variants: data.variants,
           schema: data.product.category?.attributeSchema ?? [],
-          activeBoost: boost,
         });
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to load variants');
@@ -395,9 +402,7 @@ export default function ProductList(): JSX.Element {
           productName={promoteVariantPickerData.product.name}
           variants={promoteVariantPickerData.variants}
           schema={promoteVariantPickerData.schema}
-          activeBoost={promoteVariantPickerData.activeBoost}
           onConfirm={openBoostModalForVariant}
-          onViewBoostDetails={openBoostModalForVariant}
           onClose={() => setPromoteVariantPickerData(null)}
         />
       )}
