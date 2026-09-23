@@ -6,7 +6,7 @@ import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlist
 import { addReview, getReviews, editReview, removeReview, uploadReviewImages } from '../../controllers/customer/reviewController';
 import { getDashboard } from '../../controllers/customer/dashboardController';
 import { getOffers } from '../../controllers/customer/offerController';
-import { getCmsPage } from '../../controllers/customer/cmsPageController';
+import { getCmsPages, getCmsPage } from '../../controllers/customer/cmsPageController';
 import { getFaqs } from '../../controllers/customer/faqController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/customer/notificationController';
 import { getSellerWorkingHours, getSellerDetails } from '../../controllers/customer/sellerController';
@@ -23,6 +23,7 @@ const router = Router();
 router.post('/auth/request-otp', validate(requestOtpSchema), requestOtp);
 router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
 
+router.get('/cms-pages',       getCmsPages);
 router.get('/cms-pages/:slug', getCmsPage);
 router.get('/faqs', getFaqs);
 

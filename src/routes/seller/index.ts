@@ -18,6 +18,7 @@ import { getPnlSummary } from '../../controllers/seller/pnlController';
 import { createProductBoost, getActiveProductBoost, cancelProductBoost, getBoostPayments } from '../../controllers/seller/boostController';
 import { getOffers, getAcceptedOffers, getOffer, acceptOffer } from '../../controllers/seller/offerController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/seller/notificationController';
+import { getCmsPages, getCmsPage } from '../../controllers/customer/cmsPageController';
 import { validate } from '../../middleware/validate';
 import { uploadSingle } from '../../middleware/upload';
 import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema, setCustomDaySchema } from '../../validation/seller/sellerSchemas';
@@ -35,6 +36,9 @@ const router = Router();
 router.post('/auth/request-otp', validate(requestOtpSchema), requestOtp);
 router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
 router.post('/auth/logout',      requireSeller,               logout);
+
+router.get('/cms-pages',       getCmsPages);
+router.get('/cms-pages/:slug', getCmsPage);
 
 router.get('/dashboard/stats', requireSeller, getDashboardStats);
 router.get('/dashboard/top-products', requireSeller, getTopDashboardProducts);

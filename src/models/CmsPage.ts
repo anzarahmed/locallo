@@ -4,13 +4,13 @@ import {
   Model,
   PrimaryKey,
   AutoIncrement,
-  Unique,
   AllowNull,
   Default,
   DataType,
   CreatedAt,
   UpdatedAt,
 } from 'sequelize-typescript';
+import type { CmsAudience } from '../types';
 
 @Table({ tableName: 'cms_pages', timestamps: true, underscored: true })
 export class CmsPage extends Model {
@@ -23,7 +23,6 @@ export class CmsPage extends Model {
   @Column(DataType.TEXT)
   declare title: string;
 
-  @Unique
   @AllowNull(false)
   @Column(DataType.STRING(150))
   declare slug: string;
@@ -31,6 +30,11 @@ export class CmsPage extends Model {
   @AllowNull(false)
   @Column(DataType.TEXT)
   declare content: string;
+
+  @Default('customer')
+  @AllowNull(false)
+  @Column(DataType.ENUM('customer', 'seller'))
+  declare audience: CmsAudience;
 
   @Default(true)
   @AllowNull(false)

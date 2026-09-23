@@ -7,6 +7,8 @@ export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customer
 export type PermissionAction = 'list' | 'view' | 'add' | 'edit' | 'delete';
 export type PermissionMap = Partial<Record<PermissionModule, PermissionAction[]>>;
 
+export type CmsAudience = 'customer' | 'seller';
+
 export type AttributeFieldType = 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'color';
 
 export interface AttributeFieldOption {

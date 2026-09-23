@@ -1,10 +1,12 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
+import { parseCmsAudience } from '../../utils/cmsAudience';
 import * as cmsPageService from '../../services/admin/cmsPageService';
 
 export async function getCmsPages(req: Request, res: Response): Promise<void> {
   const { page, limit } = parsePagination(req, 100);
+  const audience    = parseCmsAudience(req.query.audience);
   const search      = req.query.search  ? String(req.query.search)  : undefined;
   const sortBy      = req.query.sortBy  ? String(req.query.sortBy)  : undefined;
   const sortOrder   = req.query.sortOrder === 'desc' ? 'DESC' : 'ASC';
@@ -12,7 +14,7 @@ export async function getCmsPages(req: Request, res: Response): Promise<void> {
   const isActive    = isActiveRaw === 'true' ? true : isActiveRaw === 'false' ? false : undefined;
 
   const { rows, count } = await cmsPageService.listCmsPages(
-    { search, isActive, sortBy, sortOrder },
+    { audience, search, isActive, sortBy, sortOrder },
     page,
     limit,
   );
