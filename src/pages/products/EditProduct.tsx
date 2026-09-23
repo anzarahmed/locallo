@@ -68,6 +68,8 @@ export default function EditProduct(): JSX.Element {
   const visibleAttributeFields = attributeSchema.filter(f => !f.isVariant || !hasVariants);
   const usesComboStock = !hasVariants && stockDependent && combinations.length > 0;
   const stockNotEditable = hasVariants || usesComboStock;
+  const sdFields = variantFields.filter(f => f.isStockDependent === true);
+  const firstSdField = sdFields.at(0);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -682,13 +684,29 @@ export default function EditProduct(): JSX.Element {
               <p className="text-sm font-semibold text-gray-700">Product Attributes</p>
               {visibleAttributeFields.map(field => (
                 field.isVariant ? (
-                  <VariantOptionField
-                    key={field.key}
-                    field={field}
-                    value={variantSelections[field.key]}
-                    onChange={v => setVariantSelection(field.key, v)}
-                    error={attrErrors[field.key]}
-                  />
+                  <div key={field.key} className="space-y-4">
+                    <VariantOptionField
+                      field={field}
+                      value={variantSelections[field.key]}
+                      onChange={v => setVariantSelection(field.key, v)}
+                      error={attrErrors[field.key]}
+                    />
+                    {usesComboStock && field.key === firstSdField?.key && (
+                      <div className="space-y-3">
+                        <p className="text-xs font-semibold text-gray-500">Stock per {field.label}</p>
+                        {combinations.map(combo => (
+                          <CombinationStockRow
+                            key={getCombinationKey(combo)}
+                            combo={combo}
+                            sdFields={sdFields}
+                            stock={comboStocks[getCombinationKey(combo)] ?? ''}
+                            error={comboStockErrors[getCombinationKey(combo)]}
+                            onChange={v => setComboStock(getCombinationKey(combo), v)}
+                          />
+                        ))}
+                      </div>
+                    )}
+                  </div>
                 ) : (
                   <AttrInput
                     key={field.key}
@@ -699,25 +717,6 @@ export default function EditProduct(): JSX.Element {
                   />
                 )
               ))}
-            </div>
-          )}
-
-          {/* Stock per combination — only when no existing variants + stock-dependent + combinations exist */}
-          {!hasVariants && stockDependent && combinations.length > 0 && (
-            <div className="bg-white rounded-2xl shadow-sm p-4">
-              <p className="text-sm font-semibold text-gray-700 mb-4">Stock Quantities</p>
-              <div className="space-y-2">
-                {combinations.map(combo => (
-                  <CombinationStockRow
-                    key={getCombinationKey(combo)}
-                    combo={combo}
-                    variantFields={variantFields}
-                    stock={comboStocks[getCombinationKey(combo)] ?? ''}
-                    error={comboStockErrors[getCombinationKey(combo)]}
-                    onChange={v => setComboStock(getCombinationKey(combo), v)}
-                  />
-                ))}
-              </div>
             </div>
           )}
 
@@ -944,42 +943,32 @@ function VariantOptionField({ field, onChange, value, error }: VariantOptionFiel
   );
 }
 
-/* ── Stock row per combination ── */
+/* ── Stock input per stock-dependent value (e.g. "Stock – S") ── */
 interface CombinationStockRowProps {
   combo: Record<string, string>;
-  variantFields: AttributeField[];
+  sdFields: AttributeField[];
   stock: string;
   error?: string;
   onChange: (v: string) => void;
 }
 
-function CombinationStockRow({ combo, variantFields, stock, error, onChange }: CombinationStockRowProps): JSX.Element {
+function CombinationStockRow({ combo, sdFields, stock, error, onChange }: CombinationStockRowProps): JSX.Element {
+  const label = sdFields
+    .filter(f => combo[f.key] !== undefined)
+    .map(f => f.options?.find(o => o.value === combo[f.key])?.label ?? combo[f.key])
+    .join(' / ');
   return (
-    <div className="py-2 border-b border-gray-50 last:border-0">
-      <div className="flex items-center gap-3">
-        <div className="flex-1 flex flex-wrap gap-1.5">
-          {Object.entries(combo).map(([key, val]) => {
-            const field = variantFields.find(f => f.key === key);
-            const opt = field?.options?.find(o => o.value === val);
-            return (
-              <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
-                {opt?.label ?? val}
-              </span>
-            );
-          })}
-        </div>
-        <input
-          type="number"
-          min={0}
-          step="1"
-          value={stock}
-          onChange={e => onChange(e.target.value)}
-          placeholder="0"
-          className={`w-20 border rounded-xl text-sm text-gray-700 px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-right ${error ? 'border-rose-300' : 'border-gray-200'}`}
-        />
-      </div>
-      {error && <p className="text-xs text-rose-500 mt-1 text-right">{error}</p>}
-    </div>
+    <FormField label={`Stock – ${label}`} error={error}>
+      <input
+        type="number"
+        min={0}
+        step="1"
+        value={stock}
+        onChange={e => onChange(e.target.value)}
+        placeholder="0"
+        className={inputCls(!!error)}
+      />
+    </FormField>
   );
 }
 

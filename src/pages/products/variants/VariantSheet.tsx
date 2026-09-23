@@ -73,6 +73,14 @@ export default function VariantSheet({
   // is hidden whenever add-mode is stock-dependent, even before any option is picked
   // (combinations.length starts at 0), so the schema must skip it under the same condition.
   const usesComboStock  = !isEdit && stockDependent;
+  const sdFields        = variantFields.filter(f => f.isStockDependent === true);
+  // Stock inputs sit right under the stock-dependent selector (e.g. sizes); if that
+  // selector is locked (not rendered), they fall back to after the open fields.
+  const stockAnchorKey  = openFields.find(f => f.isStockDependent === true)?.key;
+  const editSdValue     = isEdit && sdField ? variant.attributes[sdField.key] : undefined;
+  const editStockLabel  = typeof editSdValue === 'string' && editSdValue !== ''
+    ? `Stock – ${sdField?.options?.find(o => o.value === editSdValue)?.label ?? editSdValue}`
+    : 'Stock';
 
   /*
    * Add-to-group ("Add Option") starts from an existing sibling variant's images —
@@ -357,6 +365,27 @@ export default function VariantSheet({
     }
   }
 
+  const comboStockInputs = stockDependent && combinations.length > 0 && (
+    <div className="space-y-3">
+      <p className="text-xs font-semibold text-gray-500 tracking-wide">
+        Stock per {sdField?.label ?? 'Option'}
+      </p>
+      {combinations.map(combo => {
+        const key = getCombinationKey(combo);
+        return (
+          <SheetStockRow
+            key={key}
+            combo={combo}
+            sdFields={sdFields}
+            stock={comboStocks[key] ?? ''}
+            error={comboStockErrors[key]}
+            onChange={v => setComboStock(key, v)}
+          />
+        );
+      })}
+    </div>
+  );
+
   return (
     <div className="fixed inset-0 md:left-60 z-50 flex flex-col justify-end md:justify-center md:items-center md:p-6">
       {/* Backdrop */}
@@ -586,7 +615,7 @@ export default function VariantSheet({
           {(isEdit || !stockDependent) && (
             <div>
               <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                Stock<span className="text-rose-400 ml-0.5">*</span>
+                {editStockLabel}<span className="text-rose-400 ml-0.5">*</span>
               </label>
               <input
                 name="stock"
@@ -624,44 +653,23 @@ export default function VariantSheet({
               {variantFields.length > 0 ? (
                 <div className="space-y-4">
                   {openFields.map(field => (
-                    <SheetVariantOptionField
-                      key={field.key}
-                      field={field}
-                      value={variantSelections[field.key]}
-                      usedValues={usedValuesForField(field)}
-                      onChange={v => setVariantSelection(field.key, v)}
-                      showError={attemptedSubmit}
-                    />
+                    <div key={field.key} className="space-y-4">
+                      <SheetVariantOptionField
+                        field={field}
+                        value={variantSelections[field.key]}
+                        usedValues={usedValuesForField(field)}
+                        onChange={v => setVariantSelection(field.key, v)}
+                        showError={attemptedSubmit}
+                      />
+                      {field.key === stockAnchorKey && comboStockInputs}
+                    </div>
                   ))}
+                  {stockAnchorKey === undefined && comboStockInputs}
                 </div>
               ) : (
                 <p className="text-xs text-gray-400 bg-gray-50 rounded-xl p-3.5 text-center leading-relaxed">
                   No variant attributes configured for this category.
                 </p>
-              )}
-
-              {/* Combination stock matrix */}
-              {stockDependent && combinations.length > 0 && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 tracking-wide mb-3">
-                    Stock Quantities
-                  </p>
-                  <div className="space-y-2">
-                    {combinations.map(combo => {
-                      const key = getCombinationKey(combo);
-                      return (
-                        <SheetStockRow
-                          key={key}
-                          combo={combo}
-                          variantFields={variantFields}
-                          stock={comboStocks[key] ?? ''}
-                          error={comboStockErrors[key]}
-                          onChange={v => setComboStock(key, v)}
-                        />
-                      );
-                    })}
-                  </div>
-                </div>
               )}
             </>
           )}
@@ -806,41 +814,33 @@ function SheetVariantOptionField({ field, value, usedValues, onChange, showError
   );
 }
 
-/* ── Stock row per combination (inside sheet) ── */
+/* ── Stock input per stock-dependent value (e.g. "Stock – S") ── */
 interface SheetStockRowProps {
   combo: Record<string, string>;
-  variantFields: AttributeField[];
+  sdFields: AttributeField[];
   stock: string;
   error?: string;
   onChange: (v: string) => void;
 }
 
-function SheetStockRow({ combo, variantFields, stock, error, onChange }: SheetStockRowProps): JSX.Element {
+function SheetStockRow({ combo, sdFields, stock, error, onChange }: SheetStockRowProps): JSX.Element {
+  const label = sdFields
+    .filter(f => combo[f.key] !== undefined)
+    .map(f => f.options?.find(o => o.value === combo[f.key])?.label ?? combo[f.key])
+    .join(' / ');
   return (
-    <div className="py-2 border-b border-gray-50 last:border-0">
-      <div className="flex items-center gap-3">
-        <div className="flex-1 flex flex-wrap gap-1.5">
-          {Object.entries(combo).map(([key, val]) => {
-            const field = variantFields.find(f => f.key === key);
-            const opt = field?.options?.find(o => o.value === val);
-            return (
-              <span key={key} className={`text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium ${field?.type === 'color' ? 'capitalize' : ''}`}>
-                {opt?.label ?? val}
-              </span>
-            );
-          })}
-        </div>
-        <input
-          type="number"
-          min={0}
-          step="1"
-          value={stock}
-          onChange={e => onChange(e.target.value)}
-          placeholder="0"
-          className={`w-20 border rounded-xl text-sm text-gray-700 px-3 py-2 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 text-right ${error ? 'border-rose-300' : 'border-gray-200'}`}
-        />
-      </div>
-      {error && <p className="text-xs text-rose-500 mt-1 text-right">{error}</p>}
+    <div>
+      <label className="block text-xs font-semibold text-gray-500 mb-1.5">Stock – {label}</label>
+      <input
+        type="number"
+        min={0}
+        step="1"
+        value={stock}
+        onChange={e => onChange(e.target.value)}
+        placeholder="0"
+        className={inputCls(!!error)}
+      />
+      {error && <p className="text-xs text-rose-500 mt-1.5">{error}</p>}
     </div>
   );
 }
