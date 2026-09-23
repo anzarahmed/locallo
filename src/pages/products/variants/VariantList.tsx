@@ -54,6 +54,7 @@ export default function VariantList(): JSX.Element {
   const sdField = schema.find(f => f.isVariant === true && f.isStockDependent === true);
   const filteredVariants = variants.filter(v => variantMatches(v, schema, search));
   const groups = sdField ? groupVariants(filteredVariants, sdField.key) : null;
+  const isLastVariant = variants.length === 1;
   const noSearchResults = search.trim() !== '' && variants.length > 0 && filteredVariants.length === 0;
 
   const wholeProductBoosted = boost != null && boost.variantId === null;
@@ -168,9 +169,14 @@ export default function VariantList(): JSX.Element {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await deleteVariant(id!, deleteTarget.id);
-      setVariants(prev => prev.filter(v => v.id !== deleteTarget.id));
+      const { productDeleted } = await deleteVariant(id!, deleteTarget.id);
       setDeleteTarget(null);
+      if (productDeleted) {
+        toast.success('Product deleted');
+        navigate('/products', { replace: true });
+        return;
+      }
+      setVariants(prev => prev.filter(v => v.id !== deleteTarget.id));
       toast.success('Variant deleted');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to delete variant');
@@ -309,8 +315,10 @@ export default function VariantList(): JSX.Element {
 
       {deleteTarget && (
         <ConfirmDeleteModal
-          title="Delete Variant"
-          message="This variant will be permanently deleted."
+          title={isLastVariant ? 'Delete Last Variant' : 'Delete Variant'}
+          message={isLastVariant
+            ? 'This is the last variant of this product. Deleting it will also permanently delete the product, and you will not be able to see it again.'
+            : 'This variant will be permanently deleted.'}
           loading={deleting}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setDeleteTarget(null)}

@@ -94,7 +94,7 @@ export function updateVariant(productId: string, variantId: string, data: Record
   return apiPut(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}`, data);
 }
 
-export function deleteVariant(productId: string, variantId: string): Promise<unknown> {
+export function deleteVariant(productId: string, variantId: string): Promise<{ productDeleted: boolean }> {
   return apiDelete(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}`);
 }
 
