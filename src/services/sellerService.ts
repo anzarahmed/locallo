@@ -1,6 +1,7 @@
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
 import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse, PurchaseLogsResponse, CustomDayOverride, TopProduct, ProductBoost, ProductReviewsResponse, PaymentsResponse, PaymentStatus } from '../types';
+import type { FilterTab } from '../constants';
 
 export function getDashboardStats(): Promise<DashboardStats> {
   return apiGet(PATHS.DASHBOARD.STATS);
@@ -33,7 +34,7 @@ export function getCategories(): Promise<{ categories: SellerCategory[] }> {
 export function getProducts(params?: {
   page?: number;
   limit?: number;
-  filter?: 'all' | 'visible' | 'hidden';
+  filter?: FilterTab;
   sortBy?: string;
 }): Promise<ProductsResponse> {
   return apiGet(PATHS.PRODUCTS, params);

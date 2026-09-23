@@ -10,12 +10,13 @@ export const PAGE_LIMIT = 20;
 // used by the Customer and Seller mobile apps.
 export const COUNTRY_CODE = '+91';
 
-export type FilterTab = 'all' | 'visible' | 'hidden';
+export type FilterTab = 'all' | 'visible' | 'hidden' | 'active';
 
 export const FILTER_TABS: { value: FilterTab; label: string }[] = [
   { value: 'all',     label: 'All'     },
   { value: 'visible', label: 'Visible' },
   { value: 'hidden',  label: 'Hidden'  },
+  { value: 'active',  label: 'Active'  },
 ];
 
 export const MIN_DAILY_BUDGET = 100;
