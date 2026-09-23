@@ -40,7 +40,7 @@ interface ProductSellerDetail {
 
 export const TRENDING_LIMIT = 15;
 const SIMILAR_LIMIT = 10;
-export const TRENDING_ATTRIBUTES = ['id', 'name', 'categoryId', 'mrp', 'sellingPrice', 'images'];
+export const TRENDING_ATTRIBUTES = ['id', 'name', 'categoryId', 'mrp', 'sellingPrice', 'images', 'stock'];
 
 const SAFE_PRODUCT_ATTRIBUTES = [
   'id', 'sellerId', 'categoryId', 'name', 'description',
