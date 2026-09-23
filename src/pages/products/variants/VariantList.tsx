@@ -55,8 +55,9 @@ export default function VariantList(): JSX.Element {
   const isLastVariant = variants.length === 1;
   const noSearchResults = search.trim() !== '' && variants.length > 0 && filteredVariants.length === 0;
 
-  const wholeProductBoosted = boost != null && boost.variantId === null;
-  const boostedVariantId = boost?.variantId ?? null;
+  const liveBoost = boost?.status === 'active' && boost.paymentStatus === 'paid' ? boost : null;
+  const wholeProductBoosted = liveBoost != null && liveBoost.variantId === null;
+  const boostedVariantId = liveBoost?.variantId ?? null;
 
   useEffect(() => {
     async function load(): Promise<void> {
