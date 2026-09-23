@@ -69,7 +69,7 @@ export async function getReviews(req: Request, res: Response): Promise<void> {
   const { page, limit } = parsePagination(req);
 
   try {
-    const { rows, count, media } = await reviewService.listReviews(productId, page, limit);
+    const { rows, count, media } = await reviewService.listReviews(productId, page, limit, req.customer?.id);
 
     const review: ReviewListItem[] = await Promise.all(
       rows.map(async (r) => ({

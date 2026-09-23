@@ -1,5 +1,6 @@
 import type { InferType } from 'yup';
 import { QueryTypes } from 'sequelize';
+import type { OrderItem } from 'sequelize';
 import { Review } from '../../models/Review';
 import { Product } from '../../models/Product';
 import { User } from '../../models/User';
@@ -35,16 +36,22 @@ export async function listReviews(
   productId: string,
   page: number,
   limit: number,
+  customerId?: string,
 ): Promise<{ rows: Review[]; count: number; media: string[] }> {
   const product = await Product.findOne({ where: { id: productId, isActive: true } });
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
 
+  const order: OrderItem[] = [['createdAt', 'DESC']];
+  if (customerId) {
+    order.unshift([sequelize.literal(`("Review"."customer_id" = ${sequelize.escape(customerId)})`), 'DESC']);
+  }
+
   const { rows, count } = await Review.findAndCountAll({
     where: { productId },
     include: [{ model: User, as: 'customer', attributes: ['id', 'fullName', 'profileImage'] }],
-    order: [['createdAt', 'DESC']],
+    order,
     limit,
     offset: (page - 1) * limit,
   });

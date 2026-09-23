@@ -45,7 +45,7 @@ router.get('/wishlist',                            requireCustomer, getWishlist)
 router.post('/wishlist/:productId',                requireCustomer, toggleWishlist);
 router.post('/wishlist/:productId/:variantId',     requireCustomer, toggleWishlist);
 
-router.get('/reviews',  getReviews);
+router.get('/reviews',  optionalCustomer, getReviews);
 router.post('/reviews', requireCustomer, validate(createReviewSchema), addReview);
 router.post('/reviews/images', requireCustomer, uploadArray('images', 5), uploadReviewImages);
 router.delete('/reviews/:id', requireCustomer, removeReview);
