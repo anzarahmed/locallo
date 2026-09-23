@@ -108,3 +108,11 @@ export async function incrementImpressions(boostIds: string[]): Promise<void> {
     },
   );
 }
+
+export async function isProductBoosted(productId: string, variantId?: string): Promise<boolean> {
+  const where: Record<string, unknown> = { productId, status: 'active', paymentStatus: 'paid' };
+  // A boost with no variantId covers every variant of the product.
+  if (variantId) where.variantId = { [Op.or]: [variantId, null] };
+  const count = await ProductBoost.count({ where });
+  return count > 0;
+}

@@ -6,6 +6,7 @@ import * as productService from '../../services/customer/productService';
 import * as wishlistService from '../../services/customer/wishlistService';
 import * as productViewService from '../../services/customer/productViewService';
 import * as productBoostService from '../../services/customer/productBoostService';
+import * as reviewService from '../../services/customer/reviewService';
 import * as variantSelection from '../../services/customer/variantSelection';
 import type { Product } from '../../models/Product';
 import type { ProductVariant } from '../../models/ProductVariant';
@@ -185,11 +186,13 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
     if (req.customer) {
       void productViewService.recordProductView(req.customer.id, product.id, product.sellerId);
     }
-    const [{ productWishlisted, wishlistedVariantIds }, offersById] = await Promise.all([
+    const [{ productWishlisted, wishlistedVariantIds }, offersById, isBoosted, isReviewed] = await Promise.all([
       req.customer
         ? wishlistService.getProductWishlistState(req.customer.id, product.id)
         : Promise.resolve({ productWishlisted: false, wishlistedVariantIds: new Set<string>() }),
       getActiveOffersForProducts([product.id]),
+      productBoostService.isProductBoosted(product.id, variantId),
+      req.customer ? reviewService.hasCustomerReviewed(req.customer.id, product.id) : Promise.resolve(false),
     ]);
     const isWishlisted = productWishlisted || (variantId ? wishlistedVariantIds.has(variantId) : false);
     const { offerId, offerPrice, offerBadge } = offerFieldsFor(offersById, product.id, product.sellingPrice);
@@ -202,7 +205,7 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
         return { ...signed, ...offerFieldsFor(offersById, product.id, variantSellingPrice), isWishlisted: variantWishlisted };
       })),
     ]);
-    sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted, offerId, offerPrice, offerBadge, rating }, variants: signedVariants }, 'Product fetched');
+    sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted, offerId, offerPrice, offerBadge, rating, isBoosted, is_reviewed: isReviewed }, variants: signedVariants }, 'Product fetched');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Product not found');
   }

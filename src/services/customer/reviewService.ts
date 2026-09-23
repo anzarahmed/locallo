@@ -33,6 +33,11 @@ export async function createReview(customerId: string, data: CreateReviewInput):
   });
 }
 
+export async function hasCustomerReviewed(customerId: string, productId: string): Promise<boolean> {
+  const count = await Review.count({ where: { customerId, productId } });
+  return count > 0;
+}
+
 export async function listReviews(
   productId: string,
   page: number,
