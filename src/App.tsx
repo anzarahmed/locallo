@@ -27,6 +27,7 @@ const AcceptOfferProducts = lazy(() => import('./pages/offers/AcceptOfferProduct
 const NotificationList = lazy(() => import('./pages/notifications/NotificationList'));
 const Pnl = lazy(() => import('./pages/pnl/Pnl'));
 const Expenses = lazy(() => import('./pages/expenses/Expenses'));
+const CmsPage = lazy(() => import('./pages/cms/CmsPage'));
 
 function AuthGuard({ children }: { children: JSX.Element }): JSX.Element {
   const { token, isRestoring } = useAuth();
@@ -71,6 +72,9 @@ const router = createBrowserRouter(
       {/* Guest routes */}
       <Route path="/login"      element={<GuestGuard><Login /></GuestGuard>} />
       <Route path="/verify-otp" element={<GuestGuard><VerifyOtp /></GuestGuard>} />
+
+      {/* Public routes — reachable signed in or out (linked from login + app stores) */}
+      <Route path="/pages/:slug" element={<CmsPage />} />
 
       {/* Authenticated routes */}
       <Route element={<AuthGuard><AppLayout /></AuthGuard>}>

@@ -37,4 +37,8 @@ export const PATHS = {
   EXPENSES:      '/api/sellers/expenses',
   EXPENSE_BY_ID: (id: string): string => `/api/sellers/expenses/${id}`,
   PNL_SUMMARY: '/api/sellers/pnl/summary',
+  CMS_PAGES: {
+    LIST:    '/api/sellers/cms-pages',
+    BY_SLUG: (slug: string): string => `/api/sellers/cms-pages/${slug}`,
+  },
 } as const;

@@ -384,3 +384,14 @@ export interface ProductVariant {
   isActive: boolean;
   createdAt: string;
 }
+
+export interface CmsPageSummary {
+  id: number;
+  title: string;
+  slug: string;
+  updatedAt: string;
+}
+
+export interface CmsPage extends CmsPageSummary {
+  content: string;
+}

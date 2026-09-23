@@ -4,6 +4,7 @@ import { useToast } from '../../hooks/useToast';
 import { getSettings, updateSettings, type NotificationSettings } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
+import CmsPageLinks from '../cms/CmsPageLinks';
 
 const DEFAULT_SETTINGS: NotificationSettings = {
   pushNotifications:  true,
@@ -83,7 +84,7 @@ export default function Settings(): JSX.Element {
         style={{ background: 'linear-gradient(135deg, #26B8B2 0%, #14817C 100%)' }}
       >
         <h1 className="text-2xl font-bold text-white">Settings</h1>
-        <p className="text-teal-100 text-sm mt-1">Manage your notification preferences</p>
+        <p className="text-teal-100 text-sm mt-1">Manage your preferences and view policies</p>
       </div>
 
       <div className="px-4 md:px-8 -mt-4 pb-10 max-w-2xl mx-auto space-y-4">
@@ -148,6 +149,8 @@ export default function Settings(): JSX.Element {
             )}
           </div>
         </div>
+
+        <CmsPageLinks />
       </div>
     </div>
   );

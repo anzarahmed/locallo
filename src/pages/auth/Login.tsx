@@ -1,6 +1,6 @@
 import { useFormik, type FormikHelpers } from 'formik';
 import { Phone } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import AuthLayout from './AuthLayout';
 import { requestOtpSchema, type RequestOtpValues } from '../../validation/authSchemas';
 import { requestOtp } from '../../services/authService';
@@ -104,6 +104,17 @@ export default function Login(): JSX.Element {
           )}
         </button>
       </form>
+
+      <p className="mt-6 text-center text-xs text-gray-400 leading-relaxed">
+        By continuing you agree to our{' '}
+        <Link to="/pages/terms-and-conditions" className="text-teal-600 font-medium hover:underline">
+          Terms &amp; Conditions
+        </Link>{' '}
+        and{' '}
+        <Link to="/pages/privacy-policy" className="text-teal-600 font-medium hover:underline">
+          Privacy Policy
+        </Link>
+      </p>
     </AuthLayout>
   );
 }
