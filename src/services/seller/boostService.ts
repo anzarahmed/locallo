@@ -10,11 +10,15 @@ import { getPresignedUrl } from '../../utils/imageStorage';
 import type { BoostAudienceType, BoostStatus, PaymentStatus } from '../../types';
 
 const IMPRESSIONS_PER_RUPEE = 20;
+const RANGE_THRESHOLD_BUDGET = 150;
+const RANGE_SPREAD = 100;
 
 export function estimateImpressions(dailyBudget: number): { min: number; max: number } {
   const max = dailyBudget * IMPRESSIONS_PER_RUPEE;
-  const min = max - Math.round(max * 0.005);
-  return { min, max };
+  if (dailyBudget < RANGE_THRESHOLD_BUDGET) {
+    return { min: max, max };
+  }
+  return { min: max - RANGE_SPREAD, max };
 }
 
 const AUDIENCE_TYPE_BY_CODE: Record<number, BoostAudienceType> = {
