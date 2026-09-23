@@ -66,7 +66,7 @@ function ImageUploadField({ value, onChange, error, touched }: ImageUploadFieldP
       <div className="flex items-start gap-1.5 mb-2 px-3 py-2 bg-indigo-50 border border-indigo-100 rounded-lg">
         <Info className="w-3.5 h-3.5 text-indigo-500 shrink-0 mt-0.5" />
         <p className="text-xs text-indigo-700">
-          Recommended size <span className="font-semibold">1200 × 400px</span> (3:1 ratio) for the best display on the mobile app. JPG, PNG or WebP, up to 5MB.
+          Recommended size <span className="font-semibold">1200 × 400px</span> (3:1 ratio) for the best display on the mobile app. JPG, PNG or WebP, up to 10MB.
         </p>
       </div>
       {value ? (
