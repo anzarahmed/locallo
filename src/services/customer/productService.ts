@@ -268,6 +268,9 @@ export async function getProductDetail(
     if (variantId) {
       throw Object.assign(new Error('Variant not found'), { status: 404 });
     }
+    if (product.stock <= 0) {
+      throw Object.assign(new Error('Variant not found'), { status: 404 });
+    }
     return {
       product,
       seller,
@@ -294,7 +297,7 @@ export async function getProductDetail(
   }
 
   const variantRows = await ProductVariant.findAll({
-    where: { productId: id, isActive: true },
+    where: { productId: id, isActive: true, stock: { [Op.gt]: 0 } },
     order: [['createdAt', 'ASC']],
   });
 
