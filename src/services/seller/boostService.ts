@@ -95,7 +95,7 @@ export async function getActiveBoost(sellerId: string, productId: string): Promi
   return ProductBoost.findOne({
     where: { sellerId, productId, status: { [Op.in]: ['active', 'pending'] } },
     order: [[literal(`status = 'active'`), 'DESC'], ['createdAt', 'DESC']],
-    include: [{ model: ProductVariant, attributes: ['id', 'attributes', 'isActive'] }],
+    include: [{ model: ProductVariant, attributes: ['id', 'attributes', 'isActive', 'images'] }],
   });
 }
 
@@ -180,6 +180,7 @@ export async function cancelBoost(sellerId: string, productId: string): Promise<
 export interface BoostPaymentRow {
   id: string;
   productId: string;
+  variantId: string | null;
   productName: string;
   productImage: string | null;
   audienceType: BoostAudienceType;
@@ -205,7 +206,10 @@ export async function getBoosts(
 
   const { rows, count } = await ProductBoost.findAndCountAll({
     where,
-    include: [{ model: Product, attributes: ['name', 'images'], required: false }],
+    include: [
+      { model: Product, attributes: ['name', 'images'], required: false },
+      { model: ProductVariant, attributes: ['images'], required: false },
+    ],
     order: [['createdAt', 'DESC']],
     limit,
     offset: (page - 1) * limit,
@@ -213,12 +217,16 @@ export async function getBoosts(
 
   const signed = await Promise.all(
     rows.map(async (boost): Promise<BoostPaymentRow> => {
-      const json = boost.toJSON() as ProductBoost & { product?: { name?: string; images?: string[] } };
-      const firstKey = json.product?.images?.[0] ?? null;
+      const json = boost.toJSON() as ProductBoost & {
+        product?: { name?: string; images?: string[] };
+        variant?: { images?: string[] } | null;
+      };
+      const firstKey = json.variant?.images?.[0] ?? json.product?.images?.[0] ?? null;
       const productImage = firstKey ? await getPresignedUrl(firstKey) : null;
       return {
         id:              json.id,
         productId:       json.productId,
+        variantId:       json.variantId,
         productName:     json.product?.name ?? 'Product',
         productImage,
         audienceType:    json.audienceType,
