@@ -53,7 +53,7 @@ export async function listExpenses(
   return Expense.findAndCountAll({
     where,
     include: [{ model: SellerLedger, attributes: ['id', 'name'] }],
-    order: [['expenseDate', 'DESC']],
+    order: [['createdAt', 'DESC'], ['id', 'DESC']],
     limit,
     offset: (page - 1) * limit,
   });
