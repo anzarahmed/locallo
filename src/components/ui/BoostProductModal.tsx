@@ -240,6 +240,11 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
                     const clamped = v !== '' && Number(v) > MAX_DAILY_BUDGET ? String(MAX_DAILY_BUDGET) : v;
                     void formik.setFieldValue('dailyBudget', clamped);
                   }}
+                  onBlur={() => {
+                    if (Number(formik.values.dailyBudget) < MIN_DAILY_BUDGET) {
+                      void formik.setFieldValue('dailyBudget', String(MIN_DAILY_BUDGET));
+                    }
+                  }}
                 />
               )}
               {step === 3 && <ReviewStep values={formik.values} promoting={product.name} />}
@@ -415,9 +420,10 @@ function CitySelect({ state, value, onChange }: { state: string; value: string; 
 interface BudgetStepProps {
   dailyBudget: string;
   onChange: (v: string) => void;
+  onBlur: () => void;
 }
 
-function BudgetStep({ dailyBudget, onChange }: BudgetStepProps): JSX.Element {
+function BudgetStep({ dailyBudget, onChange, onBlur }: BudgetStepProps): JSX.Element {
   const budgetNum = Number(dailyBudget) || 0;
   const { min, max } = estimateImpressions(budgetNum);
 
@@ -439,6 +445,7 @@ function BudgetStep({ dailyBudget, onChange }: BudgetStepProps): JSX.Element {
             step={DAILY_BUDGET_STEP}
             value={dailyBudget}
             onChange={(e) => onChange(e.target.value)}
+            onBlur={onBlur}
             className="w-16 text-sm font-semibold text-gray-800 text-right focus:outline-none"
           />
         </div>

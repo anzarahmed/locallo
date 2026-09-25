@@ -7,15 +7,11 @@ export const AUDIENCE_TYPE_CODE: Record<BoostAudienceType, 0 | 1 | 2> = {
 };
 
 const IMPRESSIONS_PER_RUPEE = 20;
-const RANGE_THRESHOLD_BUDGET = 150;
 const RANGE_SPREAD = 100;
 
 export function estimateImpressions(dailyBudget: number): { min: number; max: number } {
   const max = dailyBudget * IMPRESSIONS_PER_RUPEE;
-  if (dailyBudget < RANGE_THRESHOLD_BUDGET) {
-    return { min: max, max };
-  }
-  return { min: max - RANGE_SPREAD, max };
+  return { min: Math.max(max - RANGE_SPREAD, 0), max };
 }
 
 export function formatImpressionRange(min: number, max: number): string {
