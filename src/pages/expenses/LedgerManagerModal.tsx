@@ -3,6 +3,7 @@ import { X, Plus, Pencil, Trash2, Check, BookOpen } from 'lucide-react';
 import { createLedger, updateLedger, deleteLedger } from '../../services/pnlService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
+import { isReservedLedgerName, RESERVED_LEDGER_MESSAGE } from '../../validation/pnlSchemas';
 import type { Ledger } from '../../types';
 
 interface LedgerManagerModalProps {
@@ -32,6 +33,10 @@ export default function LedgerManagerModal({
   async function handleCreate(): Promise<void> {
     const trimmed = name.trim();
     if (!trimmed) return;
+    if (isReservedLedgerName(trimmed)) {
+      toast.error(RESERVED_LEDGER_MESSAGE);
+      return;
+    }
     setCreating(true);
     try {
       const { ledger } = await createLedger(trimmed);
@@ -54,6 +59,10 @@ export default function LedgerManagerModal({
   async function handleSaveEdit(id: string): Promise<void> {
     const trimmed = editValue.trim();
     if (!trimmed) return;
+    if (isReservedLedgerName(trimmed)) {
+      toast.error(RESERVED_LEDGER_MESSAGE);
+      return;
+    }
     setSaving(true);
     try {
       const { ledger } = await updateLedger(id, trimmed);

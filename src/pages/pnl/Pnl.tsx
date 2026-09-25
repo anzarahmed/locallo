@@ -106,7 +106,6 @@ export default function Pnl(): JSX.Element {
   }
 
   const ledgerRows: { label: string; amount: number | null; id: string }[] = ledgers
-    .filter(l => l.name !== 'Purchase')
     .filter(l => l.isDefault || expenseTotalByLedgerId.has(l.id))
     .map(l => ({
       id: l.id,
