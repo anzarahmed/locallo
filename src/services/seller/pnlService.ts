@@ -1,5 +1,6 @@
 import { QueryTypes } from 'sequelize';
 import sequelize from '../../config/database';
+import { DEFAULT_LEDGER_NAMES } from './ledgerService';
 
 export interface PnlExpenseItem {
   ledgerName: string;
@@ -124,9 +125,15 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
      FROM expenses e
      JOIN seller_ledgers sl ON sl.id = e.ledger_id
      WHERE e.seller_id = :sellerId AND e.expense_date BETWEEN :from AND :to
-     GROUP BY sl.id, sl.name
-     ORDER BY sl.name ASC`,
-    { type: QueryTypes.SELECT, replacements: { sellerId, from, to } },
+     GROUP BY sl.id, sl.name, sl.is_default, sl.created_at
+     ORDER BY
+       CASE WHEN sl.is_default THEN COALESCE(array_position(ARRAY[:defaultNames]::text[], sl.name::text), :defaultCount) ELSE :defaultCount END,
+       sl.created_at ASC,
+       sl.id ASC`,
+    {
+      type: QueryTypes.SELECT,
+      replacements: { sellerId, from, to, defaultNames: [...DEFAULT_LEDGER_NAMES], defaultCount: DEFAULT_LEDGER_NAMES.length },
+    },
   );
 
   const openingStockValue = await stockValueAsOf(sellerId, from, 'opening');

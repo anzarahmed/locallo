@@ -38,8 +38,19 @@ export async function createLedger(sellerId: string, name: string): Promise<Sell
   return SellerLedger.create({ sellerId, name });
 }
 
+// Default ledgers are bulk-inserted with identical createdAt, so createdAt alone gives
+// Postgres an arbitrary (and unstable) order — rank defaults by DEFAULT_LEDGER_NAMES instead.
+function defaultRank(ledger: SellerLedger): number {
+  const idx = (DEFAULT_LEDGER_NAMES as readonly string[]).indexOf(ledger.name);
+  return ledger.isDefault && idx !== -1 ? idx : DEFAULT_LEDGER_NAMES.length;
+}
+
 export async function listLedgers(sellerId: string): Promise<SellerLedger[]> {
-  return SellerLedger.findAll({ where: { sellerId }, order: [['createdAt', 'ASC']] });
+  const ledgers = await SellerLedger.findAll({
+    where: { sellerId },
+    order: [['createdAt', 'ASC'], ['id', 'ASC']],
+  });
+  return ledgers.sort((a, b) => defaultRank(a) - defaultRank(b));
 }
 
 export async function updateLedger(sellerId: string, ledgerId: string, name: string): Promise<SellerLedger> {
