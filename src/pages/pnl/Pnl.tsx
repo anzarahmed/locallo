@@ -1,10 +1,10 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Link } from 'react-router-dom';
 import { Wallet, TrendingUp, TrendingDown, ChevronLeft, ChevronRight, ListChecks, PackagePlus } from 'lucide-react';
-import { getPnlSummary, getExpenses, getLedgers } from '../../services/pnlService';
+import { getPnlSummary, getExpenses } from '../../services/pnlService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
-import type { PnlPeriod, PnlSummary, Expense, Ledger } from '../../types';
+import type { PnlPeriod, PnlSummary, Expense } from '../../types';
 import DatePicker from '../../components/ui/DatePicker';
 import { formatDate, toIsoDate } from '../../lib/dateFormat';
 
@@ -53,14 +53,6 @@ export default function Pnl(): JSX.Element {
   const [totalExpenses, setTotalExpenses] = useState(0);
   const [loadingExpenses, setLoadingExpenses] = useState(true);
 
-  const [ledgers, setLedgers] = useState<Ledger[]>([]);
-
-  useEffect(() => {
-    getLedgers()
-      .then(({ ledgers: data }) => setLedgers(data))
-      .catch(err => toast.error(err instanceof ApiError ? err.message : 'Failed to load ledgers'));
-  }, []); // toast is stable
-
   useEffect(() => {
     async function load(): Promise<void> {
       if (period === 'custom' && (!customFrom || !customTo)) return;
@@ -96,18 +88,11 @@ export default function Pnl(): JSX.Element {
 
   const isProfit = (summary?.netProfitLoss ?? 0) >= 0;
 
-  const expenseTotalByLedgerId = new Map<string, number>();
-  for (const e of expenses) {
-    expenseTotalByLedgerId.set(e.ledgerId, (expenseTotalByLedgerId.get(e.ledgerId) ?? 0) + e.amount);
-  }
-
-  const ledgerRows: { label: string; amount: number | null; id: string }[] = ledgers
-    .filter(l => l.isDefault || expenseTotalByLedgerId.has(l.id))
-    .map(l => ({
-      id: l.id,
-      label: `To ${l.name}`,
-      amount: expenseTotalByLedgerId.get(l.id) ?? null,
-    }));
+  const ledgerRows: { label: string; amount: number | null; id: string }[] = (summary?.expenses ?? []).map(e => ({
+    id: e.ledgerId,
+    label: `To ${e.ledgerName}`,
+    amount: e.amount > 0 ? e.amount : null,
+  }));
 
   const drRows: { label: string; amount: number | null; id?: string }[] = summary
     ? [

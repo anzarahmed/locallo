@@ -359,11 +359,18 @@ export interface ExpensesResponse {
 
 export type PnlPeriod = 'today' | 'this_month' | 'this_quarter' | 'financial_year' | 'custom';
 
+export interface PnlExpenseItem {
+  ledgerId: string;
+  ledgerName: string;
+  amount: number;
+}
+
 export interface PnlSummary {
   totalSales: number;
   totalCost: number;
   totalExpenses: number;
   totalPurchases: number;
+  expenses: PnlExpenseItem[];
   openingStockValue: number;
   closingStockValue: number;
   grossProfit: number;
