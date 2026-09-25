@@ -10,7 +10,6 @@ export const DEFAULT_LEDGER_NAMES = [
   'Advertising',
   'Repairing & Maintenance',
   'Mobile & Internet Expenses',
-  'Purchase',
   'Other Expenses',
 ] as const;
 
