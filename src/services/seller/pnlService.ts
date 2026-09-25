@@ -3,6 +3,7 @@ import sequelize from '../../config/database';
 import { DEFAULT_LEDGER_NAMES } from './ledgerService';
 
 export interface PnlExpenseItem {
+  ledgerId: string;
   ledgerName: string;
   amount: number;
 }
@@ -31,6 +32,7 @@ interface ExpensesRow {
 }
 
 interface ExpenseByLedgerRow {
+  ledgerId: string;
   ledgerName: string;
   amount: string;
 }
@@ -120,12 +122,16 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
     { type: QueryTypes.SELECT, replacements: { sellerId, from, to } },
   );
 
+  // LEFT JOIN so default ledgers are always returned (amount 0 when no expenses were
+  // logged this period) — non-default ledgers only surface once they have an expense.
   const expensesByLedger = await sequelize.query<ExpenseByLedgerRow>(
-    `SELECT sl.name AS "ledgerName", COALESCE(SUM(e.amount), 0) AS "amount"
-     FROM expenses e
-     JOIN seller_ledgers sl ON sl.id = e.ledger_id
-     WHERE e.seller_id = :sellerId AND e.expense_date BETWEEN :from AND :to
+    `SELECT sl.id AS "ledgerId", sl.name AS "ledgerName", COALESCE(SUM(e.amount), 0) AS "amount"
+     FROM seller_ledgers sl
+     LEFT JOIN expenses e
+       ON e.ledger_id = sl.id AND e.seller_id = :sellerId AND e.expense_date BETWEEN :from AND :to
+     WHERE sl.seller_id = :sellerId
      GROUP BY sl.id, sl.name, sl.is_default, sl.created_at
+     HAVING sl.is_default = true OR COUNT(e.id) > 0
      ORDER BY
        CASE WHEN sl.is_default THEN COALESCE(array_position(ARRAY[:defaultNames]::text[], sl.name::text), :defaultCount) ELSE :defaultCount END,
        sl.created_at ASC,
@@ -168,7 +174,7 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
     totalCost,
     totalExpenses,
     totalPurchases,
-    expenses: expensesByLedger.map((row) => ({ ledgerName: row.ledgerName, amount: Number(row.amount) })),
+    expenses: expensesByLedger.map((row) => ({ ledgerId: row.ledgerId, ledgerName: row.ledgerName, amount: Number(row.amount) })),
     openingStockValue,
     closingStockValue,
     grossProfit,
