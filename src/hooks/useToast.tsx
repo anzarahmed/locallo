@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useMemo, type JSX } from 'react';
+import { createContext, useContext, useState, useCallback, useMemo, useRef, type JSX } from 'react';
 
 type ToastType = 'success' | 'error' | 'info';
 
@@ -20,15 +20,26 @@ const ToastContext = createContext<ToastContextValue | null>(null);
 
 export function ToastProvider({ children }: { children: React.ReactNode }): JSX.Element {
   const [toasts, setToasts] = useState<ToastItem[]>([]);
+  // Source of truth for dedupe — mutated synchronously in push/dismiss so two
+  // near-simultaneous calls (StrictMode double-invoked effects, or two requests
+  // failing at once) always see each other's writes, unlike a ref synced from
+  // `toasts` via a separate effect (which lags a render behind).
+  const toastsRef = useRef<ToastItem[]>([]);
 
   const dismiss = useCallback((id: string): void => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
+    toastsRef.current = toastsRef.current.filter((t) => t.id !== id);
+    setToasts(toastsRef.current);
   }, []);
 
   const push = useCallback((type: ToastType, message: string): void => {
+    if (toastsRef.current.some((t) => t.type === type && t.message === message)) return;
     const id = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2);
-    setToasts((prev) => [...prev, { id, type, message }]);
-    setTimeout(() => setToasts((prev) => prev.filter((t) => t.id !== id)), 3500);
+    toastsRef.current = [...toastsRef.current, { id, type, message }];
+    setToasts(toastsRef.current);
+    setTimeout(() => {
+      toastsRef.current = toastsRef.current.filter((t) => t.id !== id);
+      setToasts(toastsRef.current);
+    }, 3500);
   }, []);
 
   const value = useMemo<ToastContextValue>(
