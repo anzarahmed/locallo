@@ -93,9 +93,9 @@ export default function Dashboard(): JSX.Element {
             bgIcon={<Star size={88} className="text-amber-400" />}
             iconBg="bg-amber-50"
             accentClass="bg-amber-400"
-            value={loading || !stats ? null : stats.avgRating.toFixed(1)}
+            value={loading || !stats ? null : stats.reviewCount > 0 ? stats.avgRating.toFixed(1) : '-'}
             label="Shop Rating"
-            sublabel="out of 5.0"
+            sublabel={stats && stats.reviewCount > 0 ? 'out of 5.0' : 'no ratings yet'}
           />
         </div>
 
@@ -232,7 +232,7 @@ function ProductRow({ product, rank }: { product: TopProduct; rank: number }): J
         <div className="flex items-center gap-2 mt-0.5 text-xs text-gray-400">
           <span className="flex items-center gap-0.5">
             <Star size={11} className="text-amber-400 fill-amber-400" />
-            {product.avgRating.toFixed(1)}
+            {product.reviewCount > 0 ? product.avgRating.toFixed(1) : '-'}
             {product.reviewCount > 0 && <span className="text-gray-300">&nbsp;({product.reviewCount})</span>}
           </span>
           <span>·</span>
