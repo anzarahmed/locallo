@@ -100,8 +100,12 @@ export async function requireSeller(req: Request, res: Response, next: NextFunct
   }
 
   const user = await User.findByPk(payload.id);
-  if (!user || !user.isActive) {
+  if (!user) {
     res.status(401).json({ message: 'Unauthorized' });
+    return;
+  }
+  if (!user.isActive) {
+    res.status(401).json({ message: 'Your account has been deactivated by the admin. Please contact support.' });
     return;
   }
 

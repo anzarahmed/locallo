@@ -1,5 +1,15 @@
-import type { Transaction } from 'sequelize';
+import type { Transaction, WhereOptions } from 'sequelize';
+import { Op, fn, col, where as sequelizeWhere } from 'sequelize';
 import { SellerLedger } from '../../models/SellerLedger';
+
+// Ledger names must be unique per seller regardless of case ("Rent" vs "rent") — the DB has
+// a matching case-insensitive unique index on (seller_id, lower(name)).
+function byNameCaseInsensitive(sellerId: string, name: string): WhereOptions {
+  return {
+    sellerId,
+    [Op.and]: sequelizeWhere(fn('lower', col('name')), name.toLowerCase()),
+  };
+}
 
 export const DEFAULT_LEDGER_NAMES = [
   'Salary & Wages',
@@ -30,9 +40,9 @@ export async function createDefaultLedgers(sellerId: string, transaction?: Trans
 }
 
 export async function createLedger(sellerId: string, name: string): Promise<SellerLedger> {
-  const existing = await SellerLedger.findOne({ where: { sellerId, name } });
+  const existing = await SellerLedger.findOne({ where: byNameCaseInsensitive(sellerId, name) });
   if (existing) {
-    throw Object.assign(new Error('A ledger with this name already exists'), { status: 409 });
+    throw Object.assign(new Error(`A ledger named "${existing.name}" already exists`), { status: 409 });
   }
   return SellerLedger.create({ sellerId, name });
 }
@@ -61,9 +71,9 @@ export async function updateLedger(sellerId: string, ledgerId: string, name: str
     throw Object.assign(new Error('Default ledgers cannot be renamed'), { status: 403 });
   }
 
-  const conflict = await SellerLedger.findOne({ where: { sellerId, name } });
+  const conflict = await SellerLedger.findOne({ where: byNameCaseInsensitive(sellerId, name) });
   if (conflict && conflict.id !== ledgerId) {
-    throw Object.assign(new Error('A ledger with this name already exists'), { status: 409 });
+    throw Object.assign(new Error(`A ledger named "${conflict.name}" already exists`), { status: 409 });
   }
 
   await ledger.update({ name });
