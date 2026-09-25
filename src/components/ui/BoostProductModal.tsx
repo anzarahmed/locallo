@@ -427,8 +427,8 @@ function BudgetStep({ dailyBudget, onChange }: BudgetStepProps): JSX.Element {
 
       <div className="flex items-start justify-between gap-4 mb-4">
         <div>
-          <p className="text-sm font-semibold text-gray-800">Daily Budget</p>
-          <p className="text-xs text-gray-400 mt-0.5">Select how much you want to spend per day.</p>
+          <p className="text-sm font-semibold text-gray-800">Budget</p>
+          <p className="text-xs text-gray-400 mt-0.5">Select how much you want to spend.</p>
         </div>
         <div className="flex items-center gap-1 border border-teal-600 rounded-xl px-3 py-2 shrink-0">
           <span className="text-teal-700 text-sm font-semibold">₹</span>
