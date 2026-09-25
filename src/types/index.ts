@@ -246,6 +246,7 @@ export interface ProductBoost {
 export interface Payment {
   id: string;
   productId: string;
+  variantId: string | null;
   productName: string;
   productImage: string | null;
   audienceType: BoostAudienceType;
