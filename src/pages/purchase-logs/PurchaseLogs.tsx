@@ -4,6 +4,7 @@ import { getPurchaseLogs } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import type { PurchaseLog } from '../../types';
+import { formatDateTime } from '../../lib/dateFormat';
 
 const PAGE_LIMIT = 20;
 
@@ -36,13 +37,6 @@ function getDateRange(filter: DateFilter): { from?: string; to?: string } {
   }
   const from = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
   return { from, to };
-}
-
-function formatPurchasedAt(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-    + ' · '
-    + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
 export default function PurchaseLogs(): JSX.Element {
@@ -213,7 +207,7 @@ function LogCard({ log }: { log: PurchaseLog }): JSX.Element {
               </div>
             )}
 
-            <p className="text-xs text-gray-400 mt-1.5">{formatPurchasedAt(log.purchasedAt)}</p>
+            <p className="text-xs text-gray-400 mt-1.5">{formatDateTime(log.purchasedAt)}</p>
           </div>
         </div>
 

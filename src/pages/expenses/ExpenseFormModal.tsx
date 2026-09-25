@@ -7,9 +7,11 @@ import { expenseSchema, type ExpenseFormValues } from '../../validation/pnlSchem
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import type { Ledger, Expense } from '../../types';
+import DatePicker from '../../components/ui/DatePicker';
+import { toIsoDate } from '../../lib/dateFormat';
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toIsoDate(new Date());
 }
 
 function inputCls(hasError: boolean): string {
@@ -178,17 +180,15 @@ export default function ExpenseFormModal({
             )}
           </div>
 
-          <div>
-            <label className="text-xs font-medium text-gray-500 block mb-1.5">Date</label>
-            <input
-              type="date"
-              name="expenseDate"
-              value={form.values.expenseDate}
-              onChange={form.handleChange}
-              onBlur={form.handleBlur}
-              className={inputCls(!!form.touched.expenseDate && !!form.errors.expenseDate)}
-            />
-          </div>
+          <DatePicker
+            label="Date"
+            name="expenseDate"
+            required
+            value={form.values.expenseDate}
+            onChange={(val) => void form.setFieldValue('expenseDate', val)}
+            onBlur={() => void form.setFieldTouched('expenseDate')}
+            inputClassName={inputCls(!!form.touched.expenseDate && !!form.errors.expenseDate)}
+          />
 
           <div>
             <label className="text-xs font-medium text-gray-500 block mb-1.5">Narration (optional)</label>

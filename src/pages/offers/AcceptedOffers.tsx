@@ -4,7 +4,8 @@ import { ArrowLeft, BadgePercent, ChevronRight, Tag } from 'lucide-react';
 import { getAcceptedOffers } from '../../services/offerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
-import { formatDateTime, offerSummary, offerTypeLabel } from '../../lib/offerUtils';
+import { offerSummary, offerTypeLabel } from '../../lib/offerUtils';
+import { formatDateTime } from '../../lib/dateFormat';
 import type { AcceptedOffer } from '../../types';
 
 export default function AcceptedOffers(): JSX.Element {

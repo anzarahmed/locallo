@@ -9,17 +9,15 @@ import type { Expense, Ledger } from '../../types';
 import ExpenseFormModal from './ExpenseFormModal';
 import LedgerManagerModal from './LedgerManagerModal';
 import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
+import DatePicker from '../../components/ui/DatePicker';
+import { formatDate, toIsoDate } from '../../lib/dateFormat';
 
 function formatCurrency(n: number): string {
   return `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 }
 
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-}
-
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toIsoDate(new Date());
 }
 
 export default function Expenses(): JSX.Element {
@@ -142,11 +140,11 @@ export default function Expenses(): JSX.Element {
         {/* Date filter */}
         <div className="bg-white rounded-2xl shadow-sm px-4 py-3 mb-4 flex items-center gap-2 flex-wrap">
           <Calendar size={15} className="text-gray-400 shrink-0" />
-          <input
-            type="date"
+          <DatePicker
+            name="expenseDateFilter"
             value={dateFilter}
-            onChange={(e) => handleDateChange(e.target.value)}
-            className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 outline-none focus:border-teal-400 transition-colors"
+            onChange={handleDateChange}
+            inputClassName="w-36 text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 placeholder-gray-400 outline-none focus:border-teal-400 transition-colors"
           />
           {dateFilter ? (
             <button

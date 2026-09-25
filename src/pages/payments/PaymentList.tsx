@@ -4,6 +4,7 @@ import { getPayments } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import type { Payment, PaymentStatus } from '../../types';
+import { formatDateTime } from '../../lib/dateFormat';
 
 const PAGE_LIMIT = 20;
 
@@ -33,13 +34,6 @@ function audienceLabel(payment: Payment): string {
   if (payment.audienceType === 'pan_india') return 'Pan India';
   if (payment.audienceType === 'state') return `State: ${payment.state ?? '—'}`;
   return `City: ${payment.city ?? '—'}`;
-}
-
-function formatCreatedAt(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-    + ' · '
-    + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
 export default function PaymentList(): JSX.Element {
@@ -214,7 +208,7 @@ function PaymentRow({ payment }: { payment: Payment }): JSX.Element {
         </div>
       </td>
       <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{audienceLabel(payment)}</td>
-      <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{formatCreatedAt(payment.createdAt)}</td>
+      <td className="px-4 py-3 text-gray-400 whitespace-nowrap">{formatDateTime(payment.createdAt)}</td>
       <td className="px-4 py-3 text-right font-bold text-gray-800 whitespace-nowrap">₹{payment.amount}</td>
       <td className="px-4 py-3 text-right whitespace-nowrap">
         <span

@@ -11,6 +11,7 @@ import { formatPrice, discountPct } from '../../lib/formatters';
 import type { AttributeField, Product, ProductVariant } from '../../types';
 import { categorySupportsVariants } from '../../lib/variantUtils';
 import ProductPreview from './ProductPreview';
+import { formatDate } from '../../lib/dateFormat';
 
 function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
   if (raw === null || raw === undefined || raw === '') return <span className="text-gray-400">—</span>;
@@ -314,11 +315,11 @@ export default function ProductDetail(): JSX.Element {
                 <h2 className="text-lg font-bold text-gray-900 leading-snug">{product.name}</h2>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-gray-400">
                   <span>
-                    Added {new Date(product.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    Added {formatDate(product.createdAt)}
                   </span>
                   {product.updatedAt && (
                     <span>
-                      Updated {new Date(product.updatedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      Updated {formatDate(product.updatedAt)}
                     </span>
                   )}
                   <span className="flex items-center gap-1">

@@ -16,6 +16,8 @@ import { ApiError } from '../../lib/axios';
 import type { SellerCategory, CustomDayOverride } from '../../types';
 import LocationDisplay from '../../components/LocationDisplay';
 import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
+import DatePicker from '../../components/ui/DatePicker';
+import { formatDate, toDate, toIsoDate } from '../../lib/dateFormat';
 
 type DayFieldErrors  = Partial<{ open: string; close: string }>;
 type DayFieldTouched = Partial<{ open: boolean; close: boolean }>;
@@ -560,11 +562,7 @@ interface SpecialHoursCardProps {
 }
 
 function todayDateString(): string {
-  const d = new Date();
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
-  return `${y}-${m}-${day}`;
+  return toIsoDate(new Date());
 }
 
 function dayOfWeekFromDate(dateStr: string): Day {
@@ -572,10 +570,10 @@ function dayOfWeekFromDate(dateStr: string): Day {
   return days[new Date(dateStr + 'T00:00:00').getDay()];
 }
 
-function formatDate(dateStr: string): string {
-  return new Date(dateStr + 'T00:00:00').toLocaleDateString('en-IN', {
-    weekday: 'long', year: 'numeric', month: 'short', day: 'numeric',
-  });
+const WEEKDAY_NAMES: string[] = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+
+function formatOverrideDate(dateStr: string): string {
+  return `${WEEKDAY_NAMES[toDate(dateStr).getDay()]}, ${formatDate(dateStr)}`;
 }
 
 function formatTime(t: string): string {
@@ -704,7 +702,7 @@ function SpecialHoursCard({ override, loading, workingHours, onSaved, onCleared 
             <div className="flex items-start justify-between gap-3">
               <div className="flex flex-col gap-1">
                 <span className="text-xs font-medium text-gray-500">Date</span>
-                <span className="text-sm font-semibold text-gray-800">{formatDate(override!.date)}</span>
+                <span className="text-sm font-semibold text-gray-800">{formatOverrideDate(override!.date)}</span>
               </div>
               <div className="flex gap-2 shrink-0">
                 <button
@@ -738,25 +736,17 @@ function SpecialHoursCard({ override, loading, workingHours, onSaved, onCleared 
           /* ── Add / Edit form ── */
           <form noValidate onSubmit={customDayForm.handleSubmit} className="flex flex-col gap-4">
             {/* Date */}
-            <div>
-              <label className="text-xs font-medium text-gray-500 block mb-1.5">Date</label>
-              <input
-                type="date"
-                name="date"
-                min={todayDateString()}
-                value={customDayForm.values.date}
-                onChange={(e) => handleDateChange(e.target.value)}
-                onBlur={customDayForm.handleBlur}
-                className={`w-full px-3 py-3 text-sm rounded-xl border outline-none transition-colors ${
-                  customDayForm.touched.date && customDayForm.errors.date
-                    ? 'border-red-400 bg-red-50'
-                    : 'border-gray-200 bg-white focus:border-teal-400'
-                }`}
-              />
-              {customDayForm.touched.date && customDayForm.errors.date && (
-                <p className="mt-1 text-xs text-red-500">{customDayForm.errors.date}</p>
-              )}
-            </div>
+            <DatePicker
+              label="Date"
+              name="date"
+              required
+              min={todayDateString()}
+              value={customDayForm.values.date}
+              onChange={handleDateChange}
+              onBlur={() => void customDayForm.setFieldTouched('date')}
+              touched={customDayForm.touched.date}
+              error={customDayForm.errors.date}
+            />
 
             {/* Close for the day */}
             <label className="flex items-center gap-2 cursor-pointer select-none">

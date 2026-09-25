@@ -5,6 +5,8 @@ import { getPnlSummary, getExpenses, getLedgers } from '../../services/pnlServic
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import type { PnlPeriod, PnlSummary, Expense, Ledger } from '../../types';
+import DatePicker from '../../components/ui/DatePicker';
+import { formatDate, toIsoDate } from '../../lib/dateFormat';
 
 const EXPENSE_ROW_LIMIT = 100;
 
@@ -30,16 +32,10 @@ function formatCurrency(n: number): string {
   return `₹${n.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
 }
 
-const MONTHS_SHORT: string[] = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-// Built manually because en-IN/en-GB locales abbreviate September as "Sept".
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.getDate()} ${MONTHS_SHORT[d.getMonth()]} ${d.getFullYear()}`;
-}
+const PNL_DATE_INPUT_CLS = 'w-36 text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600 outline-none focus:border-teal-400 transition-colors';
 
 function todayIso(): string {
-  return new Date().toISOString().slice(0, 10);
+  return toIsoDate(new Date());
 }
 
 export default function Pnl(): JSX.Element {
@@ -218,20 +214,22 @@ export default function Pnl(): JSX.Element {
 
           {period === 'custom' && (
             <div className="flex items-center gap-2 ml-1">
-              <input
-                type="date"
+              <DatePicker
+                name="pnlFrom"
+                required
                 value={customFrom}
                 max={customTo}
-                onChange={(e) => setCustomFrom(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600"
+                onChange={setCustomFrom}
+                inputClassName={PNL_DATE_INPUT_CLS}
               />
               <span className="text-gray-400 text-sm">to</span>
-              <input
-                type="date"
+              <DatePicker
+                name="pnlTo"
+                required
                 value={customTo}
                 min={customFrom}
-                onChange={(e) => setCustomTo(e.target.value)}
-                className="text-sm border border-gray-200 rounded-lg px-2 py-1.5 text-gray-600"
+                onChange={setCustomTo}
+                inputClassName={PNL_DATE_INPUT_CLS}
               />
             </div>
           )}

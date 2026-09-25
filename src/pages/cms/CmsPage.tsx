@@ -4,6 +4,7 @@ import { ArrowLeft, FileText } from 'lucide-react';
 import { getCmsPageBySlug } from '../../services/cmsPageService';
 import { ApiError } from '../../lib/axios';
 import type { CmsPage as CmsPageData } from '../../types';
+import { formatDate } from '../../lib/dateFormat';
 
 const CONTENT_CLASSES = [
   'text-sm leading-relaxed text-gray-700',
@@ -17,10 +18,6 @@ const CONTENT_CLASSES = [
   '[&_a]:text-teal-600 [&_a]:underline',
   '[&_strong]:font-semibold [&_strong]:text-gray-900',
 ].join(' ');
-
-function formatDate(iso: string): string {
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
-}
 
 function ContentSkeleton(): JSX.Element {
   return (

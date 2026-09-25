@@ -1,3 +1,5 @@
+import { formatDate } from './dateFormat';
+
 export function formatPrice(val: number | null | undefined): string {
   if (val == null) return '—';
   return `₹${val.toLocaleString('en-IN')}`;
@@ -24,5 +26,5 @@ export function formatRelativeTime(iso: string): string {
   const diffDay = Math.round(diffHr / 24);
   if (diffDay < 7) return `${diffDay}d ago`;
 
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' });
+  return formatDate(iso);
 }

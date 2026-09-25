@@ -20,6 +20,7 @@ import FormField from '../../components/ui/FormField';
 import AttrInput from '../../components/ui/AttrInput';
 import ConfirmLeaveModal from '../../components/ui/ConfirmLeaveModal';
 import type { SellerCategory, AttributeField, AttributeFieldOption, ProductReview } from '../../types';
+import { formatDate } from '../../lib/dateFormat';
 
 const EMPTY_VALUES: AddProductFormValues = {
   name: '', description: '', categoryId: 0, sellingPrice: '', mrp: '', costPrice: '', stock: '',
@@ -788,7 +789,7 @@ export default function EditProduct(): JSX.Element {
                         <div className="flex items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-gray-700 truncate">{r.customer.name}</p>
                           <span className="text-xs text-gray-400 shrink-0">
-                            {new Date(r.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                            {formatDate(r.createdAt)}
                           </span>
                         </div>
                         <div className="flex items-center gap-0.5 mt-0.5">

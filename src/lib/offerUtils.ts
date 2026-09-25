@@ -1,9 +1,5 @@
 import type { BogoConfig, FlatAmountOffConfig, Offer, PercentageOffConfig } from '../types';
 
-export function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
-
 export function offerTypeLabel(offer: Offer): string {
   switch (offer.offerType) {
     case 'percentage_off': return 'Percentage Off';
