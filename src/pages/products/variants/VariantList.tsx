@@ -450,7 +450,7 @@ function GroupedVariantCard({
               <span className={`text-xs ml-auto ${
                 v.stock === 0 ? 'text-rose-400 font-medium' :
                 v.stock <= 5 ? 'text-amber-500 font-medium' :
-                'text-gray-400'
+                'text-emerald-600 font-medium'
               }`}>
                 {v.stock === 0 ? 'Out of stock' : `${v.stock} items in stock`}
               </span>
