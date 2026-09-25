@@ -6,6 +6,7 @@ import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import StatusBadge from '../../components/ui/StatusBadge';
 import AuthField from '../../components/ui/AuthField';
+import OfferDateTimeField from './OfferDateTimeField';
 import SelectField from '../../components/ui/SelectField';
 import { ApiError } from '../../lib/axios';
 import {
@@ -21,10 +22,7 @@ import { offerSchema, OFFER_TYPE_OPTIONS, type OfferFormValues } from './offerSc
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
 import { DEFAULT_PAGE_SIZE, STATUS_FILTER_OPTIONS } from '../../lib/constants';
-
-function formatDateTime(value: string): string {
-  return new Date(value).toLocaleString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' });
-}
+import { formatDateTime } from '../../lib/dateFormat';
 
 function toDatetimeLocalValue(iso: string): string {
   const d = new Date(iso);
@@ -179,8 +177,8 @@ function OfferModal({ offer, onClose, onSaved }: OfferModalProps): JSX.Element {
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <AuthField
-                label="Start Date & Time" name="startDate" type="datetime-local" required
+              <OfferDateTimeField
+                label="Start Date & Time" name="startDate" required
                 min={minStart}
                 value={f.values.startDate}
                 onChange={f.handleChange}
@@ -188,8 +186,8 @@ function OfferModal({ offer, onClose, onSaved }: OfferModalProps): JSX.Element {
                 touched={f.touched.startDate}
                 error={f.errors.startDate}
               />
-              <AuthField
-                label="End Date & Time" name="endDate" type="datetime-local" required
+              <OfferDateTimeField
+                label="End Date & Time" name="endDate" required
                 min={f.values.startDate || minStart}
                 value={f.values.endDate}
                 onChange={f.handleChange}

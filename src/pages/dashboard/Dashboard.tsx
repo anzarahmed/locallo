@@ -2,6 +2,7 @@ import { useEffect, useState, type JSX } from 'react';
 import { Store, Users, ShoppingBag, DollarSign, type LucideIcon } from 'lucide-react';
 import { getRecentActivity, getDashboardStats } from '../../services/dashboardService';
 import type { ActivityItem, ActivityType, DashboardStats } from '../../services/dashboardService';
+import { formatDate } from '../../lib/dateFormat';
 
 interface StatCardConfig {
   key: keyof DashboardStats;
@@ -44,7 +45,7 @@ function formatRelativeTime(iso: string): string {
   if (diffHr < 24) return `${diffHr} hr ago`;
   const diffDay = Math.floor(diffHr / 24);
   if (diffDay < 7) return `${diffDay} day${diffDay === 1 ? '' : 's'} ago`;
-  return new Date(iso).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+  return formatDate(iso);
 }
 
 export default function Dashboard(): JSX.Element {

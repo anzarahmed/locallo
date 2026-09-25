@@ -7,6 +7,7 @@ import { getCustomerById, toggleCustomerStatus, type CustomerDetail as CustomerD
 import { useToast } from '../../hooks/useToast';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { getInitials, getAvatarColor } from '../../lib/avatar';
+import { formatDate } from '../../lib/dateFormat';
 
 interface CustomerDetailProps {
   customerId: string;
@@ -114,7 +115,7 @@ export default function CustomerDetail({ customerId, onClose, onToggled }: Custo
             </h2>
             {!loading && customer && (
               <p className="text-xs text-gray-400 mt-0.5">
-                Joined {new Date(customer.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                Joined {formatDate(customer.createdAt)}
               </p>
             )}
           </div>
@@ -214,7 +215,7 @@ export default function CustomerDetail({ customerId, onClose, onToggled }: Custo
                             </div>
                           </div>
                           <span className="text-xs text-gray-400 shrink-0">
-                            {new Date(item.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                            {formatDate(item.createdAt)}
                           </span>
                         </div>
                       ))}

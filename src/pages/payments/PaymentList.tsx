@@ -6,6 +6,7 @@ import { getPayments } from '../../services/paymentService';
 import { getAllSellers, type Seller } from '../../services/sellerService';
 import type { Payment, PaymentStatus } from '../../types';
 import { DEFAULT_PAGE_SIZE, PAYMENT_STATUS_FILTER_OPTIONS } from '../../lib/constants';
+import { formatDateTime } from '../../lib/dateFormat';
 
 function formatAmount(amount: number): string {
   return `₹${amount.toLocaleString('en-IN')}`;
@@ -15,13 +16,6 @@ function audienceLabel(payment: Payment): string {
   if (payment.audienceType === 'pan_india') return 'Pan India';
   if (payment.audienceType === 'state') return `State: ${payment.state ?? '—'}`;
   return `City: ${payment.city ?? '—'}`;
-}
-
-function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-    + ' · '
-    + d.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
 }
 
 const STATUS_BADGE: Record<PaymentStatus, string> = {
@@ -179,7 +173,7 @@ export default function PaymentList(): JSX.Element {
       enableSorting: true,
       enableColumnFilter: false,
       cell: ({ row }: { row: Row<Payment> }) => (
-        <span className="text-gray-500 whitespace-nowrap">{formatDate(row.original.createdAt)}</span>
+        <span className="text-gray-500 whitespace-nowrap">{formatDateTime(row.original.createdAt)}</span>
       ),
     },
   ] as ColumnDef<Payment, unknown>[], [sellers]);

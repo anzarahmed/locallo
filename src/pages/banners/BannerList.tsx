@@ -6,6 +6,8 @@ import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import StatusBadge from '../../components/ui/StatusBadge';
 import AuthField from '../../components/ui/AuthField';
+import DatePicker from '../../components/ui/DatePicker';
+import { formatDate } from '../../lib/dateFormat';
 import ComboboxField from '../../components/ui/ComboboxField';
 import { ApiError } from '../../lib/axios';
 import {
@@ -23,9 +25,6 @@ import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
 import { DEFAULT_PAGE_SIZE, STATUS_FILTER_OPTIONS } from '../../lib/constants';
 
-function formatDate(value: string): string {
-  return new Date(value).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
-}
 
 // ── ImageUploadField ─────────────────────────────────────────────────────────
 
@@ -203,19 +202,20 @@ function BannerModal({ banner, brands, onClose, onSaved }: BannerModalProps): JS
             />
 
             <div className="grid grid-cols-2 gap-4">
-              <AuthField
-                label="Start Date" name="startDate" type="date" required
+              <DatePicker
+                label="Start Date" name="startDate" required
                 value={f.values.startDate}
-                onChange={f.handleChange}
-                onBlur={f.handleBlur}
+                onChange={val => f.setFieldValue('startDate', val)}
+                onBlur={() => f.setFieldTouched('startDate')}
                 touched={f.touched.startDate}
                 error={f.errors.startDate}
               />
-              <AuthField
-                label="End Date" name="endDate" type="date" required
+              <DatePicker
+                label="End Date" name="endDate" required
+                min={f.values.startDate}
                 value={f.values.endDate}
-                onChange={f.handleChange}
-                onBlur={f.handleBlur}
+                onChange={val => f.setFieldValue('endDate', val)}
+                onBlur={() => f.setFieldTouched('endDate')}
                 touched={f.touched.endDate}
                 error={f.errors.endDate}
               />

@@ -4,6 +4,7 @@ import { getProduct, toggleProduct, deleteProduct } from '../../services/product
 import { ApiError } from '../../lib/axios';
 import type { AttributeField, Product, ProductVariant } from '../../types';
 import { useToast } from '../../hooks/useToast';
+import { formatDate } from '../../lib/dateFormat';
 
 interface ProductDetailProps {
   productId: string;
@@ -420,7 +421,7 @@ export default function ProductDetail({ productId, onClose, onToggled, onDeleted
                 <div>
                   <h3 className="text-lg font-bold text-gray-900 leading-snug">{product.name}</h3>
                   <p className="text-xs text-gray-400 mt-1">
-                    Added {new Date(product.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                    Added {formatDate(product.createdAt)}
                   </p>
                 </div>
 

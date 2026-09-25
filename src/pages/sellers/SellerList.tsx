@@ -14,6 +14,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { SkeletonAvatarCell, SkeletonNameBadgeCell } from '../../components/ui/SkeletonCells';
 import { DEFAULT_PAGE_SIZE, STATUS_FILTER_OPTIONS } from '../../lib/constants';
 import { getInitials, getAvatarColor } from '../../lib/avatar';
+import { formatDate } from '../../lib/dateFormat';
 
 function SellerAvatar({ name, photo }: { name: string | null; photo?: string | null }): JSX.Element {
   if (photo) {
@@ -232,7 +233,7 @@ export default function SellerList(): JSX.Element {
       meta: { align: 'right', className: 'w-32' },
       cell: ({ row }: { row: Row<Seller> }) => (
         <span className="text-gray-500 text-sm">
-          {new Date(row.original.createdAt).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+          {formatDate(row.original.createdAt)}
         </span>
       ),
     },

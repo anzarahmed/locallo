@@ -24,6 +24,7 @@ import {
   type CreateSubAdminValues,
   type EditSubAdminValues,
 } from './subAdminSchemas';
+import { formatDate } from '../../lib/dateFormat';
 
 // ── Add Modal ──────────────────────────────────────────────────────────────────
 
@@ -415,7 +416,7 @@ export default function SubAdminList(): JSX.Element {
       meta: { align: 'right' },
       cell: ({ getValue }) => (
         <span className="text-sm text-gray-500">
-          {new Date(getValue<string>()).toLocaleDateString()}
+          {formatDate(getValue<string>())}
         </span>
       ),
     },
