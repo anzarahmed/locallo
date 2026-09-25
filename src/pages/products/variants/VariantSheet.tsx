@@ -10,7 +10,7 @@ import { resolveImage, validateImageFile } from '../../../lib/imageUtils';
 import { inputCls } from '../../../lib/classUtils';
 import {
   generateCombinations, getCombinationKey, hasStockDependentAttr, validateComboStocks,
-  type VariantSelections,
+  carryOverComboStocks, type VariantSelections,
 } from '../../../lib/variantUtils';
 import type { Product, ProductVariant, AttributeField, AttributeFieldOption } from '../../../types';
 
@@ -184,17 +184,16 @@ export default function VariantSheet({
   // Used options are hidden rather than disabled, so a size picked before switching
   // color must be dropped once it becomes taken — otherwise it stays selected but invisible.
   function setVariantSelection(key: string, value: string | string[]): void {
-    setVariantSelections(prev => {
-      const next: VariantSelections = { ...prev, [key]: value };
-      if (sdField && key !== sdField.key) {
-        const used = usedSdValuesFor(sdField, next);
-        const sdSel = next[sdField.key];
-        if (Array.isArray(sdSel)) next[sdField.key] = sdSel.filter(v => !used.has(v));
-        else if (typeof sdSel === 'string' && used.has(sdSel)) next[sdField.key] = '';
-      }
-      return next;
-    });
-    setComboStocks({});
+    const next: VariantSelections = { ...variantSelections, [key]: value };
+    if (sdField && key !== sdField.key) {
+      const used = usedSdValuesFor(sdField, next);
+      const sdSel = next[sdField.key];
+      if (Array.isArray(sdSel)) next[sdField.key] = sdSel.filter(v => !used.has(v));
+      else if (typeof sdSel === 'string' && used.has(sdSel)) next[sdField.key] = '';
+    }
+    setVariantSelections(next);
+    const nextCombinations = generateCombinations(variantFields, next);
+    setComboStocks(prev => carryOverComboStocks(prev, allCombinations, nextCombinations, sdFields));
     setComboStockErrors({});
   }
 

@@ -15,7 +15,7 @@ import { normalizeAttrValues, buildRequiredAttrErrors, type AttrValue } from '..
 import { inputCls } from '../../lib/classUtils';
 import { MAX_SECONDARY_IMAGES } from '../../constants';
 import {
-  generateCombinations, getCombinationKey, hasStockDependentAttr,
+  generateCombinations, getCombinationKey, hasStockDependentAttr, carryOverComboStocks,
   buildProductVariantAttrs, validateComboStocks, categorySupportsVariants, type VariantSelections,
 } from '../../lib/variantUtils';
 import FormField from '../../components/ui/FormField';
@@ -105,10 +105,11 @@ export default function AddProduct(): JSX.Element {
   }
 
   function setVariantSelection(key: string, value: string | string[]): void {
-    setVariantSelections(prev => ({ ...prev, [key]: value }));
+    const nextSelections: VariantSelections = { ...variantSelections, [key]: value };
+    setVariantSelections(nextSelections);
     clearAttrError(key);
-    // Reset stock when selections change
-    setComboStocks({});
+    const nextCombinations = generateCombinations(variantFields, nextSelections);
+    setComboStocks(prev => carryOverComboStocks(prev, combinations, nextCombinations, sdFields));
     setComboStockErrors({});
   }
 

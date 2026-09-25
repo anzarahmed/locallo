@@ -65,6 +65,33 @@ export function getCombinationKey(combo: Record<string, string>): string {
   return Object.keys(combo).sort().map(k => `${k}:${combo[k]}`).join('|');
 }
 
+// Stock rows are labelled by stock-dependent values only (e.g. "Stock – S"), so when
+// another variant axis like Color changes, a row keeps its stock if its SD values match.
+export function carryOverComboStocks(
+  prevStocks: Record<string, string>,
+  prevCombinations: Record<string, string>[],
+  nextCombinations: Record<string, string>[],
+  sdFields: AttributeField[],
+): Record<string, string> {
+  const sdKeyOf = (combo: Record<string, string>): string =>
+    sdFields.map(f => `${f.key}:${combo[f.key] ?? ''}`).join('|');
+
+  const bySdKey = new Map<string, string>();
+  for (const combo of prevCombinations) {
+    const stock = prevStocks[getCombinationKey(combo)];
+    const sdKey = sdKeyOf(combo);
+    if (stock !== undefined && stock !== '' && !bySdKey.has(sdKey)) bySdKey.set(sdKey, stock);
+  }
+
+  const next: Record<string, string> = {};
+  for (const combo of nextCombinations) {
+    const key = getCombinationKey(combo);
+    const stock = prevStocks[key] ?? bySdKey.get(sdKeyOf(combo));
+    if (stock !== undefined) next[key] = stock;
+  }
+  return next;
+}
+
 export function hasStockDependentAttr(variantFields: AttributeField[]): boolean {
   return variantFields.some(f => f.isStockDependent === true);
 }
