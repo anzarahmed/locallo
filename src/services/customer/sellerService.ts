@@ -5,13 +5,8 @@ import { SellerProfile } from '../../models/SellerProfile';
 import { Category } from '../../models/Category';
 import { Brand } from '../../models/Brand';
 import { Product } from '../../models/Product';
+import { getIstDateString, getIstDayOfWeek } from '../../utils/istDate';
 import type { CustomDayOverride, CustomDayTime, DayOfWeek, WorkingHours } from '../../types';
-
-const DAYS: DayOfWeek[] = ['sunday', 'monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday'];
-
-function pad(n: number): string {
-  return String(n).padStart(2, '0');
-}
 
 export interface TodayWorkingHours {
   day: DayOfWeek;
@@ -38,8 +33,8 @@ function resolveTodayWorkingHours(
   override: CustomDayOverride | null,
 ): TodayWorkingHours {
   const now = new Date();
-  const day = DAYS[now.getDay()];
-  const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+  const day = getIstDayOfWeek(now);
+  const date = getIstDateString(now);
 
   if (override && override.date === date) {
     return { day, date, isSpecialHours: true, time: override.time };

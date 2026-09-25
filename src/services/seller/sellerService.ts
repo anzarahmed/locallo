@@ -11,6 +11,7 @@ import { Session } from '../../models/Session';
 import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
 import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
 import { sendKycVerificationEmail } from '../../utils/mailer';
+import { isIstDateTodayOrFuture } from '../../utils/istDate';
 import { createDefaultLedgers } from './ledgerService';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
 
@@ -352,19 +353,11 @@ export async function updateSellerSettings(
   return profile.notificationSettings;
 }
 
-function isTodayOrFuture(dateStr: string): boolean {
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  const d = new Date(dateStr);
-  d.setHours(0, 0, 0, 0);
-  return d >= today;
-}
-
 export async function getCustomDay(userId: string): Promise<CustomDayOverride | null> {
   const profile = await requireSellerProfile(userId);
   const override = profile.customDayOverride as CustomDayOverride | null;
   if (!override) return null;
-  if (!isTodayOrFuture(override.date)) {
+  if (!isIstDateTodayOrFuture(override.date)) {
     await profile.update({ customDayOverride: null });
     return null;
   }
@@ -372,7 +365,7 @@ export async function getCustomDay(userId: string): Promise<CustomDayOverride | 
 }
 
 export async function setCustomDay(userId: string, data: CustomDayOverride): Promise<CustomDayOverride> {
-  if (!isTodayOrFuture(data.date)) {
+  if (!isIstDateTodayOrFuture(data.date)) {
     throw Object.assign(new Error('Date must be today or in the future'), { status: 400 });
   }
   const profile = await requireSellerProfile(userId);
