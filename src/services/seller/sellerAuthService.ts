@@ -13,10 +13,16 @@ async function findActiveSeller(phoneNumber: string): Promise<User> {
   const user = await User.findOne({ where: { mobile: phoneNumber, role: 'SELLER' } });
 
   if (!user) {
-    throw Object.assign(new Error('Seller not found'), { status: 404 });
+    throw Object.assign(
+      new Error('Your account is inactive or no longer available. Please contact the administrator for assistance.'),
+      { status: 404 },
+    );
   }
   if (!user.isActive && !user.deletionRequestedAt) {
-    throw Object.assign(new Error('Account is not active'), { status: 403 });
+    throw Object.assign(
+      new Error('Your account is inactive or no longer available. Please contact the administrator for assistance.'),
+      { status: 403 },
+    );
   }
 
   return user;
