@@ -145,16 +145,16 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
   const openingStockValue = await stockValueAsOf(sellerId, from, 'opening');
   const closingStockValue = await stockValueAsOf(sellerId, to, 'closing');
 
-  // Real stock-addition purchases, from purchase_logs (one row per restock,
-  // dated when the stock was actually added). Drives the "To Purchase" line
-  // and the classic trading-account identity below, and also feeds the
-  // purchased-after-asOf correction inside stockValueAsOf(). Note: no backfill
-  // was done, so any restock that happened before this table existed (i.e.
-  // before rollout) has no row — for a period whose opening/closing date
-  // falls before such a restock, that restock won't be subtracted back out
-  // of current stock, temporarily overstating opening/closing stock (and
-  // therefore grossProfit). This self-corrects as pre-rollout restocks age
-  // out of the date ranges being queried.
+  // Net stock movement, from purchase_logs (one row per restock or removal, signed:
+  // positive when stock was added, negative when it was decreased or a product/variant
+  // was deleted with stock still on it). Drives the "To Purchase" line and the classic
+  // trading-account identity below, and also feeds the purchased-after-asOf correction
+  // inside stockValueAsOf(). Note: no backfill was done, so any movement that happened
+  // before this table existed (i.e. before rollout) has no row — for a period whose
+  // opening/closing date falls before such a movement, it won't be reflected back out
+  // of current stock, temporarily skewing opening/closing stock (and therefore
+  // grossProfit). This self-corrects as pre-rollout movements age out of the date
+  // ranges being queried.
   const [purchasesRow] = await sequelize.query<PurchasesRow>(
     `SELECT COALESCE(SUM(cost_price_at_purchase * quantity), 0) AS "totalPurchases"
      FROM purchase_logs

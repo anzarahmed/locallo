@@ -20,7 +20,7 @@ export async function recordPurchase(
   input: RecordPurchaseInput,
   transaction?: Transaction,
 ): Promise<PurchaseLog | null> {
-  if (input.quantity <= 0) return null;
+  if (input.quantity === 0) return null;
 
   return PurchaseLog.create(
     {

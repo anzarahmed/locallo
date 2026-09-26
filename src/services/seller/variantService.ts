@@ -310,7 +310,7 @@ export async function updateVariant(
 
   await syncProductStock(productId);
 
-  if (stockDelta > 0) {
+  if (stockDelta !== 0) {
     await recordPurchase({
       sellerId,
       productId,
@@ -343,7 +343,23 @@ export async function deleteVariant(
     );
   }
 
+  const stockBefore = variant.stock;
+
   const productDeleted = await sequelize.transaction(async (t) => {
+    // Recorded before destroy() — the FK needs the variant row to still exist,
+    // and product_id/variant_id fall back to SET NULL on delete so the log survives.
+    await recordPurchase({
+      sellerId,
+      productId,
+      variantId,
+      quantity:    -stockBefore,
+      stockBefore,
+      stockAfter:  0,
+      productName: product.name,
+      variantInfo: variant.attributes as Record<string, unknown>,
+      costPriceAtPurchase: product.costPrice,
+    }, t);
+
     await variant.destroy({ transaction: t });
     const remaining = await ProductVariant.count({ where: { productId }, transaction: t });
     if (remaining > 0) return false;

@@ -364,7 +364,7 @@ export async function updateSellerProduct(
     ...(data.pickupLong    !== undefined && { pickupLong:    data.pickupLong }),
   });
 
-  if (stockDelta > 0) {
+  if (stockDelta !== 0) {
     await recordPurchase({
       sellerId,
       productId:   product.id,
@@ -391,5 +391,20 @@ export async function toggleSellerProduct(sellerId: string, productId: string): 
 
 export async function deleteSellerProduct(sellerId: string, productId: string): Promise<void> {
   const product = await requireOwnProduct(sellerId, productId);
-  await product.destroy();
+
+  await sequelize.transaction(async (t) => {
+    await recordPurchase({
+      sellerId,
+      productId:   product.id,
+      variantId:   null,
+      quantity:    -product.stock,
+      stockBefore: product.stock,
+      stockAfter:  0,
+      productName: product.name,
+      variantInfo: null,
+      costPriceAtPurchase: product.costPrice,
+    }, t);
+
+    await product.destroy({ transaction: t });
+  });
 }
