@@ -1,4 +1,5 @@
 import type { InferType } from 'yup';
+import { Op } from 'sequelize';
 import sequelize from '../../config/database';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
@@ -58,6 +59,13 @@ async function requireOwnVariant(productId: string, variantId: string): Promise<
     throw Object.assign(new Error('Variant not found'), { status: 404 });
   }
   return variant;
+}
+
+async function hasOtherActiveVariant(productId: string, variantId: string): Promise<boolean> {
+  const count = await ProductVariant.count({
+    where: { productId, isActive: true, id: { [Op.ne]: variantId } },
+  });
+  return count > 0;
 }
 
 function getVariantKeys(product: Product): string[] {
@@ -256,6 +264,13 @@ export async function updateVariant(
   const product = await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
 
+  if (data.isActive === false && variant.isActive && !(await hasOtherActiveVariant(productId, variantId))) {
+    throw Object.assign(
+      new Error('You cannot disable this variant because it is the last visible variant of this product. Enable another variant before disabling this one.'),
+      { status: 409 },
+    );
+  }
+
   const stockBefore = variant.stock;
   const stockDelta = data.stock !== undefined ? data.stock - stockBefore : 0;
 
@@ -319,6 +334,15 @@ export async function deleteVariant(
 ): Promise<{ productDeleted: boolean }> {
   const product = await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
+
+  const totalCount = await ProductVariant.count({ where: { productId } });
+  if (totalCount > 1 && !(await hasOtherActiveVariant(productId, variantId))) {
+    throw Object.assign(
+      new Error('You cannot delete this variant because it is the last visible variant of this product. Enable another variant before deleting this one.'),
+      { status: 409 },
+    );
+  }
+
   const productDeleted = await sequelize.transaction(async (t) => {
     await variant.destroy({ transaction: t });
     const remaining = await ProductVariant.count({ where: { productId }, transaction: t });
@@ -340,6 +364,14 @@ export async function toggleVariant(
 ): Promise<ProductVariant> {
   await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
+
+  if (variant.isActive && !(await hasOtherActiveVariant(productId, variantId))) {
+    throw Object.assign(
+      new Error('You cannot disable this variant because it is the last visible variant of this product. Enable another variant before disabling this one.'),
+      { status: 409 },
+    );
+  }
+
   await variant.update({ isActive: !variant.isActive });
   return variant;
 }
