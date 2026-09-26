@@ -14,8 +14,8 @@ function formatAmount(amount: number): string {
 
 function audienceLabel(payment: Payment): string {
   if (payment.audienceType === 'pan_india') return 'Pan India';
-  if (payment.audienceType === 'state') return `State: ${payment.state ?? '—'}`;
-  return `City: ${payment.city ?? '—'}`;
+  if (payment.audienceType === 'city') return payment.city && payment.state ? `${payment.city}, ${payment.state}` : payment.city ?? '—';
+  return payment.state ?? '—';
 }
 
 const STATUS_BADGE: Record<PaymentStatus, string> = {
