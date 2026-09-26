@@ -471,11 +471,11 @@ export default function VariantSheet({
           <div>
             <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
               Primary Image<span className="text-rose-400 ml-0.5">*</span>
-              {isEdit && sdField && (
+              {/* {isEdit && sdField && (
                 <span className="text-[10px] text-gray-400 font-normal tracking-normal ml-1.5">
                   applies to all {sdField.label.toLowerCase()} options in this group
                 </span>
-              )}
+              )} */}
             </p>
 
             {primaryImage ? (
@@ -536,11 +536,11 @@ export default function VariantSheet({
           <div>
             <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
               Additional Images (up to {MAX_SECONDARY_IMAGES})
-              {isEdit && sdField && (
+              {/* {isEdit && sdField && (
                 <span className="text-[10px] text-gray-400 font-normal tracking-normal ml-1.5">
                   applies to all {sdField.label.toLowerCase()} options in this group
                 </span>
-              )}
+              )} */}
             </p>
 
             <div className="flex gap-2 flex-wrap">
