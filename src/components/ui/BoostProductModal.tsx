@@ -578,7 +578,7 @@ function ExistingBoostView({ boost, promoting, onClose, onCancel, cancelling }: 
           </div>
           <div className="min-w-0">
             <p className="text-xs text-gray-400">Boost budget</p>
-            <p className="text-sm font-bold text-gray-800 truncate">₹{boost.dailyBudget.toLocaleString('en-IN')} / day</p>
+            <p className="text-sm font-bold text-gray-800 truncate">₹{boost.dailyBudget.toLocaleString('en-IN')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3 px-4 py-3.5">
