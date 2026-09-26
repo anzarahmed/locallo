@@ -90,7 +90,7 @@ export default function PurchaseLogs(): JSX.Element {
             <h1 className="text-white text-2xl font-bold leading-tight">Purchase Log</h1>
             {!loading && (
               <p className="text-white/70 text-sm mt-0.5">
-                {total} stock addition{total !== 1 ? 's' : ''} recorded
+                {total} stock movement{total !== 1 ? 's' : ''} recorded
               </p>
             )}
           </div>
@@ -213,8 +213,12 @@ function LogCard({ log }: { log: PurchaseLog }): JSX.Element {
 
         {/* Right: quantity + stock change */}
         <div className="shrink-0 text-right">
-          <div className="inline-flex items-center gap-1 bg-emerald-600 text-white text-xs font-bold px-2.5 py-1 rounded-full">
-            <span>+{log.quantity}</span>
+          <div
+            className={`inline-flex items-center gap-1 text-white text-xs font-bold px-2.5 py-1 rounded-full ${
+              log.quantity < 0 ? 'bg-red-500' : 'bg-emerald-600'
+            }`}
+          >
+            <span>{log.quantity > 0 ? `+${log.quantity}` : log.quantity}</span>
           </div>
           <p className="text-[11px] text-gray-400 mt-1.5 whitespace-nowrap">
             {log.stockBefore} → {log.stockAfter}
@@ -249,9 +253,9 @@ function EmptyState(): JSX.Element {
   return (
     <div className="bg-white rounded-2xl shadow-sm py-16 text-center">
       <PackagePlus size={40} className="text-gray-200 mx-auto mb-3" />
-      <p className="text-sm font-semibold text-gray-500">No purchases recorded yet</p>
+      <p className="text-sm font-semibold text-gray-500">No stock movements recorded yet</p>
       <p className="text-xs text-gray-400 mt-1">
-        Stock added to a product or variant will show up here
+        Stock added or removed for a product or variant will show up here
       </p>
     </div>
   );
