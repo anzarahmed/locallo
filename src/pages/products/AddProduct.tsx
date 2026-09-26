@@ -5,7 +5,7 @@ import {
   ArrowLeft, Camera, X, Plus, Sparkles, Loader2, ChevronDown,
 } from 'lucide-react';
 import {
-  getProfile, uploadProductImage, analyzeProductImage, createProduct,
+  getProfile, getSettings, uploadProductImage, analyzeProductImage, createProduct,
 } from '../../services/sellerService';
 import { addProductSchema, addProductSchemaComboStock, type AddProductFormValues } from '../../validation/productSchemas';
 import { useToast } from '../../hooks/useToast';
@@ -43,6 +43,7 @@ export default function AddProduct(): JSX.Element {
   const [attributes, setAttributes] = useState<Record<string, AttrValue>>({});
   const [attrErrors, setAttrErrors] = useState<Record<string, string>>({});
   const [aiHint, setAiHint] = useState<AiHint | null>(null);
+  const [useAiForPrimaryImage, setUseAiForPrimaryImage] = useState(false);
   const [variantSelections, setVariantSelections] = useState<VariantSelections>({});
   const [comboStocks, setComboStocks] = useState<Record<string, string>>({});
   const [comboStockErrors, setComboStockErrors] = useState<Record<string, string>>({});
@@ -64,6 +65,12 @@ export default function AddProduct(): JSX.Element {
         setCategories(data.profile.categories);
       } catch {
         // silently ignore — user can still manually select when dropdown is populated
+      }
+      try {
+        const { notificationSettings } = await getSettings();
+        setUseAiForPrimaryImage(notificationSettings?.useAiForPrimaryImage ?? false);
+      } catch {
+        // silently ignore — AI hint text just stays hidden
       }
     }
     void load();
@@ -371,7 +378,7 @@ export default function AddProduct(): JSX.Element {
                     className="hidden"
                   />
                   {isAnalyzing ? (
-                    <><Loader2 size={12} className="animate-spin" /> Analyzing…</>
+                    <><Loader2 size={12} className="animate-spin" /> {useAiForPrimaryImage ? 'Analyzing…' : 'Uploading…'}</>
                   ) : (
                     'Replace image'
                   )}
@@ -389,8 +396,14 @@ export default function AddProduct(): JSX.Element {
               {isAnalyzing ? (
                 <>
                   <Loader2 size={32} className="text-teal-500 animate-spin" />
-                  <p className="text-sm font-semibold text-gray-500">Analyzing with AI…</p>
-                  <p className="text-xs text-gray-400">This may take a few seconds</p>
+                  {useAiForPrimaryImage ? (
+                    <>
+                      <p className="text-sm font-semibold text-gray-500">Analyzing with AI…</p>
+                      <p className="text-xs text-gray-400">This may take a few seconds</p>
+                    </>
+                  ) : (
+                    <p className="text-sm font-semibold text-gray-500">Uploading…</p>
+                  )}
                 </>
               ) : (
                 <>
@@ -398,7 +411,9 @@ export default function AddProduct(): JSX.Element {
                     <Camera size={24} className="text-teal-500" />
                   </div>
                   <p className="text-sm font-semibold text-gray-600">Upload primary photo</p>
-                  <p className="text-xs text-gray-400">AI will suggest name, category & details</p>
+                  {useAiForPrimaryImage && (
+                    <p className="text-xs text-gray-400">AI will suggest name, category & details</p>
+                  )}
                 </>
               )}
             </label>
