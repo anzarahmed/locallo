@@ -39,7 +39,7 @@ interface ProductSellerDetail {
 }
 
 export const TRENDING_LIMIT = 15;
-const SIMILAR_LIMIT = 10;
+export const SIMILAR_LIMIT = 10;
 export const TRENDING_ATTRIBUTES = ['id', 'name', 'categoryId', 'mrp', 'sellingPrice', 'images', 'stock'];
 
 const SAFE_PRODUCT_ATTRIBUTES = [
@@ -323,7 +323,7 @@ export async function getTrendingProducts(
   });
 }
 
-export async function getSimilarProducts(productId: string): Promise<Product[]> {
+export async function getSimilarProductSource(productId: string): Promise<Product> {
   const source = await Product.findOne({
     where: { id: productId, isActive: true },
     attributes: ['id', 'categoryId'],
@@ -333,16 +333,25 @@ export async function getSimilarProducts(productId: string): Promise<Product[]> 
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
 
+  return source;
+}
+
+export async function getSimilarProducts(
+  productId: string,
+  categoryId: number,
+  excludeProductIds: string[] = [],
+  limit: number = SIMILAR_LIMIT,
+): Promise<Product[]> {
   return Product.findAll({
     attributes: TRENDING_ATTRIBUTES,
     where: {
       isActive: true,
-      categoryId: source.categoryId,
-      id: { [Op.ne]: productId },
+      categoryId,
+      id: { [Op.notIn]: [productId, ...excludeProductIds] },
       [Op.and]: [SELLER_VERIFIED_CONDITION],
     },
     order: [['createdAt', 'DESC']],
-    limit: SIMILAR_LIMIT,
+    limit,
   });
 }
 

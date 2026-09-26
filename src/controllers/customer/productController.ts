@@ -247,8 +247,23 @@ export async function getTrendingProducts(req: Request, res: Response): Promise<
 
 export async function getSimilarProducts(req: Request, res: Response): Promise<void> {
   try {
-    const rows = await productService.getSimilarProducts(String(req.params.id));
-    const productIds = rows.map((p) => p.id);
+    const productId = String(req.params.id);
+    const source = await productService.getSimilarProductSource(productId);
+
+    const eligible = await productBoostService.getEligibleBoosts({
+      categoryId: source.categoryId,
+      excludeProductIds: [productId],
+    });
+    const chosenBoosts = productBoostService.pickRandom(eligible, Math.min(productBoostService.SIMILAR_BOOST_SLOTS, productService.SIMILAR_LIMIT));
+    const boostedProductIds = chosenBoosts.map((b) => b.product.id);
+
+    const rows = await productService.getSimilarProducts(
+      productId,
+      source.categoryId,
+      boostedProductIds,
+      productService.SIMILAR_LIMIT - chosenBoosts.length,
+    );
+    const productIds = [...boostedProductIds, ...rows.map((p) => p.id)];
 
     const [wishlistedIds, offersById, variantsByProduct] = await Promise.all([
       req.customer ? wishlistService.getWishlistedProductIds(req.customer.id, productIds) : Promise.resolve(new Set<string>()),
@@ -256,12 +271,21 @@ export async function getSimilarProducts(req: Request, res: Response): Promise<v
       variantSelection.getActiveVariantsByProduct(productIds),
     ]);
 
-    const productsResolved = await Promise.all(
+    const boostedItemsResolved = await Promise.all(
+      chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant })),
+    );
+    const boostedItems = boostedItemsResolved.filter((item): item is ProductListItem => item !== null);
+
+    const organicItemsResolved = await Promise.all(
       rows.map((p) => toListItem(p, { offersById, wishlistedIds, variantsByProduct, isBoosted: false })),
     );
-    const products = productsResolved.filter((item): item is ProductListItem => item !== null);
+    const organicItems = organicItemsResolved.filter((item): item is ProductListItem => item !== null);
 
-    sendSuccess(res, { products }, 'Similar products fetched');
+    if (chosenBoosts.length > 0) {
+      await productBoostService.incrementImpressions(chosenBoosts.map((b) => b.boostId));
+    }
+
+    sendSuccess(res, { products: [...boostedItems, ...organicItems] }, 'Similar products fetched');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Product not found');
   }

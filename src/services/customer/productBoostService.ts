@@ -5,6 +5,7 @@ import { ProductVariant } from '../../models/ProductVariant';
 import { TRENDING_ATTRIBUTES, SELLER_VERIFIED_CONDITION, buildSearchCondition, getSequelizeEscape } from './productService';
 
 export const BOOST_SLOTS = 4;
+export const SIMILAR_BOOST_SLOTS = 2;
 
 const BOOST_VARIANT_ATTRIBUTES = ['id', 'productId', 'attributes', 'images', 'stock', 'sellingPrice', 'mrp', 'isActive'];
 
