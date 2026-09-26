@@ -878,7 +878,7 @@ function PriceField({ label, name, value, error, hasError, required, readOnly, o
           className={`${inputCls(hasError)} pl-7${readOnly ? ' bg-gray-50 text-gray-500 cursor-not-allowed' : ''}`}
         />
       </div>
-      {error && <p className="text-xs text-rose-500 mt-1.5">{error}</p>}
+      {!readOnly && error && <p className="text-xs text-rose-500 mt-1.5">{error}</p>}
     </div>
   );
 }
