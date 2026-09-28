@@ -3,7 +3,7 @@ import { X, Plus, Pencil, Trash2, Check, BookOpen } from 'lucide-react';
 import { createLedger, updateLedger, deleteLedger } from '../../services/pnlService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
-import { isReservedLedgerName, RESERVED_LEDGER_MESSAGE } from '../../validation/pnlSchemas';
+import { isReservedLedgerName, RESERVED_LEDGER_MESSAGE, MAX_CUSTOM_LEDGERS, MAX_CUSTOM_LEDGERS_MESSAGE } from '../../validation/pnlSchemas';
 import type { Ledger } from '../../types';
 
 interface LedgerManagerModalProps {
@@ -30,9 +30,16 @@ export default function LedgerManagerModal({
   const [editValue, setEditValue] = useState('');
   const [saving, setSaving] = useState(false);
 
+  const customCount = ledgers.filter(l => !l.isDefault).length;
+  const limitReached = customCount >= MAX_CUSTOM_LEDGERS;
+
   async function handleCreate(): Promise<void> {
     const trimmed = name.trim();
     if (!trimmed) return;
+    if (limitReached) {
+      toast.error(MAX_CUSTOM_LEDGERS_MESSAGE);
+      return;
+    }
     if (isReservedLedgerName(trimmed)) {
       toast.error(RESERVED_LEDGER_MESSAGE);
       return;
@@ -102,22 +109,28 @@ export default function LedgerManagerModal({
           </button>
         </div>
 
-        <div className="flex gap-2 mb-4 shrink-0">
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="New ledger name"
-            className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-white outline-none focus:border-teal-400 transition-colors"
-          />
-          <button
-            type="button"
-            onClick={() => void handleCreate()}
-            disabled={creating || !name.trim()}
-            className="shrink-0 w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center hover:bg-teal-100 transition-colors disabled:opacity-50"
-          >
-            <Plus size={18} />
-          </button>
+        <div className="mb-4 shrink-0">
+          <div className="flex gap-2">
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={limitReached ? MAX_CUSTOM_LEDGERS_MESSAGE : 'New ledger name'}
+              disabled={limitReached}
+              className="w-full px-3 py-2.5 text-sm rounded-xl border border-gray-200 bg-white outline-none focus:border-teal-400 transition-colors disabled:bg-gray-50 disabled:text-gray-400"
+            />
+            <button
+              type="button"
+              onClick={() => void handleCreate()}
+              disabled={creating || !name.trim() || limitReached}
+              className="shrink-0 w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center hover:bg-teal-100 transition-colors disabled:opacity-50"
+            >
+              <Plus size={18} />
+            </button>
+          </div>
+          {limitReached && (
+            <p className="mt-1.5 text-xs text-gray-400">{MAX_CUSTOM_LEDGERS_MESSAGE}</p>
+          )}
         </div>
 
         <div className="overflow-y-auto space-y-2">

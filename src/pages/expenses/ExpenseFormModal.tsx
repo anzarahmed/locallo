@@ -9,6 +9,7 @@ import { ApiError } from '../../lib/axios';
 import type { Ledger, Expense } from '../../types';
 import DatePicker from '../../components/ui/DatePicker';
 import { toIsoDate } from '../../lib/dateFormat';
+import { MAX_CUSTOM_LEDGERS, MAX_CUSTOM_LEDGERS_MESSAGE } from '../../validation/pnlSchemas';
 
 function todayIso(): string {
   return toIsoDate(new Date());
@@ -42,6 +43,8 @@ export default function ExpenseFormModal({
   const [showNewLedger, setShowNewLedger] = useState(false);
   const [newLedgerName, setNewLedgerName] = useState('');
   const [creatingLedger, setCreatingLedger] = useState(false);
+
+  const customLedgerLimitReached = ledgers.filter(l => !l.isDefault).length >= MAX_CUSTOM_LEDGERS;
 
   const form = useFormik<ExpenseFormValues>({
     initialValues: {
@@ -127,8 +130,9 @@ export default function ExpenseFormModal({
                 <button
                   type="button"
                   onClick={() => setShowNewLedger(true)}
-                  className="shrink-0 w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center hover:bg-teal-100 transition-colors"
-                  title="New ledger"
+                  disabled={customLedgerLimitReached}
+                  className="shrink-0 w-10 h-10 rounded-xl bg-teal-50 text-teal-600 flex items-center justify-center hover:bg-teal-100 transition-colors disabled:opacity-50 disabled:hover:bg-teal-50"
+                  title={customLedgerLimitReached ? MAX_CUSTOM_LEDGERS_MESSAGE : 'New ledger'}
                 >
                   <Plus size={18} />
                 </button>

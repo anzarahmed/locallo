@@ -4,6 +4,9 @@ const RESERVED_LEDGER_PATTERN = /(^|[^a-z])purchas(e|es|ed|ing)([^a-z]|$)/i;
 
 export const RESERVED_LEDGER_MESSAGE = 'Ledger names cannot contain "Purchase" — stock you add is automatically recorded as a purchase';
 
+export const MAX_CUSTOM_LEDGERS = 5;
+export const MAX_CUSTOM_LEDGERS_MESSAGE = `You can add up to ${MAX_CUSTOM_LEDGERS} custom ledgers`;
+
 export function isReservedLedgerName(name: string): boolean {
   return RESERVED_LEDGER_PATTERN.test(name);
 }
