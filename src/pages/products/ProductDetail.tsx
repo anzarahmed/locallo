@@ -340,7 +340,7 @@ export default function ProductDetail(): JSX.Element {
                   <p className="text-base font-bold text-teal-700 leading-none">{formatPrice(product.sellingPrice)}</p>
                   {discount !== null && (
                     <span className="mt-1.5 inline-block text-xs font-semibold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded-full">
-                      -{discount}% off
+                      {discount}% off
                     </span>
                   )}
                 </div>
