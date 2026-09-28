@@ -30,10 +30,8 @@ function toDatetimeLocalValue(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function tomorrowStartDatetimeLocalValue(): string {
-  const d = new Date();
-  d.setHours(24, 0, 0, 0);
-  return toDatetimeLocalValue(d.toISOString());
+function nowDatetimeLocalValue(): string {
+  return toDatetimeLocalValue(new Date().toISOString());
 }
 
 function hasOfferStarted(offer: Offer): boolean {
@@ -88,7 +86,7 @@ function OfferModal({ offer, onClose, onSaved }: OfferModalProps): JSX.Element {
   const isEdit = Boolean(offer);
   const toast  = useToast();
   const config = (offer?.config ?? {}) as unknown as Record<string, number | undefined>;
-  const minStart = useMemo(() => tomorrowStartDatetimeLocalValue(), []);
+  const minStart = useMemo(() => nowDatetimeLocalValue(), []);
 
   const initialValues: OfferFormValues = {
     title: offer?.title ?? '',

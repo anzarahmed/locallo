@@ -12,11 +12,11 @@ export const offerSchema = Yup.object({
   description: Yup.string().trim().nullable(),
   startDate: Yup.string()
     .required('Start date/time is required')
-    .test('is-future', 'Start date must be after today', value => {
+    .test('not-in-past', 'Start date/time cannot be in the past', value => {
       if (!value) return true;
-      const startOfTomorrow = new Date();
-      startOfTomorrow.setHours(24, 0, 0, 0);
-      return new Date(value).getTime() >= startOfTomorrow.getTime();
+      const startOfCurrentMinute = new Date();
+      startOfCurrentMinute.setSeconds(0, 0);
+      return new Date(value).getTime() >= startOfCurrentMinute.getTime();
     }),
   endDate: Yup.string()
     .required('End date/time is required')
