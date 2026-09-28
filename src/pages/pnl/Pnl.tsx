@@ -251,7 +251,7 @@ export default function Pnl(): JSX.Element {
                     <div className="space-y-2 flex-1">
                       {drRows.map((row, i) => (
                         <div key={row.id ?? i} className="flex justify-between items-start gap-2 text-sm">
-                          <span className={`text-gray-600 ${row.label.startsWith('To Net Profit') ? 'font-semibold text-emerald-600' : ''}`}>
+                          <span className={row.label.startsWith('To Net Profit') ? 'font-semibold text-emerald-600' : 'text-gray-600'}>
                             {row.label}
                           </span>
                           <span className={row.label.startsWith('To Net Profit') ? 'font-semibold text-emerald-600 shrink-0' : 'text-gray-700 shrink-0'}>
