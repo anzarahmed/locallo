@@ -6,7 +6,7 @@ import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import type { PnlPeriod, PnlSummary, Expense } from '../../types';
 import DatePicker from '../../components/ui/DatePicker';
-import { formatDate, toIsoDate } from '../../lib/dateFormat';
+import { toDate, toIsoDate } from '../../lib/dateFormat';
 
 const EXPENSE_ROW_LIMIT = 100;
 
@@ -36,6 +36,15 @@ const PNL_DATE_INPUT_CLS = 'w-36 text-sm border border-gray-200 rounded-lg px-2 
 
 function todayIso(): string {
   return toIsoDate(new Date());
+}
+
+const SHORT_MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+function formatPnlDate(value: string | Date | null | undefined): string {
+  if (!value) return '—';
+  const d = toDate(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return `${d.getDate()} ${SHORT_MONTHS[d.getMonth()]} ${d.getFullYear()}`;
 }
 
 export default function Pnl(): JSX.Element {
@@ -137,7 +146,7 @@ export default function Pnl(): JSX.Element {
               <h1 className="text-white text-2xl font-bold leading-tight">Profit &amp; Loss</h1>
               {summary && !loadingSummary && (
                 <p className="text-white/70 text-sm mt-0.5">
-                  {formatDate(summary.from)} – {formatDate(summary.to)}
+                  {formatPnlDate(summary.from)} - {formatPnlDate(summary.to)}
                 </p>
               )}
             </div>
