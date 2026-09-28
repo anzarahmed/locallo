@@ -188,6 +188,7 @@ export default function ExpenseFormModal({
             label="Date"
             name="expenseDate"
             required
+            max={todayIso()}
             value={form.values.expenseDate}
             onChange={(val) => void form.setFieldValue('expenseDate', val)}
             onBlur={() => void form.setFieldTouched('expenseDate')}
