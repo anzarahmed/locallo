@@ -18,7 +18,7 @@ function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
 
   if (field.type === 'color') {
     const opt = field.options?.find(o => o.value === raw);
-    return <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">{opt?.label ?? String(raw)}</span>;
+    return <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1 capitalize">{opt?.label ?? String(raw)}</span>;
   }
 
   if (field.type === 'multiselect' && Array.isArray(raw) && field.options) {
@@ -419,27 +419,33 @@ export default function ProductDetail(): JSX.Element {
                 <span className="text-gray-500">{totalVariantStock} total units</span>
               </div>
               <div className="rounded-xl border border-gray-100 overflow-hidden">
-                <div className="flex items-center justify-between px-3.5 py-2 bg-gray-50 border-b border-gray-100">
-                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Variant</span>
-                  <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Price · Stock</span>
-                </div>
                 <div className="divide-y divide-gray-50 overflow-y-auto" style={{ maxHeight: '320px' }}>
+                  <div className="sticky top-0 z-10 flex items-center justify-between px-3.5 py-2 bg-gray-50 border-b border-gray-100">
+                    <span className="text-xs font-medium text-gray-400 uppercase tracking-wide">Variant</span>
+                    <div className="shrink-0 ml-3 flex items-center gap-1.5">
+                      <span className="text-xs font-medium text-gray-400 uppercase tracking-wide w-16 text-right">Price</span>
+                      <span className="text-gray-300 w-2 text-center">·</span>
+                      <span className="text-xs font-medium text-gray-400 uppercase tracking-wide w-20 text-right">Stock</span>
+                    </div>
+                  </div>
                   {variants.map((v, i) => (
                     <div key={v.id} className="flex items-center justify-between px-3.5 py-2.5 bg-white">
                       <div className="flex items-center gap-2.5 min-w-0">
                         <span className="shrink-0 w-5 h-5 rounded-full bg-gray-100 text-gray-400 text-xs font-medium flex items-center justify-center leading-none">
                           {i + 1}
                         </span>
-                        <span className="text-sm text-gray-700 truncate">{variantLabel(v, schema)}</span>
+                        <span className="text-sm text-gray-700 truncate capitalize">{variantLabel(v, schema)}</span>
                         {!v.isActive && (
                           <span className="shrink-0 text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">Inactive</span>
                         )}
                       </div>
-                      <div className="shrink-0 ml-3 text-right">
-                        <span className="text-sm text-gray-600">{formatPrice(v.sellingPrice)}</span>
-                        <span className="text-gray-300 mx-1.5">·</span>
-                        <span className={`text-sm font-semibold ${stockTone(v.stock)}`}>{v.stock}</span>
-                        <span className="text-xs text-gray-400 ml-1">units</span>
+                      <div className="shrink-0 ml-3 flex items-center gap-1.5">
+                        <span className="text-sm text-gray-600 w-16 text-right truncate">{formatPrice(v.sellingPrice)}</span>
+                        <span className="text-gray-300 w-2 text-center">·</span>
+                        <span className="w-20 text-right">
+                          <span className={`text-sm font-semibold ${stockTone(v.stock)}`}>{v.stock}</span>
+                          <span className="text-xs text-gray-400 ml-1">units</span>
+                        </span>
                       </div>
                     </div>
                   ))}
