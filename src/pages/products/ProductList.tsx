@@ -531,10 +531,10 @@ function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit,
               {loadingVariants ? <Loader2 size={14} className="animate-spin" /> : <ShoppingBag size={14} />}
             </button>
           </Tooltip>
-          <Tooltip label="Customer preview">
+          <Tooltip label="Customer Preview">
             <button
               onClick={onPreview}
-              aria-label="Customer preview"
+              aria-label="Customer Preview"
               className="w-8 h-8 rounded-full bg-amber-50 flex items-center justify-center text-amber-600 hover:bg-amber-100 transition-colors"
             >
               <ScanEye size={14} />

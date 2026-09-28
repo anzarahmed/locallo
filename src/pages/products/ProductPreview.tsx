@@ -235,7 +235,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
         {/* Preview indicator strip */}
         <div className="shrink-0 bg-amber-50 border-b border-amber-100 px-4 py-1.5 text-center">
           <span className="text-[10px] font-semibold text-amber-700 tracking-wide uppercase">
-            Customer preview — this is what shoppers see
+            Customer Preview — this is what shoppers see
           </span>
         </div>
 
