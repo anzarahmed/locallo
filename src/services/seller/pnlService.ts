@@ -1,6 +1,7 @@
 import { QueryTypes } from 'sequelize';
 import sequelize from '../../config/database';
 import { DEFAULT_LEDGER_NAMES } from './ledgerService';
+import { toIsoDateString } from '../../utils/financialYear';
 
 export interface PnlExpenseItem {
   ledgerId: string;
@@ -18,8 +19,8 @@ export interface PnlSummary {
   closingStockValue: number;
   grossProfit: number;
   netProfitLoss: number;
-  from: Date;
-  to: Date;
+  from: string;
+  to: string;
 }
 
 interface SalesCostRow {
@@ -179,7 +180,7 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
     closingStockValue,
     grossProfit,
     netProfitLoss,
-    from,
-    to,
+    from: toIsoDateString(from),
+    to: toIsoDateString(to),
   };
 }

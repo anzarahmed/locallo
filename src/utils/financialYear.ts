@@ -17,6 +17,14 @@ function endOfDay(d: Date): Date {
   return copy;
 }
 
+// Formats a Date using its own local getters (the same locale/timezone context it was
+// constructed in) rather than toISOString(), which converts to UTC and can shift the
+// calendar day once the client renders it in a different timezone.
+export function toIsoDateString(d: Date): string {
+  const pad = (n: number): string => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export function getFinancialYearRange(fyStartYear?: number): PeriodRange {
   const now = new Date();
   const currentFyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
