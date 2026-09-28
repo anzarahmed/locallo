@@ -39,11 +39,19 @@ export async function createDefaultLedgers(sellerId: string, transaction?: Trans
   );
 }
 
+export const MAX_CUSTOM_LEDGERS = 5;
+
 export async function createLedger(sellerId: string, name: string): Promise<SellerLedger> {
   const existing = await SellerLedger.findOne({ where: byNameCaseInsensitive(sellerId, name) });
   if (existing) {
     throw Object.assign(new Error(`A ledger named "${existing.name}" already exists`), { status: 409 });
   }
+
+  const customCount = await SellerLedger.count({ where: { sellerId, isDefault: false } });
+  if (customCount >= MAX_CUSTOM_LEDGERS) {
+    throw Object.assign(new Error(`You can add up to ${MAX_CUSTOM_LEDGERS} custom ledgers`), { status: 422 });
+  }
+
   return SellerLedger.create({ sellerId, name });
 }
 
