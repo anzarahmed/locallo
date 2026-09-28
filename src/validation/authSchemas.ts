@@ -3,7 +3,7 @@ import * as Yup from 'yup';
 export const requestOtpSchema = Yup.object({
   countryCode: Yup.string().required(),
   phoneNumber: Yup.string()
-    .matches(/^[6-9]\d{9}$/, 'Enter a valid 10-digit mobile number')
+    .matches(/^\d{10}$/, 'Enter a valid 10-digit mobile number')
     .required('Phone number is required'),
 });
 
