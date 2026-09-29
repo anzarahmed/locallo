@@ -8,6 +8,7 @@ import type { createVariantSchema, updateVariantSchema, createBatchVariantSchema
 import type { AttributeField } from '../../types';
 import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
 import { recordPurchase } from './purchaseService';
+import { ProductBoost } from '../../models/ProductBoost';
 
 export async function syncProductStock(productId: string): Promise<void> {
   const total = ((await ProductVariant.sum('stock', { where: { productId } })) as number | null) ?? 0;
@@ -359,6 +360,15 @@ export async function deleteVariant(
       variantInfo: variant.attributes as Record<string, unknown>,
       costPriceAtPurchase: product.costPrice,
     }, t);
+
+    // The FK on product_boosts.variant_id is ON DELETE SET NULL, and a null
+    // variantId means "boost covers every variant of the product" — so without
+    // this, deleting a boosted variant would silently reassign its promotion
+    // to whichever other variant gets picked next, instead of ending it.
+    await ProductBoost.update(
+      { status: 'cancelled' },
+      { where: { variantId, status: { [Op.in]: ['pending', 'active'] } }, transaction: t },
+    );
 
     await variant.destroy({ transaction: t });
     const remaining = await ProductVariant.count({ where: { productId }, transaction: t });
