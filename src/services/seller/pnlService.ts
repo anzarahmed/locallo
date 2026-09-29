@@ -7,6 +7,7 @@ export interface PnlExpenseItem {
   ledgerId: string;
   ledgerName: string;
   amount: number;
+  isDefault: boolean;
 }
 
 export interface PnlSummary {
@@ -36,6 +37,7 @@ interface ExpenseByLedgerRow {
   ledgerId: string;
   ledgerName: string;
   amount: string;
+  isDefault: boolean;
 }
 
 interface StockValueRow {
@@ -126,7 +128,7 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
   // LEFT JOIN so default ledgers are always returned (amount 0 when no expenses were
   // logged this period) — non-default ledgers only surface once they have an expense.
   const expensesByLedger = await sequelize.query<ExpenseByLedgerRow>(
-    `SELECT sl.id AS "ledgerId", sl.name AS "ledgerName", COALESCE(SUM(e.amount), 0) AS "amount"
+    `SELECT sl.id AS "ledgerId", sl.name AS "ledgerName", COALESCE(SUM(e.amount), 0) AS "amount", sl.is_default AS "isDefault"
      FROM seller_ledgers sl
      LEFT JOIN expenses e
        ON e.ledger_id = sl.id AND e.seller_id = :sellerId AND e.expense_date BETWEEN :from AND :to
@@ -175,7 +177,7 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
     totalCost,
     totalExpenses,
     totalPurchases,
-    expenses: expensesByLedger.map((row) => ({ ledgerId: row.ledgerId, ledgerName: row.ledgerName, amount: Number(row.amount) })),
+    expenses: expensesByLedger.map((row) => ({ ledgerId: row.ledgerId, ledgerName: row.ledgerName, amount: Number(row.amount), isDefault: row.isDefault })),
     openingStockValue,
     closingStockValue,
     grossProfit,
