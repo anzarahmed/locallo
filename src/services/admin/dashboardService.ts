@@ -5,12 +5,11 @@ import { Category } from '../../models/Category';
 import { Admin } from '../../models/Admin';
 import { User } from '../../models/User';
 import { ProductBoost } from '../../models/ProductBoost';
+import { getIstMonthRange } from '../../utils/istDate';
 import type { ActivityItem, DashboardStats } from '../../types';
 
 export async function getDashboardStats(): Promise<DashboardStats> {
-  const now = new Date();
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  const startOfNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  const { from: startOfMonth, to: endOfMonth } = getIstMonthRange();
 
   const [totalActiveSellers, totalCustomers, totalActiveProducts, totalPaymentsThisMonth] = await Promise.all([
     User.count({ where: { role: 'SELLER', isActive: true } }),
@@ -19,7 +18,7 @@ export async function getDashboardStats(): Promise<DashboardStats> {
     ProductBoost.sum('amount', {
       where: {
         paymentStatus: 'paid',
-        createdAt: { [Op.gte]: startOfMonth, [Op.lt]: startOfNextMonth },
+        createdAt: { [Op.gte]: startOfMonth, [Op.lte]: endOfMonth },
       },
     }),
   ]);

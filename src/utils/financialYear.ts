@@ -1,3 +1,13 @@
+import {
+  getIstDateParts,
+  getIstDateString,
+  getIstEndOfDay,
+  getIstMonthRange,
+  getIstStartOfDay,
+  istCalendarDateToUtc,
+  parseIstDateString,
+} from './istDate';
+
 export type PnlPeriod = 'today' | 'this_month' | 'this_quarter' | 'financial_year' | 'custom';
 
 export interface PeriodRange {
@@ -5,33 +15,17 @@ export interface PeriodRange {
   to: Date;
 }
 
-function startOfDay(d: Date): Date {
-  const copy = new Date(d);
-  copy.setHours(0, 0, 0, 0);
-  return copy;
-}
-
-function endOfDay(d: Date): Date {
-  const copy = new Date(d);
-  copy.setHours(23, 59, 59, 999);
-  return copy;
-}
-
-// Formats a Date using its own local getters (the same locale/timezone context it was
-// constructed in) rather than toISOString(), which converts to UTC and can shift the
-// calendar day once the client renders it in a different timezone.
 export function toIsoDateString(d: Date): string {
-  const pad = (n: number): string => String(n).padStart(2, '0');
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return getIstDateString(d);
 }
 
 export function getFinancialYearRange(fyStartYear?: number): PeriodRange {
-  const now = new Date();
-  const currentFyStartYear = now.getMonth() >= 3 ? now.getFullYear() : now.getFullYear() - 1;
+  const { year, month } = getIstDateParts(new Date());
+  const currentFyStartYear = month >= 4 ? year : year - 1;
   const startYear = fyStartYear ?? currentFyStartYear;
   return {
-    from: new Date(startYear, 3, 1, 0, 0, 0, 0),
-    to: endOfDay(new Date(startYear + 1, 2, 31)),
+    from: istCalendarDateToUtc(startYear, 4, 1, 0, 0, 0, 0),
+    to: istCalendarDateToUtc(startYear + 1, 3, 31, 23, 59, 59, 999),
   };
 }
 
@@ -46,19 +40,20 @@ export function resolvePeriodRange(period: PnlPeriod, opts: ResolvePeriodOptions
 
   switch (period) {
     case 'today':
-      return { from: startOfDay(now), to: endOfDay(now) };
+      return { from: getIstStartOfDay(now), to: getIstEndOfDay(now) };
 
-    case 'this_month': {
-      const from = new Date(now.getFullYear(), now.getMonth(), 1);
-      const to = endOfDay(new Date(now.getFullYear(), now.getMonth() + 1, 0));
-      return { from, to };
-    }
+    case 'this_month':
+      return getIstMonthRange(now);
 
     case 'this_quarter': {
-      const quarterStartMonth = Math.floor(now.getMonth() / 3) * 3;
-      const from = new Date(now.getFullYear(), quarterStartMonth, 1);
-      const to = endOfDay(new Date(now.getFullYear(), quarterStartMonth + 3, 0));
-      return { from, to };
+      const { year, month } = getIstDateParts(now);
+      const quarterStartMonth = Math.floor((month - 1) / 3) * 3 + 1;
+      const quarterEndMonth = quarterStartMonth + 2;
+      const lastDay = new Date(Date.UTC(year, quarterEndMonth, 0)).getUTCDate();
+      return {
+        from: istCalendarDateToUtc(year, quarterStartMonth, 1, 0, 0, 0, 0),
+        to: istCalendarDateToUtc(year, quarterEndMonth, lastDay, 23, 59, 59, 999),
+      };
     }
 
     case 'financial_year':
@@ -68,12 +63,12 @@ export function resolvePeriodRange(period: PnlPeriod, opts: ResolvePeriodOptions
       if (!opts.from || !opts.to) {
         throw Object.assign(new Error('from and to are required for a custom period'), { status: 400 });
       }
-      const from = new Date(opts.from);
-      const to = new Date(opts.to);
-      if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) {
-        throw Object.assign(new Error('Invalid from/to date'), { status: 400 });
-      }
-      return { from: startOfDay(from), to: endOfDay(to) };
+      const fromParts = parseIstDateString(opts.from);
+      const toParts = parseIstDateString(opts.to);
+      return {
+        from: istCalendarDateToUtc(fromParts.year, fromParts.month, fromParts.day, 0, 0, 0, 0),
+        to: istCalendarDateToUtc(toParts.year, toParts.month, toParts.day, 23, 59, 59, 999),
+      };
     }
 
     default:
