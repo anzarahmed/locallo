@@ -226,7 +226,7 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
               <StepIndicator step={step} />
             </div>
 
-            <div className="px-5 pb-4 overflow-y-auto flex-1">
+            <div className="px-5 pb-4 overflow-y-auto flex-1 min-h-0">
               {step === 1 && (
                 <AudienceStep
                   values={formik.values}
@@ -536,7 +536,8 @@ interface ExistingBoostViewProps {
 function ExistingBoostView({ boost, promoting, onClose, onCancel, cancelling }: ExistingBoostViewProps): JSX.Element {
   const audienceLabel = formatAudienceLabel(boost.audienceType, boost.state, boost.city);
   return (
-    <div className="px-5 pb-5">
+    <>
+    <div className="px-5 pb-4 overflow-y-auto flex-1 min-h-0">
       <div className="flex flex-col items-center text-center mb-4">
         <div
           className="w-12 h-12 rounded-full flex items-center justify-center mb-3"
@@ -622,28 +623,29 @@ function ExistingBoostView({ boost, promoting, onClose, onCancel, cancelling }: 
           </div>
         </div>
       </div>
+    </div>
 
-      <div className="flex gap-3 mt-5">
-        {onCancel && (
-          <button
-            type="button"
-            onClick={onCancel}
-            disabled={cancelling}
-            className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
-          >
-            {cancelling && <Loader2 size={15} className="animate-spin" />}
-            {cancelling ? 'Cancelling…' : 'Cancel & try again'}
-          </button>
-        )}
+    <div className="px-5 py-4 border-t border-gray-50 flex gap-3 shrink-0">
+      {onCancel && (
         <button
           type="button"
-          onClick={onClose}
-          className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
-          style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
+          onClick={onCancel}
+          disabled={cancelling}
+          className="flex-1 py-2.5 rounded-xl border border-gray-200 text-sm font-semibold text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-60 flex items-center justify-center gap-2"
         >
-          Close
+          {cancelling && <Loader2 size={15} className="animate-spin" />}
+          {cancelling ? 'Cancelling…' : 'Cancel & try again'}
         </button>
-      </div>
+      )}
+      <button
+        type="button"
+        onClick={onClose}
+        className="flex-1 py-2.5 rounded-xl text-sm font-semibold text-white transition-opacity hover:opacity-90"
+        style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
+      >
+        Close
+      </button>
     </div>
+    </>
   );
 }
