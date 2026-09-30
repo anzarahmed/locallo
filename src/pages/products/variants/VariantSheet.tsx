@@ -45,7 +45,6 @@ export default function VariantSheet({
   const attributeSchema = product.category?.attributeSchema ?? [];
   const variantFields   = attributeSchema.filter(f => f.isVariant === true);
   const stockDependent  = hasStockDependentAttr(variantFields);
-  const lockedFields    = variantFields.filter(f => lockedAttributes && f.key in lockedAttributes);
   const openFields      = variantFields.filter(f => !(lockedAttributes && f.key in lockedAttributes));
 
   /* Slide-up animation */
@@ -428,7 +427,7 @@ export default function VariantSheet({
             )}
           </div>
 
-          {isEdit ? (
+          {isEdit && (
             /* ── Edit mode: show read-only attribute pills ── */
             <div>
               <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
@@ -449,25 +448,6 @@ export default function VariantSheet({
                 })}
               </div>
             </div>
-          ) : (
-            lockedFields.length > 0 && (
-              <div>
-                <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
-                  Group
-                </p>
-                <div className="flex flex-wrap gap-1.5">
-                  {lockedFields.map(field => {
-                    const val = lockedAttributes![field.key];
-                    const opt = field.options?.find(o => o.value === val);
-                    return (
-                      <span key={field.key} className="text-xs bg-teal-50 text-teal-700 px-2.5 py-0.5 rounded-full font-medium">
-                        {field.label}: <span>{toTitleCase(opt?.label ?? val)}</span>
-                      </span>
-                    );
-                  })}
-                </div>
-              </div>
-            )
           )}
 
           {/* Primary Image */}
@@ -654,21 +634,29 @@ export default function VariantSheet({
                 </div>
               )}
 
-              {/* Variant option selectors */}
+              {/* Variant attribute fields — locked (readonly) and open (editable), in
+                  schema order, matching the mobile app's single interleaved field list */}
               {variantFields.length > 0 ? (
                 <div className="space-y-4">
-                  {openFields.map(field => (
-                    <div key={field.key} className="space-y-4">
-                      <SheetVariantOptionField
-                        field={field}
-                        value={variantSelections[field.key]}
-                        usedValues={usedValuesForField(field)}
-                        onChange={v => setVariantSelection(field.key, v)}
-                        showError={attemptedSubmit}
-                      />
-                      {field.key === stockAnchorKey && comboStockInputs}
-                    </div>
-                  ))}
+                  {variantFields.map(field => {
+                    const isLocked = !!lockedAttributes && field.key in lockedAttributes;
+                    return (
+                      <div key={field.key} className="space-y-4">
+                        {isLocked ? (
+                          <LockedVariantField field={field} value={lockedAttributes![field.key]} />
+                        ) : (
+                          <SheetVariantOptionField
+                            field={field}
+                            value={variantSelections[field.key]}
+                            usedValues={usedValuesForField(field)}
+                            onChange={v => setVariantSelection(field.key, v)}
+                            showError={attemptedSubmit}
+                          />
+                        )}
+                        {field.key === stockAnchorKey && comboStockInputs}
+                      </div>
+                    );
+                  })}
                   {stockAnchorKey === undefined && comboStockInputs}
                 </div>
               ) : (
@@ -698,6 +686,29 @@ export default function VariantSheet({
           </button>
         </div>
       </div>
+    </div>
+  );
+}
+
+/* ── Locked (readonly) attribute field — shown in its normal schema position
+   when adding a new option to an existing group (e.g. Color is fixed while
+   adding a new Size) ── */
+interface LockedVariantFieldProps {
+  field: AttributeField;
+  value: string;
+}
+
+function LockedVariantField({ field, value }: LockedVariantFieldProps): JSX.Element {
+  const opt = field.options?.find(o => o.value === value);
+  return (
+    <div>
+      <label className="block text-xs font-semibold text-gray-500 mb-1.5">{field.label}</label>
+      <input
+        type="text"
+        readOnly
+        value={toTitleCase(opt?.label ?? value)}
+        className="w-full border border-gray-200 rounded-xl text-sm text-gray-500 px-3 py-2.5 bg-gray-50 cursor-not-allowed"
+      />
     </div>
   );
 }
