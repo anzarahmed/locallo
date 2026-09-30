@@ -101,8 +101,7 @@ export function hasStockDependentAttr(variantFields: AttributeField[]): boolean 
 export function validateStockValue(raw: string | undefined): string | null {
   if (raw === undefined || raw === '') return 'Stock is required';
   const n = Number(raw);
-  if (!Number.isFinite(n) || !Number.isInteger(n)) return 'Enter a whole number';
-  if (n <= 0) return 'Stock must be greater than 0';
+  if (!Number.isFinite(n) || !Number.isInteger(n) || n < 0) return 'Enter a valid stock (0 or more)';
   return null;
 }
 

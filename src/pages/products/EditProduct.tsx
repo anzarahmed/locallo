@@ -932,7 +932,7 @@ function VariantOptionField({ field, onChange, value, error }: VariantOptionFiel
         type={field.type === 'number' ? 'number' : 'text'}
         value={strVal}
         onChange={e => onChange(e.target.value)}
-        placeholder={field.unit ? `e.g. ${field.unit}` : `Enter ${field.label}`}
+        placeholder={field.type === 'number' ? (field.unit ? `Value in ${field.unit}` : '0') : field.label}
         className={inputCls(!!error)}
       />
     );

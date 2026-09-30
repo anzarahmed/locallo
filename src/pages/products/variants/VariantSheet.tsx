@@ -421,7 +421,7 @@ export default function VariantSheet({
 
           {/* Variant of */}
           <div className="rounded-2xl px-4 py-3 bg-teal-50/70 border border-teal-100">
-            <p className="text-[11px] font-bold text-teal-700 tracking-wide mb-1">Variant Of</p>
+            <p className="text-[11px] font-bold text-teal-700 tracking-wide mb-1">Variant of</p>
             <p className="text-sm font-bold text-gray-800">{product.name}</p>
             {product.category && (
               <p className="text-xs text-gray-400 mt-0.5">{product.category.name}</p>
@@ -809,7 +809,7 @@ function SheetVariantOptionField({ field, value, usedValues, onChange, showError
         type={field.type === 'number' ? 'number' : 'text'}
         value={strVal}
         onChange={e => onChange(e.target.value)}
-        placeholder={field.unit ? `e.g. ${field.unit}` : `Enter ${field.label}`}
+        placeholder={field.type === 'number' ? (field.unit ? `Value in ${field.unit}` : '0') : field.label}
         className={`w-full border rounded-xl text-sm text-gray-700 px-3 py-2.5 bg-gray-50 focus:outline-none focus:ring-2 focus:ring-teal-500/20 ${
           hasError ? 'border-rose-300' : 'border-gray-200'
         }`}

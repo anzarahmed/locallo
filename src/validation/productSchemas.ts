@@ -2,11 +2,12 @@ import * as Yup from 'yup';
 
 export const addProductSchema = Yup.object({
   name:         Yup.string().required('Product name is required'),
-  description:  Yup.string().required('Description is required'),
+  description:  Yup.string().required('Description is required')
+    .min(10, 'Description must be at least 10 characters'),
   categoryId:   Yup.number().integer().positive('Please select a category').required('Please select a category'),
-  sellingPrice: Yup.number().typeError('Enter a valid amount').positive('Must be positive').required('Selling price is required'),
-  mrp:          Yup.number().typeError('Enter a valid amount').positive('Must be positive').required('MRP is required')
-    .test('mrp-gte-selling-price', 'MRP must be greater than or equal to Selling Price', function (mrp) {
+  sellingPrice: Yup.number().typeError('Enter a valid price greater than 0').positive('Enter a valid price greater than 0').required('Selling price is required'),
+  mrp:          Yup.number().typeError('Enter a valid MRP greater than 0').positive('Enter a valid MRP greater than 0').required('MRP is required')
+    .test('mrp-gte-selling-price', 'MRP must be greater than or equal to selling price', function (mrp) {
       const { sellingPrice } = this.parent as { sellingPrice: number | undefined };
       if (mrp == null || sellingPrice == null || Number.isNaN(sellingPrice)) return true;
       return mrp >= sellingPrice;
@@ -28,14 +29,14 @@ export const addProductSchemaComboStock = addProductSchema.shape({
 // Because MRP can't be edited here, the mrp>=sellingPrice constraint is enforced on
 // sellingPrice instead — that's the field the user can actually change to resolve it.
 export const editProductSchema = addProductSchema.shape({
-  mrp: Yup.number().typeError('Enter a valid amount').positive('Must be positive').optional()
-    .test('mrp-gte-selling-price', 'MRP must be greater than or equal to Selling Price', function (mrp) {
+  mrp: Yup.number().typeError('Enter a valid MRP greater than 0').positive('Enter a valid MRP greater than 0').optional()
+    .test('mrp-gte-selling-price', 'MRP must be greater than or equal to selling price', function (mrp) {
       const { sellingPrice } = this.parent as { sellingPrice: number | undefined };
       if (mrp == null || sellingPrice == null || Number.isNaN(sellingPrice)) return true;
       return mrp >= sellingPrice;
     }),
-  sellingPrice: Yup.number().typeError('Enter a valid amount').positive('Must be positive').required('Selling price is required')
-    .test('selling-price-lte-mrp', 'MRP must be greater than or equal to Selling Price', function (sellingPrice) {
+  sellingPrice: Yup.number().typeError('Enter a valid price greater than 0').positive('Enter a valid price greater than 0').required('Selling price is required')
+    .test('selling-price-lte-mrp', 'MRP must be greater than or equal to selling price', function (sellingPrice) {
       const { mrp } = this.parent as { mrp: number | undefined };
       if (sellingPrice == null || mrp == null || Number.isNaN(mrp)) return true;
       return sellingPrice <= mrp;

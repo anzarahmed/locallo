@@ -342,7 +342,7 @@ export default function AddProduct(): JSX.Element {
         >
           <ArrowLeft size={18} />
         </button>
-        <h1 className="text-white text-[20px] font-bold">Add Product</h1>
+        <h1 className="text-white text-[20px] font-bold">Add New Product</h1>
       </div>
 
       <div className="px-4 md:px-8 pt-5 max-w-2xl mx-auto space-y-4">
@@ -526,7 +526,7 @@ export default function AddProduct(): JSX.Element {
               value={form.values.name}
               onChange={form.handleChange}
               onBlur={form.handleBlur}
-              placeholder="e.g. Wireless Earbuds Pro"
+              placeholder="e.g. Classic Denim Jacket"
               className={inputCls(!!form.touched.name && !!form.errors.name)}
             />
           </FormField>
@@ -801,7 +801,7 @@ function VariantOptionField({ field, onChange, value, error }: VariantOptionFiel
         type={field.type === 'number' ? 'number' : 'text'}
         value={strVal}
         onChange={e => onChange(e.target.value)}
-        placeholder={field.unit ? `e.g. ${field.unit}` : `Enter ${field.label}`}
+        placeholder={field.type === 'number' ? (field.unit ? `Value in ${field.unit}` : '0') : field.label}
         className={inputCls(!!error)}
       />
     );

@@ -63,7 +63,7 @@ export default function AttrInput({ field, value, onChange, error }: AttrInputPr
           value={str}
           onChange={e => onChange(e.target.value)}
           rows={3}
-          placeholder={field.unit ?? ''}
+          placeholder={field.label}
           className={`${inputCls(!!error)} resize-none`}
         />
       ) : field.type === 'select' ? (
@@ -73,7 +73,7 @@ export default function AttrInput({ field, value, onChange, error }: AttrInputPr
             onChange={e => onChange(e.target.value)}
             className={`w-full appearance-none ${inputCls(!!error)} pr-8`}
           >
-            <option value="">Select…</option>
+            <option value="">{`Select ${field.label}`}</option>
             {field.options?.map(opt => (
               <option key={opt.value} value={opt.value}>{opt.label}</option>
             ))}
@@ -89,7 +89,7 @@ export default function AttrInput({ field, value, onChange, error }: AttrInputPr
               ? (e.target.value === '' ? '' : Number(e.target.value))
               : e.target.value
           )}
-          placeholder={field.unit ?? ''}
+          placeholder={field.type === 'number' ? (field.unit ? `Value in ${field.unit}` : '0') : field.label}
           className={inputCls(!!error)}
         />
       )}
