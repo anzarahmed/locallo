@@ -204,7 +204,12 @@ function PaymentRow({ payment }: { payment: Payment }): JSX.Element {
       <td className="px-4 py-3">
         <div className="flex items-center gap-3 min-w-0">
           <PaymentThumb src={payment.productImage} />
-          <p className="text-sm font-semibold text-gray-800 truncate max-w-[220px]">{payment.productName}</p>
+          <p
+            className="text-sm font-semibold text-gray-800 truncate max-w-[360px]"
+            title={payment.productName}
+          >
+            {payment.productName}
+          </p>
         </div>
       </td>
       <td className="px-4 py-3 text-gray-500 whitespace-nowrap">{audienceLabel(payment)}</td>
