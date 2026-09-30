@@ -522,9 +522,9 @@ function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit,
               onClick={onPromote}
               disabled={loadingPromote}
               aria-label="Promote product"
-              className="flex items-center gap-1 px-2.5 h-8 rounded-full bg-violet-600 text-white text-[11px] font-semibold leading-none hover:bg-violet-700 transition-colors disabled:opacity-60 shrink-0"
+              className="flex items-center gap-1 px-3 h-8 rounded-full bg-teal-50 text-teal-700 text-[11px] font-semibold leading-none hover:bg-teal-100 transition-colors disabled:opacity-60 shrink-0"
             >
-              {loadingPromote ? <Loader2 size={12} className="animate-spin" /> : <Rocket size={12} />}
+              {loadingPromote && <Loader2 size={12} className="animate-spin" />}
               Promote Product
             </button>
           )}
