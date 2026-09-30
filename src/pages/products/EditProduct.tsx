@@ -849,7 +849,7 @@ export default function EditProduct(): JSX.Element {
             className="w-full py-3.5 rounded-2xl text-white text-sm font-bold disabled:opacity-60 transition-opacity hover:opacity-90"
             style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
           >
-            {form.isSubmitting ? 'Saving…' : 'Save Changes'}
+            {form.isSubmitting ? 'Saving…' : 'Update Product'}
           </button>
         </div>
       </div>
