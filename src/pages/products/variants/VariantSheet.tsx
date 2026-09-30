@@ -8,6 +8,7 @@ import { useToast } from '../../../hooks/useToast';
 import { ApiError } from '../../../lib/axios';
 import { resolveImage, validateImageFile } from '../../../lib/imageUtils';
 import { inputCls } from '../../../lib/classUtils';
+import { toTitleCase } from '../../../lib/textFormat';
 import {
   generateCombinations, getCombinationKey, hasStockDependentAttr, validateComboStocks,
   carryOverComboStocks, type VariantSelections,
@@ -440,7 +441,9 @@ export default function VariantSheet({
                   return (
                     <span key={key} className="text-xs bg-teal-50 text-teal-700 px-3 py-1.5 rounded-full border border-teal-100">
                       <span className="font-bold">{field?.label ?? key}:</span>{' '}
-                      <span className={`text-gray-700 font-medium ${field?.type === 'color' ? 'capitalize' : ''}`}>{opt?.label ?? String(val)}</span>
+                      <span className="text-gray-700 font-medium">
+                        {toTitleCase(opt?.label ?? String(val))}
+                      </span>
                     </span>
                   );
                 })}
@@ -458,7 +461,7 @@ export default function VariantSheet({
                     const opt = field.options?.find(o => o.value === val);
                     return (
                       <span key={field.key} className="text-xs bg-teal-50 text-teal-700 px-2.5 py-0.5 rounded-full font-medium">
-                        {field.label}: <span className={field.type === 'color' ? 'capitalize' : undefined}>{opt?.label ?? val}</span>
+                        {field.label}: <span>{toTitleCase(opt?.label ?? val)}</span>
                       </span>
                     );
                   })}
@@ -754,7 +757,7 @@ function SheetVariantOptionField({ field, value, usedValues, onChange, showError
                         : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
                   }`}
                 >
-                  {opt.label}
+                  {toTitleCase(opt.label)}
                 </button>
               );
             })}
@@ -777,7 +780,7 @@ function SheetVariantOptionField({ field, value, usedValues, onChange, showError
                 key={opt.value}
                 type="button"
                 onClick={() => onChange(selected === opt.value ? '' : opt.value)}
-                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${field.type === 'color' ? 'capitalize' : ''} ${
+                className={`px-3 py-1.5 rounded-full text-xs font-semibold border transition-colors ${
                   selected === opt.value
                     ? 'bg-teal-600 border-teal-600 text-white'
                     : hasError
@@ -785,7 +788,7 @@ function SheetVariantOptionField({ field, value, usedValues, onChange, showError
                       : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
                 }`}
               >
-                {opt.label}
+                {toTitleCase(opt.label)}
               </button>
             ))}
           </div>
@@ -825,7 +828,7 @@ interface SheetStockRowProps {
 function SheetStockRow({ combo, sdFields, stock, error, onChange }: SheetStockRowProps): JSX.Element {
   const label = sdFields
     .filter(f => combo[f.key] !== undefined)
-    .map(f => f.options?.find(o => o.value === combo[f.key])?.label ?? combo[f.key])
+    .map(f => toTitleCase(f.options?.find(o => o.value === combo[f.key])?.label ?? combo[f.key]))
     .join(' / ');
   return (
     <div>

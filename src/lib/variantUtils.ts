@@ -1,4 +1,5 @@
 import type { AttributeField, ProductVariant } from '../types';
+import { toTitleCase } from './textFormat';
 
 export type VariantSelections = Record<string, string | string[]>;
 
@@ -29,7 +30,8 @@ export function groupLabel(nonSdAttrs: Record<string, string>, schema: Attribute
   return entries
     .map(([key, val]) => {
       const field = schema.find(f => f.key === key);
-      return field?.options?.find(o => o.value === val)?.label ?? val;
+      const label = field?.options?.find(o => o.value === val)?.label ?? val;
+      return toTitleCase(label);
     })
     .join(' · ');
 }
@@ -133,13 +135,14 @@ export function variantLabel(
       if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) return null;
       if ((f.type === 'select' || f.type === 'multiselect') && f.options) {
         const vals = Array.isArray(v) ? (v as string[]) : [v as string];
-        return vals.map(val => f.options?.find(o => o.value === val)?.label ?? val).join(', ');
+        return vals.map(val => toTitleCase(f.options?.find(o => o.value === val)?.label ?? val)).join(', ');
       }
-      return String(v);
+      if (f.type === 'textarea') return String(v);
+      return toTitleCase(String(v));
     })
     .filter(Boolean);
   if (parts.length > 0) return parts.join(' · ');
-  return Object.values(attributes).filter(Boolean).join(' · ') || 'Variant';
+  return Object.values(attributes).filter(Boolean).map(v => toTitleCase(String(v))).join(' · ') || 'Variant';
 }
 
 export function buildProductVariantAttrs(

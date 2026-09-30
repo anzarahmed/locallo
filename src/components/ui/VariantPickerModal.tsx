@@ -1,6 +1,7 @@
 import { type JSX } from 'react';
 import { X, Package } from 'lucide-react';
 import { resolveImage } from '../../lib/imageUtils';
+import { toTitleCase } from '../../lib/textFormat';
 import type { ProductVariant, AttributeField } from '../../types';
 
 interface VariantPickerModalProps {
@@ -68,7 +69,8 @@ export default function VariantPickerModal({
                   <div className="flex flex-wrap gap-1">
                     {Object.entries(variant.attributes).map(([key, value]) => {
                       const field = schema.find(f => f.key === key);
-                      const displayVal = field?.options?.find(o => o.value === String(value))?.label ?? String(value);
+                      const rawLabel = field?.options?.find(o => o.value === String(value))?.label ?? String(value);
+                      const displayVal = toTitleCase(rawLabel);
                       const fieldLabel = field?.label ?? key;
                       return (
                         <span key={key} className="text-[11px] bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-medium">

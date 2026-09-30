@@ -11,6 +11,7 @@ import { ApiError } from '../../lib/axios';
 import { resolveImage, validateImageFile } from '../../lib/imageUtils';
 import { normalizeAttrValues, buildRequiredAttrErrors, type AttrValue } from '../../lib/attributeUtils';
 import { inputCls } from '../../lib/classUtils';
+import { toTitleCase } from '../../lib/textFormat';
 import { MAX_SECONDARY_IMAGES } from '../../constants';
 import {
   generateCombinations, getCombinationKey, hasStockDependentAttr, carryOverComboStocks,
@@ -898,7 +899,7 @@ function VariantOptionField({ field, onChange, value, error }: VariantOptionFiel
                   : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
               }`}
             >
-              {opt.label}
+              {toTitleCase(opt.label)}
             </button>
           );
         })}
@@ -919,7 +920,7 @@ function VariantOptionField({ field, onChange, value, error }: VariantOptionFiel
                 : 'bg-white border-gray-200 text-gray-600 hover:border-teal-400'
             }`}
           >
-            {opt.label}
+            {toTitleCase(opt.label)}
           </button>
         ))}
       </div>
@@ -958,7 +959,7 @@ interface CombinationStockRowProps {
 function CombinationStockRow({ combo, sdFields, stock, error, onChange }: CombinationStockRowProps): JSX.Element {
   const label = sdFields
     .filter(f => combo[f.key] !== undefined)
-    .map(f => f.options?.find(o => o.value === combo[f.key])?.label ?? combo[f.key])
+    .map(f => toTitleCase(f.options?.find(o => o.value === combo[f.key])?.label ?? combo[f.key]))
     .join(' / ');
   return (
     <FormField label={`Stock – ${label}`} error={error}>

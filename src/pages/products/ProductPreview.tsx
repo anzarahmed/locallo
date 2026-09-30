@@ -4,29 +4,26 @@ import { getSellerProduct, getProductVariants, getProfile, getProducts, getProdu
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { formatPrice, discountPct } from '../../lib/formatters';
+import { toTitleCase } from '../../lib/textFormat';
 import type { Product, ProductVariant, AttributeField, SellerProfile, ProductReview } from '../../types';
 
 const HEX_COLOR = /^#[0-9a-fA-F]{3,8}$/;
-
-function capitalize(label: string): string {
-  return label.charAt(0).toUpperCase() + label.slice(1);
-}
 
 function attrDisplayValue(field: AttributeField, raw: unknown): string {
   if (raw === null || raw === undefined || raw === '') return '—';
 
   if (field.type === 'multiselect' && Array.isArray(raw)) {
-    const labels = (raw as string[]).map(v => field.options?.find(o => o.value === v)?.label ?? v);
+    const labels = (raw as string[]).map(v => toTitleCase(field.options?.find(o => o.value === v)?.label ?? v));
     return labels.join(', ') || '—';
   }
 
   if ((field.type === 'select' || field.type === 'color') && field.options) {
     const opt = field.options.find(o => o.value === raw);
-    const label = opt?.label ?? String(raw);
-    return field.type === 'color' ? capitalize(label) : label;
+    return toTitleCase(opt?.label ?? String(raw));
   }
 
-  return String(raw);
+  const text = String(raw);
+  return field.type === 'textarea' ? text : toTitleCase(text);
 }
 
 function ProductImage({ src, alt }: { src: string; alt: string }): JSX.Element {
@@ -345,7 +342,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                         const availableValues = [...usedValues].filter(Boolean);
                         if (availableValues.length === 0) return null;
                         const labelFor = (val: string): string =>
-                          capitalize(field.options?.find(o => o.value === val)?.label ?? val);
+                          toTitleCase(field.options?.find(o => o.value === val)?.label ?? val);
                         const imageFor = (val: string): string | null => {
                           const match = variants.find(v =>
                             String((v.attributes as Record<string, string>)[field.key]) === val && v.images.length > 0,
@@ -401,7 +398,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                           <div key={field.key}>
                             <p className="text-sm text-gray-500 mb-2">
                               {field.label}:{' '}
-                              <span className="font-semibold text-gray-900">{selectedOpt?.label ?? '—'}</span>
+                              <span className="font-semibold text-gray-900">{selectedOpt ? toTitleCase(selectedOpt.label) : '—'}</span>
                             </p>
                             <div className="flex gap-3 flex-wrap">
                               {availableOptions.map(opt => {
@@ -422,7 +419,7 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                                     }`}
                                     style={isSelected ? { background: 'linear-gradient(90deg, #FFB300 0%, #E53000 100%)' } : undefined}
                                   >
-                                    {opt.label}
+                                    {toTitleCase(opt.label)}
                                   </button>
                                 );
                               })}

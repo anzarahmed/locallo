@@ -10,6 +10,7 @@ import { useToast } from '../../../hooks/useToast';
 import { ApiError } from '../../../lib/axios';
 import { resolveImage } from '../../../lib/imageUtils';
 import { hasDiscount } from '../../../lib/formatters';
+import { toTitleCase } from '../../../lib/textFormat';
 import { categorySupportsVariants, groupVariants, type VariantGroup } from '../../../lib/variantUtils';
 import ConfirmDeleteModal from '../../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../../components/ui/SellModal';
@@ -325,7 +326,15 @@ export default function VariantList(): JSX.Element {
 
       {sellVariant && (
         <SellModal
-          itemName={Object.values(sellVariant.attributes).join(' / ') || 'Variant'}
+          itemName={
+            Object.entries(sellVariant.attributes)
+              .map(([key, val]) => {
+                const field = schema.find(f => f.key === key);
+                const label = field?.options?.find(o => o.value === String(val))?.label ?? String(val);
+                return toTitleCase(label);
+              })
+              .join(' / ') || 'Variant'
+          }
           currentStock={sellVariant.stock}
           loading={selling}
           onConfirm={(qty) => void handleSell(qty)}
@@ -392,9 +401,10 @@ function GroupedVariantCard({
               {nonSdEntries.map(([key, val]) => {
                 const field = schema.find(f => f.key === key);
                 const opt = field?.options?.find(o => o.value === val);
+                const label = opt?.label ?? val;
                 return (
                   <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
-                    {field?.label ?? key}: <span className={field?.type === 'color' ? 'capitalize' : undefined}>{opt?.label ?? val}</span>
+                    {field?.label ?? key}: <span>{toTitleCase(label)}</span>
                   </span>
                 );
               })}
@@ -441,7 +451,9 @@ function GroupedVariantCard({
 
           return (
             <div key={v.id} className="flex items-center gap-2 px-3 py-2.5">
-              <span className={`text-xs font-semibold text-gray-700 min-w-[40px] shrink-0 ${sdField.type === 'color' ? 'capitalize' : ''}`}>{sdLabel}</span>
+              <span className="text-xs font-semibold text-gray-700 min-w-[40px] shrink-0">
+                {toTitleCase(sdLabel)}
+              </span>
 
               <span className="text-xs font-bold text-teal-600">
                 ₹{v.sellingPrice.toLocaleString('en-IN')}
@@ -630,7 +642,8 @@ function GroupEditSheet({
               {nonSdEntries.length > 0 ? nonSdEntries.map(([key, val]) => {
                 const field = schema.find(f => f.key === key);
                 const opt = field?.options?.find(o => o.value === val);
-                return <span key={key} className={`text-xs text-gray-400 ${field?.type === 'color' ? 'capitalize' : ''}`}>{opt?.label ?? val}</span>;
+                const label = opt?.label ?? val;
+                return <span key={key} className="text-xs text-gray-400">{toTitleCase(label)}</span>;
               }) : (
                 <span className="text-xs text-gray-400">{group.variants.length} variants</span>
               )}
@@ -749,7 +762,7 @@ function GroupEditSheet({
               return (
                 <div key={v.id} className="bg-gray-50 rounded-xl p-3.5">
                   <p className="text-xs font-semibold text-gray-600 mb-3">
-                    {sdField.label}: <span className={`text-teal-700 ${sdField.type === 'color' ? 'capitalize' : ''}`}>{sdLabel}</span>
+                    {sdField.label}: <span className="text-teal-700">{toTitleCase(sdLabel)}</span>
                   </p>
                   <div className="grid grid-cols-3 gap-2">
                     <div>
@@ -858,7 +871,7 @@ function VariantCard({ variant, schema, onToggle, onEdit, onDelete, onSell, isBo
               const displayVal = field?.options?.find(o => o.value === String(value))?.label ?? String(value);
               return (
                 <span key={key} className="text-xs bg-gray-100 text-gray-600 px-2.5 py-0.5 rounded-full font-medium">
-                  {fieldLabel}: <span className={field?.type === 'color' ? 'capitalize' : undefined}>{displayVal}</span>
+                  {fieldLabel}: <span>{toTitleCase(displayVal)}</span>
                 </span>
               );
             })}

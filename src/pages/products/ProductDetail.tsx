@@ -10,6 +10,7 @@ import { resolveImage } from '../../lib/imageUtils';
 import { formatPrice, discountPct } from '../../lib/formatters';
 import type { AttributeField, Product, ProductVariant } from '../../types';
 import { categorySupportsVariants } from '../../lib/variantUtils';
+import { toTitleCase } from '../../lib/textFormat';
 import ProductPreview from './ProductPreview';
 import { formatDate } from '../../lib/dateFormat';
 
@@ -18,11 +19,11 @@ function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
 
   if (field.type === 'color') {
     const opt = field.options?.find(o => o.value === raw);
-    return <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1 capitalize">{opt?.label ?? String(raw)}</span>;
+    return <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">{toTitleCase(opt?.label ?? String(raw))}</span>;
   }
 
   if (field.type === 'multiselect' && Array.isArray(raw) && field.options) {
-    const labels = (raw as string[]).map(v => field.options?.find(o => o.value === v)?.label ?? v);
+    const labels = (raw as string[]).map(v => toTitleCase(field.options?.find(o => o.value === v)?.label ?? v));
     return (
       <div className="flex flex-wrap gap-1.5">
         {labels.map(l => (
@@ -34,10 +35,11 @@ function renderAttrValue(field: AttributeField, raw: unknown): JSX.Element {
 
   if (field.type === 'select' && field.options) {
     const opt = field.options.find(o => o.value === raw);
-    return <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">{opt?.label ?? String(raw)}</span>;
+    return <span className="text-xs bg-gray-100 text-gray-700 rounded-full px-2.5 py-1">{toTitleCase(opt?.label ?? String(raw))}</span>;
   }
 
-  return <span className="text-sm text-gray-800 whitespace-pre-wrap">{String(raw)}</span>;
+  const text = String(raw);
+  return <span className="text-sm text-gray-800 whitespace-pre-wrap">{field.type === 'textarea' ? text : toTitleCase(text)}</span>;
 }
 
 function DetailImage({ src, alt }: { src: string; alt: string }): JSX.Element {
@@ -117,13 +119,14 @@ function variantLabel(variant: ProductVariant, schema: AttributeField[]): string
       if (v === undefined || v === null || v === '' || (Array.isArray(v) && v.length === 0)) return null;
       if ((f.type === 'select' || f.type === 'multiselect') && f.options) {
         const vals = Array.isArray(v) ? (v as string[]) : [v as string];
-        return vals.map(val => f.options?.find(o => o.value === val)?.label ?? val).join(', ');
+        return vals.map(val => toTitleCase(f.options?.find(o => o.value === val)?.label ?? val)).join(', ');
       }
-      return String(v);
+      if (f.type === 'textarea') return String(v);
+      return toTitleCase(String(v));
     })
     .filter(Boolean);
   if (parts.length > 0) return parts.join(' · ');
-  return Object.values(variant.attributes).filter(Boolean).join(' · ') || 'Variant';
+  return Object.values(variant.attributes).filter(Boolean).map(v => toTitleCase(String(v))).join(' · ') || 'Variant';
 }
 
 function Skeleton(): JSX.Element {
@@ -434,7 +437,7 @@ export default function ProductDetail(): JSX.Element {
                         <span className="shrink-0 w-5 h-5 rounded-full bg-gray-100 text-gray-400 text-xs font-medium flex items-center justify-center leading-none">
                           {i + 1}
                         </span>
-                        <span className="text-sm text-gray-700 truncate capitalize">{variantLabel(v, schema)}</span>
+                        <span className="text-sm text-gray-700 truncate">{variantLabel(v, schema)}</span>
                         {!v.isActive && (
                           <span className="shrink-0 text-xs text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full">Inactive</span>
                         )}

@@ -6,6 +6,7 @@ import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { hasDiscount } from '../../lib/formatters';
+import { toTitleCase } from '../../lib/textFormat';
 import { categorySupportsVariants } from '../../lib/variantUtils';
 import { FILTER_TABS, SORT_OPTIONS, PAGE_LIMIT, type FilterTab } from '../../constants';
 import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
@@ -38,7 +39,7 @@ export default function ProductList(): JSX.Element {
     variants: ProductVariant[];
     schema: AttributeField[];
   } | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<ProductVariant | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<{ variant: ProductVariant; schema: AttributeField[] } | null>(null);
   const [loadingVariantsForId, setLoadingVariantsForId] = useState<string | null>(null);
   const [selling, setSelling] = useState(false);
   const [promoteTarget, setPromoteTarget] = useState<{
@@ -128,7 +129,7 @@ export default function ProductList(): JSX.Element {
   }
 
   function handleVariantSelected(variant: ProductVariant): void {
-    setSelectedVariant(variant);
+    setSelectedVariant({ variant, schema: variantPickerData?.schema ?? [] });
     setVariantPickerData(null);
   }
 
@@ -151,10 +152,10 @@ export default function ProductList(): JSX.Element {
 
   async function handleConfirmVariantSell(quantity: number): Promise<void> {
     if (!selectedVariant) return;
-    const productId = selectedVariant.productId;
+    const productId = selectedVariant.variant.productId;
     setSelling(true);
     try {
-      await markVariantSold(productId, selectedVariant.id, quantity);
+      await markVariantSold(productId, selectedVariant.variant.id, quantity);
       setProducts(prev =>
         prev.map(p => {
           if (p.id !== productId) return p;
@@ -379,9 +380,15 @@ export default function ProductList(): JSX.Element {
       {selectedVariant && (
         <SellModal
           itemName={
-            Object.values(selectedVariant.attributes).join(' / ') || 'Variant'
+            Object.entries(selectedVariant.variant.attributes)
+              .map(([key, val]) => {
+                const field = selectedVariant.schema.find(f => f.key === key);
+                const label = field?.options?.find(o => o.value === String(val))?.label ?? String(val);
+                return toTitleCase(label);
+              })
+              .join(' / ') || 'Variant'
           }
-          currentStock={selectedVariant.stock}
+          currentStock={selectedVariant.variant.stock}
           loading={selling}
           onConfirm={(qty) => void handleConfirmVariantSell(qty)}
           onClose={() => setSelectedVariant(null)}
