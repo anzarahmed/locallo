@@ -1,4 +1,4 @@
-import { useEffect, useState, type JSX } from 'react';
+import { useEffect, useRef, useState, type JSX } from 'react';
 import { useFormik } from 'formik';
 import {
   X, Globe, Map, Building2, Users, IndianRupee, ClipboardCheck,
@@ -28,6 +28,9 @@ interface BoostProductModalProps {
 
 const RAZORPAY_CHECKOUT_URL = 'https://checkout.razorpay.com/v1/checkout.js';
 
+const BUDGET_INFO_TEXT =
+  "Your budget affects how many people see your ad. As you increase your ad budget, you grow the pool of people that you can reach. The minimum amount that you can spend varies based on your ad goal.";
+
 const AudienceGroupIcon: LucideIcon = createLucideIcon('audience-group', [
   ['circle', { cx: '12', cy: '6.5', r: '2.8', key: 'ag-head-c' }],
   ['circle', { cx: '6', cy: '8.5', r: '2', key: 'ag-head-l' }],
@@ -35,6 +38,11 @@ const AudienceGroupIcon: LucideIcon = createLucideIcon('audience-group', [
   ['path', { d: 'M3 20a3.4 3.4 0 0 1 3-3.4', key: 'ag-body-l' }],
   ['path', { d: 'M21 20a3.4 3.4 0 0 0-3-3.4', key: 'ag-body-r' }],
   ['path', { d: 'M7 20.5v-.3a5 5 0 0 1 10 0v.3', key: 'ag-body-c' }],
+]);
+
+const InfoGlyph: LucideIcon = createLucideIcon('info-glyph', [
+  ['path', { d: 'M12 16v-4', key: 'ig-line' }],
+  ['path', { d: 'M12 8h.01', key: 'ig-dot' }],
 ]);
 
 function boostVariantLabel(attributes: Record<string, unknown>, schema: AttributeField[]): string {
@@ -59,6 +67,19 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
   const [checking, setChecking] = useState(true);
   const [existingBoost, setExistingBoost] = useState<ProductBoost | null>(null);
   const [cancelling, setCancelling] = useState(false);
+  const [showBudgetInfo, setShowBudgetInfo] = useState(false);
+  const budgetInfoRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showBudgetInfo) return;
+    function handleOutsideClick(e: MouseEvent): void {
+      if (budgetInfoRef.current && !budgetInfoRef.current.contains(e.target as Node)) {
+        setShowBudgetInfo(false);
+      }
+    }
+    document.addEventListener('mousedown', handleOutsideClick);
+    return () => document.removeEventListener('mousedown', handleOutsideClick);
+  }, [showBudgetInfo]);
 
   useEffect(() => {
     let cancelled = false;
@@ -193,9 +214,28 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
       <div className="bg-white rounded-2xl w-full max-w-md shadow-xl flex flex-col max-h-[90vh]">
         <div className="flex items-center justify-between px-5 pt-5 pb-3 shrink-0">
           <div className="min-w-0">
-            <h3 className="text-base font-bold text-gray-800">
-              {existingBoost ? 'Boost Details' : 'Boost Your Product'}
-            </h3>
+            <div className="flex items-center gap-2">
+              <h3 className="text-base font-bold text-gray-800">
+                {existingBoost ? 'Boost Details' : 'Boost Your Product'}
+              </h3>
+              {!checking && !existingBoost && (
+                <div ref={budgetInfoRef} className="relative shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => setShowBudgetInfo((v) => !v)}
+                    aria-label="About boost budget"
+                    className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center hover:opacity-90 transition-opacity"
+                  >
+                    <InfoGlyph size={18} strokeWidth={3} />
+                  </button>
+                  {showBudgetInfo && (
+                    <div className="absolute left-0 top-full mt-3 w-72 z-30 rounded-2xl bg-teal-900 text-white text-sm leading-relaxed p-4 shadow-xl">
+                      {BUDGET_INFO_TEXT}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
             <p className="text-xs text-gray-400 mt-0.5 truncate">{product.name}</p>
           </div>
           <button
