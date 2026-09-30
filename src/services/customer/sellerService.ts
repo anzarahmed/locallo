@@ -5,7 +5,7 @@ import { SellerProfile } from '../../models/SellerProfile';
 import { Category } from '../../models/Category';
 import { Brand } from '../../models/Brand';
 import { Product } from '../../models/Product';
-import { getIstDateString, getIstDayOfWeek } from '../../utils/istDate';
+import { getIstDateString, getIstDayOfWeek, getIstTimeString } from '../../utils/istDate';
 import type { CustomDayOverride, CustomDayTime, DayOfWeek, WorkingHours } from '../../types';
 
 export interface TodayWorkingHours {
@@ -13,6 +13,7 @@ export interface TodayWorkingHours {
   date: string;
   isSpecialHours: boolean;
   time: CustomDayTime;
+  isShopOpen: boolean;
 }
 
 export async function getTodayWorkingHours(sellerId: string): Promise<TodayWorkingHours> {
@@ -28,6 +29,12 @@ export async function getTodayWorkingHours(sellerId: string): Promise<TodayWorki
   return resolveTodayWorkingHours(profile.workingHours as WorkingHours, profile.customDayOverride as CustomDayOverride | null);
 }
 
+function isShopOpenNow(time: CustomDayTime, now: Date): boolean {
+  if (time.isClosed || !time.open || !time.close) return false;
+  const currentTime = getIstTimeString(now);
+  return currentTime >= time.open && currentTime < time.close;
+}
+
 function resolveTodayWorkingHours(
   workingHours: WorkingHours,
   override: CustomDayOverride | null,
@@ -37,10 +44,11 @@ function resolveTodayWorkingHours(
   const date = getIstDateString(now);
 
   if (override && override.date === date) {
-    return { day, date, isSpecialHours: true, time: override.time };
+    return { day, date, isSpecialHours: true, time: override.time, isShopOpen: isShopOpenNow(override.time, now) };
   }
 
-  return { day, date, isSpecialHours: false, time: workingHours[day] };
+  const time = workingHours[day];
+  return { day, date, isSpecialHours: false, time, isShopOpen: isShopOpenNow(time, now) };
 }
 
 interface CategoryRef {

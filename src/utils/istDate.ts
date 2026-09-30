@@ -14,8 +14,19 @@ const DATE_FORMATTER = new Intl.DateTimeFormat('en-CA', {
   day: '2-digit',
 });
 
+const TIME_FORMATTER = new Intl.DateTimeFormat('en-GB', {
+  timeZone: IST_TIME_ZONE,
+  hour: '2-digit',
+  minute: '2-digit',
+  hourCycle: 'h23',
+});
+
 export function getIstDateString(date: Date = new Date()): string {
   return DATE_FORMATTER.format(date);
+}
+
+export function getIstTimeString(date: Date = new Date()): string {
+  return TIME_FORMATTER.format(date);
 }
 
 export function getIstDayOfWeek(date: Date = new Date()): DayOfWeek {
