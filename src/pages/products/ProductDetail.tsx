@@ -402,13 +402,13 @@ export default function ProductDetail(): JSX.Element {
                     <Layers size={14} /> Variants
                   </button>
                 )}
-                <button
+                {/* <button
                   type="button"
                   onClick={() => setShowPreview(true)}
                   className="flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-sm font-semibold border border-amber-200 text-amber-700 hover:bg-amber-50 transition-colors"
                 >
                   <ScanEye size={14} /> Customer Preview
-                </button>
+                </button> */}
               </div>
             </div>
           </div>

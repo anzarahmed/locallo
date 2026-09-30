@@ -538,7 +538,7 @@ function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit,
               {loadingVariants ? <Loader2 size={14} className="animate-spin" /> : <ShoppingBag size={14} />}
             </button>
           </Tooltip>
-          <Tooltip label="Customer Preview">
+          {/* <Tooltip label="Customer Preview">
             <button
               onClick={onPreview}
               aria-label="Customer Preview"
@@ -546,7 +546,7 @@ function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit,
             >
               <ScanEye size={14} />
             </button>
-          </Tooltip>
+          </Tooltip> */}
           <Tooltip label={product.isActive ? 'Hide product' : 'Show product'}>
             <button
               onClick={onToggle}
