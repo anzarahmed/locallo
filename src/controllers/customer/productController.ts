@@ -98,7 +98,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 
   let chosenBoosts: EligibleBoost[] = [];
   if (page === 1) {
-    const eligible = await productBoostService.getEligibleBoosts({ categoryId, state, city, search });
+    const eligible = await productBoostService.getEligibleBoosts({ categoryId, brandId, sellerId: shopId, offerId, state, city, search });
     chosenBoosts = productBoostService.pickRandom(eligible, Math.min(productBoostService.BOOST_SLOTS, limit));
   }
   const boostedProductIds = chosenBoosts.map((b) => b.product.id);

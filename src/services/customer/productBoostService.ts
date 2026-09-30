@@ -2,6 +2,8 @@ import { Op, col, where as sequelizeWhere } from 'sequelize';
 import { ProductBoost } from '../../models/ProductBoost';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
+import { SellerProfile } from '../../models/SellerProfile';
+import { OfferProduct } from '../../models/OfferProduct';
 import { TRENDING_ATTRIBUTES, SELLER_VERIFIED_CONDITION, buildSearchCondition, getSequelizeEscape } from './productService';
 
 export const BOOST_SLOTS = 4;
@@ -17,6 +19,9 @@ export interface EligibleBoost {
 
 interface EligibilityParams {
   categoryId?: number;
+  brandId?: number;
+  sellerId?: string;
+  offerId?: number;
   state?: string;
   city?: string;
   search?: string;
@@ -40,8 +45,18 @@ export async function getEligibleBoosts(params: EligibilityParams): Promise<Elig
   if (boosts.length === 0) return [];
 
   const excludeSet = new Set(params.excludeProductIds ?? []);
-  const candidateProductIds = [...new Set(boosts.map(b => b.productId))].filter(id => !excludeSet.has(id));
+  let candidateProductIds = [...new Set(boosts.map(b => b.productId))].filter(id => !excludeSet.has(id));
   if (candidateProductIds.length === 0) return [];
+
+  if (params.offerId !== undefined) {
+    const offerProducts = await OfferProduct.findAll({
+      where: { offerId: params.offerId },
+      attributes: ['productId'],
+    });
+    const offerProductIds = new Set(offerProducts.map(op => op.productId));
+    candidateProductIds = candidateProductIds.filter(id => offerProductIds.has(id));
+    if (candidateProductIds.length === 0) return [];
+  }
 
   const andClauses: unknown[] = [SELLER_VERIFIED_CONDITION];
   const productWhere: Record<string, unknown> = {
@@ -50,6 +65,17 @@ export async function getEligibleBoosts(params: EligibilityParams): Promise<Elig
     [Op.and]: andClauses,
   };
   if (params.categoryId !== undefined) productWhere.categoryId = params.categoryId;
+  if (params.sellerId !== undefined) productWhere.sellerId = params.sellerId;
+
+  if (params.brandId !== undefined) {
+    const sellerProfiles = await SellerProfile.findAll({
+      where: { brandIds: { [Op.contains]: [params.brandId] } },
+      attributes: ['userId'],
+    });
+    const sellerIds = sellerProfiles.map(p => p.userId);
+    if (sellerIds.length === 0) return [];
+    productWhere.sellerId = { [Op.in]: sellerIds };
+  }
 
   if (params.search) {
     const built = buildSearchCondition(params.search, getSequelizeEscape());
