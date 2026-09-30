@@ -30,8 +30,10 @@ function toDatetimeLocalValue(iso: string): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
-function nowDatetimeLocalValue(): string {
-  return toDatetimeLocalValue(new Date().toISOString());
+const MIN_LEAD_TIME_MS = 3 * 60 * 60 * 1000;
+
+function minStartDatetimeLocalValue(): string {
+  return toDatetimeLocalValue(new Date(Date.now() + MIN_LEAD_TIME_MS).toISOString());
 }
 
 function hasOfferStarted(offer: Offer): boolean {
@@ -86,7 +88,7 @@ function OfferModal({ offer, onClose, onSaved }: OfferModalProps): JSX.Element {
   const isEdit = Boolean(offer);
   const toast  = useToast();
   const config = (offer?.config ?? {}) as unknown as Record<string, number | undefined>;
-  const minStart = useMemo(() => nowDatetimeLocalValue(), []);
+  const minStart = useMemo(() => minStartDatetimeLocalValue(), []);
 
   const initialValues: OfferFormValues = {
     title: offer?.title ?? '',
@@ -194,6 +196,11 @@ function OfferModal({ offer, onClose, onSaved }: OfferModalProps): JSX.Element {
                 error={f.errors.endDate}
               />
             </div>
+
+            <p className="text-xs text-gray-500">
+              <span className="font-semibold text-gray-600">Note:</span> The offer start date and
+              time must be at least 3 hours after the current date and time.
+            </p>
 
             <SelectField
               label="Offer Type" name="offerType" required

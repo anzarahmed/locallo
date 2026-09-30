@@ -7,16 +7,21 @@ export const OFFER_TYPE_OPTIONS: { value: OfferType; label: string }[] = [
   { value: 'bogo', label: 'BOGO (Buy One Get One)' },
 ];
 
+// Epoch-millisecond comparison, so it is correct regardless of the admin's browser
+// timezone — "IST" only matters for how the instant is displayed, not for this duration check.
+const MIN_LEAD_TIME_MS = 3 * 60 * 60 * 1000;
+
 export const offerSchema = Yup.object({
   title: Yup.string().trim().required('Title is required'),
   description: Yup.string().trim().nullable(),
   startDate: Yup.string()
     .required('Start date/time is required')
-    .test('not-in-past', 'Start date/time cannot be in the past', value => {
+    .test('lead-time', 'Start date/time must be at least 3 hours ahead of the current date and time', value => {
       if (!value) return true;
-      const startOfCurrentMinute = new Date();
-      startOfCurrentMinute.setSeconds(0, 0);
-      return new Date(value).getTime() >= startOfCurrentMinute.getTime();
+      const threshold = new Date();
+      threshold.setSeconds(0, 0);
+      threshold.setTime(threshold.getTime() + MIN_LEAD_TIME_MS);
+      return new Date(value).getTime() >= threshold.getTime();
     }),
   endDate: Yup.string()
     .required('End date/time is required')
