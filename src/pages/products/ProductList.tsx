@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, ChevronDown, ScanEye, ShoppingBag, Loader2, Rocket } from 'lucide-react';
+import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, ChevronDown, ShoppingBag, Loader2, Rocket } from 'lucide-react';
 import { getProducts, toggleProduct, deleteProduct, markProductSold, markVariantSold, getProductVariants, getActiveBoost } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
@@ -444,7 +444,7 @@ interface ProductCardProps {
   onViewBoost: () => void;
 }
 
-function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit, onVariants, onToggle, onDelete, onPreview, onSell, onPromote, onViewBoost }: ProductCardProps): JSX.Element {
+function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit, onVariants, onToggle, onDelete, onSell, onPromote, onViewBoost }: ProductCardProps): JSX.Element {
   const [imgError, setImgError] = useState(false);
   const showVariants = categorySupportsVariants(product.category?.attributeSchema);
   const thumbnailSrc = product.thumbnails?.[0] ?? product.images?.[0];

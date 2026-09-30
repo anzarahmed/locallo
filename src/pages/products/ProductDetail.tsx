@@ -1,7 +1,7 @@
 import { useState, useEffect, type JSX, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  ArrowLeft, Package, Pencil, Layers, ScanEye, Eye, EyeOff, Rocket,
+  ArrowLeft, Package, Pencil, Layers, Eye, EyeOff, Rocket,
   MapPin, TrendingUp, Star, Heart,
 } from 'lucide-react';
 import { getSellerProduct, getProductVariants } from '../../services/sellerService';
