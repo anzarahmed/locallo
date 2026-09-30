@@ -42,15 +42,25 @@ export function pickBoostVariant(variants: ProductVariant[]): ProductVariant {
   return variants.find(v => v.stock === maxStock) ?? variants[0];
 }
 
+function isSelectionEmpty(sel: string | string[] | undefined): boolean {
+  return !sel || sel === '' || (Array.isArray(sel) && sel.length === 0);
+}
+
 export function generateCombinations(
   variantFields: AttributeField[],
   selections: VariantSelections,
 ): Record<string, string>[] {
+  // The stock-dependent field (e.g. Size, Material) is what a stock row is keyed on —
+  // combinations built from other fields alone would produce a stock row with no SD
+  // value to label it, so withhold all combinations until every SD field has a pick.
+  const sdFields = variantFields.filter(f => f.isStockDependent === true);
+  if (sdFields.length > 0 && sdFields.some(f => isSelectionEmpty(selections[f.key]))) return [];
+
   const axes: Array<{ key: string; values: string[] }> = [];
 
   for (const field of variantFields) {
     const sel = selections[field.key];
-    if (!sel || sel === '' || (Array.isArray(sel) && sel.length === 0)) continue;
+    if (isSelectionEmpty(sel)) continue;
     const values = Array.isArray(sel) ? sel : [sel];
     axes.push({ key: field.key, values });
   }
