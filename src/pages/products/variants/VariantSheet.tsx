@@ -498,7 +498,7 @@ export default function VariantSheet({
                   </button>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 mb-2">Main display image for your variant</p>
+                  <p className="text-xs text-gray-400 mb-2">This image will be shown first to buyers</p>
                   <label className={`inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 cursor-pointer hover:text-teal-700 ${isUploadingPrimary ? 'pointer-events-none opacity-50' : ''}`}>
                     <input
                       type="file"
@@ -673,7 +673,7 @@ export default function VariantSheet({
                 </div>
               ) : (
                 <p className="text-xs text-gray-400 bg-gray-50 rounded-xl p-3.5 text-center leading-relaxed">
-                  No variant attributes configured for this category.
+                  No additional fields for this category.
                 </p>
               )}
             </>
@@ -720,9 +720,6 @@ function SheetVariantOptionField({ field, value, usedValues, onChange, showError
         {field.label}
         <span className="text-rose-400 ml-0.5">*</span>
       </span>
-      {field.type === 'multiselect' && (
-        <span className="text-gray-400 text-xs ml-1.5">(select all that apply)</span>
-      )}
     </div>
   );
 
