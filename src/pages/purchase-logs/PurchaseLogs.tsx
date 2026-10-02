@@ -5,6 +5,7 @@ import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import type { PurchaseLog } from '../../types';
 import { formatDateTime } from '../../lib/dateFormat';
+import { toTitleCase } from '../../lib/textFormat';
 
 const PAGE_LIMIT = 20;
 
@@ -182,7 +183,7 @@ function LogThumb({ src }: { src: string | null }): JSX.Element {
 /* ── Log card ── */
 function LogCard({ log }: { log: PurchaseLog }): JSX.Element {
   const variantPills = log.variantInfo
-    ? Object.values(log.variantInfo).filter(Boolean).map(String)
+    ? Object.values(log.variantInfo).filter(Boolean).map(v => toTitleCase(String(v)))
     : [];
 
   return (
