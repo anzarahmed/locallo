@@ -557,8 +557,6 @@ export default function EditProduct(): JSX.Element {
 
           {/* Basic info */}
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-            <p className="text-sm font-semibold text-gray-700">Basic Info</p>
-
             <FormField label="Product Name" required error={form.touched.name ? form.errors.name : undefined}>
               <input
                 name="name"
@@ -660,8 +658,6 @@ export default function EditProduct(): JSX.Element {
 
           {/* Category */}
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-            <p className="text-sm font-semibold text-gray-700">Category</p>
-
             <FormField label="Category">
               <div className="relative">
                 <select
