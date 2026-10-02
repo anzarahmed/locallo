@@ -31,11 +31,13 @@ function isVariantFieldEmpty(field: AttributeField, value: string | string[] | u
 }
 
 /* A variant pins one specific value (e.g. "Size: M"), so the schema's plural
-   option-picker label (e.g. "Available Sizes") reads wrong here — singularize it. */
+   "pick from a list" label (e.g. "Available Sizes") reads wrong here —
+   singularize it and drop the "Available" framing. */
 function singularizeLabel(label: string): string {
-  if (label.endsWith('ies')) return `${label.slice(0, -3)}y`;
-  if (label.endsWith('s')) return label.slice(0, -1);
-  return label;
+  const withoutAvailable = label.replace(/^Available\s+/i, '');
+  if (withoutAvailable.endsWith('ies')) return `${withoutAvailable.slice(0, -3)}y`;
+  if (withoutAvailable.endsWith('s')) return withoutAvailable.slice(0, -1);
+  return withoutAvailable;
 }
 
 export default function VariantSheet({
