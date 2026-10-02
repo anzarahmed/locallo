@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type JSX } from 'react';
+import { useEffect, useState, type JSX } from 'react';
 import { useFormik } from 'formik';
 import {
   X, Globe, Map, Building2, Users, IndianRupee, ClipboardCheck,
@@ -67,19 +67,6 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
   const [checking, setChecking] = useState(true);
   const [existingBoost, setExistingBoost] = useState<ProductBoost | null>(null);
   const [cancelling, setCancelling] = useState(false);
-  const [showBudgetInfo, setShowBudgetInfo] = useState(false);
-  const budgetInfoRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!showBudgetInfo) return;
-    function handleOutsideClick(e: MouseEvent): void {
-      if (budgetInfoRef.current && !budgetInfoRef.current.contains(e.target as Node)) {
-        setShowBudgetInfo(false);
-      }
-    }
-    document.addEventListener('mousedown', handleOutsideClick);
-    return () => document.removeEventListener('mousedown', handleOutsideClick);
-  }, [showBudgetInfo]);
 
   useEffect(() => {
     let cancelled = false;
@@ -219,20 +206,17 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
                 {existingBoost ? 'Boost Details' : 'Boost Your Product'}
               </h3>
               {!checking && !existingBoost && (
-                <div ref={budgetInfoRef} className="relative shrink-0">
+                <div className="relative shrink-0 group/budget-info">
                   <button
                     type="button"
-                    onClick={() => setShowBudgetInfo((v) => !v)}
                     aria-label="About boost budget"
                     className="w-4 h-4 rounded-full bg-black text-white flex items-center justify-center hover:opacity-90 transition-opacity"
                   >
                     <InfoGlyph size={18} strokeWidth={3} />
                   </button>
-                  {showBudgetInfo && (
-                    <div className="absolute left-0 top-full mt-3 w-72 z-30 rounded-2xl bg-teal-900 text-white text-sm leading-relaxed p-4 shadow-xl">
-                      {BUDGET_INFO_TEXT}
-                    </div>
-                  )}
+                  <div className="absolute left-0 top-full mt-3 w-72 z-30 rounded-2xl bg-teal-900 text-white text-sm leading-relaxed p-4 shadow-xl opacity-0 pointer-events-none transition-opacity duration-150 group-hover/budget-info:opacity-100 group-hover/budget-info:pointer-events-auto group-focus-within/budget-info:opacity-100 group-focus-within/budget-info:pointer-events-auto">
+                    {BUDGET_INFO_TEXT}
+                  </div>
                 </div>
               )}
             </div>
