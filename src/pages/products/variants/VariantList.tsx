@@ -11,7 +11,7 @@ import { ApiError } from '../../../lib/axios';
 import { resolveImage } from '../../../lib/imageUtils';
 import { hasDiscount } from '../../../lib/formatters';
 import { toTitleCase } from '../../../lib/textFormat';
-import { categorySupportsVariants, groupVariants, type VariantGroup } from '../../../lib/variantUtils';
+import { categorySupportsVariants, groupVariants, sellItemLabel, type VariantGroup } from '../../../lib/variantUtils';
 import ConfirmDeleteModal from '../../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../../components/ui/SellModal';
 import type { Product, ProductVariant, ProductBoost, AttributeField } from '../../../types';
@@ -326,15 +326,7 @@ export default function VariantList(): JSX.Element {
 
       {sellVariant && (
         <SellModal
-          itemName={
-            Object.entries(sellVariant.attributes)
-              .map(([key, val]) => {
-                const field = schema.find(f => f.key === key);
-                const label = field?.options?.find(o => o.value === String(val))?.label ?? String(val);
-                return toTitleCase(label);
-              })
-              .join(' / ') || 'Variant'
-          }
+          itemName={sellItemLabel(product?.name ?? 'Variant', sellVariant.attributes, schema)}
           currentStock={sellVariant.stock}
           loading={selling}
           onConfirm={(qty) => void handleSell(qty)}

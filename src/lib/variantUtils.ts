@@ -135,9 +135,11 @@ export function categorySupportsVariants(schema: AttributeField[] | undefined): 
 export function variantLabel(
   attributes: Record<string, unknown>,
   schema: AttributeField[],
+  separator = ' · ',
 ): string {
   const fields = schema.filter(f => f.isVariant);
-  const source = fields.length > 0 ? fields : schema;
+  const unordered = fields.length > 0 ? fields : schema;
+  const source = [...unordered.filter(f => f.type === 'color'), ...unordered.filter(f => f.type !== 'color')];
   const parts = source
     .map(f => {
       const v = attributes[f.key];
@@ -150,8 +152,17 @@ export function variantLabel(
       return toTitleCase(String(v));
     })
     .filter(Boolean);
-  if (parts.length > 0) return parts.join(' · ');
-  return Object.values(attributes).filter(Boolean).map(v => toTitleCase(String(v))).join(' · ') || 'Variant';
+  if (parts.length > 0) return parts.join(separator);
+  return Object.values(attributes).filter(Boolean).map(v => toTitleCase(String(v))).join(separator) || 'Variant';
+}
+
+export function sellItemLabel(
+  productName: string,
+  attributes: Record<string, unknown>,
+  schema: AttributeField[],
+): string {
+  const label = variantLabel(attributes, schema, ', ');
+  return label === 'Variant' ? productName : `${productName} (${label})`;
 }
 
 export function buildProductVariantAttrs(

@@ -6,8 +6,7 @@ import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { hasDiscount } from '../../lib/formatters';
-import { toTitleCase } from '../../lib/textFormat';
-import { categorySupportsVariants } from '../../lib/variantUtils';
+import { categorySupportsVariants, sellItemLabel } from '../../lib/variantUtils';
 import { FILTER_TABS, SORT_OPTIONS, PAGE_LIMIT, type FilterTab } from '../../constants';
 import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../components/ui/SellModal';
@@ -39,7 +38,7 @@ export default function ProductList(): JSX.Element {
     variants: ProductVariant[];
     schema: AttributeField[];
   } | null>(null);
-  const [selectedVariant, setSelectedVariant] = useState<{ variant: ProductVariant; schema: AttributeField[] } | null>(null);
+  const [selectedVariant, setSelectedVariant] = useState<{ variant: ProductVariant; schema: AttributeField[]; productName: string } | null>(null);
   const [loadingVariantsForId, setLoadingVariantsForId] = useState<string | null>(null);
   const [selling, setSelling] = useState(false);
   const [promoteTarget, setPromoteTarget] = useState<{
@@ -129,7 +128,11 @@ export default function ProductList(): JSX.Element {
   }
 
   function handleVariantSelected(variant: ProductVariant): void {
-    setSelectedVariant({ variant, schema: variantPickerData?.schema ?? [] });
+    setSelectedVariant({
+      variant,
+      schema: variantPickerData?.schema ?? [],
+      productName: variantPickerData?.product.name ?? 'Variant',
+    });
     setVariantPickerData(null);
   }
 
@@ -379,15 +382,7 @@ export default function ProductList(): JSX.Element {
 
       {selectedVariant && (
         <SellModal
-          itemName={
-            Object.entries(selectedVariant.variant.attributes)
-              .map(([key, val]) => {
-                const field = selectedVariant.schema.find(f => f.key === key);
-                const label = field?.options?.find(o => o.value === String(val))?.label ?? String(val);
-                return toTitleCase(label);
-              })
-              .join(' / ') || 'Variant'
-          }
+          itemName={sellItemLabel(selectedVariant.productName, selectedVariant.variant.attributes, selectedVariant.schema)}
           currentStock={selectedVariant.variant.stock}
           loading={selling}
           onConfirm={(qty) => void handleConfirmVariantSell(qty)}
