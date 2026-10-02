@@ -2,7 +2,9 @@ import type { Request, Response } from 'express';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { getPresignedUrl, toThumbnailKey } from '../../utils/imageStorage';
 import { parsePagination } from '../../utils/pagination';
+import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import * as wishlistService from '../../services/customer/wishlistService';
+import * as productService from '../../services/customer/productService';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -44,7 +46,11 @@ export async function getWishlist(req: Request, res: Response): Promise<void> {
   const { rows, count } = await wishlistService.listWishlist(req.customer!.id, page, limit);
 
   const sellerIds = [...new Set(rows.map((w) => w.product.sellerId))];
-  const locations = await wishlistService.getSellerLocations(sellerIds);
+  const categoryIds = [...new Set(rows.map((w) => w.product.categoryId))];
+  const [locations, attributeSchemasByCategory] = await Promise.all([
+    wishlistService.getSellerLocations(sellerIds),
+    productService.getCategoryAttributeSchemas(categoryIds),
+  ]);
 
   const products: WishlistItem[] = await Promise.all(
     rows.map(async (w) => {
@@ -61,7 +67,9 @@ export async function getWishlist(req: Request, res: Response): Promise<void> {
         sellingPrice: v?.sellingPrice ?? w.product.sellingPrice,
         stock: v ? v.stock : w.product.stock,
         variantStock: v ? v.stock : null,
-        variantAttributes: v ? v.attributes : null,
+        variantAttributes: v
+          ? normalizeFreeTextAttributes(v.attributes as Record<string, unknown>, attributeSchemasByCategory.get(w.product.categoryId) ?? [])
+          : null,
         variantIsActive: v ? v.isActive : null,
         lat: location?.lat ?? null,
         long: location?.long ?? null,

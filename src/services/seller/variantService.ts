@@ -7,6 +7,7 @@ import { Category } from '../../models/Category';
 import type { createVariantSchema, updateVariantSchema, createBatchVariantSchema } from '../../validation/seller/variantSchemas';
 import type { AttributeField } from '../../types';
 import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
+import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import { recordPurchase } from './purchaseService';
 import { ProductBoost } from '../../models/ProductBoost';
 
@@ -156,9 +157,10 @@ export async function createVariant(
     }
   }
 
+  const schema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
   const variant = await ProductVariant.create({
     productId,
-    attributes:   data.attributes,
+    attributes:   normalizeFreeTextAttributes(data.attributes as Record<string, unknown>, schema),
     images:       await commitImages((data.images ?? []).map(normalizeImageKey)),
     stock:        data.stock,
     sellingPrice: data.sellingPrice,
@@ -190,9 +192,15 @@ export async function createBatchVariants(
 ): Promise<ProductVariant[]> {
   const product = await requireOwnProduct(sellerId, productId);
 
+  const batchSchema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
   const images = await commitImages((data.images ?? []).map(normalizeImageKey));
   const sharedAttrs = (data.attributes as Record<string, string>) ?? {};
-  const rowAttrs = data.rows.map(row => ({ ...sharedAttrs, ...(row.attributes as Record<string, string>) }));
+  const rowAttrs = data.rows.map(row =>
+    normalizeFreeTextAttributes(
+      { ...sharedAttrs, ...(row.attributes as Record<string, string>) },
+      batchSchema,
+    ) as Record<string, string>,
+  );
 
   const variantKeys = getVariantKeys(product);
   const existingVariants = await ProductVariant.findAll({ where: { productId } });

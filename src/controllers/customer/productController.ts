@@ -1,6 +1,7 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 import { withSignedImages, getPresignedUrl, toThumbnailKey } from '../../utils/imageStorage';
+import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import { getActiveOffersForProducts, computeOfferPricing } from '../../utils/offerPricing';
 import * as productService from '../../services/customer/productService';
 import * as wishlistService from '../../services/customer/wishlistService';
@@ -79,7 +80,9 @@ async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductList
     stock: chosen ? chosen.stock : p.stock,
     variantId: chosen?.id ?? null,
     variantStock: chosen ? chosen.stock : null,
-    variantAttributes: chosen ? (chosen.attributes as Record<string, unknown>) : null,
+    variantAttributes: chosen
+      ? normalizeFreeTextAttributes(chosen.attributes as Record<string, unknown>, ctx.attributeSchemasByCategory?.get(p.categoryId) ?? [])
+      : null,
     variantIsActive: chosen ? chosen.isActive : null,
     ...offerFieldsFor(ctx.offersById, p.id, sellingPrice),
     rating: 0,
@@ -221,20 +224,22 @@ export async function getTrendingProducts(req: Request, res: Response): Promise<
 
   const rows = await productService.getTrendingProducts(boostedProductIds, productService.TRENDING_LIMIT - chosenBoosts.length);
   const productIds = [...boostedProductIds, ...rows.map((p) => p.id)];
+  const categoryIds = [...new Set([...chosenBoosts.map((b) => b.product.categoryId), ...rows.map((p) => p.categoryId)])];
 
-  const [wishlistedIds, offersById, variantsByProduct] = await Promise.all([
+  const [wishlistedIds, offersById, variantsByProduct, attributeSchemasByCategory] = await Promise.all([
     req.customer ? wishlistService.getWishlistedProductIds(req.customer.id, productIds) : Promise.resolve(new Set<string>()),
     getActiveOffersForProducts(productIds),
     variantSelection.getActiveVariantsByProduct(productIds),
+    productService.getCategoryAttributeSchemas(categoryIds),
   ]);
 
   const boostedItemsResolved = await Promise.all(
-    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant })),
+    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant, attributeSchemasByCategory })),
   );
   const boostedItems = boostedItemsResolved.filter((item): item is ProductListItem => item !== null);
 
   const organicItemsResolved = await Promise.all(
-    rows.map((p) => toListItem(p, { offersById, wishlistedIds, variantsByProduct, isBoosted: false })),
+    rows.map((p) => toListItem(p, { offersById, wishlistedIds, variantsByProduct, isBoosted: false, attributeSchemasByCategory })),
   );
   const organicItems = organicItemsResolved.filter((item): item is ProductListItem => item !== null);
 
@@ -264,20 +269,22 @@ export async function getSimilarProducts(req: Request, res: Response): Promise<v
       productService.SIMILAR_LIMIT - chosenBoosts.length,
     );
     const productIds = [...boostedProductIds, ...rows.map((p) => p.id)];
+    const categoryIds = [...new Set([...chosenBoosts.map((b) => b.product.categoryId), ...rows.map((p) => p.categoryId)])];
 
-    const [wishlistedIds, offersById, variantsByProduct] = await Promise.all([
+    const [wishlistedIds, offersById, variantsByProduct, attributeSchemasByCategory] = await Promise.all([
       req.customer ? wishlistService.getWishlistedProductIds(req.customer.id, productIds) : Promise.resolve(new Set<string>()),
       getActiveOffersForProducts(productIds),
       variantSelection.getActiveVariantsByProduct(productIds),
+      productService.getCategoryAttributeSchemas(categoryIds),
     ]);
 
     const boostedItemsResolved = await Promise.all(
-      chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant })),
+      chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant, attributeSchemasByCategory })),
     );
     const boostedItems = boostedItemsResolved.filter((item): item is ProductListItem => item !== null);
 
     const organicItemsResolved = await Promise.all(
-      rows.map((p) => toListItem(p, { offersById, wishlistedIds, variantsByProduct, isBoosted: false })),
+      rows.map((p) => toListItem(p, { offersById, wishlistedIds, variantsByProduct, isBoosted: false, attributeSchemasByCategory })),
     );
     const organicItems = organicItemsResolved.filter((item): item is ProductListItem => item !== null);
 

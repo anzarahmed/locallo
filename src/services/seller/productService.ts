@@ -9,6 +9,7 @@ import { User } from '../../models/User';
 import type { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
 import type { AttributeField } from '../../types';
 import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
+import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import { recordPurchase } from './purchaseService';
 import sequelize from '../../config/database';
 
@@ -82,9 +83,11 @@ export async function createProduct(
     throw Object.assign(new Error('Category not found'), { status: 404 });
   }
 
-  if (category.attributeSchema && category.attributeSchema.length > 0) {
-    validateAttributes(data.attributes as Record<string, unknown> ?? {}, category.attributeSchema);
+  const schema = (category.attributeSchema as AttributeField[]) ?? [];
+  if (schema.length > 0) {
+    validateAttributes(data.attributes as Record<string, unknown> ?? {}, schema);
   }
+  const normalizedAttributes = normalizeFreeTextAttributes(data.attributes as Record<string, unknown> ?? {}, schema);
 
   const hasRows = Array.isArray(data.rows) && data.rows.length > 0;
   const variantStock = hasRows
@@ -104,7 +107,7 @@ export async function createProduct(
       costPrice:     data.costPrice ?? null,
       stock:         variantStock ?? data.stock ?? 0,
       images:        committedImages,
-      attributes:    data.attributes ?? {},
+      attributes:    normalizedAttributes,
       pickupAddress: data.pickupAddress ?? null,
       pickupLat:     data.pickupLat ?? null,
       pickupLong:    data.pickupLong ?? null,
@@ -113,9 +116,8 @@ export async function createProduct(
     if (hasRows) {
       // Extract non-SD variant attrs from the top-level attributes so the backend
       // can merge them into each row (rows only carry the SD-specific value).
-      const schema = (category.attributeSchema as AttributeField[]) ?? [];
       const sdKeys = new Set(schema.filter(f => f.isVariant && f.isStockDependent).map(f => f.key));
-      const topAttrs = (data.attributes as Record<string, unknown>) ?? {};
+      const topAttrs = normalizedAttributes;
       const sharedAttrs: Record<string, string> = {};
       for (const field of schema) {
         if (!field.isVariant || sdKeys.has(field.key)) continue;
@@ -127,7 +129,10 @@ export async function createProduct(
       const images = committedImages;
       const variants = data.rows!.map(row => ({
         productId:    created.id,
-        attributes:   { ...sharedAttrs, ...(row.attributes as Record<string, string>) },
+        attributes:   normalizeFreeTextAttributes(
+          { ...sharedAttrs, ...(row.attributes as Record<string, string>) },
+          schema,
+        ),
         images,
         stock:        row.stock,
         sellingPrice: data.sellingPrice,
@@ -345,6 +350,7 @@ export async function updateSellerProduct(
   if (schema.length > 0) {
     validateAttributes(mergedAttributes, schema, hasVariants);
   }
+  mergedAttributes = normalizeFreeTextAttributes(mergedAttributes, schema);
 
   const stockBefore = product.stock;
   const stockDelta = !hasVariants && data.stock !== undefined ? data.stock - stockBefore : 0;

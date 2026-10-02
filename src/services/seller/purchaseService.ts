@@ -1,8 +1,11 @@
 import { Op, type Transaction } from 'sequelize';
 import type { WhereOptions } from 'sequelize';
 import { Product } from '../../models/Product';
+import { Category } from '../../models/Category';
 import { PurchaseLog } from '../../models/PurchaseLog';
 import { getPresignedUrl } from '../../utils/imageStorage';
+import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
+import type { AttributeField } from '../../types';
 
 export interface RecordPurchaseInput {
   sellerId: string;
@@ -69,17 +72,26 @@ export async function getPurchaseLogs(
 
   const { rows, count } = await PurchaseLog.findAndCountAll({
     where,
-    include: [{ model: Product, attributes: ['images'], required: false }],
+    include: [{ model: Product, attributes: ['images', 'categoryId'], required: false }],
     order: [['purchasedAt', 'DESC']],
     limit,
     offset: (page - 1) * limit,
   });
 
+  const categoryIds = [...new Set(
+    rows.map((log) => (log.toJSON() as PurchaseLog & { product?: { categoryId?: number } }).product?.categoryId).filter((id): id is number => id !== undefined),
+  )];
+  const categories = categoryIds.length > 0
+    ? await Category.findAll({ where: { id: { [Op.in]: categoryIds } }, attributes: ['id', 'attributeSchema'] })
+    : [];
+  const schemaByCategory = new Map(categories.map((c) => [c.id, (c.attributeSchema as AttributeField[] | undefined) ?? []]));
+
   const signed = await Promise.all(
     rows.map(async (log): Promise<PurchaseLogRow> => {
-      const json = log.toJSON() as PurchaseLog & { product?: { images?: string[] } };
+      const json = log.toJSON() as PurchaseLog & { product?: { images?: string[]; categoryId?: number } };
       const firstKey = json.product?.images?.[0] ?? null;
       const productImage = firstKey ? await getPresignedUrl(firstKey) : null;
+      const schema = json.product?.categoryId !== undefined ? schemaByCategory.get(json.product.categoryId) ?? [] : [];
       return {
         id:           json.id,
         productId:    json.productId,
@@ -88,7 +100,7 @@ export async function getPurchaseLogs(
         stockBefore:  json.stockBefore,
         stockAfter:   json.stockAfter,
         productName:  json.productName,
-        variantInfo:  json.variantInfo,
+        variantInfo:  json.variantInfo ? normalizeFreeTextAttributes(json.variantInfo, schema) : null,
         purchasedAt:  json.purchasedAt,
         productImage,
       };

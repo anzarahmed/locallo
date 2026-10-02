@@ -5,7 +5,7 @@ import { ProductVariant } from '../../models/ProductVariant';
 import { SellerProfile } from '../../models/SellerProfile';
 import { getActiveVariantsByProduct, hasAnyStock } from './variantSelection';
 
-const LIST_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images', 'sellerId'];
+const LIST_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images', 'sellerId', 'categoryId'];
 const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'stock', 'sellingPrice', 'mrp', 'isActive'];
 
 export async function toggleWishlist(

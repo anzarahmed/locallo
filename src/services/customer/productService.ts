@@ -6,6 +6,7 @@ import { SellerProfile } from '../../models/SellerProfile';
 import { OfferProduct } from '../../models/OfferProduct';
 import { Review } from '../../models/Review';
 import { normalizeForMatch, isNumericToken } from '../../utils/searchTokens';
+import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import type { AttributeField } from '../../types';
 
 interface BrowseFilter {
@@ -209,11 +210,11 @@ async function getProductRating(productId: string): Promise<number> {
   return stats?.avgRating ? Math.round(parseFloat(stats.avgRating) * 10) / 10 : 0;
 }
 
-function toVariantDetail(variantRow: ProductVariant): ProductVariantDetail {
+function toVariantDetail(variantRow: ProductVariant, schema: AttributeField[]): ProductVariantDetail {
   return {
     id: variantRow.id,
     productId: variantRow.productId,
-    attributes: variantRow.attributes,
+    attributes: normalizeFreeTextAttributes(variantRow.attributes as Record<string, unknown>, schema),
     images: variantRow.images,
     stock: variantRow.stock,
     sellingPrice: variantRow.sellingPrice,
@@ -241,9 +242,13 @@ export async function getProductDetail(
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
 
+  const fullSchema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
+  product.setDataValue(
+    'attributes',
+    normalizeFreeTextAttributes(product.attributes as Record<string, unknown>, fullSchema),
+  );
   if (product.category) {
-    const schema = (product.category.attributeSchema as AttributeField[] | undefined) ?? [];
-    product.category.attributeSchema = schema.filter(f => f.isVariant);
+    product.category.attributeSchema = fullSchema.filter(f => f.isVariant);
   }
 
   const [sellerProfile, rating] = await Promise.all([
@@ -290,7 +295,7 @@ export async function getProductDetail(
     if (!variantRow) {
       throw Object.assign(new Error('Variant not found'), { status: 404 });
     }
-    return { product, seller, rating, variants: [toVariantDetail(variantRow)] };
+    return { product, seller, rating, variants: [toVariantDetail(variantRow, fullSchema)] };
   }
 
   const variantRows = await ProductVariant.findAll({
@@ -302,7 +307,7 @@ export async function getProductDetail(
     throw Object.assign(new Error('Variant not found'), { status: 404 });
   }
 
-  return { product, seller, rating, variants: variantRows.map(toVariantDetail) };
+  return { product, seller, rating, variants: variantRows.map(v => toVariantDetail(v, fullSchema)) };
 }
 
 export async function getTrendingProducts(

@@ -2,9 +2,12 @@ import { Op } from 'sequelize';
 import type { WhereOptions } from 'sequelize';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
+import { Category } from '../../models/Category';
 import { SoldLog } from '../../models/SoldLog';
 import { syncProductStock } from './variantService';
 import { getPresignedUrl } from '../../utils/imageStorage';
+import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
+import type { AttributeField } from '../../types';
 
 export async function markProductSold(
   sellerId: string,
@@ -122,17 +125,26 @@ export async function getSoldLogs(
 
   const { rows, count } = await SoldLog.findAndCountAll({
     where,
-    include: [{ model: Product, attributes: ['images'], required: false }],
+    include: [{ model: Product, attributes: ['images', 'categoryId'], required: false }],
     order: [['soldAt', 'DESC']],
     limit,
     offset: (page - 1) * limit,
   });
 
+  const categoryIds = [...new Set(
+    rows.map((log) => (log.toJSON() as SoldLog & { product?: { categoryId?: number } }).product?.categoryId).filter((id): id is number => id !== undefined),
+  )];
+  const categories = categoryIds.length > 0
+    ? await Category.findAll({ where: { id: { [Op.in]: categoryIds } }, attributes: ['id', 'attributeSchema'] })
+    : [];
+  const schemaByCategory = new Map(categories.map((c) => [c.id, (c.attributeSchema as AttributeField[] | undefined) ?? []]));
+
   const signed = await Promise.all(
     rows.map(async (log): Promise<SoldLogRow> => {
-      const json = log.toJSON() as SoldLog & { product?: { images?: string[] } };
+      const json = log.toJSON() as SoldLog & { product?: { images?: string[]; categoryId?: number } };
       const firstKey = json.product?.images?.[0] ?? null;
       const productImage = firstKey ? await getPresignedUrl(firstKey) : null;
+      const schema = json.product?.categoryId !== undefined ? schemaByCategory.get(json.product.categoryId) ?? [] : [];
       return {
         id:          json.id,
         productId:   json.productId,
@@ -141,7 +153,7 @@ export async function getSoldLogs(
         stockBefore: json.stockBefore,
         stockAfter:  json.stockAfter,
         productName: json.productName,
-        variantInfo: json.variantInfo,
+        variantInfo: json.variantInfo ? normalizeFreeTextAttributes(json.variantInfo, schema) : null,
         soldAt:      json.soldAt,
         productImage,
       };
