@@ -568,8 +568,6 @@ export default function VariantSheet({
 
           {/* Pricing */}
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-            <p className="text-sm font-semibold text-gray-700">Pricing</p>
-
             <div className="grid grid-cols-2 gap-3">
               <PriceField
                 label="Selling Price (₹)"
@@ -623,7 +621,7 @@ export default function VariantSheet({
               {/* Category (fixed — inherited from the parent product) */}
               {product.category && (
                 <div className="bg-white rounded-2xl shadow-sm p-4">
-                  <p className="text-sm font-semibold text-gray-700 mb-3">
+                  <p className="text-xs font-semibold text-gray-500 mb-1.5">
                     Category
                   </p>
                   <div className="flex items-center gap-2 rounded-xl border border-teal-100 bg-teal-50/50 px-3.5 py-2.5">
@@ -636,7 +634,6 @@ export default function VariantSheet({
               {/* Variant attribute fields — locked (readonly) and open (editable), in
                   schema order, matching the mobile app's single interleaved field list */}
               <div className="bg-white rounded-2xl shadow-sm p-4">
-                <p className="text-sm font-semibold text-gray-700 mb-4">Attributes</p>
                 {variantFields.length > 0 ? (
                   <div className="space-y-4">
                     {variantFields.map(field => {
