@@ -870,9 +870,6 @@ function VariantOptionField({ field, onChange, value, error }: VariantOptionFiel
     <div className="mb-1.5">
       <span className="text-xs font-semibold text-gray-500">{field.label}</span>
       {field.required && <span className="text-rose-400 ml-0.5">*</span>}
-      {field.type === 'multiselect' && (
-        <span className="text-gray-400 text-xs ml-1.5">(select all that apply)</span>
-      )}
     </div>
   );
 
