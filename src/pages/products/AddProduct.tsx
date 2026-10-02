@@ -640,7 +640,6 @@ export default function AddProduct(): JSX.Element {
             the mobile app's Add Product screen */}
         {attributeSchema.length > 0 && (
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
-            <p className="text-sm font-semibold text-gray-700">Product Attributes</p>
             {attributeSchema.map(field => (
               field.isVariant ? (
                 <div key={field.key} className="space-y-4">
