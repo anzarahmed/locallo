@@ -477,7 +477,7 @@ export default function VariantSheet({
                     </button>
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400 mb-2">This image will be shown first to buyers</p>
+                    <p className="text-xs text-gray-400 mb-2">Main display image for your variant</p>
                     <label className={`inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 cursor-pointer hover:text-teal-700 ${isUploadingPrimary ? 'pointer-events-none opacity-50' : ''}`}>
                       <input
                         type="file"
