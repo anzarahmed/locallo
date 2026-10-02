@@ -14,6 +14,27 @@ const START_CUTOFF_ERROR = 'Offer starts within 2 hours or has already started';
 
 let isRunning = false;
 
+export async function enqueueMissingOfferNotifications(): Promise<void> {
+  const cutoff = new Date(Date.now() + START_CUTOFF_MS);
+  const activeOffers = await Offer.findAll({
+    where: { startDate: { [Op.gt]: cutoff }, isActive: true },
+    attributes: ['id'],
+  });
+  if (activeOffers.length === 0) return;
+
+  const sellers = await User.findAll({
+    where: { role: 'SELLER', isActive: true },
+    attributes: ['id'],
+    include: [{ model: SellerProfile, attributes: [], where: { isVerified: true }, required: true }],
+  });
+  if (sellers.length === 0) return;
+
+  const rows = activeOffers.flatMap((offer) =>
+    sellers.map((seller) => ({ offerId: offer.id, sellerId: seller.id })),
+  );
+  await OfferSellerNotification.bulkCreate(rows, { ignoreDuplicates: true });
+}
+
 async function expireNearStartOffers(): Promise<void> {
   const cutoff = new Date(Date.now() + START_CUTOFF_MS);
   const expiringOffers = await Offer.findAll({
@@ -98,6 +119,7 @@ async function processPendingOfferNotifications(): Promise<void> {
   isRunning = true;
 
   try {
+    await enqueueMissingOfferNotifications();
     await expireNearStartOffers();
 
     const rows = await OfferSellerNotification.findAll({

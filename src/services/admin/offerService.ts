@@ -2,6 +2,7 @@ import { Op } from 'sequelize';
 import type { InferType } from 'yup';
 import { Offer } from '../../models/Offer';
 import { User } from '../../models/User';
+import { SellerProfile } from '../../models/SellerProfile';
 import { OfferSellerNotification } from '../../models/OfferSellerNotification';
 import type { createOfferSchema, updateOfferSchema } from '../../validation/admin/offerSchemas';
 import type { OfferConfig, OfferType } from '../../types';
@@ -99,7 +100,11 @@ function assertNotStarted(offer: Offer): void {
 }
 
 async function enqueueOfferNotifications(offer: Offer): Promise<void> {
-  const sellers = await User.findAll({ where: { role: 'SELLER' }, attributes: ['id'] });
+  const sellers = await User.findAll({
+    where: { role: 'SELLER', isActive: true },
+    attributes: ['id'],
+    include: [{ model: SellerProfile, attributes: [], where: { isVerified: true }, required: true }],
+  });
   if (sellers.length === 0) return;
 
   await OfferSellerNotification.bulkCreate(
