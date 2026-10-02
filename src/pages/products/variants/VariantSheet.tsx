@@ -429,8 +429,8 @@ export default function VariantSheet({
 
           {isEdit && (
             /* ── Edit mode: show read-only attribute pills ── */
-            <div>
-              <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
+            <div className="bg-white rounded-2xl shadow-sm p-4">
+              <p className="text-sm font-semibold text-gray-700 mb-3">
                 Variant Details
               </p>
               <div className="flex flex-wrap gap-2">
@@ -450,181 +450,180 @@ export default function VariantSheet({
             </div>
           )}
 
-          {/* Primary Image */}
-          <div>
-            <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
-              Primary Image<span className="text-rose-400 ml-0.5">*</span>
-              {/* {isEdit && sdField && (
-                <span className="text-[10px] text-gray-400 font-normal tracking-normal ml-1.5">
-                  applies to all {sdField.label.toLowerCase()} options in this group
-                </span>
-              )} */}
-            </p>
+          {/* Variant Images */}
+          <div className="bg-white rounded-2xl shadow-sm p-4 space-y-5">
+            <p className="text-sm font-semibold text-gray-700">Variant Images</p>
 
-            {primaryImage ? (
-              <div className="flex items-center gap-3">
-                <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                  <img
-                    src={resolveImage(primaryImage)}
-                    alt="Variant primary"
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setPrimaryImage(null)}
-                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                  >
-                    <X size={9} />
-                  </button>
-                </div>
-                <div>
-                  <p className="text-xs text-gray-400 mb-2">This image will be shown first to buyers</p>
-                  <label className={`inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 cursor-pointer hover:text-teal-700 ${isUploadingPrimary ? 'pointer-events-none opacity-50' : ''}`}>
-                    <input
-                      type="file"
-                      accept="image/jpeg,image/png,image/webp"
-                      onChange={handlePrimaryImageChange}
-                      className="hidden"
+            {/* Primary Image */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
+                Primary Image<span className="text-rose-400 ml-0.5">*</span>
+              </p>
+
+              {primaryImage ? (
+                <div className="flex items-center gap-3">
+                  <div className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                    <img
+                      src={resolveImage(primaryImage)}
+                      alt="Variant primary"
+                      className="w-full h-full object-cover"
                     />
-                    {isUploadingPrimary ? (
-                      <><Loader2 size={12} className="animate-spin" /> Uploading…</>
-                    ) : (
-                      'Replace image'
-                    )}
-                  </label>
+                    <button
+                      type="button"
+                      onClick={() => setPrimaryImage(null)}
+                      className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                    >
+                      <X size={9} />
+                    </button>
+                  </div>
+                  <div>
+                    <p className="text-xs text-gray-400 mb-2">This image will be shown first to buyers</p>
+                    <label className={`inline-flex items-center gap-1.5 text-xs font-semibold text-teal-600 cursor-pointer hover:text-teal-700 ${isUploadingPrimary ? 'pointer-events-none opacity-50' : ''}`}>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/webp"
+                        onChange={handlePrimaryImageChange}
+                        className="hidden"
+                      />
+                      {isUploadingPrimary ? (
+                        <><Loader2 size={12} className="animate-spin" /> Uploading…</>
+                      ) : (
+                        'Replace image'
+                      )}
+                    </label>
+                  </div>
                 </div>
-              </div>
-            ) : (
-              <label className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed py-6 cursor-pointer hover:border-teal-400 transition-colors ${primaryImageError ? 'border-rose-300' : 'border-teal-200'} ${isUploadingPrimary ? 'pointer-events-none opacity-70' : ''}`}>
-                <input
-                  type="file"
-                  accept="image/jpeg,image/png,image/webp"
-                  onChange={handlePrimaryImageChange}
-                  className="hidden"
-                />
-                {isUploadingPrimary ? (
-                  <Loader2 size={22} className="text-teal-500 animate-spin" />
-                ) : (
-                  <>
-                    <Camera size={20} className="text-teal-500" />
-                    <span className="text-xs font-semibold text-gray-600">Upload primary photo</span>
-                  </>
-                )}
-              </label>
-            )}
-
-            {primaryImageError && (
-              <p className="text-xs text-rose-500 mt-1.5">{primaryImageError}</p>
-            )}
-          </div>
-
-          {/* Secondary Images */}
-          <div>
-            <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
-              Additional Images (up to {MAX_SECONDARY_IMAGES})
-              {/* {isEdit && sdField && (
-                <span className="text-[10px] text-gray-400 font-normal tracking-normal ml-1.5">
-                  applies to all {sdField.label.toLowerCase()} options in this group
-                </span>
-              )} */}
-            </p>
-
-            <div className="flex gap-2 flex-wrap">
-              {secondaryImages.map((url, i) => (
-                <div key={url} className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
-                  <img
-                    src={resolveImage(url)}
-                    alt={`Variant ${i + 1}`}
-                    className="w-full h-full object-cover"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setSecondaryImages(prev => prev.filter(u => u !== url))}
-                    className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
-                  >
-                    <X size={9} />
-                  </button>
-                </div>
-              ))}
-              {secondaryImages.length < MAX_SECONDARY_IMAGES && (
-                <label className={`w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-teal-400 transition-colors shrink-0 ${isUploading ? 'pointer-events-none opacity-60' : ''}`}>
+              ) : (
+                <label className={`flex flex-col items-center justify-center gap-1.5 rounded-xl border-2 border-dashed py-6 cursor-pointer hover:border-teal-400 transition-colors ${primaryImageError ? 'border-rose-300' : 'border-teal-200'} ${isUploadingPrimary ? 'pointer-events-none opacity-70' : ''}`}>
                   <input
                     type="file"
                     accept="image/jpeg,image/png,image/webp"
-                    multiple
-                    onChange={handleSecondaryImageChange}
+                    onChange={handlePrimaryImageChange}
                     className="hidden"
                   />
-                  {isUploading ? (
-                    <Loader2 size={18} className="text-teal-400 animate-spin" />
+                  {isUploadingPrimary ? (
+                    <Loader2 size={22} className="text-teal-500 animate-spin" />
                   ) : (
                     <>
-                      <ImagePlus size={18} className="text-teal-500" />
-                      <span className="text-[10px] font-semibold text-teal-600">Add Image</span>
+                      <Camera size={20} className="text-teal-500" />
+                      <span className="text-xs font-semibold text-gray-600">Upload primary photo</span>
                     </>
                   )}
                 </label>
               )}
+
+              {primaryImageError && (
+                <p className="text-xs text-rose-500 mt-1.5">{primaryImageError}</p>
+              )}
             </div>
-            {secondaryImageError && (
-              <p className="text-xs text-rose-500 mt-2">{secondaryImageError}</p>
-            )}
+
+            {/* Secondary Images */}
+            <div>
+              <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
+                Additional Images (up to {MAX_SECONDARY_IMAGES})
+              </p>
+
+              <div className="flex gap-2 flex-wrap">
+                {secondaryImages.map((url, i) => (
+                  <div key={url} className="relative w-20 h-20 rounded-xl overflow-hidden bg-gray-100 shrink-0">
+                    <img
+                      src={resolveImage(url)}
+                      alt={`Variant ${i + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setSecondaryImages(prev => prev.filter(u => u !== url))}
+                      className="absolute top-0.5 right-0.5 w-4 h-4 rounded-full bg-black/50 flex items-center justify-center text-white hover:bg-black/70 transition-colors"
+                    >
+                      <X size={9} />
+                    </button>
+                  </div>
+                ))}
+                {secondaryImages.length < MAX_SECONDARY_IMAGES && (
+                  <label className={`w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 flex flex-col items-center justify-center gap-1 cursor-pointer hover:border-teal-400 transition-colors shrink-0 ${isUploading ? 'pointer-events-none opacity-60' : ''}`}>
+                    <input
+                      type="file"
+                      accept="image/jpeg,image/png,image/webp"
+                      multiple
+                      onChange={handleSecondaryImageChange}
+                      className="hidden"
+                    />
+                    {isUploading ? (
+                      <Loader2 size={18} className="text-teal-400 animate-spin" />
+                    ) : (
+                      <>
+                        <ImagePlus size={18} className="text-teal-500" />
+                        <span className="text-[10px] font-semibold text-teal-600">Add Image</span>
+                      </>
+                    )}
+                  </label>
+                )}
+              </div>
+              {secondaryImageError && (
+                <p className="text-xs text-rose-500 mt-2">{secondaryImageError}</p>
+              )}
+            </div>
           </div>
 
           {/* Pricing */}
-          <div className="grid grid-cols-2 gap-3">
-            <PriceField
-              label="Selling Price (₹)"
-              name="sellingPrice"
-              value={form.values.sellingPrice}
-              error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}
-              onChange={form.handleChange}
-              onBlur={form.handleBlur}
-              hasError={!!form.touched.sellingPrice && !!form.errors.sellingPrice}
-              required
-            />
-            <PriceField
-              label="MRP (₹)"
-              name="mrp"
-              value={form.values.mrp}
-              error={form.touched.mrp ? form.errors.mrp as string : undefined}
-              onChange={form.handleChange}
-              onBlur={form.handleBlur}
-              hasError={!!form.touched.mrp && !!form.errors.mrp}
-              readOnly
-              required={!isEdit}
-            />
-          </div>
+          <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
+            <p className="text-sm font-semibold text-gray-700">Pricing</p>
 
-          {/* Stock — edit mode always; add mode only when not derived from a combination matrix */}
-          {(isEdit || !stockDependent) && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 mb-1.5">
-                {editStockLabel}<span className="text-rose-400 ml-0.5">*</span>
-              </label>
-              <input
-                name="stock"
-                type="number"
-                min={0}
-                step="1"
-                value={form.values.stock}
+            <div className="grid grid-cols-2 gap-3">
+              <PriceField
+                label="Selling Price (₹)"
+                name="sellingPrice"
+                value={form.values.sellingPrice}
+                error={form.touched.sellingPrice ? form.errors.sellingPrice as string : undefined}
                 onChange={form.handleChange}
                 onBlur={form.handleBlur}
-                placeholder="0"
-                className={inputCls(!!form.touched.stock && !!form.errors.stock)}
+                hasError={!!form.touched.sellingPrice && !!form.errors.sellingPrice}
+                required
               />
-              {form.touched.stock && form.errors.stock && (
-                <p className="text-xs text-rose-500 mt-1.5">{form.errors.stock as string}</p>
-              )}
+              <PriceField
+                label="MRP (₹)"
+                name="mrp"
+                value={form.values.mrp}
+                error={form.touched.mrp ? form.errors.mrp as string : undefined}
+                onChange={form.handleChange}
+                onBlur={form.handleBlur}
+                hasError={!!form.touched.mrp && !!form.errors.mrp}
+                readOnly
+                required={!isEdit}
+              />
             </div>
-          )}
+
+            {/* Stock — edit mode always; add mode only when not derived from a combination matrix */}
+            {(isEdit || !stockDependent) && (
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1.5">
+                  {editStockLabel}<span className="text-rose-400 ml-0.5">*</span>
+                </label>
+                <input
+                  name="stock"
+                  type="number"
+                  min={0}
+                  step="1"
+                  value={form.values.stock}
+                  onChange={form.handleChange}
+                  onBlur={form.handleBlur}
+                  placeholder="0"
+                  className={inputCls(!!form.touched.stock && !!form.errors.stock)}
+                />
+                {form.touched.stock && form.errors.stock && (
+                  <p className="text-xs text-rose-500 mt-1.5">{form.errors.stock as string}</p>
+                )}
+              </div>
+            )}
+          </div>
 
           {!isEdit && (
             <>
               {/* Category (fixed — inherited from the parent product) */}
               {product.category && (
-                <div>
-                  <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
+                <div className="bg-white rounded-2xl shadow-sm p-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-3">
                     Category
                   </p>
                   <div className="flex items-center gap-2 rounded-xl border border-teal-100 bg-teal-50/50 px-3.5 py-2.5">
@@ -636,34 +635,37 @@ export default function VariantSheet({
 
               {/* Variant attribute fields — locked (readonly) and open (editable), in
                   schema order, matching the mobile app's single interleaved field list */}
-              {variantFields.length > 0 ? (
-                <div className="space-y-4">
-                  {variantFields.map(field => {
-                    const isLocked = !!lockedAttributes && field.key in lockedAttributes;
-                    return (
-                      <div key={field.key} className="space-y-4">
-                        {isLocked ? (
-                          <LockedVariantField field={field} value={lockedAttributes![field.key]} />
-                        ) : (
-                          <SheetVariantOptionField
-                            field={field}
-                            value={variantSelections[field.key]}
-                            usedValues={usedValuesForField(field)}
-                            onChange={v => setVariantSelection(field.key, v)}
-                            showError={attemptedSubmit}
-                          />
-                        )}
-                        {field.key === stockAnchorKey && comboStockInputs}
-                      </div>
-                    );
-                  })}
-                  {stockAnchorKey === undefined && comboStockInputs}
-                </div>
-              ) : (
-                <p className="text-xs text-gray-400 bg-gray-50 rounded-xl p-3.5 text-center leading-relaxed">
-                  No additional fields for this category.
-                </p>
-              )}
+              <div className="bg-white rounded-2xl shadow-sm p-4">
+                <p className="text-sm font-semibold text-gray-700 mb-4">Attributes</p>
+                {variantFields.length > 0 ? (
+                  <div className="space-y-4">
+                    {variantFields.map(field => {
+                      const isLocked = !!lockedAttributes && field.key in lockedAttributes;
+                      return (
+                        <div key={field.key} className="space-y-4">
+                          {isLocked ? (
+                            <LockedVariantField field={field} value={lockedAttributes![field.key]} />
+                          ) : (
+                            <SheetVariantOptionField
+                              field={field}
+                              value={variantSelections[field.key]}
+                              usedValues={usedValuesForField(field)}
+                              onChange={v => setVariantSelection(field.key, v)}
+                              showError={attemptedSubmit}
+                            />
+                          )}
+                          {field.key === stockAnchorKey && comboStockInputs}
+                        </div>
+                      );
+                    })}
+                    {stockAnchorKey === undefined && comboStockInputs}
+                  </div>
+                ) : (
+                  <p className="text-xs text-gray-400 bg-gray-50 rounded-xl p-3.5 text-center leading-relaxed">
+                    No additional fields for this category.
+                  </p>
+                )}
+              </div>
             </>
           )}
         </div>
