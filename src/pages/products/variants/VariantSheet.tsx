@@ -452,8 +452,6 @@ export default function VariantSheet({
 
           {/* Variant Images */}
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-5">
-            <p className="text-sm font-semibold text-gray-700">Variant Images</p>
-
             {/* Primary Image */}
             <div>
               <p className="text-xs font-semibold text-gray-500 tracking-wide mb-2">
