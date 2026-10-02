@@ -14,7 +14,6 @@ import { estimateImpressions, formatImpressionRange, formatAudienceLabel, AUDIEN
 import { variantLabel } from '../../lib/variantUtils';
 import { STATES, STATE_CITY_MAP } from '../../lib/statesCities';
 import { boostSchema, type BoostFormValues } from '../../validation/boostSchemas';
-import Tooltip from './Tooltip';
 import { MIN_DAILY_BUDGET, MAX_DAILY_BUDGET, DEFAULT_DAILY_BUDGET, DAILY_BUDGET_STEP } from '../../constants';
 import type { Product, ProductBoost, ProductVariant, AttributeField, BoostAudienceType } from '../../types';
 
@@ -497,12 +496,12 @@ function BudgetStep({ dailyBudget, onChange, onBlur }: BudgetStepProps): JSX.Ele
         <div className="flex items-center justify-between">
           <span className="text-sm text-gray-500 flex items-center gap-1">
             Estimated impressions
-            <Tooltip
-              label="Approximate number of times your boosted product may be shown to users based on your budget and targeting."
-              wide
-            >
+            <span className="relative inline-flex group/impressions-info">
               <Info size={12} className="text-teal-600" />
-            </Tooltip>
+              <span className="pointer-events-none absolute left-1/2 bottom-full z-30 mb-3 w-64 -translate-x-1/2 rounded-2xl bg-teal-900 p-4 text-sm leading-relaxed text-white opacity-0 shadow-xl transition-opacity duration-150 group-hover/impressions-info:opacity-100 group-hover/impressions-info:pointer-events-auto group-focus-within/impressions-info:opacity-100 group-focus-within/impressions-info:pointer-events-auto">
+                Approximate number of times your boosted product may be shown to users based on your budget and targeting.
+              </span>
+            </span>
           </span>
           <span className="text-sm font-bold text-gray-800">
             {formatImpressionRange(min, max)}

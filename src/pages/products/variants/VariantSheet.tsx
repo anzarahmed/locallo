@@ -30,6 +30,14 @@ function isVariantFieldEmpty(field: AttributeField, value: string | string[] | u
   return field.type === 'multiselect' ? !Array.isArray(value) || value.length === 0 : !value;
 }
 
+/* A variant pins one specific value (e.g. "Size: M"), so the schema's plural
+   option-picker label (e.g. "Available Sizes") reads wrong here — singularize it. */
+function singularizeLabel(label: string): string {
+  if (label.endsWith('ies')) return `${label.slice(0, -3)}y`;
+  if (label.endsWith('s')) return label.slice(0, -1);
+  return label;
+}
+
 export default function VariantSheet({
   productId,
   product,
@@ -436,7 +444,7 @@ export default function VariantSheet({
                   const opt = field?.options?.find(o => o.value === String(val));
                   return (
                     <span key={key} className="text-xs bg-teal-50 text-teal-700 px-3 py-1.5 rounded-full border border-teal-100">
-                      <span className="font-bold">{field?.label ?? key}:</span>{' '}
+                      <span className="font-bold">{field ? singularizeLabel(field.label) : key}:</span>{' '}
                       <span className="text-gray-700 font-medium">
                         {toTitleCase(opt?.label ?? String(val))}
                       </span>
