@@ -77,10 +77,7 @@ export default function VariantSheet({
   // Stock inputs sit right under the stock-dependent selector (e.g. sizes); if that
   // selector is locked (not rendered), they fall back to after the open fields.
   const stockAnchorKey  = openFields.find(f => f.isStockDependent === true)?.key;
-  const editSdValue     = isEdit && sdField ? variant.attributes[sdField.key] : undefined;
-  const editStockLabel  = typeof editSdValue === 'string' && editSdValue !== ''
-    ? `Stock – ${sdField?.options?.find(o => o.value === editSdValue)?.label ?? editSdValue}`
-    : 'Stock';
+  const editStockLabel  = 'Stock';
 
   /*
    * Add-to-group ("Add Option") starts from an existing sibling variant's images —
