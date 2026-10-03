@@ -78,6 +78,7 @@ export interface ProfileResponse {
   photo: string | null;
   isActive: boolean;
   profile: SellerProfile;
+  unreadNotificationCount: number;
 }
 
 export interface Product {

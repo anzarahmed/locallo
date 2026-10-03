@@ -4,7 +4,6 @@ import { useAuth } from '../../hooks/useAuth';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
 import { useState, useRef, useEffect, type JSX } from 'react';
 import logo from '../../assets/logo.png';
-import { getNotifications } from '../../services/notificationService';
 import { getProfile } from '../../services/sellerService';
 import { resolveImage } from '../../lib/imageUtils';
 
@@ -35,14 +34,12 @@ export default function AppLayout(): JSX.Element {
   const [photo, setPhoto] = useState<string | null>(null);
 
   useEffect(() => {
-    getNotifications({ page: 1, limit: 50 })
-      .then(data => setHasUnread(data.notifications.some(n => !n.isRead)))
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
     getProfile()
-      .then(data => { setKycPending(!data.profile.isVerified); setPhoto(data.photo); })
+      .then(data => {
+        setKycPending(!data.profile.isVerified);
+        setPhoto(data.photo);
+        setHasUnread(data.unreadNotificationCount > 0);
+      })
       .catch(() => {});
   }, []);
 
