@@ -165,6 +165,15 @@ export default function VariantList(): JSX.Element {
     }
   }
 
+  function handleDeleteClick(variant: ProductVariant): void {
+    const otherActiveExists = variants.some(v => v.id !== variant.id && v.isActive);
+    if (variants.length > 1 && !otherActiveExists) {
+      toast.error('You cannot delete this variant because it is the last visible variant of this product. Enable another variant before deleting this one.');
+      return;
+    }
+    setDeleteTarget(variant);
+  }
+
   async function confirmDelete(): Promise<void> {
     if (!deleteTarget) return;
     setDeleting(true);
@@ -262,7 +271,7 @@ export default function VariantList(): JSX.Element {
                 onEdit={v => openEdit(v)}
                 onEditGroup={g => setEditingGroup(g)}
                 onAddToGroup={g => openAddToGroup(g)}
-                onDelete={v => setDeleteTarget(v)}
+                onDelete={v => handleDeleteClick(v)}
                 onSell={v => setSellVariant(v)}
                 boostedVariantId={boostedVariantId}
                 wholeProductBoosted={wholeProductBoosted}
@@ -278,7 +287,7 @@ export default function VariantList(): JSX.Element {
                 schema={schema}
                 onToggle={() => void handleToggle(variant)}
                 onEdit={() => openEdit(variant)}
-                onDelete={() => setDeleteTarget(variant)}
+                onDelete={() => handleDeleteClick(variant)}
                 onSell={() => setSellVariant(variant)}
                 isBoosted={wholeProductBoosted || boostedVariantId === variant.id}
               />
