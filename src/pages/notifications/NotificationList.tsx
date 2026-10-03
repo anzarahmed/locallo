@@ -40,6 +40,12 @@ export default function NotificationList(): JSX.Element {
         const data = await getNotifications({ page, limit: PAGE_LIMIT, filter });
         setNotifications(data.notifications);
         setTotal(data.total);
+
+        const unreadIds = data.notifications.filter(n => !n.isRead).map(n => n.id);
+        if (unreadIds.length > 0) {
+          setNotifications(prev => prev.map(n => unreadIds.includes(n.id) ? { ...n, isRead: true } : n));
+          unreadIds.forEach(id => { markNotificationRead(id).catch(() => {}); });
+        }
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to load notifications');
       } finally {
@@ -54,11 +60,7 @@ export default function NotificationList(): JSX.Element {
     setPage(1);
   }
 
-  async function handleClick(notification: Notification): Promise<void> {
-    if (!notification.isRead) {
-      setNotifications(prev => prev.map(n => n.id === notification.id ? { ...n, isRead: true } : n));
-      markNotificationRead(notification.id).catch(() => {});
-    }
+  function handleClick(notification: Notification): void {
     const route = resolveRoute(notification);
     if (route) navigate(route);
   }
@@ -127,7 +129,7 @@ export default function NotificationList(): JSX.Element {
                 key={n.id}
                 notification={n}
                 deleting={deletingId === n.id}
-                onClick={() => void handleClick(n)}
+                onClick={() => handleClick(n)}
                 onDelete={(e) => { e.stopPropagation(); void handleDelete(n.id); }}
               />
             ))
