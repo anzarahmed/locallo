@@ -1,3 +1,5 @@
+import type { NotificationFilter } from '../types';
+
 export const MAX_SECONDARY_IMAGES = 3;
 
 export const MAX_IMAGE_SIZE_MB = 10;
@@ -23,6 +25,12 @@ export const MIN_DAILY_BUDGET = 100;
 export const MAX_DAILY_BUDGET = 5000;
 export const DEFAULT_DAILY_BUDGET = 100;
 export const DAILY_BUDGET_STEP = 50;
+
+export const NOTIFICATION_FILTER_TABS: { value: NotificationFilter; label: string }[] = [
+  { value: 'all',    label: 'All'    },
+  { value: 'offers', label: 'Offers' },
+  { value: 'other',  label: 'Others '  },
+];
 
 export const SORT_OPTIONS: { value: string; label: string }[] = [
   { value: 'sort_newest',          label: 'Newest'            },

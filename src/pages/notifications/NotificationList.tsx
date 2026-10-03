@@ -5,7 +5,8 @@ import { getNotifications, markNotificationRead, deleteNotification } from '../.
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { formatRelativeTime } from '../../lib/formatters';
-import type { Notification } from '../../types';
+import { NOTIFICATION_FILTER_TABS } from '../../constants';
+import type { Notification, NotificationFilter } from '../../types';
 
 const PAGE_LIMIT = 20;
 
@@ -28,6 +29,7 @@ export default function NotificationList(): JSX.Element {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [total, setTotal] = useState(0);
   const [page, setPage] = useState(1);
+  const [filter, setFilter] = useState<NotificationFilter>('all');
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -35,7 +37,7 @@ export default function NotificationList(): JSX.Element {
     async function load(): Promise<void> {
       setLoading(true);
       try {
-        const data = await getNotifications({ page, limit: PAGE_LIMIT });
+        const data = await getNotifications({ page, limit: PAGE_LIMIT, filter });
         setNotifications(data.notifications);
         setTotal(data.total);
       } catch (err) {
@@ -45,7 +47,12 @@ export default function NotificationList(): JSX.Element {
       }
     }
     void load();
-  }, [page]); // toast is stable
+  }, [page, filter]); // toast is stable
+
+  function handleFilterChange(next: NotificationFilter): void {
+    setFilter(next);
+    setPage(1);
+  }
 
   async function handleClick(notification: Notification): Promise<void> {
     if (!notification.isRead) {
@@ -93,11 +100,27 @@ export default function NotificationList(): JSX.Element {
       </div>
 
       <div className="px-6 md:px-8 pt-5 pb-8 max-w-2xl mx-auto">
+        <div className="flex gap-2 mb-4">
+          {NOTIFICATION_FILTER_TABS.map(tab => (
+            <button
+              key={tab.value}
+              onClick={() => handleFilterChange(tab.value)}
+              className={`px-4 py-1.5 rounded-full text-sm font-semibold transition-colors ${
+                filter === tab.value
+                  ? 'bg-teal-600 text-white'
+                  : 'bg-white text-gray-500 border border-gray-100 hover:bg-gray-50'
+              }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
         <div className="flex flex-col gap-3 mb-4">
           {loading ? (
             Array.from({ length: 5 }).map((_, i) => <NotificationSkeleton key={i} />)
           ) : notifications.length === 0 ? (
-            <EmptyState />
+            <EmptyState filter={filter} />
           ) : (
             notifications.map(n => (
               <NotificationCard
@@ -192,13 +215,23 @@ function NotificationSkeleton(): JSX.Element {
   );
 }
 
-function EmptyState(): JSX.Element {
+interface EmptyStateProps {
+  filter: NotificationFilter;
+}
+
+function EmptyState({ filter }: EmptyStateProps): JSX.Element {
+  const message = filter === 'offers'
+    ? 'No offer notifications yet'
+    : filter === 'other'
+      ? 'No other notifications yet'
+      : 'No notifications yet';
+
   return (
     <div className="bg-white rounded-2xl shadow-sm border border-gray-100 py-16 text-center">
       <div className="w-16 h-16 rounded-full bg-teal-50 flex items-center justify-center mx-auto mb-3">
         <Bell size={26} className="text-teal-300" />
       </div>
-      <p className="text-sm font-semibold text-gray-600">No notifications yet</p>
+      <p className="text-sm font-semibold text-gray-600">{message}</p>
       <p className="text-xs text-gray-400 mt-1">Offers and updates will show up here</p>
     </div>
   );

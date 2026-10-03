@@ -268,6 +268,8 @@ export interface PaymentsResponse {
   limit: number;
 }
 
+export type NotificationFilter = 'all' | 'offers' | 'other';
+
 export interface Notification {
   id: string;
   title: string;
