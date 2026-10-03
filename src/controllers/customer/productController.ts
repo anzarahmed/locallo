@@ -184,6 +184,7 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 
 export async function getProduct(req: Request, res: Response): Promise<void> {
   try {
+    const { state, city } = req.body;
     const variantId = req.query.variantId ? String(req.query.variantId) : undefined;
     const { product, seller, variants, rating } = await productService.getProductDetail(String(req.params.id), variantId);
     if (req.customer) {
@@ -194,7 +195,7 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
         ? wishlistService.getProductWishlistState(req.customer.id, product.id)
         : Promise.resolve({ productWishlisted: false, wishlistedVariantIds: new Set<string>() }),
       getActiveOffersForProducts([product.id]),
-      productBoostService.isProductBoosted(product.id, variantId),
+      productBoostService.isProductBoosted(product.id, variantId, state, city),
       req.customer ? reviewService.hasCustomerReviewed(req.customer.id, product.id) : Promise.resolve(false),
     ]);
     const isWishlisted = productWishlisted || (variantId ? wishlistedVariantIds.has(variantId) : false);
@@ -215,8 +216,7 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
 }
 
 export async function getTrendingProducts(req: Request, res: Response): Promise<void> {
-  const state = req.query.state ? String(req.query.state) : undefined;
-  const city = req.query.city ? String(req.query.city) : undefined;
+  const { state, city } = req.body;
 
   const eligible = await productBoostService.getEligibleBoosts({ state, city });
   const chosenBoosts = productBoostService.pickRandom(eligible, Math.min(productBoostService.BOOST_SLOTS, productService.TRENDING_LIMIT));
@@ -252,12 +252,15 @@ export async function getTrendingProducts(req: Request, res: Response): Promise<
 
 export async function getSimilarProducts(req: Request, res: Response): Promise<void> {
   try {
+    const { state, city } = req.body;
     const productId = String(req.params.id);
     const source = await productService.getSimilarProductSource(productId);
 
     const eligible = await productBoostService.getEligibleBoosts({
       categoryId: source.categoryId,
       excludeProductIds: [productId],
+      state,
+      city,
     });
     const chosenBoosts = productBoostService.pickRandom(eligible, Math.min(productBoostService.SIMILAR_BOOST_SLOTS, productService.SIMILAR_LIMIT));
     const boostedProductIds = chosenBoosts.map((b) => b.product.id);

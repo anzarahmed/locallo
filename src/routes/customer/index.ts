@@ -15,7 +15,7 @@ import { validate } from '../../middleware/validate';
 import upload, { uploadArray } from '../../middleware/upload';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/customer/customerAuthSchemas';
 import { updateCustomerProfileSchema } from '../../validation/customer/customerProfileSchemas';
-import { searchProductsSchema, trendingQuerySchema } from '../../validation/customer/productSchemas';
+import { searchProductsSchema, audienceBodySchema } from '../../validation/customer/productSchemas';
 import { createReviewSchema, updateReviewSchema } from '../../validation/customer/reviewSchemas';
 
 const router = Router();
@@ -34,10 +34,10 @@ router.delete('/account',    requireCustomer, deleteAccount);
 
 router.get('/dashboard',          getDashboard);
 router.get('/offers',             getOffers);
-router.get('/products/trending', optionalCustomer, validate(trendingQuerySchema, 'query'), getTrendingProducts);
-router.post('/products',         optionalCustomer, validate(searchProductsSchema), getProducts);
-router.get('/products/:id',      optionalCustomer, getProduct);
-router.get('/products/:id/similar', optionalCustomer, getSimilarProducts);
+router.post('/products/trending',    optionalCustomer, validate(audienceBodySchema), getTrendingProducts);
+router.post('/products',             optionalCustomer, validate(searchProductsSchema), getProducts);
+router.post('/products/:id',         optionalCustomer, validate(audienceBodySchema), getProduct);
+router.post('/products/:id/similar', optionalCustomer, validate(audienceBodySchema), getSimilarProducts);
 
 router.get('/sellers/:id/working-hours', getSellerWorkingHours);
 router.get('/sellers/:id', getSellerDetails);

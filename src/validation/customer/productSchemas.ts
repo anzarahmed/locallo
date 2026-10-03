@@ -28,7 +28,11 @@ export const searchProductsSchema = Yup.object({
   city: Yup.string().transform(trimIfString),
 });
 
-export const trendingQuerySchema = Yup.object({
+export const audienceBodySchema = Yup.object({
   state: Yup.string().transform(trimIfString),
   city: Yup.string().transform(trimIfString),
+  searchByLocation: Yup.object({
+    lat: Yup.number().min(-90).max(90).required('lat is required'),
+    lng: Yup.number().min(-180).max(180).required('lng is required'),
+  }).default(undefined),
 });

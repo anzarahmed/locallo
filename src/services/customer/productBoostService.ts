@@ -28,10 +28,15 @@ interface EligibilityParams {
   excludeProductIds?: string[];
 }
 
-export async function getEligibleBoosts(params: EligibilityParams): Promise<EligibleBoost[]> {
+function buildAudienceOrFilter(state?: string, city?: string): Record<string, unknown>[] {
   const audienceOr: Record<string, unknown>[] = [{ audienceType: 'pan_india' }];
-  if (params.state) audienceOr.push({ audienceType: 'state', state: { [Op.iLike]: params.state } });
-  if (params.city) audienceOr.push({ audienceType: 'city', city: { [Op.iLike]: params.city } });
+  if (state) audienceOr.push({ audienceType: 'state', state: { [Op.iLike]: state } });
+  if (city) audienceOr.push({ audienceType: 'city', city: { [Op.iLike]: city } });
+  return audienceOr;
+}
+
+export async function getEligibleBoosts(params: EligibilityParams): Promise<EligibleBoost[]> {
+  const audienceOr = buildAudienceOrFilter(params.state, params.city);
 
   const boosts = await ProductBoost.findAll({
     where: {
@@ -136,8 +141,13 @@ export async function incrementImpressions(boostIds: string[]): Promise<void> {
   );
 }
 
-export async function isProductBoosted(productId: string, variantId?: string): Promise<boolean> {
-  const where: Record<string, unknown> = { productId, status: 'active', paymentStatus: 'paid' };
+export async function isProductBoosted(productId: string, variantId?: string, state?: string, city?: string): Promise<boolean> {
+  const where: Record<string, unknown> = {
+    productId,
+    status: 'active',
+    paymentStatus: 'paid',
+    [Op.or]: buildAudienceOrFilter(state, city),
+  };
   // A boost with no variantId covers every variant of the product.
   if (variantId) where.variantId = { [Op.or]: [variantId, null] };
   const count = await ProductBoost.count({ where });
