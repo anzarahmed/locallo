@@ -103,6 +103,7 @@ export async function getEligibleBoosts(params: EligibilityParams): Promise<Elig
   const seenProductIds = new Set<string>();
   const eligible: EligibleBoost[] = [];
   for (const boost of boosts) {
+    if (boost.variantId && !variantById.has(boost.variantId)) continue;
     const product = productById.get(boost.productId);
     if (!product || seenProductIds.has(boost.productId)) continue;
     seenProductIds.add(boost.productId);
@@ -149,7 +150,15 @@ export async function isProductBoosted(productId: string, variantId?: string, st
     [Op.or]: buildAudienceOrFilter(state, city),
   };
   // A boost with no variantId covers every variant of the product.
-  if (variantId) where.variantId = { [Op.or]: [variantId, null] };
-  const count = await ProductBoost.count({ where });
-  return count > 0;
+  if (variantId) {
+    where.variantId = { [Op.or]: [variantId, null] };
+    return (await ProductBoost.count({ where })) > 0;
+  }
+
+  // No variant requested: a boost pinned to a now-inactive variant must not count.
+  const boosts = await ProductBoost.findAll({
+    where,
+    include: [{ model: ProductVariant, as: 'variant', attributes: ['isActive'], required: false }],
+  });
+  return boosts.some((b) => b.variantId === null || b.variant?.isActive === true);
 }
