@@ -138,7 +138,7 @@ export default function LedgerManagerModal({
             <p className="text-sm text-gray-400 text-center py-6">No ledgers yet</p>
           ) : (
             ledgers.map(ledger => (
-              <div key={ledger.id} className="flex items-center justify-between bg-gray-50 rounded-xl px-3 py-2.5 gap-2">
+              <div key={ledger.id} className="flex items-start justify-between bg-gray-50 rounded-xl px-3 py-2.5 gap-2">
                 {editingId === ledger.id ? (
                   <>
                     <input
@@ -168,7 +168,7 @@ export default function LedgerManagerModal({
                   </>
                 ) : (
                   <>
-                    <span className="text-sm text-gray-700 truncate flex items-center gap-2">
+                    <span className="text-sm text-gray-700 break-words flex-1 min-w-0 flex items-center flex-wrap gap-x-2 gap-y-1">
                       {ledger.name}
                       {ledger.isDefault && (
                         <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-gray-400 bg-gray-100 rounded-full px-1.5 py-0.5">
