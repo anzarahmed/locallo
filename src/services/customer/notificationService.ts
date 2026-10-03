@@ -1,4 +1,7 @@
+import { Op } from 'sequelize';
 import { Notification } from '../../models/Notification';
+
+export type NotificationFilter = 'all' | 'offers' | 'other';
 
 export async function createNotification(
   userId: string,
@@ -22,9 +25,14 @@ export async function listNotifications(
   customerId: string,
   page: number,
   limit: number,
+  filter: NotificationFilter = 'all',
 ): Promise<{ rows: Notification[]; count: number }> {
+  const where: Record<string, unknown> = { customerId };
+  if (filter === 'offers') where.type = 'offer';
+  else if (filter === 'other') where.type = { [Op.ne]: 'offer' };
+
   const { rows, count } = await Notification.findAndCountAll({
-    where: { customerId },
+    where,
     order: [['createdAt', 'DESC']],
     limit,
     offset: (page - 1) * limit,

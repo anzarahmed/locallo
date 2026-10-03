@@ -2,7 +2,15 @@ import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import * as notificationService from '../../services/customer/notificationService';
+import type { NotificationFilter } from '../../services/customer/notificationService';
 import type { Notification } from '../../models/Notification';
+
+const NOTIFICATION_FILTERS: readonly NotificationFilter[] = ['all', 'offers', 'other'];
+
+function parseFilter(req: Request): NotificationFilter {
+  const raw = String(req.query.filter ?? 'all');
+  return (NOTIFICATION_FILTERS as readonly string[]).includes(raw) ? (raw as NotificationFilter) : 'all';
+}
 
 interface NotificationItem {
   id: string;
@@ -30,7 +38,8 @@ function toItem(n: Notification): NotificationItem {
 
 export async function getNotifications(req: Request, res: Response): Promise<void> {
   const { page, limit } = parsePagination(req);
-  const { rows, count } = await notificationService.listNotifications(req.seller!.id, page, limit);
+  const filter = parseFilter(req);
+  const { rows, count } = await notificationService.listNotifications(req.seller!.id, page, limit, filter);
   const notifications = rows.map(toItem);
   sendSuccess(res, { notifications, total: count, page, limit }, 'Notifications fetched');
 }
