@@ -28,6 +28,7 @@ const NotificationList = lazy(() => import('./pages/notifications/NotificationLi
 const Pnl = lazy(() => import('./pages/pnl/Pnl'));
 const Expenses = lazy(() => import('./pages/expenses/Expenses'));
 const CmsPage = lazy(() => import('./pages/cms/CmsPage'));
+const CmsStandalonePage = lazy(() => import('./pages/cms/CmsStandalonePage'));
 
 function AuthGuard({ children }: { children: JSX.Element }): JSX.Element {
   const { token, isRestoring } = useAuth();
@@ -75,6 +76,10 @@ const router = createBrowserRouter(
 
       {/* Public routes — reachable signed in or out (linked from login + app stores) */}
       <Route path="/pages/:slug" element={<CmsPage />} />
+
+      {/* Standalone mobile-app routes — no header/footer chrome, embedded via WebView */}
+      <Route path="/privacy-policy" element={<CmsStandalonePage slug="privacy-policy" />} />
+      <Route path="/terms-and-conditions" element={<CmsStandalonePage slug="terms-and-conditions" />} />
 
       {/* Authenticated routes */}
       <Route element={<AuthGuard><AppLayout /></AuthGuard>}>
