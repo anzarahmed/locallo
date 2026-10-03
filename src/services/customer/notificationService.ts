@@ -41,6 +41,10 @@ export async function listNotifications(
   return { rows, count };
 }
 
+export async function countUnreadNotifications(customerId: string): Promise<number> {
+  return Notification.count({ where: { customerId, isRead: false } });
+}
+
 export async function markNotificationRead(customerId: string, id: string): Promise<Notification> {
   const notification = await Notification.findOne({ where: { id, customerId } });
   if (!notification) {

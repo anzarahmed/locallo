@@ -8,6 +8,7 @@ import type { User } from '../../models/User';
 import type { SellerProfile } from '../../models/SellerProfile';
 import type { KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
 import { saveImage, getPresignedUrl, getPresignedUrlOrNull, getS3PresignedUrl } from '../../utils/imageStorage';
+import { countUnreadNotifications } from '../../services/customer/notificationService';
 
 const KYC_DOCUMENT_TYPES: KycDocumentType[] = ['aadhar', 'pan', 'registrationCertificate', 'other'];
 const BRAND_DOCUMENT_TYPES: BrandDocumentType[] = ['certification', 'other'];
@@ -76,7 +77,9 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
   try {
     const { user, profile } = await getSellerById(req.seller!.id);
     const categories = await resolveCats(profile.categoryIds ?? []);
-    sendSuccess(res, await buildSellerResponse(user, profile, categories), 'Profile fetched');
+    const response = await buildSellerResponse(user, profile, categories);
+    const unreadNotificationCount = await countUnreadNotifications(req.seller!.id);
+    sendSuccess(res, { ...response, unreadNotificationCount }, 'Profile fetched');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
