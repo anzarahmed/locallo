@@ -1,13 +1,13 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, BadgePercent, ChevronRight, Tag } from 'lucide-react';
+import { ArrowLeft, ChevronRight, Tag } from 'lucide-react';
 import { getAcceptedOffers } from '../../services/offerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
-import { offerSummary, offerTypeLabel } from '../../lib/offerUtils';
+import { offerSummary, offerTypeIcon, offerTypeLabel } from '../../lib/offerUtils';
 import type { OfferNavState } from '../../lib/offerUtils';
 import { formatDateTime } from '../../lib/dateFormat';
-import type { AcceptedOffer } from '../../types';
+import type { AcceptedOffer, Offer } from '../../types';
 
 export default function AcceptedOffers(): JSX.Element {
   const navigate = useNavigate();
@@ -80,7 +80,7 @@ export default function AcceptedOffers(): JSX.Element {
               >
                 <div className="flex-1 min-w-0">
                   <span className="inline-flex items-center gap-1 text-xs font-semibold text-teal-700 bg-teal-50 px-2.5 py-1 rounded-full">
-                    <BadgePercent size={12} />
+                    <OfferTypeIcon offer={offer} />
                     {offerTypeLabel(offer)}
                   </span>
                   <p className="text-sm font-bold text-gray-900 mt-2 truncate">{offer.title}</p>
@@ -97,4 +97,9 @@ export default function AcceptedOffers(): JSX.Element {
       </div>
     </div>
   );
+}
+
+function OfferTypeIcon({ offer }: { offer: Offer }): JSX.Element {
+  const Icon = offerTypeIcon(offer);
+  return <Icon size={12} />;
 }
