@@ -63,8 +63,10 @@ async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductList
       ctx.attributeSchemasByCategory?.get(p.categoryId),
     );
 
+  // A paid variant boost keeps its slot even at zero stock; whole-product boosts and organic rows still need stock.
+  const isVariantBoost = ctx.isBoosted && ctx.boostedVariant != null;
   const outOfStock = chosen ? chosen.stock <= 0 : (rawVariants.length > 0 || p.stock <= 0);
-  if (outOfStock) return null;
+  if (outOfStock && !isVariantBoost) return null;
 
   const displayKey = chosen?.images?.[0] ?? p.images[0] ?? null;
   const sellingPrice = Number(chosen?.sellingPrice ?? p.sellingPrice);
