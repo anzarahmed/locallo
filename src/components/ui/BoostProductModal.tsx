@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useFormik } from 'formik';
 import {
-  X, Globe, Map, Building2, Users, IndianRupee, ClipboardCheck,
+  X, Globe, Map, Building2, Users, IndianRupee, CreditCard,
   Eye, Info, Loader2, ChevronDown, Rocket, Package, Target, BarChart3, Zap,
   createLucideIcon, type LucideIcon,
 } from 'lucide-react';
@@ -54,7 +54,7 @@ function boostVariantLabel(attributes: Record<string, unknown>, schema: Attribut
 const STEPS: { key: 1 | 2 | 3; label: string; icon: LucideIcon }[] = [
   { key: 1, label: 'Audience', icon: Users },
   { key: 2, label: 'Budget', icon: IndianRupee },
-  { key: 3, label: 'Payment', icon: ClipboardCheck },
+  { key: 3, label: 'Payment', icon: CreditCard },
 ];
 
 export default function BoostProductModal({ product, variant, schema, onClose, onBoosted }: BoostProductModalProps): JSX.Element {
