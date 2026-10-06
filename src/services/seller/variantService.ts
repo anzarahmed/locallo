@@ -70,6 +70,16 @@ async function hasOtherActiveVariant(productId: string, variantId: string): Prom
   return count > 0;
 }
 
+async function assertNotBoosted(variantId: string, action: 'hidden' | 'deleted'): Promise<void> {
+  const count = await ProductBoost.count({ where: { variantId, status: 'active', paymentStatus: 'paid' } });
+  if (count > 0) {
+    throw Object.assign(
+      new Error(`This variant is currently a boosted product and cannot be ${action} while the boost is active.`),
+      { status: 409 },
+    );
+  }
+}
+
 function getVariantKeys(product: Product): string[] {
   const schema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
   return schema.filter(f => f.isVariant).map(f => f.key);
@@ -273,6 +283,10 @@ export async function updateVariant(
   const product = await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
 
+  if (data.isActive === false && variant.isActive) {
+    await assertNotBoosted(variantId, 'hidden');
+  }
+
   if (data.isActive === false && variant.isActive && !(await hasOtherActiveVariant(productId, variantId))) {
     throw Object.assign(
       new Error('You cannot disable this variant because it is the last visible variant of this product. Enable another variant before disabling this one.'),
@@ -344,6 +358,8 @@ export async function deleteVariant(
   const product = await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
 
+  await assertNotBoosted(variantId, 'deleted');
+
   const totalCount = await ProductVariant.count({ where: { productId } });
   if (totalCount > 1 && !(await hasOtherActiveVariant(productId, variantId))) {
     throw Object.assign(
@@ -398,6 +414,10 @@ export async function toggleVariant(
 ): Promise<ProductVariant> {
   await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
+
+  if (variant.isActive) {
+    await assertNotBoosted(variantId, 'hidden');
+  }
 
   if (variant.isActive && !(await hasOtherActiveVariant(productId, variantId))) {
     throw Object.assign(
