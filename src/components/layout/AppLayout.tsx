@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Package, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt, Bell, BadgePercent, AlertTriangle, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Archive, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt, Bell, BadgePercent, AlertTriangle, CreditCard } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
 import { useState, useRef, useEffect, type JSX } from 'react';
@@ -15,7 +15,7 @@ interface NavItem {
 
 const BASE_NAV: NavItem[] = [
   { to: '/dashboard',  icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
-  { to: '/products',   icon: <Package size={20} />,         label: 'Products'  },
+  { to: '/products',   icon: <Archive size={20} />,         label: 'Products'  },
   { to: '/sold-logs',  icon: <Receipt size={20} />,         label: 'Sales Log' },
   { to: '/offers',     icon: <BadgePercent size={20} />,    label: 'Accepted Offers' },
   { to: '/payments',   icon: <CreditCard size={20} />,      label: 'Payments'  },
