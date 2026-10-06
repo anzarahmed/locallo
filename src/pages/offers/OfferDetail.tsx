@@ -40,7 +40,7 @@ export default function OfferDetail(): JSX.Element {
   }, [id]); // toast is stable
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className={`min-h-screen bg-gray-50 ${offer && !offer.hasStarted ? 'pb-24' : ''}`}>
       <div
         className="px-6 md:px-8 pt-8 pb-16"
         style={{
@@ -122,7 +122,7 @@ export default function OfferDetail(): JSX.Element {
       </div>
 
       {offer && !offer.hasStarted && (
-        <div className="sticky bottom-16 md:bottom-0 z-20 bg-white border-t border-gray-100 px-6 md:px-8 py-4">
+        <div className="fixed bottom-16 md:bottom-0 left-0 right-0 md:left-60 z-20 bg-white border-t border-gray-100 px-6 md:px-8 py-4">
           <div className="max-w-2xl mx-auto">
             <button
               type="button"
