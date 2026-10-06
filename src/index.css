@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@plugin "@tailwindcss/typography";
 
 /* Tailwind v4's Preflight ships buttons with `cursor: default`; restore the
    pointer for every interactive control so clickable items feel clickable. */
