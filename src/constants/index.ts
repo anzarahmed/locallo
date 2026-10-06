@@ -18,7 +18,7 @@ export const FILTER_TABS: { value: FilterTab; label: string }[] = [
   { value: 'all',     label: 'All'     },
   { value: 'visible', label: 'Visible' },
   { value: 'hidden',  label: 'Hidden'  },
-  { value: 'active',  label: 'Active'  },
+  { value: 'active',  label: 'In-Stock' },
 ];
 
 export const MIN_DAILY_BUDGET = 100;
