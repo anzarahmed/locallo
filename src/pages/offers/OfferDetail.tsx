@@ -1,17 +1,21 @@
 import { useEffect, useState, type JSX } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, BadgePercent, Calendar, CheckCircle2, Lock, Package } from 'lucide-react';
 import { getOffer } from '../../services/offerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
-import { offerSummary, offerTypeLabel } from '../../lib/offerUtils';
+import { offerBackPath, offerSummary, offerTypeLabel } from '../../lib/offerUtils';
+import type { OfferNavState } from '../../lib/offerUtils';
 import { formatDateTime } from '../../lib/dateFormat';
 import type { Offer, Product } from '../../types';
 
 export default function OfferDetail(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const backPath = offerBackPath(location.state);
+  const navState: OfferNavState = { from: backPath };
   const toast = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -47,7 +51,7 @@ export default function OfferDetail(): JSX.Element {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate('/dashboard')}
+            onClick={() => navigate(backPath)}
             className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors shrink-0"
           >
             <ArrowLeft size={18} />
@@ -122,7 +126,7 @@ export default function OfferDetail(): JSX.Element {
           <div className="max-w-2xl mx-auto">
             <button
               type="button"
-              onClick={() => navigate(`/offers/${offer.id}/accept`)}
+              onClick={() => navigate(`/offers/${offer.id}/accept`, { state: navState })}
               className="w-full py-3 rounded-xl text-white text-sm font-semibold transition-opacity hover:opacity-90"
               style={{ background: 'linear-gradient(135deg, #1B9E98 0%, #157A75 100%)' }}
             >

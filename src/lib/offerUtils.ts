@@ -25,3 +25,12 @@ export function offerSummary(offer: Offer): string {
     }
   }
 }
+
+export interface OfferNavState {
+  from: string;
+}
+
+export function offerBackPath(state: unknown): string {
+  const from = (state as Partial<OfferNavState> | null)?.from;
+  return typeof from === 'string' && from.startsWith('/') ? from : '/offers';
+}

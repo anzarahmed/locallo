@@ -1,11 +1,13 @@
 import { useEffect, useState, type JSX } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Check, Loader2, Package } from 'lucide-react';
 import { getOffer, acceptOffer } from '../../services/offerService';
 import { getProducts } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
+import { offerBackPath } from '../../lib/offerUtils';
+import type { OfferNavState } from '../../lib/offerUtils';
 import type { Offer, Product } from '../../types';
 
 const ACTIVE_PRODUCTS_LIMIT = 50;
@@ -13,6 +15,8 @@ const ACTIVE_PRODUCTS_LIMIT = 50;
 export default function AcceptOfferProducts(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+  const navState: OfferNavState = { from: offerBackPath(location.state) };
   const toast = useToast();
 
   const [loading, setLoading] = useState(true);
@@ -33,7 +37,7 @@ export default function AcceptOfferProducts(): JSX.Element {
         ]);
         if (offerData.offer.hasStarted) {
           toast.error('Product selection is locked — this offer has already started.');
-          navigate(`/offers/${id}`, { replace: true });
+          navigate(`/offers/${id}`, { replace: true, state: navState });
           return;
         }
         setOffer(offerData.offer);
@@ -72,7 +76,7 @@ export default function AcceptOfferProducts(): JSX.Element {
     try {
       await acceptOffer(Number(id), [...selected]);
       toast.success(selected.size > 0 ? 'Offer applied to selected products' : 'Offer removed from all products');
-      navigate(`/offers/${id}`);
+      navigate(`/offers/${id}`, { replace: true, state: navState });
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to update offer selection');
     } finally {
@@ -94,7 +98,7 @@ export default function AcceptOfferProducts(): JSX.Element {
         <div className="flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate(`/offers/${id}`)}
+            onClick={() => navigate(`/offers/${id}`, { replace: true, state: navState })}
             className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors shrink-0"
           >
             <ArrowLeft size={18} />

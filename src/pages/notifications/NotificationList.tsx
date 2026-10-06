@@ -6,6 +6,7 @@ import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { formatRelativeTime } from '../../lib/formatters';
 import { NOTIFICATION_FILTER_TABS } from '../../constants';
+import type { OfferNavState } from '../../lib/offerUtils';
 import type { Notification, NotificationFilter } from '../../types';
 
 const PAGE_LIMIT = 20;
@@ -61,7 +62,7 @@ export default function NotificationList(): JSX.Element {
 
   function handleClick(notification: Notification): void {
     const route = resolveRoute(notification);
-    if (route) navigate(route);
+    if (route) navigate(route, { state: { from: '/notifications' } satisfies OfferNavState });
   }
 
   const totalPages = Math.ceil(total / PAGE_LIMIT);

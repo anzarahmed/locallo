@@ -5,6 +5,7 @@ import { getAcceptedOffers } from '../../services/offerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { offerSummary, offerTypeLabel } from '../../lib/offerUtils';
+import type { OfferNavState } from '../../lib/offerUtils';
 import { formatDateTime } from '../../lib/dateFormat';
 import type { AcceptedOffer } from '../../types';
 
@@ -74,7 +75,7 @@ export default function AcceptedOffers(): JSX.Element {
               <button
                 key={offer.id}
                 type="button"
-                onClick={() => navigate(`/offers/${offer.id}`)}
+                onClick={() => navigate(`/offers/${offer.id}`, { state: { from: '/offers' } satisfies OfferNavState })}
                 className="w-full bg-white rounded-2xl shadow-sm p-4 text-left flex items-center gap-3 hover:shadow-md transition-shadow"
               >
                 <div className="flex-1 min-w-0">
