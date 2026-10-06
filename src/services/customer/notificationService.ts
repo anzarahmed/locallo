@@ -38,6 +38,12 @@ export async function listNotifications(
     offset: (page - 1) * limit,
   });
 
+  const unreadIds = rows.filter((n) => !n.isRead).map((n) => n.id);
+  if (unreadIds.length > 0) {
+    await Notification.update({ isRead: true }, { where: { id: unreadIds, customerId } });
+    rows.forEach((n) => { n.isRead = true; });
+  }
+
   return { rows, count };
 }
 
