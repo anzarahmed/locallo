@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Bell, BadgePercent } from 'lucide-react';
-import { getNotifications, markNotificationRead } from '../../services/notificationService';
+import { getNotifications } from '../../services/notificationService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { formatRelativeTime } from '../../lib/formatters';
@@ -40,12 +40,6 @@ export default function NotificationList(): JSX.Element {
         const data = await getNotifications({ page, limit: PAGE_LIMIT, filter });
         setNotifications(data.notifications);
         setTotal(data.total);
-
-        const unreadIds = data.notifications.filter(n => !n.isRead).map(n => n.id);
-        if (unreadIds.length > 0) {
-          setNotifications(prev => prev.map(n => unreadIds.includes(n.id) ? { ...n, isRead: true } : n));
-          unreadIds.forEach(id => { markNotificationRead(id).catch(() => {}); });
-        }
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to load notifications');
       } finally {
