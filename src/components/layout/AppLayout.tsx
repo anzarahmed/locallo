@@ -17,7 +17,7 @@ const BASE_NAV: NavItem[] = [
   { to: '/dashboard',  icon: <LayoutDashboard size={20} />, label: 'Dashboard' },
   { to: '/products',   icon: <Package size={20} />,         label: 'Products'  },
   { to: '/sold-logs',  icon: <Receipt size={20} />,         label: 'Sales Log' },
-  { to: '/offers',     icon: <BadgePercent size={20} />,    label: 'Offers'    },
+  { to: '/offers',     icon: <BadgePercent size={20} />,    label: 'Accepted Offers' },
   { to: '/payments',   icon: <CreditCard size={20} />,      label: 'Payments'  },
 ];
 
