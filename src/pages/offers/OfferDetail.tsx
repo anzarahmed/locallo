@@ -113,7 +113,9 @@ export default function OfferDetail(): JSX.Element {
               {offer.hasStarted && (
                 <div className="flex items-center gap-2 text-sm text-gray-500 bg-gray-50 rounded-xl px-3.5 py-3">
                   <Lock size={16} className="text-gray-400 shrink-0" />
-                  Product selection is locked — this offer has already started.
+                  {new Date(offer.endDate) < new Date()
+                    ? 'This offer has been ended.'
+                    : 'Product selection is locked — this offer has already started.'}
                 </div>
               )}
             </div>

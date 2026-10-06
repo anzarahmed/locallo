@@ -36,7 +36,8 @@ export default function AcceptOfferProducts(): JSX.Element {
           getProducts({ filter: 'visible', limit: ACTIVE_PRODUCTS_LIMIT }),
         ]);
         if (offerData.offer.hasStarted) {
-          toast.error('Product selection is locked — this offer has already started.');
+          const ended = new Date(offerData.offer.endDate) < new Date();
+          toast.error(ended ? 'This offer has been ended.' : 'Product selection is locked — this offer has already started.');
           navigate(`/offers/${id}`, { replace: true, state: navState });
           return;
         }
