@@ -144,6 +144,13 @@ export default function ProductDetail(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
+  function goBack(): void {
+    // React Router stamps each in-app entry with idx; 0 means this page was opened directly (new tab, refresh, external link).
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (idx > 0) navigate(-1);
+    else navigate('/products', { replace: true });
+  }
+
   const [product, setProduct] = useState<Product | null>(null);
   const [variants, setVariants] = useState<ProductVariant[]>([]);
   const [loading, setLoading] = useState(true);
@@ -199,7 +206,7 @@ export default function ProductDetail(): JSX.Element {
       >
         <button
           type="button"
-          onClick={() => navigate('/products')}
+          onClick={goBack}
           className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors shrink-0"
         >
           <ArrowLeft size={18} />

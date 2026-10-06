@@ -1,4 +1,5 @@
 import { useEffect, useState, type JSX, type ReactNode } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { CreditCard, ShoppingBag } from 'lucide-react';
 import { getPayments } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
@@ -199,8 +200,25 @@ function PaymentTable({ rows }: { rows: ReactNode }): JSX.Element {
 
 /* ── Payment row ── */
 function PaymentRow({ payment }: { payment: Payment }): JSX.Element {
+  const navigate = useNavigate();
+
+  function openProduct(): void {
+    navigate(`/products/${payment.productId}`);
+  }
+
   return (
-    <tr className="border-b border-gray-50 last:border-0">
+    <tr
+      onClick={openProduct}
+      onKeyDown={e => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          openProduct();
+        }
+      }}
+      tabIndex={0}
+      role="link"
+      className="border-b border-gray-50 last:border-0 cursor-pointer hover:bg-teal-50/40 focus:outline-none focus-visible:bg-teal-50/60 transition-colors"
+    >
       <td className="px-4 py-3">
         <div className="flex items-center gap-3 min-w-0">
           <PaymentThumb src={payment.productImage} />
