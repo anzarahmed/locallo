@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Bell, BadgePercent, Trash2 } from 'lucide-react';
-import { getNotifications, markNotificationRead, deleteNotification } from '../../services/notificationService';
+import { Bell, BadgePercent } from 'lucide-react';
+import { getNotifications, markNotificationRead } from '../../services/notificationService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { formatRelativeTime } from '../../lib/formatters';
@@ -31,7 +31,6 @@ export default function NotificationList(): JSX.Element {
   const [page, setPage] = useState(1);
   const [filter, setFilter] = useState<NotificationFilter>('all');
   const [loading, setLoading] = useState(true);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -63,19 +62,6 @@ export default function NotificationList(): JSX.Element {
   function handleClick(notification: Notification): void {
     const route = resolveRoute(notification);
     if (route) navigate(route);
-  }
-
-  async function handleDelete(id: string): Promise<void> {
-    setDeletingId(id);
-    try {
-      await deleteNotification(id);
-      setNotifications(prev => prev.filter(n => n.id !== id));
-      setTotal(t => t - 1);
-    } catch (err) {
-      toast.error(err instanceof ApiError ? err.message : 'Failed to delete notification');
-    } finally {
-      setDeletingId(null);
-    }
   }
 
   const totalPages = Math.ceil(total / PAGE_LIMIT);
@@ -128,9 +114,7 @@ export default function NotificationList(): JSX.Element {
               <NotificationCard
                 key={n.id}
                 notification={n}
-                deleting={deletingId === n.id}
                 onClick={() => handleClick(n)}
-                onDelete={(e) => { e.stopPropagation(); void handleDelete(n.id); }}
               />
             ))
           )}
@@ -162,18 +146,16 @@ export default function NotificationList(): JSX.Element {
 
 interface NotificationCardProps {
   notification: Notification;
-  deleting: boolean;
   onClick: () => void;
-  onDelete: (e: React.MouseEvent) => void;
 }
 
-function NotificationCard({ notification, deleting, onClick, onDelete }: NotificationCardProps): JSX.Element {
+function NotificationCard({ notification, onClick }: NotificationCardProps): JSX.Element {
   const clickable = resolveRoute(notification) !== null;
 
   return (
     <div
       onClick={onClick}
-      className={`group relative bg-white rounded-2xl shadow-sm border p-4 flex items-start gap-3 transition-all ${
+      className={`bg-white rounded-2xl shadow-sm border p-4 flex items-start gap-3 transition-all ${
         clickable ? 'cursor-pointer hover:shadow-md hover:border-teal-100' : ''
       } ${notification.isRead ? 'border-gray-100' : 'border-teal-100'}`}
     >
@@ -181,7 +163,7 @@ function NotificationCard({ notification, deleting, onClick, onDelete }: Notific
         {typeIcon(notification.type)}
       </div>
 
-      <div className="flex-1 min-w-0 pr-6">
+      <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className={`text-sm truncate ${notification.isRead ? 'font-medium text-gray-700' : 'font-semibold text-gray-900'}`}>
             {notification.title}
@@ -191,15 +173,6 @@ function NotificationCard({ notification, deleting, onClick, onDelete }: Notific
         <p className="text-xs text-gray-500 mt-1 line-clamp-2">{notification.message}</p>
         <p className="text-[11px] text-gray-400 mt-1.5">{formatRelativeTime(notification.createdAt)}</p>
       </div>
-
-      <button
-        onClick={onDelete}
-        disabled={deleting}
-        title="Delete notification"
-        className="absolute top-3 right-3 w-7 h-7 rounded-full flex items-center justify-center text-gray-300 hover:bg-red-50 hover:text-red-500 transition-colors disabled:opacity-40 shrink-0"
-      >
-        <Trash2 size={14} />
-      </button>
     </div>
   );
 }

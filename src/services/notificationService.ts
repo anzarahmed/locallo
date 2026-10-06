@@ -1,4 +1,4 @@
-import { apiGet, apiPatch, apiDelete } from '../lib/axios';
+import { apiGet, apiPatch } from '../lib/axios';
 import { PATHS } from '../api/paths';
 import type { Notification, NotificationFilter, NotificationsResponse } from '../types';
 
@@ -10,8 +10,4 @@ export function getNotifications(
 
 export function markNotificationRead(id: string): Promise<Notification> {
   return apiPatch(PATHS.NOTIFICATION_READ(id));
-}
-
-export function deleteNotification(id: string): Promise<void> {
-  return apiDelete(PATHS.NOTIFICATION_BY_ID(id));
 }

@@ -31,7 +31,6 @@ export const PATHS = {
   OFFER_ACCEPT:   (id: number): string => `/api/sellers/offers/${id}/accept`,
   NOTIFICATIONS:      '/api/sellers/notifications',
   NOTIFICATION_READ:  (id: string): string => `/api/sellers/notifications/${id}/read`,
-  NOTIFICATION_BY_ID: (id: string): string => `/api/sellers/notifications/${id}`,
   LEDGERS:      '/api/sellers/ledgers',
   LEDGER_BY_ID: (id: string): string => `/api/sellers/ledgers/${id}`,
   EXPENSES:      '/api/sellers/expenses',
