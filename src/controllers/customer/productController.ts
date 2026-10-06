@@ -36,10 +36,11 @@ interface ProductListItem {
   distanceKm?: number;
 }
 
-function offerFieldsFor(offersById: Map<string, Offer>, productId: string, sellingPrice: number): { offerId: number | null; offerPrice: number | null; offerBadge: string | null } {
+// Offers discount the MRP; products without an MRP fall back to the selling price.
+function offerFieldsFor(offersById: Map<string, Offer>, productId: string, mrp: number | string | null, sellingPrice: number | string): { offerId: number | null; offerPrice: number | null; offerBadge: string | null } {
   const offer = offersById.get(productId);
   if (!offer) return { offerId: null, offerPrice: null, offerBadge: null };
-  return { offerId: offer.id, ...computeOfferPricing(offer, sellingPrice) };
+  return { offerId: offer.id, ...computeOfferPricing(offer, Number(mrp ?? sellingPrice)) };
 }
 
 interface ListItemContext {
@@ -86,7 +87,7 @@ async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductList
       ? normalizeFreeTextAttributes(chosen.attributes as Record<string, unknown>, ctx.attributeSchemasByCategory?.get(p.categoryId) ?? [])
       : null,
     variantIsActive: chosen ? chosen.isActive : null,
-    ...offerFieldsFor(ctx.offersById, p.id, sellingPrice),
+    ...offerFieldsFor(ctx.offersById, p.id, mrp, sellingPrice),
     rating: 0,
     isWishlisted: ctx.wishlistedIds.has(p.id),
     isBoosted: ctx.isBoosted,
@@ -201,14 +202,14 @@ export async function getProduct(req: Request, res: Response): Promise<void> {
       req.customer ? reviewService.hasCustomerReviewed(req.customer.id, product.id) : Promise.resolve(false),
     ]);
     const isWishlisted = productWishlisted || (variantId ? wishlistedVariantIds.has(variantId) : false);
-    const { offerId, offerPrice, offerBadge } = offerFieldsFor(offersById, product.id, product.sellingPrice);
+    const { offerId, offerPrice, offerBadge } = offerFieldsFor(offersById, product.id, product.mrp, product.sellingPrice);
     const [signedProduct, signedVariants] = await Promise.all([
       withSignedImages(product.toJSON() as Record<string, unknown>),
       Promise.all(variants.map(async (v) => {
         const signed = await withSignedImages(v as unknown as Record<string, unknown>);
         const variantSellingPrice = (v.sellingPrice ?? product.sellingPrice) as number;
         const variantWishlisted = productWishlisted || (v.id !== null && wishlistedVariantIds.has(v.id));
-        return { ...signed, ...offerFieldsFor(offersById, product.id, variantSellingPrice), isWishlisted: variantWishlisted };
+        return { ...signed, ...offerFieldsFor(offersById, product.id, v.mrp ?? product.mrp, variantSellingPrice), isWishlisted: variantWishlisted };
       })),
     ]);
     sendSuccess(res, { product: { ...signedProduct, seller, isWishlisted, offerId, offerPrice, offerBadge, rating, isBoosted, is_reviewed: isReviewed }, variants: signedVariants }, 'Product fetched');

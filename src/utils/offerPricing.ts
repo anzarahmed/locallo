@@ -36,20 +36,20 @@ export async function getActiveOffersForProducts(productIds: string[]): Promise<
   return map;
 }
 
-export function computeOfferPricing(offer: Offer, sellingPrice: number): OfferPricing {
+export function computeOfferPricing(offer: Offer, mrp: number): OfferPricing {
   switch (offer.offerType as OfferType) {
     case 'percentage_off': {
       const { discountPercent, maxDiscountCap } = offer.config as PercentageOffConfig;
-      const rawDiscount = sellingPrice * (discountPercent / 100);
+      const rawDiscount = mrp * (discountPercent / 100);
       const discount = maxDiscountCap !== undefined ? Math.min(rawDiscount, maxDiscountCap) : rawDiscount;
       const offerBadge = maxDiscountCap !== undefined
         ? `${discountPercent}% OFF up to ₹${maxDiscountCap}`
         : `${discountPercent}% OFF`;
-      return { offerPrice: Math.round(Math.max(0, sellingPrice - discount)), offerBadge };
+      return { offerPrice: Math.round(Math.max(0, mrp - discount)), offerBadge };
     }
     case 'flat_amount_off': {
       const { flatAmount } = offer.config as FlatAmountOffConfig;
-      return { offerPrice: Math.round(Math.max(0, sellingPrice - flatAmount)), offerBadge: `₹${flatAmount} OFF` };
+      return { offerPrice: Math.round(Math.max(0, mrp - flatAmount)), offerBadge: `₹${flatAmount} OFF` };
     }
     case 'bogo': {
       const { buyQty, getQty, getDiscountPercent } = offer.config as BogoConfig;
