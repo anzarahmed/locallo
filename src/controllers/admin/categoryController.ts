@@ -17,9 +17,10 @@ export async function getCategories(req: Request, res: Response): Promise<void> 
   const sortOrder  = req.query.sortOrder  === 'asc' ? 'ASC' : 'DESC';
   const isActiveRaw = req.query.isActive;
   const isActive   = isActiveRaw === 'true' ? true : isActiveRaw === 'false' ? false : undefined;
+  const unassigned = req.query.unassigned === 'true';
 
   const { rows, count } = await categoryService.listCategories(
-    { search, isActive, sortBy, sortOrder },
+    { search, isActive, unassigned, sortBy, sortOrder },
     page,
     limit,
   );

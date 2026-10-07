@@ -10,7 +10,7 @@ function buildMap(rows: RolePermission[]): PermissionMap {
   return map;
 }
 
-const ALL_MODULES: PermissionModule[] = ['sellers', 'categories', 'products'];
+const ALL_MODULES: PermissionModule[] = ['sellers', 'categories', 'masterCategories', 'products'];
 const ALL_ACTIONS: PermissionAction[] = ['list', 'view', 'add', 'edit', 'delete'];
 
 export async function getRolePermissions(role: 'manager' | 'operator'): Promise<PermissionMap> {

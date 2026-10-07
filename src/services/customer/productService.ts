@@ -2,6 +2,7 @@ import { Op, literal, fn, col } from 'sequelize';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { Category } from '../../models/Category';
+import { MasterCategory } from '../../models/MasterCategory';
 import { SellerProfile } from '../../models/SellerProfile';
 import { OfferProduct } from '../../models/OfferProduct';
 import { Review } from '../../models/Review';
@@ -11,6 +12,7 @@ import type { AttributeField } from '../../types';
 
 interface BrowseFilter {
   categoryId?: number;
+  categoryIds?: number[];
   brandId?: number;
   sellerId?: string;
   offerId?: number;
@@ -18,6 +20,20 @@ interface BrowseFilter {
   lat?: number;
   lng?: number;
   excludeProductIds?: string[];
+}
+
+// Resolves a Master Category to its active child Category ids for product search.
+// Returns [] when the master category is missing, inactive, or has no categories —
+// callers should treat that as "no matching products", not "no filter applied".
+export async function resolveCategoryIdsForMasterCategory(masterCategoryId: number): Promise<number[]> {
+  const masterCategory = await MasterCategory.findOne({ where: { id: masterCategoryId, isActive: true } });
+  if (!masterCategory) return [];
+
+  const categories = await Category.findAll({
+    where: { masterCategoryId, isActive: true },
+    attributes: ['id'],
+  });
+  return categories.map((c) => c.id);
 }
 
 interface ProductVariantDetail {
@@ -135,6 +151,12 @@ export async function browseProducts(
 
   if (filters.categoryId !== undefined) where.categoryId = filters.categoryId;
   if (filters.sellerId !== undefined)   where.sellerId   = filters.sellerId;
+
+  // Master-category resolution takes precedence over a plain categoryId (see productController.ts).
+  if (filters.categoryIds !== undefined) {
+    if (filters.categoryIds.length === 0) return { rows: [], count: 0 };
+    where.categoryId = { [Op.in]: filters.categoryIds };
+  }
 
   let titleMatchScoreExpr: ReturnType<typeof literal> | undefined;
 

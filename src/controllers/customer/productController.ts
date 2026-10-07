@@ -97,14 +97,26 @@ async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductList
 }
 
 export async function getProducts(req: Request, res: Response): Promise<void> {
-  const { page, limit, searchQuery, searchByLocation, category_id: categoryId, brand_id: brandId, shop_id: shopId, offer_id: offerId, state, city } = req.body;
+  const { page, limit, searchQuery, searchByLocation, category_id: categoryId, master_category_id: masterCategoryId, brand_id: brandId, shop_id: shopId, offer_id: offerId, state, city } = req.body;
 
   const hasLocation = searchByLocation !== undefined;
   const search: string | undefined = searchQuery || undefined;
 
+  // master_category_id takes precedence over category_id — resolved once here and
+  // reused for both boost eligibility and the organic browse, instead of each
+  // resolving the same master category independently.
+  const resolvedCategoryIds: number[] | undefined = masterCategoryId !== undefined
+    ? await productService.resolveCategoryIdsForMasterCategory(masterCategoryId)
+    : undefined;
+  const effectiveCategoryId = masterCategoryId !== undefined ? undefined : categoryId;
+
   let chosenBoosts: EligibleBoost[] = [];
   if (page === 1) {
-    const eligible = await productBoostService.getEligibleBoosts({ categoryId, brandId, sellerId: shopId, offerId, state, city, search });
+    const eligible = await productBoostService.getEligibleBoosts({
+      categoryId: effectiveCategoryId,
+      categoryIds: resolvedCategoryIds,
+      brandId, sellerId: shopId, offerId, state, city, search,
+    });
     chosenBoosts = productBoostService.pickRandom(eligible, Math.min(productBoostService.BOOST_SLOTS, limit));
   }
   const boostedProductIds = chosenBoosts.map((b) => b.product.id);
@@ -131,7 +143,8 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 
   const { rows, count } = await productService.browseProducts(
     {
-      categoryId,
+      categoryId: effectiveCategoryId,
+      categoryIds: resolvedCategoryIds,
       brandId,
       sellerId: shopId,
       offerId,

@@ -1,5 +1,5 @@
 import { Op } from 'sequelize';
-import { Category } from '../../models/Category';
+import { MasterCategory } from '../../models/MasterCategory';
 import { Banner } from '../../models/Banner';
 import { Brand } from '../../models/Brand';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
@@ -12,8 +12,8 @@ export interface DashboardBanner {
   type: 'BRAND';
 }
 
-export async function getDashboardCategories(): Promise<Category[]> {
-  return Category.findAll({
+export async function getDashboardMasterCategories(): Promise<MasterCategory[]> {
+  return MasterCategory.findAll({
     attributes: ['id', 'name', 'icon'],
     where: { isActive: true },
     order: [['name', 'ASC']],

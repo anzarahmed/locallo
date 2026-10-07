@@ -19,6 +19,7 @@ export interface EligibleBoost {
 
 interface EligibilityParams {
   categoryId?: number;
+  categoryIds?: number[];
   brandId?: number;
   sellerId?: string;
   offerId?: number;
@@ -71,6 +72,12 @@ export async function getEligibleBoosts(params: EligibilityParams): Promise<Elig
   };
   if (params.categoryId !== undefined) productWhere.categoryId = params.categoryId;
   if (params.sellerId !== undefined) productWhere.sellerId = params.sellerId;
+
+  // Master-category resolution takes precedence over a plain categoryId (see productController.ts).
+  if (params.categoryIds !== undefined) {
+    if (params.categoryIds.length === 0) return [];
+    productWhere.categoryId = { [Op.in]: params.categoryIds };
+  }
 
   if (params.brandId !== undefined) {
     const sellerProfiles = await SellerProfile.findAll({

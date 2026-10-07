@@ -257,6 +257,19 @@ export async function commitCategoryIcon(tempKeyOrKey: string): Promise<string> 
   return permanentKey;
 }
 
+export async function commitMasterCategoryIcon(tempKeyOrKey: string): Promise<string> {
+  const TEMP_PREFIX = 'uploads/temp/master-categories/';
+  if (!tempKeyOrKey.startsWith(TEMP_PREFIX)) return tempKeyOrKey;
+  const permanentKey = tempKeyOrKey.replace(TEMP_PREFIX, 'uploads/master-categories/');
+  await s3.send(new CopyObjectCommand({
+    Bucket: BUCKET,
+    CopySource: `${BUCKET}/${tempKeyOrKey}`,
+    Key: permanentKey,
+  }));
+  await s3.send(new DeleteObjectCommand({ Bucket: BUCKET, Key: tempKeyOrKey }));
+  return permanentKey;
+}
+
 export async function commitBrandLogo(tempKeyOrKey: string): Promise<string> {
   const TEMP_PREFIX = 'uploads/temp/brands/';
   if (!tempKeyOrKey.startsWith(TEMP_PREFIX)) return tempKeyOrKey;

@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
 import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, uploadSellerPhoto, setKycVerification, uploadBrandDocument } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
+import { getMasterCategories, addMasterCategory, editMasterCategory, removeMasterCategory, uploadMasterCategoryIcon } from '../../controllers/admin/masterCategoryController';
 import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
 import { getBanners, addBanner, editBanner, removeBanner, uploadBannerImage } from '../../controllers/admin/bannerController';
 import { getOffers, getOffer, addOffer, editOffer, toggleOfferStatus, removeOffer } from '../../controllers/admin/offerController';
@@ -29,6 +30,7 @@ import { verifyRecaptcha } from '../../middleware/recaptcha';
 import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
 import { createSellerSchema, adminUpdateSellerSchema, updateSellerBrandsSchema } from '../../validation/seller/sellerSchemas';
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
+import { createMasterCategorySchema, updateMasterCategorySchema } from '../../validation/admin/masterCategorySchemas';
 import { createBrandSchema, updateBrandSchema } from '../../validation/admin/brandSchemas';
 import { createBannerSchema, updateBannerSchema } from '../../validation/admin/bannerSchemas';
 import { createOfferSchema, updateOfferSchema } from '../../validation/admin/offerSchemas';
@@ -83,6 +85,13 @@ router.post  ('/sellers/:id/brands/:brandId/documents', requireAdmin, requireSup
 router.get   ('/customers',           requireAdmin, requirePermission('customers', 'list'),   getCustomers);
 router.get   ('/customers/:id',       requireAdmin, requirePermission('customers', 'view'),   getCustomer);
 router.patch ('/customers/:id/status',requireAdmin, requirePermission('customers', 'edit'),   patchCustomerStatus);
+
+// Master Categories (GET is public — used for the Category form's dropdown)
+router.get   ('/master-categories',          getMasterCategories);
+router.post  ('/master-categories/icon',     requireAdmin, uploadIcon.single('icon'), uploadMasterCategoryIcon);
+router.post  ('/master-categories',          requireAdmin, requirePermission('masterCategories', 'add'),    validate(createMasterCategorySchema), addMasterCategory);
+router.put   ('/master-categories/:id',      requireAdmin, requirePermission('masterCategories', 'edit'),   validate(updateMasterCategorySchema), editMasterCategory);
+router.delete('/master-categories/:id',      requireAdmin, requirePermission('masterCategories', 'delete'), removeMasterCategory);
 
 // Categories (GET is public — used for dropdowns in other UIs)
 router.get   ('/categories',          getCategories);

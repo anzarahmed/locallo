@@ -10,14 +10,10 @@ import {
   DataType,
   CreatedAt,
   UpdatedAt,
-  ForeignKey,
-  BelongsTo,
 } from 'sequelize-typescript';
-import type { AttributeField } from '../types';
-import { MasterCategory } from './MasterCategory';
 
-@Table({ tableName: 'categories', timestamps: true, underscored: true })
-export class Category extends Model {
+@Table({ tableName: 'master_categories', timestamps: true, underscored: true })
+export class MasterCategory extends Model {
   @PrimaryKey
   @AutoIncrement
   @Column(DataType.INTEGER)
@@ -38,18 +34,8 @@ export class Category extends Model {
   @Column(DataType.BOOLEAN)
   declare isActive: boolean;
 
-  @Column(DataType.JSONB)
-  declare attributeSchema: AttributeField[] | null;
-
   @Column(DataType.STRING(500))
   declare icon: string | null;
-
-  @ForeignKey(() => MasterCategory)
-  @Column(DataType.INTEGER)
-  declare masterCategoryId: number | null;
-
-  @BelongsTo(() => MasterCategory)
-  declare masterCategory: MasterCategory;
 
   @CreatedAt
   declare createdAt: Date;

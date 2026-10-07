@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express';
 import { sendSuccess } from '../../utils/response';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
-import { getDashboardCategories, getDashboardBanners, getDashboardBrands } from '../../services/customer/dashboardService';
+import { getDashboardMasterCategories, getDashboardBanners, getDashboardBrands } from '../../services/customer/dashboardService';
 
-interface DashboardCategory {
+interface DashboardMasterCategory {
   id: number;
   title: string;
   icon: string;
@@ -17,11 +17,11 @@ interface DashboardBrand {
 }
 
 export async function getDashboard(_req: Request, res: Response): Promise<void> {
-  const rows = await getDashboardCategories();
-  const categories: DashboardCategory[] = await Promise.all(rows.map(async (c) => ({
-    id: c.id,
-    title: c.name,
-    icon: (await getPresignedUrlOrNull(c.icon)) ?? '',
+  const rows = await getDashboardMasterCategories();
+  const categories: DashboardMasterCategory[] = await Promise.all(rows.map(async (m) => ({
+    id: m.id,
+    title: m.name,
+    icon: (await getPresignedUrlOrNull(m.icon)) ?? '',
   })));
   const banners = await getDashboardBanners();
 
