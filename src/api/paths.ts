@@ -20,6 +20,11 @@ export const PATHS = {
     BY_ID:  (id: number) => `/api/admins/categories/${id}`,
     ICON:   '/api/admins/categories/icon',
   },
+  MASTER_CATEGORIES: {
+    LIST:   '/api/admins/master-categories',
+    BY_ID:  (id: number) => `/api/admins/master-categories/${id}`,
+    ICON:   '/api/admins/master-categories/icon',
+  },
   BRANDS: {
     LIST:   '/api/admins/brands',
     BY_ID:  (id: number) => `/api/admins/brands/${id}`,

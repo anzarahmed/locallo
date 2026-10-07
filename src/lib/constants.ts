@@ -8,6 +8,10 @@ export const STATUS_FILTER_OPTIONS = [
   { label: 'Inactive', value: 'false' },
 ] as const;
 
+export const ASSIGNMENT_FILTER_OPTIONS = [
+  { label: 'Unassigned', value: 'unassigned' },
+] as const;
+
 export const PAYMENT_STATUS_FILTER_OPTIONS = [
   { label: 'Paid',      value: 'paid'      },
   { label: 'Pending',   value: 'pending'   },

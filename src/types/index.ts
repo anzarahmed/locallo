@@ -1,5 +1,5 @@
 export type AdminRole = 'super_admin' | 'manager' | 'operator';
-export type PermissionModule = 'sellers' | 'categories' | 'products' | 'customers' | 'brands' | 'banners' | 'faqs' | 'cmsPages' | 'offers';
+export type PermissionModule = 'sellers' | 'categories' | 'masterCategories' | 'products' | 'customers' | 'brands' | 'banners' | 'faqs' | 'cmsPages' | 'offers';
 export type PermissionAction = 'list' | 'view' | 'add' | 'edit' | 'delete';
 export type PermissionMap = Partial<Record<PermissionModule, PermissionAction[]>>;
 export type SellerStatus = 'active' | 'inactive' | 'pending';
@@ -38,11 +38,22 @@ export interface AttributeField {
   options?: AttributeFieldOption[];
 }
 
+export interface MasterCategory {
+  readonly id: number;
+  name: string;
+  slug: string;
+  isActive: boolean;
+  icon?: string | null;
+  categoryCount?: number;
+}
+
 export interface Category {
   readonly id: number;
   name: string;
   slug: string;
   isActive: boolean;
+  masterCategoryId: number | null;
+  masterCategory?: { id: number; name: string; slug: string } | null;
   attributeSchema?: AttributeField[] | null;
   icon?: string | null;
 }

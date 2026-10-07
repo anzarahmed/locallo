@@ -6,8 +6,9 @@ import { getRolePermissions, saveRolePermissions } from '../../services/rolePerm
 import type { PermissionModule, PermissionAction, PermissionMap } from '../../types';
 
 const MODULES: { key: PermissionModule; label: string }[] = [
-  { key: 'sellers',    label: 'Sellers'    },
-  { key: 'categories', label: 'Categories' },
+  { key: 'sellers',          label: 'Sellers'          },
+  { key: 'masterCategories', label: 'Master Categories' },
+  { key: 'categories',       label: 'Categories'       },
   { key: 'brands',     label: 'Brands'     },
   { key: 'banners',    label: 'Banners'    },
   { key: 'faqs',       label: 'FAQs'       },

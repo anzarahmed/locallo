@@ -11,6 +11,7 @@ export interface GetCategoriesPaginatedParams {
   limit?: number;
   search?: string;
   isActive?: boolean;
+  unassigned?: boolean;
   sortBy?: string;
   sortOrder?: 'asc' | 'desc';
 }
@@ -25,6 +26,7 @@ export interface GetCategoriesPaginatedResponse {
 interface CategoryPayload {
   name: string;
   slug: string;
+  masterCategoryId: number;
   attributeSchema?: AttributeField[];
   icon?: string | null;
 }
@@ -33,6 +35,7 @@ interface UpdateCategoryPayload {
   name?: string;
   slug?: string;
   isActive?: boolean;
+  masterCategoryId?: number;
   attributeSchema?: AttributeField[];
   icon?: string | null;
 }
@@ -52,6 +55,7 @@ export function getCategoriesPaginated(
   if (params.limit)      q.set('limit',      String(params.limit));
   if (params.search)     q.set('search',     params.search);
   if (params.isActive !== undefined) q.set('isActive', String(params.isActive));
+  if (params.unassigned) q.set('unassigned', 'true');
   if (params.sortBy)    q.set('sortBy',    params.sortBy);
   if (params.sortOrder) q.set('sortOrder', params.sortOrder);
   const url = q.toString() ? `${PATHS.CATEGORIES.LIST}?${q}` : PATHS.CATEGORIES.LIST;

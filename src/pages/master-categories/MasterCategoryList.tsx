@@ -6,63 +6,57 @@ import DataGrid from '../../components/ui/DataGrid';
 import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import StatusBadge from '../../components/ui/StatusBadge';
 import AuthField from '../../components/ui/AuthField';
-import AttributeSchemaEditor from '../../components/ui/AttributeSchemaEditor';
 import IconUploadField from '../../components/ui/IconUploadField';
-import ComboboxField from '../../components/ui/ComboboxField';
 import { ApiError } from '../../lib/axios';
 import {
-  getCategoriesPaginated,
-  createCategory,
-  updateCategory,
-  deleteCategory,
-  uploadCategoryIcon,
-  type GetCategoriesPaginatedParams,
-} from '../../services/categoryService';
-import { getMasterCategories } from '../../services/masterCategoryService';
-import type { AttributeField, Category, MasterCategory } from '../../types';
-import { categorySchema, type CategoryFormValues } from './categorySchemas';
+  getMasterCategoriesPaginated,
+  createMasterCategory,
+  updateMasterCategory,
+  deleteMasterCategory,
+  uploadMasterCategoryIcon,
+  type GetMasterCategoriesPaginatedParams,
+} from '../../services/masterCategoryService';
+import type { MasterCategory } from '../../types';
+import { masterCategorySchema, type MasterCategoryFormValues } from './masterCategorySchemas';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
-import { DEFAULT_PAGE_SIZE, STATUS_FILTER_OPTIONS, ASSIGNMENT_FILTER_OPTIONS } from '../../lib/constants';
+import { DEFAULT_PAGE_SIZE, STATUS_FILTER_OPTIONS } from '../../lib/constants';
 
 function toSlug(name: string): string {
   return name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
 }
 
-// ── CategoryModal ──────────────────────────────────────────────────────────────
+// ── MasterCategoryModal ───────────────────────────────────────────────────────
 
-interface CategoryModalProps {
-  category: Category | null;
-  masterCategories: MasterCategory[];
+interface MasterCategoryModalProps {
+  masterCategory: MasterCategory | null;
   onClose: () => void;
-  onSaved: (c: Category) => void;
+  onSaved: (mc: MasterCategory) => void;
 }
 
-function CategoryModal({ category, masterCategories, onClose, onSaved }: CategoryModalProps): JSX.Element {
-  const isEdit = Boolean(category);
+function MasterCategoryModal({ masterCategory, onClose, onSaved }: MasterCategoryModalProps): JSX.Element {
+  const isEdit = Boolean(masterCategory);
   const toast  = useToast();
 
-  const initialValues: CategoryFormValues = {
-    masterCategoryId: category?.masterCategoryId ?? '',
-    name:            category?.name            ?? '',
-    slug:            category?.slug            ?? '',
-    attributeSchema: category?.attributeSchema ?? [],
-    icon:            category?.icon            ?? null,
+  const initialValues: MasterCategoryFormValues = {
+    name: masterCategory?.name ?? '',
+    slug: masterCategory?.slug ?? '',
+    icon: masterCategory?.icon ?? null,
   };
 
   async function handleSubmit(
-    values: CategoryFormValues,
-    { setSubmitting, setStatus }: FormikHelpers<CategoryFormValues>,
+    values: MasterCategoryFormValues,
+    { setSubmitting, setStatus }: FormikHelpers<MasterCategoryFormValues>,
   ): Promise<void> {
     try {
-      const saved = isEdit && category
-        ? await updateCategory(category.id, { ...values, masterCategoryId: values.masterCategoryId as number })
-        : await createCategory({ name: values.name, slug: values.slug, masterCategoryId: values.masterCategoryId as number, attributeSchema: values.attributeSchema, icon: values.icon });
-      toast.success(isEdit ? 'Category updated' : 'Category added');
+      const saved = isEdit && masterCategory
+        ? await updateMasterCategory(masterCategory.id, values)
+        : await createMasterCategory(values);
+      toast.success(isEdit ? 'Master category updated' : 'Master category added');
       onSaved(saved);
     } catch (err: unknown) {
       if (err instanceof ApiError && err.status === 409) {
-        setStatus('A category with that name or slug already exists.');
+        setStatus('A master category with that name or slug already exists.');
       } else {
         setStatus('Something went wrong. Please try again.');
       }
@@ -71,9 +65,9 @@ function CategoryModal({ category, masterCategories, onClose, onSaved }: Categor
     }
   }
 
-  const f = useFormik<CategoryFormValues>({
+  const f = useFormik<MasterCategoryFormValues>({
     initialValues,
-    validationSchema: categorySchema,
+    validationSchema: masterCategorySchema,
     validateOnBlur: true,
     validateOnChange: false,
     onSubmit: handleSubmit,
@@ -81,7 +75,7 @@ function CategoryModal({ category, masterCategories, onClose, onSaved }: Categor
 
   function handleNameChange(e: React.ChangeEvent<HTMLInputElement>): void {
     f.handleChange(e);
-    if (!isEdit || !category) {
+    if (!isEdit || !masterCategory) {
       void f.setFieldValue('slug', toSlug(e.target.value));
     }
   }
@@ -91,7 +85,7 @@ function CategoryModal({ category, masterCategories, onClose, onSaved }: Categor
       <div className="bg-white rounded-xl shadow-xl w-full max-w-xl flex flex-col max-h-[90vh]">
         <div className="px-6 py-4 border-b border-gray-100 shrink-0">
           <h2 className="text-base font-semibold text-gray-900">
-            {isEdit ? 'Edit Category' : 'Add Category'}
+            {isEdit ? 'Edit Master Category' : 'Add Master Category'}
           </h2>
         </div>
 
@@ -103,18 +97,8 @@ function CategoryModal({ category, masterCategories, onClose, onSaved }: Categor
               </div>
             )}
 
-            <ComboboxField
-              label="Master Category" name="masterCategoryId" required
-              value={f.values.masterCategoryId}
-              options={masterCategories.map(mc => ({ label: mc.name, value: mc.id }))}
-              onChange={(val): void => { void f.setFieldValue('masterCategoryId', val); }}
-              onBlur={() => f.setFieldTouched('masterCategoryId', true)}
-              touched={f.touched.masterCategoryId}
-              error={f.errors.masterCategoryId}
-            />
-
             <AuthField
-              label="Name" name="name" placeholder="e.g. Grocery" required
+              label="Title" name="name" placeholder="e.g. Fashion" required
               value={f.values.name}
               onChange={handleNameChange}
               onBlur={f.handleBlur}
@@ -123,7 +107,7 @@ function CategoryModal({ category, masterCategories, onClose, onSaved }: Categor
             />
 
             <AuthField
-              label="Slug" name="slug" placeholder="e.g. grocery" required
+              label="Slug" name="slug" placeholder="e.g. fashion" required
               value={f.values.slug}
               onChange={f.handleChange}
               onBlur={f.handleBlur}
@@ -132,15 +116,10 @@ function CategoryModal({ category, masterCategories, onClose, onSaved }: Categor
             />
 
             <IconUploadField
-              label="Category Icon"
+              label="Icon"
               value={f.values.icon}
               onChange={(icon): void => { void f.setFieldValue('icon', icon); }}
-              upload={uploadCategoryIcon}
-            />
-
-            <AttributeSchemaEditor
-              value={f.values.attributeSchema}
-              onChange={(fields: AttributeField[]): void => { void f.setFieldValue('attributeSchema', fields); }}
+              upload={uploadMasterCategoryIcon}
             />
           </div>
 
@@ -158,7 +137,7 @@ function CategoryModal({ category, masterCategories, onClose, onSaved }: Categor
               className="flex-1 flex items-center justify-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-60 disabled:cursor-not-allowed transition-colors"
             >
               {f.isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
-              {f.isSubmitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Category'}
+              {f.isSubmitting ? 'Saving...' : isEdit ? 'Save Changes' : 'Add Master Category'}
             </button>
           </div>
         </form>
@@ -170,12 +149,12 @@ function CategoryModal({ category, masterCategories, onClose, onSaved }: Categor
 // ── DeleteModal ────────────────────────────────────────────────────────────────
 
 interface DeleteModalProps {
-  category: Category;
+  masterCategory: MasterCategory;
   onClose: () => void;
   onDeleted: (id: number) => void;
 }
 
-function DeleteModal({ category, onClose, onDeleted }: DeleteModalProps): JSX.Element {
+function DeleteModal({ masterCategory, onClose, onDeleted }: DeleteModalProps): JSX.Element {
   const [deleting, setDeleting] = useState(false);
   const [error, setError]       = useState<string | null>(null);
   const toast = useToast();
@@ -183,9 +162,9 @@ function DeleteModal({ category, onClose, onDeleted }: DeleteModalProps): JSX.El
   async function handleDelete(): Promise<void> {
     setDeleting(true);
     try {
-      await deleteCategory(category.id);
-      toast.success('Category deleted');
-      onDeleted(category.id);
+      await deleteMasterCategory(masterCategory.id);
+      toast.success('Master category deleted');
+      onDeleted(masterCategory.id);
     } catch (err: unknown) {
       const message = err instanceof ApiError ? err.message : 'Failed to delete. Please try again.';
       setError(message);
@@ -200,9 +179,9 @@ function DeleteModal({ category, onClose, onDeleted }: DeleteModalProps): JSX.El
           <Trash2 className="w-6 h-6 text-red-600" />
         </div>
         <div className="text-center">
-          <h3 className="text-base font-semibold text-gray-900">Delete category?</h3>
+          <h3 className="text-base font-semibold text-gray-900">Delete master category?</h3>
           <p className="mt-1 text-sm text-gray-500">
-            <span className="font-medium text-gray-700">{category.name}</span> will be permanently removed.
+            <span className="font-medium text-gray-700">{masterCategory.name}</span> will be permanently removed.
           </p>
         </div>
         {error && (
@@ -232,27 +211,22 @@ function DeleteModal({ category, onClose, onDeleted }: DeleteModalProps): JSX.El
   );
 }
 
-// ── CategoryList ───────────────────────────────────────────────────────────────
+// ── MasterCategoryList ─────────────────────────────────────────────────────────
 
-export default function CategoryList(): JSX.Element {
+export default function MasterCategoryList(): JSX.Element {
   const toast = useToast();
   const { hasPermission } = useAuth();
 
-  const [categories, setCategories]       = useState<Category[]>([]);
+  const [masterCategories, setMasterCategories] = useState<MasterCategory[]>([]);
   const [total, setTotal]                 = useState(0);
   const [loading, setLoading]             = useState(true);
   const [error, setError]                 = useState<string | null>(null);
   const [page, setPage]                   = useState(1);
   const [pageSize, setPageSize]           = useState(DEFAULT_PAGE_SIZE);
   const [fetchKey, setFetchKey]           = useState(0);
-  const [modalCategory, setModalCategory] = useState<Category | null | undefined>(undefined);
-  const [deleteTarget, setDeleteTarget]   = useState<Category | null>(null);
+  const [modalMasterCategory, setModalMasterCategory] = useState<MasterCategory | null | undefined>(undefined);
+  const [deleteTarget, setDeleteTarget]   = useState<MasterCategory | null>(null);
   const [toggling, setToggling]           = useState<number | null>(null);
-  const [masterCategories, setMasterCategories] = useState<MasterCategory[]>([]);
-
-  useEffect(() => {
-    getMasterCategories(true).then(setMasterCategories).catch(() => {});
-  }, []);
 
   const [sorting, setSorting]                   = useState<SortingState>([]);
   const [columnFilters, setColumnFilters]       = useState<ColumnFiltersState>([]);
@@ -272,49 +246,47 @@ export default function CategoryList(): JSX.Element {
     setLoading(true);
     setError(null);
 
-    const sortCol       = sorting[0];
-    const search        = debouncedFilters.find(f => f.id === 'name')?.value as string | undefined;
-    const isActiveStr   = debouncedFilters.find(f => f.id === 'isActive')?.value as string | undefined;
-    const assignmentStr = debouncedFilters.find(f => f.id === 'masterCategory')?.value as string | undefined;
+    const sortCol     = sorting[0];
+    const search      = debouncedFilters.find(f => f.id === 'name')?.value as string | undefined;
+    const isActiveStr = debouncedFilters.find(f => f.id === 'isActive')?.value as string | undefined;
 
-    const params: GetCategoriesPaginatedParams = {
+    const params: GetMasterCategoriesPaginatedParams = {
       page,
       limit: pageSize,
-      ...(search        && { search }),
-      ...(isActiveStr    && { isActive: isActiveStr === 'true' }),
-      ...(assignmentStr === 'unassigned' && { unassigned: true }),
-      ...(sortCol       && { sortBy: sortCol.id, sortOrder: sortCol.desc ? 'desc' as const : 'asc' as const }),
+      ...(search      && { search }),
+      ...(isActiveStr && { isActive: isActiveStr === 'true' }),
+      ...(sortCol     && { sortBy: sortCol.id, sortOrder: sortCol.desc ? 'desc' as const : 'asc' as const }),
     };
 
-    getCategoriesPaginated(params)
-      .then(r => { setCategories(r.categories); setTotal(r.total); })
-      .catch((): void => { setError('Failed to load categories.'); })
+    getMasterCategoriesPaginated(params)
+      .then(r => { setMasterCategories(r.masterCategories); setTotal(r.total); })
+      .catch((): void => { setError('Failed to load master categories.'); })
       .finally((): void => { setLoading(false); });
   }, [page, pageSize, sorting, debouncedFilters, fetchKey]);
 
-  function handleSaved(saved: Category): void {
-    const isAdd = !categories.find(c => c.id === saved.id);
+  function handleSaved(saved: MasterCategory): void {
+    const isAdd = !masterCategories.find(mc => mc.id === saved.id);
     if (isAdd) {
       setPage(1);
       setFetchKey(k => k + 1);
     } else {
-      setCategories(prev => prev.map(c => c.id === saved.id ? saved : c));
+      setMasterCategories(prev => prev.map(mc => mc.id === saved.id ? saved : mc));
     }
-    setModalCategory(undefined);
+    setModalMasterCategory(undefined);
   }
 
   function handleDeleted(id: number): void {
-    setCategories(prev => prev.filter(c => c.id !== id));
+    setMasterCategories(prev => prev.filter(mc => mc.id !== id));
     setTotal(t => t - 1);
     setDeleteTarget(null);
   }
 
-  async function handleToggleActive(cat: Category): Promise<void> {
-    setToggling(cat.id);
+  async function handleToggleActive(mc: MasterCategory): Promise<void> {
+    setToggling(mc.id);
     try {
-      const updated = await updateCategory(cat.id, { isActive: !cat.isActive });
-      setCategories(prev => prev.map(c => c.id === updated.id ? updated : c));
-      toast.success(updated.isActive ? 'Category activated' : 'Category deactivated');
+      const updated = await updateMasterCategory(mc.id, { isActive: !mc.isActive });
+      setMasterCategories(prev => prev.map(m => m.id === updated.id ? updated : m));
+      toast.success(updated.isActive ? 'Master category activated' : 'Master category deactivated');
     } catch {
       toast.error('Failed to update status');
     } finally {
@@ -322,14 +294,14 @@ export default function CategoryList(): JSX.Element {
     }
   }
 
-  const columns = useMemo<ColumnDef<Category>[]>(() => [
+  const columns = useMemo<ColumnDef<MasterCategory>[]>(() => [
     {
       id: 'icon',
       header: 'Icon',
       enableSorting: false,
       enableColumnFilter: false,
       meta: { align: 'center', className: 'w-16' },
-      cell: ({ row }: { row: Row<Category> }) => (
+      cell: ({ row }: { row: Row<MasterCategory> }) => (
         <div className="flex justify-center">
           <div className="w-8 h-8 rounded-lg bg-gray-100 border border-gray-200 flex items-center justify-center overflow-hidden">
             {row.original.icon ? (
@@ -347,7 +319,7 @@ export default function CategoryList(): JSX.Element {
       enableSorting: true,
       enableColumnFilter: true,
       meta: { filterPlaceholder: 'Search name…' },
-      cell: ({ row }: { row: Row<Category> }) => (
+      cell: ({ row }: { row: Row<MasterCategory> }) => (
         <span className="font-medium text-gray-900">{row.original.name}</span>
       ),
     },
@@ -356,32 +328,21 @@ export default function CategoryList(): JSX.Element {
       header: 'Slug',
       enableSorting: true,
       enableColumnFilter: false,
-      cell: ({ row }: { row: Row<Category> }) => (
+      cell: ({ row }: { row: Row<MasterCategory> }) => (
         <code className="text-xs text-gray-500 bg-gray-100 px-1.5 py-0.5 rounded">
           {row.original.slug}
         </code>
       ),
     },
     {
-      id: 'masterCategory',
-      accessorFn: (row: Category) => row.masterCategory?.name ?? '',
-      header: 'Master Category',
-      enableSorting: false,
-      enableColumnFilter: true,
-      meta: { filterVariant: 'select', filterOptions: ASSIGNMENT_FILTER_OPTIONS },
-      cell: ({ row }: { row: Row<Category> }) => (
-        <span className="text-sm text-gray-600">{row.original.masterCategory?.name ?? '—'}</span>
-      ),
-    },
-    {
-      id: 'fields',
-      accessorFn: (row: Category) => row.attributeSchema?.length ?? 0,
-      header: 'Fields',
+      id: 'categoryCount',
+      accessorFn: (row: MasterCategory) => row.categoryCount ?? 0,
+      header: 'Categories',
       enableSorting: false,
       enableColumnFilter: false,
       meta: { align: 'center' },
-      cell: ({ row }: { row: Row<Category> }) => (
-        <span className="text-xs text-gray-500">{row.original.attributeSchema?.length ?? 0}</span>
+      cell: ({ row }: { row: Row<MasterCategory> }) => (
+        <span className="text-xs text-gray-500">{row.original.categoryCount ?? 0}</span>
       ),
     },
     {
@@ -395,18 +356,18 @@ export default function CategoryList(): JSX.Element {
         align: 'center',
         className: 'w-24',
       },
-      cell: ({ row }: { row: Row<Category> }) => {
-        const cat = row.original;
+      cell: ({ row }: { row: Row<MasterCategory> }) => {
+        const mc = row.original;
         return (
           <div className="flex justify-center">
-            {hasPermission('categories', 'edit') ? (
+            {hasPermission('masterCategories', 'edit') ? (
               <ToggleSwitch
-                active={cat.isActive}
-                onToggle={toggling === cat.id ? (): void => {} : (): void => { void handleToggleActive(cat); }}
-                title={`${cat.isActive ? 'Deactivate' : 'Activate'} ${cat.name}`}
+                active={mc.isActive}
+                onToggle={toggling === mc.id ? (): void => {} : (): void => { void handleToggleActive(mc); }}
+                title={`${mc.isActive ? 'Deactivate' : 'Activate'} ${mc.name}`}
               />
             ) : (
-              <StatusBadge active={cat.isActive} />
+              <StatusBadge active={mc.isActive} />
             )}
           </div>
         );
@@ -418,22 +379,22 @@ export default function CategoryList(): JSX.Element {
       enableSorting: false,
       enableColumnFilter: false,
       meta: { hideFromVisibility: true, align: 'right' },
-      cell: ({ row }: { row: Row<Category> }) => {
-        const cat = row.original;
+      cell: ({ row }: { row: Row<MasterCategory> }) => {
+        const mc = row.original;
         return (
           <div className="flex items-center justify-end gap-1">
-            {hasPermission('categories', 'edit') && (
+            {hasPermission('masterCategories', 'edit') && (
               <button
-                onClick={() => setModalCategory(cat)}
+                onClick={() => setModalMasterCategory(mc)}
                 className="p-2 text-gray-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
                 title="Edit"
               >
                 <Pencil className="w-4 h-4" />
               </button>
             )}
-            {hasPermission('categories', 'delete') && (
+            {hasPermission('masterCategories', 'delete') && (
               <button
-                onClick={() => setDeleteTarget(cat)}
+                onClick={() => setDeleteTarget(mc)}
                 className="p-2 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                 title="Delete"
               >
@@ -446,8 +407,8 @@ export default function CategoryList(): JSX.Element {
     },
   ].filter(col => {
     if (!('id' in col) || col.id !== 'actions') return true;
-    return hasPermission('categories', 'edit') || hasPermission('categories', 'delete');
-  }) as ColumnDef<Category, unknown>[], [toggling, hasPermission]);
+    return hasPermission('masterCategories', 'edit') || hasPermission('masterCategories', 'delete');
+  }) as ColumnDef<MasterCategory, unknown>[], [toggling, hasPermission]);
 
   if (error) {
     return (
@@ -461,26 +422,26 @@ export default function CategoryList(): JSX.Element {
     <>
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Categories</h1>
+          <h1 className="text-xl font-bold text-gray-900">Master Categories</h1>
           <p className="text-sm text-gray-500 mt-0.5">{total} total</p>
         </div>
-        {hasPermission('categories', 'add') && (
+        {hasPermission('masterCategories', 'add') && (
           <button
-            onClick={() => setModalCategory(null)}
+            onClick={() => setModalMasterCategory(null)}
             className="inline-flex items-center gap-2 px-4 py-2.5 bg-indigo-600 text-white text-sm font-semibold rounded-lg hover:bg-indigo-700 transition-colors"
           >
             <Plus className="w-4 h-4" />
-            Add Category
+            Add Master Category
           </button>
         )}
       </div>
 
       <DataGrid
         columns={columns}
-        data={categories}
+        data={masterCategories}
         loading={loading}
         skeletonRows={pageSize}
-        emptyMessage="No categories found."
+        emptyMessage="No master categories found."
         sorting={sorting}
         onSortingChange={setSorting}
         columnFilters={columnFilters}
@@ -488,18 +449,17 @@ export default function CategoryList(): JSX.Element {
         pagination={{ page, pageSize, total, onPageChange: setPage, onPageSizeChange: size => { setPageSize(size); setPage(1); } }}
       />
 
-      {modalCategory !== undefined && (
-        <CategoryModal
-          category={modalCategory}
-          masterCategories={masterCategories}
-          onClose={() => setModalCategory(undefined)}
+      {modalMasterCategory !== undefined && (
+        <MasterCategoryModal
+          masterCategory={modalMasterCategory}
+          onClose={() => setModalMasterCategory(undefined)}
           onSaved={handleSaved}
         />
       )}
 
       {deleteTarget && (
         <DeleteModal
-          category={deleteTarget}
+          masterCategory={deleteTarget}
           onClose={() => setDeleteTarget(null)}
           onDeleted={handleDeleted}
         />

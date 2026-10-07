@@ -13,6 +13,7 @@ const Dashboard = lazy(() => import('./pages/dashboard/Dashboard'));
 const SellerList = lazy(() => import('./pages/sellers/SellerList'));
 const SellerForm = lazy(() => import('./pages/sellers/SellerForm'));
 const CategoryList = lazy(() => import('./pages/categories/CategoryList'));
+const MasterCategoryList = lazy(() => import('./pages/master-categories/MasterCategoryList'));
 const BrandList = lazy(() => import('./pages/brands/BrandList'));
 const BannerList = lazy(() => import('./pages/banners/BannerList'));
 const OfferList = lazy(() => import('./pages/offers/OfferList'));
@@ -48,6 +49,7 @@ export default function App(): JSX.Element {
             <Route path="/sellers/:id/edit" element={<SellerForm />} />
             <Route path="/products"          element={<ProductList />} />
             <Route path="/payments"          element={<PaymentList />} />
+            <Route path="/master-categories" element={<MasterCategoryList />} />
             <Route path="/categories"       element={<CategoryList />} />
             <Route path="/brands"           element={<BrandList />} />
             <Route path="/banners"          element={<BannerList />} />
