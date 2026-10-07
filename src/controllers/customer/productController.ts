@@ -97,23 +97,21 @@ async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductList
 }
 
 export async function getProducts(req: Request, res: Response): Promise<void> {
-  const { page, limit, searchQuery, searchByLocation, category_id: categoryId, master_category_id: masterCategoryId, brand_id: brandId, shop_id: shopId, offer_id: offerId, state, city } = req.body;
+  const { page, limit, searchQuery, searchByLocation, category_id: categoryId, brand_id: brandId, shop_id: shopId, offer_id: offerId, state, city } = req.body;
 
   const hasLocation = searchByLocation !== undefined;
   const search: string | undefined = searchQuery || undefined;
 
-  // master_category_id takes precedence over category_id — resolved once here and
-  // reused for both boost eligibility and the organic browse, instead of each
-  // resolving the same master category independently.
-  const resolvedCategoryIds: number[] | undefined = masterCategoryId !== undefined
-    ? await productService.resolveCategoryIdsForMasterCategory(masterCategoryId)
+  // category_id is always a MasterCategory id for this endpoint — resolve it once here
+  // into the set of active child Category ids and reuse the result for both boost
+  // eligibility and the organic browse.
+  const resolvedCategoryIds: number[] | undefined = categoryId !== undefined
+    ? await productService.resolveCategoryIdsForMasterCategory(categoryId)
     : undefined;
-  const effectiveCategoryId = masterCategoryId !== undefined ? undefined : categoryId;
 
   let chosenBoosts: EligibleBoost[] = [];
   if (page === 1) {
     const eligible = await productBoostService.getEligibleBoosts({
-      categoryId: effectiveCategoryId,
       categoryIds: resolvedCategoryIds,
       brandId, sellerId: shopId, offerId, state, city, search,
     });
@@ -143,7 +141,6 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
 
   const { rows, count } = await productService.browseProducts(
     {
-      categoryId: effectiveCategoryId,
       categoryIds: resolvedCategoryIds,
       brandId,
       sellerId: shopId,

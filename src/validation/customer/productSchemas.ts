@@ -12,6 +12,7 @@ export const searchProductsSchema = Yup.object({
     lat: Yup.number().min(-90).max(90).required('lat is required'),
     lng: Yup.number().min(-180).max(180).required('lng is required'),
   }).default(undefined),
+  // MasterCategory.id — resolved to its active child Category ids in productController.getProducts
   category_id: Yup.number()
     .integer()
     .transform((value, originalValue) => (originalValue === '' ? undefined : value)),

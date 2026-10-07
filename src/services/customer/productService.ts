@@ -152,7 +152,8 @@ export async function browseProducts(
   if (filters.categoryId !== undefined) where.categoryId = filters.categoryId;
   if (filters.sellerId !== undefined)   where.sellerId   = filters.sellerId;
 
-  // Master-category resolution takes precedence over a plain categoryId (see productController.ts).
+  // browseProducts's only caller (customer product search) always resolves category_id
+  // (a MasterCategory id) into categoryIds before calling, never sets the singular field.
   if (filters.categoryIds !== undefined) {
     if (filters.categoryIds.length === 0) return { rows: [], count: 0 };
     where.categoryId = { [Op.in]: filters.categoryIds };

@@ -73,7 +73,9 @@ export async function getEligibleBoosts(params: EligibilityParams): Promise<Elig
   if (params.categoryId !== undefined) productWhere.categoryId = params.categoryId;
   if (params.sellerId !== undefined) productWhere.sellerId = params.sellerId;
 
-  // Master-category resolution takes precedence over a plain categoryId (see productController.ts).
+  // The singular categoryId branch above is now only reached by getSimilarProducts'
+  // exact-leaf-category boost lookup; customer product search always resolves category_id
+  // (a MasterCategory id) into categoryIds before calling.
   if (params.categoryIds !== undefined) {
     if (params.categoryIds.length === 0) return [];
     productWhere.categoryId = { [Op.in]: params.categoryIds };
