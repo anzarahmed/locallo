@@ -40,11 +40,11 @@ export function getProducts(params?: {
   return apiGet(PATHS.PRODUCTS, params);
 }
 
-export function toggleProduct(id: string): Promise<unknown> {
+export function toggleProduct(id: string): Promise<{ cancelledBoosts?: number }> {
   return apiPatch(`${PATHS.PRODUCTS}/${id}/toggle`);
 }
 
-export function deleteProduct(id: string): Promise<unknown> {
+export function deleteProduct(id: string): Promise<{ cancelledBoosts?: number } | null> {
   return apiDelete(`${PATHS.PRODUCTS}/${id}`);
 }
 
@@ -91,15 +91,15 @@ export function createBatchVariants(productId: string, data: Record<string, unkn
   return apiPost(`${PATHS.PRODUCTS}/${productId}/variants/batch`, data);
 }
 
-export function updateVariant(productId: string, variantId: string, data: Record<string, unknown>): Promise<{ variant: ProductVariant; siblings: ProductVariant[] }> {
+export function updateVariant(productId: string, variantId: string, data: Record<string, unknown>): Promise<{ variant: ProductVariant; siblings: ProductVariant[]; cancelledBoosts?: number }> {
   return apiPut(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}`, data);
 }
 
-export function deleteVariant(productId: string, variantId: string): Promise<{ productDeleted: boolean }> {
+export function deleteVariant(productId: string, variantId: string): Promise<{ productDeleted: boolean; cancelledBoosts?: number }> {
   return apiDelete(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}`);
 }
 
-export function toggleVariant(productId: string, variantId: string): Promise<{ variant: ProductVariant }> {
+export function toggleVariant(productId: string, variantId: string): Promise<{ variant: ProductVariant; cancelledBoosts?: number }> {
   return apiPatch(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}/toggle`);
 }
 
@@ -146,7 +146,7 @@ export interface CreateBoostPayload {
   state?: string;
   city?: string;
   budget: number;
-  variantId?: string | null;
+  variantIds?: string[];
 }
 
 export function createBoost(

@@ -202,22 +202,27 @@ function PaymentTable({ rows }: { rows: ReactNode }): JSX.Element {
 function PaymentRow({ payment }: { payment: Payment }): JSX.Element {
   const navigate = useNavigate();
 
+  // productId is null once the product has been deleted; the payment row stays as a record.
+  const productId = payment.productId;
+
   function openProduct(): void {
-    navigate(`/products/${payment.productId}`);
+    if (productId) navigate(`/products/${productId}`);
   }
 
   return (
     <tr
-      onClick={openProduct}
-      onKeyDown={e => {
+      onClick={productId ? openProduct : undefined}
+      onKeyDown={productId ? e => {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           openProduct();
         }
-      }}
-      tabIndex={0}
-      role="link"
-      className="border-b border-gray-50 last:border-0 cursor-pointer hover:bg-teal-50/40 focus:outline-none focus-visible:bg-teal-50/60 transition-colors"
+      } : undefined}
+      tabIndex={productId ? 0 : undefined}
+      role={productId ? 'link' : undefined}
+      className={`border-b border-gray-50 last:border-0 transition-colors ${
+        productId ? 'cursor-pointer hover:bg-teal-50/40 focus:outline-none focus-visible:bg-teal-50/60' : ''
+      }`}
     >
       <td className="px-4 py-3">
         <div className="flex items-center gap-3 min-w-0">

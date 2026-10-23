@@ -228,6 +228,8 @@ export interface ProductBoost {
   id: string;
   productId: string;
   variantId: string | null;
+  // Every option of the promoted group; null for a whole-product boost.
+  variantIds: string[] | null;
   variant?: { id: string; attributes: Record<string, unknown>; isActive: boolean } | null;
   audienceType: BoostAudienceType;
   state: string | null;
@@ -246,7 +248,7 @@ export interface ProductBoost {
 
 export interface Payment {
   id: string;
-  productId: string;
+  productId: string | null;
   variantId: string | null;
   productName: string;
   productImage: string | null;

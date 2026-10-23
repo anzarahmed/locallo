@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, ChevronDown, ShoppingBag, Loader2, Rocket } from 'lucide-react';
 import { getProducts, toggleProduct, deleteProduct, markProductSold, markVariantSold, getProductVariants, getActiveBoost } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
+import { cancelledBoostMessage } from '../../lib/boostUtils';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
 import { hasDiscount } from '../../lib/formatters';
@@ -43,7 +44,7 @@ export default function ProductList(): JSX.Element {
   const [selling, setSelling] = useState(false);
   const [promoteTarget, setPromoteTarget] = useState<{
     product: Product;
-    variant: ProductVariant | null;
+    variants: ProductVariant[] | null;
     schema: AttributeField[];
   } | null>(null);
   const [promoteVariantPickerData, setPromoteVariantPickerData] = useState<{
@@ -81,11 +82,13 @@ export default function ProductList(): JSX.Element {
 
   async function handleToggle(product: Product): Promise<void> {
     try {
-      await toggleProduct(product.id);
+      const { cancelledBoosts } = await toggleProduct(product.id);
       setProducts(prev =>
         prev.map(p => p.id === product.id ? { ...p, isActive: !p.isActive } : p),
       );
       toast.success(product.isActive ? 'Product hidden' : 'Product is now visible');
+      const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
+      if (cancelledMsg) toast.info(cancelledMsg);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to update product');
     }
@@ -95,11 +98,13 @@ export default function ProductList(): JSX.Element {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      await deleteProduct(deleteTarget.id);
+      const result = await deleteProduct(deleteTarget.id);
       setProducts(prev => prev.filter(p => p.id !== deleteTarget.id));
       setTotal(t => t - 1);
       setDeleteTarget(null);
       toast.success('Product deleted');
+      const cancelledMsg = cancelledBoostMessage(result?.cancelledBoosts);
+      if (cancelledMsg) toast.info(cancelledMsg);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to delete product');
     } finally {
@@ -188,10 +193,11 @@ export default function ProductList(): JSX.Element {
           getActiveBoost(product.id),
         ]);
         if (boost) {
-          const boostedVariant = data.variants.find(v => v.id === boost.variantId) ?? null;
+          const boostedIds = new Set(boost.variantIds ?? []);
+          const boostedVariants = data.variants.filter(v => boostedIds.has(v.id));
           setPromoteTarget({
             product,
-            variant: boostedVariant,
+            variants: boostedVariants.length > 0 ? boostedVariants : null,
             schema: data.product.category?.attributeSchema ?? [],
           });
           return;
@@ -207,15 +213,15 @@ export default function ProductList(): JSX.Element {
         setLoadingPromoteVariantsForId(null);
       }
     } else {
-      setPromoteTarget({ product, variant: null, schema: [] });
+      setPromoteTarget({ product, variants: null, schema: [] });
     }
   }
 
-  function openBoostModalForVariant(variant: ProductVariant): void {
+  function openBoostModalForGroup(variants: ProductVariant[]): void {
     if (!promoteVariantPickerData) return;
     setPromoteTarget({
       product: promoteVariantPickerData.product,
-      variant,
+      variants,
       schema: promoteVariantPickerData.schema,
     });
     setPromoteVariantPickerData(null);
@@ -319,7 +325,7 @@ export default function ProductList(): JSX.Element {
                 onPreview={() => setPreviewId(product.id)}
                 onSell={() => void handleSellClick(product)}
                 onPromote={() => void handlePromoteClick(product)}
-                onViewBoost={() => setPromoteTarget({ product, variant: null, schema: [] })}
+                onViewBoost={() => void handlePromoteClick(product)}
               />
             ))
           )}
@@ -405,7 +411,7 @@ export default function ProductList(): JSX.Element {
           productName={promoteVariantPickerData.product.name}
           variants={promoteVariantPickerData.variants}
           schema={promoteVariantPickerData.schema}
-          onConfirm={openBoostModalForVariant}
+          onConfirm={openBoostModalForGroup}
           onClose={() => setPromoteVariantPickerData(null)}
         />
       )}
@@ -413,7 +419,7 @@ export default function ProductList(): JSX.Element {
       {promoteTarget && (
         <BoostProductModal
           product={promoteTarget.product}
-          variant={promoteTarget.variant}
+          variants={promoteTarget.variants}
           schema={promoteTarget.schema}
           onClose={() => setPromoteTarget(null)}
           onBoosted={handleBoosted}

@@ -36,12 +36,6 @@ export function groupLabel(nonSdAttrs: Record<string, string>, schema: Attribute
     .join(' · ');
 }
 
-export function pickBoostVariant(variants: ProductVariant[]): ProductVariant {
-  const maxStock = Math.max(...variants.map(v => v.stock));
-  if (maxStock <= 0) return variants[0];
-  return variants.find(v => v.stock === maxStock) ?? variants[0];
-}
-
 function isSelectionEmpty(sel: string | string[] | undefined): boolean {
   return !sel || sel === '' || (Array.isArray(sel) && sel.length === 0);
 }

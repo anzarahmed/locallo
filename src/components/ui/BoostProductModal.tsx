@@ -2,7 +2,7 @@ import { useEffect, useState, type JSX } from 'react';
 import { useFormik } from 'formik';
 import {
   X, Globe, Map, Building2, Users, IndianRupee, CreditCard,
-  Eye, Info, Loader2, ChevronDown, Rocket, Package, Target, BarChart3, Zap,
+  Eye, Info, Loader2, ChevronDown, Rocket, Package, Layers, Target, BarChart3, Zap,
   createLucideIcon, type LucideIcon,
 } from 'lucide-react';
 import { createBoost, getActiveBoost, cancelBoost } from '../../services/sellerService';
@@ -11,7 +11,7 @@ import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { loadScript } from '../../lib/loadScript';
 import { estimateImpressions, formatImpressionRange, formatAudienceLabel, AUDIENCE_TYPE_CODE } from '../../lib/boostUtils';
-import { variantLabel } from '../../lib/variantUtils';
+import { variantLabel, groupLabel } from '../../lib/variantUtils';
 import { STATES, STATE_CITY_MAP } from '../../lib/statesCities';
 import { boostSchema, type BoostFormValues } from '../../validation/boostSchemas';
 import { MIN_DAILY_BUDGET, MAX_DAILY_BUDGET, DEFAULT_DAILY_BUDGET, DAILY_BUDGET_STEP } from '../../constants';
@@ -19,7 +19,7 @@ import type { Product, ProductBoost, ProductVariant, AttributeField, BoostAudien
 
 interface BoostProductModalProps {
   product: Product;
-  variant?: ProductVariant | null;
+  variants?: ProductVariant[] | null;
   schema?: AttributeField[];
   onClose: () => void;
   onBoosted: (boost: ProductBoost) => void;
@@ -44,11 +44,16 @@ const InfoGlyph: LucideIcon = createLucideIcon('info-glyph', [
   ['path', { d: 'M12 8h.01', key: 'ig-dot' }],
 ]);
 
-function boostVariantLabel(attributes: Record<string, unknown>, schema: AttributeField[]): string {
+// Same labels as PromoteVariantPickerModal, so the seller sees the group name they picked.
+function boostGroupLabel(attributes: Record<string, unknown>, schema: AttributeField[]): string {
   const sdField = schema.find(f => f.isVariant === true && f.isStockDependent === true);
   if (!sdField) return variantLabel(attributes, schema);
-  const rest = Object.fromEntries(Object.entries(attributes).filter(([key]) => key !== sdField.key));
-  return variantLabel(rest, schema.filter(f => f.key !== sdField.key));
+  const nonSdAttrs = Object.fromEntries(
+    Object.entries(attributes)
+      .filter(([key]) => key !== sdField.key)
+      .map(([key, val]) => [key, String(val)]),
+  );
+  return groupLabel(nonSdAttrs, schema);
 }
 
 const STEPS: { key: 1 | 2 | 3; label: string; icon: LucideIcon }[] = [
@@ -57,10 +62,12 @@ const STEPS: { key: 1 | 2 | 3; label: string; icon: LucideIcon }[] = [
   { key: 3, label: 'Payment', icon: CreditCard },
 ];
 
-export default function BoostProductModal({ product, variant, schema, onClose, onBoosted }: BoostProductModalProps): JSX.Element {
+export default function BoostProductModal({ product, variants, schema, onClose, onBoosted }: BoostProductModalProps): JSX.Element {
   const toast = useToast();
   const { seller } = useAuth();
-  const targetLabel = variant ? boostVariantLabel(variant.attributes, schema ?? []) : null;
+  const targetLabel = variants && variants.length > 0 ? boostGroupLabel(variants[0].attributes, schema ?? []) : null;
+  const optionCount = variants?.length ?? 0;
+  const targetSummary = targetLabel ? `${targetLabel} · ${optionCount} option${optionCount !== 1 ? 's' : ''}` : null;
   const [step, setStep] = useState<1 | 2 | 3>(1);
   const [submitting, setSubmitting] = useState(false);
   const [checking, setChecking] = useState(true);
@@ -108,7 +115,7 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
         state: values.audienceType !== 'pan_india' ? values.state : undefined,
         city: values.audienceType === 'city' ? values.city : undefined,
         budget: Number(values.dailyBudget),
-        variantId: variant?.id ?? undefined,
+        variantIds: variants && variants.length > 0 ? variants.map(v => v.id) : undefined,
       });
 
       await loadScript(RAZORPAY_CHECKOUT_URL).catch(() => {});
@@ -220,6 +227,11 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
               )}
             </div>
             <p className="text-xs text-gray-400 mt-0.5 truncate">{product.name}</p>
+            {targetSummary && (
+              <span className="inline-flex max-w-full mt-1.5 px-2 py-0.5 rounded-full bg-teal-50 text-teal-700 text-[11px] font-semibold truncate">
+                {targetSummary}
+              </span>
+            )}
           </div>
           <button
             type="button"
@@ -239,6 +251,7 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
           <ExistingBoostView
             boost={existingBoost}
             promoting={product.name}
+            group={targetSummary}
             onClose={onClose}
             onCancel={existingBoost.paymentStatus === 'pending' ? handleCancelStuckBoost : undefined}
             cancelling={cancelling}
@@ -270,7 +283,7 @@ export default function BoostProductModal({ product, variant, schema, onClose, o
                   }}
                 />
               )}
-              {step === 3 && <ReviewStep values={formik.values} promoting={product.name} />}
+              {step === 3 && <ReviewStep values={formik.values} promoting={product.name} group={targetSummary} />}
             </div>
 
             <div className="px-5 py-4 border-t border-gray-50 flex gap-3 shrink-0">
@@ -513,13 +526,20 @@ function BudgetStep({ dailyBudget, onChange, onBlur }: BudgetStepProps): JSX.Ele
 }
 
 /* ── Step 3: Review ── */
-function ReviewStep({ values, promoting }: { values: BoostFormValues; promoting: string }): JSX.Element {
+interface ReviewStepProps {
+  values: BoostFormValues;
+  promoting: string;
+  group: string | null;
+}
+
+function ReviewStep({ values, promoting, group }: ReviewStepProps): JSX.Element {
   const budgetNum = Number(values.dailyBudget) || 0;
   const { min, max } = estimateImpressions(budgetNum);
   const audienceLabel = formatAudienceLabel(values.audienceType, values.state, values.city);
 
   const rows: { icon: LucideIcon; label: string; value: string }[] = [
     { icon: Package, label: 'Promoting', value: promoting },
+    ...(group ? [{ icon: Layers, label: 'Group', value: group }] : []),
     { icon: AudienceGroupIcon, label: 'Audience', value: audienceLabel },
     { icon: IndianRupee, label: 'Boost budget', value: `₹${budgetNum.toLocaleString('en-IN')}` },
     { icon: Eye, label: 'Estimated impressions', value: formatImpressionRange(min, max) },
@@ -551,12 +571,13 @@ function ReviewStep({ values, promoting }: { values: BoostFormValues; promoting:
 interface ExistingBoostViewProps {
   boost: ProductBoost;
   promoting: string;
+  group: string | null;
   onClose: () => void;
   onCancel?: () => void;
   cancelling: boolean;
 }
 
-function ExistingBoostView({ boost, promoting, onClose, onCancel, cancelling }: ExistingBoostViewProps): JSX.Element {
+function ExistingBoostView({ boost, promoting, group, onClose, onCancel, cancelling }: ExistingBoostViewProps): JSX.Element {
   const audienceLabel = formatAudienceLabel(boost.audienceType, boost.state, boost.city);
   return (
     <>
@@ -587,6 +608,17 @@ function ExistingBoostView({ boost, promoting, onClose, onCancel, cancelling }: 
             <p className="text-sm font-bold text-gray-800 truncate">{promoting}</p>
           </div>
         </div>
+        {group && (
+          <div className="flex items-center gap-3 px-4 py-3.5">
+            <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-teal-700 shrink-0">
+              <Layers size={15} />
+            </div>
+            <div className="min-w-0">
+              <p className="text-xs text-gray-400">Group</p>
+              <p className="text-sm font-bold text-gray-800 truncate">{group}</p>
+            </div>
+          </div>
+        )}
         <div className="flex items-center gap-3 px-4 py-3.5">
           <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-teal-700 shrink-0">
             <AudienceGroupIcon size={15} />

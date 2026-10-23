@@ -7,6 +7,7 @@ import {
 } from '../../../services/sellerService';
 import { MAX_SECONDARY_IMAGES } from '../../../constants';
 import { useToast } from '../../../hooks/useToast';
+import { cancelledBoostMessage } from '../../../lib/boostUtils';
 import { ApiError } from '../../../lib/axios';
 import { resolveImage } from '../../../lib/imageUtils';
 import { hasDiscount } from '../../../lib/formatters';
@@ -57,8 +58,8 @@ export default function VariantList(): JSX.Element {
   const noSearchResults = search.trim() !== '' && variants.length > 0 && filteredVariants.length === 0;
 
   const liveBoost = boost?.status === 'active' && boost.paymentStatus === 'paid' ? boost : null;
-  const wholeProductBoosted = liveBoost != null && liveBoost.variantId === null;
-  const boostedVariantId = liveBoost?.variantId ?? null;
+  const wholeProductBoosted = liveBoost != null && liveBoost.variantIds === null;
+  const boostedVariantIds = new Set(liveBoost?.variantIds ?? []);
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -90,8 +91,13 @@ export default function VariantList(): JSX.Element {
 
   async function handleToggle(variant: ProductVariant): Promise<void> {
     try {
-      const { variant: updated } = await toggleVariant(id!, variant.id);
+      const { variant: updated, cancelledBoosts } = await toggleVariant(id!, variant.id);
       setVariants(prev => prev.map(v => v.id === updated.id ? updated : v));
+      const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
+      if (cancelledMsg) {
+        toast.info(cancelledMsg);
+        setBoost(null);
+      }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to update variant');
     }
@@ -178,15 +184,21 @@ export default function VariantList(): JSX.Element {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const { productDeleted } = await deleteVariant(id!, deleteTarget.id);
+      const { productDeleted, cancelledBoosts } = await deleteVariant(id!, deleteTarget.id);
       setDeleteTarget(null);
+      const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (productDeleted) {
         toast.success('Product deleted');
+        if (cancelledMsg) toast.info(cancelledMsg);
         navigate('/products', { replace: true });
         return;
       }
       setVariants(prev => prev.filter(v => v.id !== deleteTarget.id));
       toast.success('Variant deleted');
+      if (cancelledMsg) {
+        toast.info(cancelledMsg);
+        setBoost(null);
+      }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to delete variant');
     } finally {
@@ -273,7 +285,7 @@ export default function VariantList(): JSX.Element {
                 onAddToGroup={g => openAddToGroup(g)}
                 onDelete={v => handleDeleteClick(v)}
                 onSell={v => setSellVariant(v)}
-                boostedVariantId={boostedVariantId}
+                boostedVariantIds={boostedVariantIds}
                 wholeProductBoosted={wholeProductBoosted}
               />
             ))}
@@ -289,7 +301,7 @@ export default function VariantList(): JSX.Element {
                 onEdit={() => openEdit(variant)}
                 onDelete={() => handleDeleteClick(variant)}
                 onSell={() => setSellVariant(variant)}
-                isBoosted={wholeProductBoosted || boostedVariantId === variant.id}
+                isBoosted={wholeProductBoosted || boostedVariantIds.has(variant.id)}
               />
             ))}
           </div>
@@ -357,13 +369,13 @@ interface GroupedVariantCardProps {
   onAddToGroup: (g: VariantGroup) => void;
   onDelete: (v: ProductVariant) => void;
   onSell: (v: ProductVariant) => void;
-  boostedVariantId: string | null;
+  boostedVariantIds: Set<string>;
   wholeProductBoosted: boolean;
 }
 
 function GroupedVariantCard({
   group, schema, sdField, onToggle, onEdit, onAddToGroup, onDelete, onSell,
-  boostedVariantId, wholeProductBoosted,
+  boostedVariantIds, wholeProductBoosted,
 }: GroupedVariantCardProps): JSX.Element {
   const firstVariant = group.variants[0];
   const thumbnailSrc = firstVariant.thumbnails?.[0] ?? firstVariant.images[0];
@@ -373,6 +385,15 @@ function GroupedVariantCard({
   useEffect(() => { setImgError(false); }, [imageUrl]);
 
   const nonSdEntries = Object.entries(group.nonSdAttrs);
+  // A boost covers a whole group, so it's labelled once on the group; a whole-product
+  // boost already has its own banner above the list.
+  const groupBoosted = !wholeProductBoosted && group.variants.some(v => boostedVariantIds.has(v.id));
+  const boostedBadge = groupBoosted && (
+    <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full shrink-0">
+      <Rocket size={9} />
+      Boosted
+    </span>
+  );
 
   const usedSdValues = new Set(
     group.variants.map(v => String((v.attributes as Record<string, string>)[sdField.key] ?? ''))
@@ -409,9 +430,13 @@ function GroupedVariantCard({
                   </span>
                 );
               })}
+              {boostedBadge}
             </div>
           ) : (
-            <span className="text-xs text-gray-500 font-medium">All variants</span>
+            <div className="flex flex-wrap items-center gap-1.5">
+              <span className="text-xs text-gray-500 font-medium">All variants</span>
+              {boostedBadge}
+            </div>
           )}
           <p className="text-xs text-gray-400 mt-1">
             {group.variants.length} {sdField.label.toLowerCase()} option{group.variants.length !== 1 ? 's' : ''}
@@ -448,8 +473,6 @@ function GroupedVariantCard({
           const sdOpt = sdField.options?.find(o => o.value === sdValue);
           const sdLabel = sdOpt?.label ?? sdValue;
 
-          const rowBoosted = wholeProductBoosted || boostedVariantId === v.id;
-
           return (
             <div key={v.id} className="flex items-center gap-2 px-3 py-2.5">
               <span className="text-xs font-semibold text-gray-700 min-w-[40px] shrink-0">
@@ -471,13 +494,6 @@ function GroupedVariantCard({
               {!v.isActive && (
                 <span className="text-[10px] font-semibold text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded-full shrink-0">
                   Hidden
-                </span>
-              )}
-
-              {rowBoosted && (
-                <span className="inline-flex items-center gap-0.5 text-[10px] font-semibold text-violet-700 bg-violet-50 border border-violet-200 px-1.5 py-0.5 rounded-full shrink-0">
-                  <Rocket size={9} />
-                  Boosted
                 </span>
               )}
 
