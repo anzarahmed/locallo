@@ -220,7 +220,7 @@ export type PaymentStatus = 'pending' | 'paid' | 'failed' | 'cancelled';
 
 export interface Payment {
   id: string;
-  productId: string;
+  productId: string | null;
   productName: string;
   productImage: string | null;
   sellerId: string;
