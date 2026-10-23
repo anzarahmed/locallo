@@ -4,7 +4,7 @@ import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { SellerProfile } from '../../models/SellerProfile';
 import { OfferProduct } from '../../models/OfferProduct';
-import { TRENDING_ATTRIBUTES, SELLER_VERIFIED_CONDITION, buildSearchCondition, getSequelizeEscape } from './productService';
+import { TRENDING_ATTRIBUTES, SELLER_VERIFIED_CONDITION, buildSearchCondition, getSequelizeEscape, inStockCondition } from './productService';
 
 export const BOOST_SLOTS = 4;
 export const SIMILAR_BOOST_SLOTS = 2;
@@ -14,7 +14,8 @@ const BOOST_VARIANT_ATTRIBUTES = ['id', 'productId', 'attributes', 'images', 'st
 export interface EligibleBoost {
   boostId: string;
   product: Product;
-  variant: ProductVariant | null;
+  // In-stock promoted options of a group boost; null for a whole-product boost.
+  variants: ProductVariant[] | null;
 }
 
 interface EligibilityParams {
@@ -39,14 +40,16 @@ function buildAudienceOrFilter(state?: string, city?: string): Record<string, un
 export async function getEligibleBoosts(params: EligibilityParams): Promise<EligibleBoost[]> {
   const audienceOr = buildAudienceOrFilter(params.state, params.city);
 
-  const boosts = await ProductBoost.findAll({
+  const liveBoosts = await ProductBoost.findAll({
     where: {
       status: 'active',
       paymentStatus: 'paid',
+      productId: { [Op.ne]: null },
       [Op.or]: audienceOr,
       [Op.and]: [sequelizeWhere(col('impression_count'), Op.lt, col('estimated_impressions_max'))],
     },
   });
+  const boosts = liveBoosts.filter((b): b is ProductBoost & { productId: string } => b.productId !== null);
 
   if (boosts.length === 0) return [];
 
@@ -64,7 +67,7 @@ export async function getEligibleBoosts(params: EligibilityParams): Promise<Elig
     if (candidateProductIds.length === 0) return [];
   }
 
-  const andClauses: unknown[] = [SELLER_VERIFIED_CONDITION];
+  const andClauses: unknown[] = [SELLER_VERIFIED_CONDITION, inStockCondition()];
   const productWhere: Record<string, unknown> = {
     id: { [Op.in]: candidateProductIds },
     isActive: true,
@@ -99,28 +102,33 @@ export async function getEligibleBoosts(params: EligibilityParams): Promise<Elig
   const products = await Product.findAll({ attributes: TRENDING_ATTRIBUTES, where: productWhere });
   const productById = new Map(products.map(p => [p.id, p]));
 
-  const variantIds = [...new Set(boosts.map(b => b.variantId).filter((v): v is string => !!v))];
-  const variantById = new Map<string, ProductVariant>();
-  if (variantIds.length > 0) {
+  const promotedIds = [...new Set(boosts.flatMap(b => b.variantIds ?? []))];
+  const inStockVariantById = new Map<string, ProductVariant>();
+  if (promotedIds.length > 0) {
     const variants = await ProductVariant.findAll({
-      where: { id: { [Op.in]: variantIds }, isActive: true },
+      where: { id: { [Op.in]: promotedIds }, isActive: true, stock: { [Op.gt]: 0 } },
       attributes: BOOST_VARIANT_ATTRIBUTES,
+      order: [['createdAt', 'ASC'], ['id', 'ASC']],
     });
-    for (const v of variants) variantById.set(v.id, v);
+    for (const v of variants) inStockVariantById.set(v.id, v);
   }
 
   const seenProductIds = new Set<string>();
   const eligible: EligibleBoost[] = [];
   for (const boost of boosts) {
-    if (boost.variantId && !variantById.has(boost.variantId)) continue;
     const product = productById.get(boost.productId);
     if (!product || seenProductIds.has(boost.productId)) continue;
+
+    let variants: ProductVariant[] | null = null;
+    if (boost.variantIds) {
+      variants = boost.variantIds
+        .map(id => inStockVariantById.get(id))
+        .filter((v): v is ProductVariant => v !== undefined && v.productId === boost.productId);
+      if (variants.length === 0) continue;
+    }
+
     seenProductIds.add(boost.productId);
-    eligible.push({
-      boostId: boost.id,
-      product,
-      variant: boost.variantId ? (variantById.get(boost.variantId) ?? null) : null,
-    });
+    eligible.push({ boostId: boost.id, product, variants });
   }
   return eligible;
 }
@@ -152,22 +160,26 @@ export async function incrementImpressions(boostIds: string[]): Promise<void> {
 }
 
 export async function isProductBoosted(productId: string, variantId?: string, state?: string, city?: string): Promise<boolean> {
-  const where: Record<string, unknown> = {
+  const where: Record<string | symbol, unknown> = {
     productId,
     status: 'active',
     paymentStatus: 'paid',
     [Op.or]: buildAudienceOrFilter(state, city),
   };
-  // A boost with no variantId covers every variant of the product.
+  // A boost with no variant_ids covers every variant of the product.
   if (variantId) {
-    where.variantId = { [Op.or]: [variantId, null] };
+    where[Op.and] = [{ [Op.or]: [{ variantIds: null }, { variantIds: { [Op.contains]: [variantId] } }] }];
     return (await ProductBoost.count({ where })) > 0;
   }
 
-  // No variant requested: a boost pinned to a now-inactive variant must not count.
-  const boosts = await ProductBoost.findAll({
-    where,
-    include: [{ model: ProductVariant, as: 'variant', attributes: ['isActive'], required: false }],
+  // No variant requested: same rule as getEligibleBoosts — a group boost counts only while
+  // one of its options is visible and in stock, so detail and listings agree.
+  const boosts = await ProductBoost.findAll({ where, attributes: ['id', 'variantIds'] });
+  if (boosts.some(b => b.variantIds === null)) return true;
+  const listedIds = [...new Set(boosts.flatMap(b => b.variantIds ?? []))];
+  if (listedIds.length === 0) return false;
+  const inStockListed = await ProductVariant.count({
+    where: { id: { [Op.in]: listedIds }, productId, isActive: true, stock: { [Op.gt]: 0 } },
   });
-  return boosts.some((b) => b.variantId === null || b.variant?.isActive === true);
+  return inStockListed > 0;
 }

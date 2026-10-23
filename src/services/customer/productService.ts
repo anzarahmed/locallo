@@ -6,7 +6,7 @@ import { MasterCategory } from '../../models/MasterCategory';
 import { SellerProfile } from '../../models/SellerProfile';
 import { OfferProduct } from '../../models/OfferProduct';
 import { Review } from '../../models/Review';
-import { normalizeForMatch, isNumericToken } from '../../utils/searchTokens';
+import { normalizeForMatch, isNumericToken, isShortToken, escapeRegExp } from '../../utils/searchTokens';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import type { AttributeField } from '../../types';
 
@@ -71,9 +71,24 @@ export const SELLER_VERIFIED_CONDITION = literal(
   'EXISTS (SELECT 1 FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id" AND seller_profiles.is_verified = true)',
 );
 
+// A product with variant rows is in stock only through an active variant with stock;
+// products.stock sums inactive variants too, so it is trusted only when there are none.
+export function inStockSql(productIdExpr: string, productStockExpr: string): string {
+  return `(EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = ${productIdExpr} AND pv.is_active = true AND pv.stock > 0) ` +
+    `OR (${productStockExpr} > 0 AND NOT EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = ${productIdExpr})))`;
+}
+
+export function inStockCondition(): ReturnType<typeof literal> {
+  return literal(inStockSql('"Product".id', '"Product".stock'));
+}
+
 type Escape = (value: string) => string;
 
 function matchConditionSql(columnExpr: string, token: string, escape: Escape): string {
+  if (isShortToken(token)) {
+    return `(${columnExpr} ~* ${escape(`\\y${escapeRegExp(token)}\\y`)})`;
+  }
+
   const parts = [`${columnExpr} ILIKE ${escape(`%${token}%`)}`];
 
   const normalizedToken = normalizeForMatch(token);
@@ -118,7 +133,7 @@ export function buildSearchCondition(search: string, escape: Escape): SearchCond
 
   const titleOnlyBranch = `(${titleConditions.join(' AND ')})`;
   const variantBranch =
-    'EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = "Product".id AND pv.is_active = true ' +
+    'EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = "Product".id AND pv.is_active = true AND pv.stock > 0 ' +
     `AND ${variantConditions.join(' AND ')})`;
 
   const scoreTerms = titleConditions.map((cond) => `(CASE WHEN ${cond} THEN 1 ELSE 0 END)`).join(' + ');
@@ -146,7 +161,7 @@ export async function browseProducts(
   page: number,
   limit: number,
 ): Promise<{ rows: Product[]; count: number }> {
-  const andClauses: unknown[] = [SELLER_VERIFIED_CONDITION];
+  const andClauses: unknown[] = [SELLER_VERIFIED_CONDITION, inStockCondition()];
   const where: Record<string, unknown> = { isActive: true, [Op.and]: andClauses };
 
   if (filters.categoryId !== undefined) where.categoryId = filters.categoryId;
@@ -337,7 +352,7 @@ export async function getTrendingProducts(
   excludeProductIds: string[] = [],
   limit: number = TRENDING_LIMIT,
 ): Promise<Product[]> {
-  const where: Record<string, unknown> = { isActive: true, [Op.and]: [SELLER_VERIFIED_CONDITION] };
+  const where: Record<string, unknown> = { isActive: true, [Op.and]: [SELLER_VERIFIED_CONDITION, inStockCondition()] };
   if (excludeProductIds.length) where.id = { [Op.notIn]: excludeProductIds };
 
   return Product.findAll({
@@ -373,7 +388,7 @@ export async function getSimilarProducts(
       isActive: true,
       categoryId,
       id: { [Op.notIn]: [productId, ...excludeProductIds] },
-      [Op.and]: [SELLER_VERIFIED_CONDITION],
+      [Op.and]: [SELLER_VERIFIED_CONDITION, inStockCondition()],
     },
     order: [['createdAt', 'DESC']],
     limit,

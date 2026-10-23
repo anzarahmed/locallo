@@ -60,14 +60,11 @@ async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductList
     ?? variantSelection.pickVariantForSearch(
       rawVariants,
       ctx.search,
-      p.name,
       ctx.attributeSchemasByCategory?.get(p.categoryId),
     );
 
-  // A paid variant boost keeps its slot even at zero stock; whole-product boosts and organic rows still need stock.
-  const isVariantBoost = ctx.isBoosted && ctx.boostedVariant != null;
   const outOfStock = chosen ? chosen.stock <= 0 : (rawVariants.length > 0 || p.stock <= 0);
-  if (outOfStock && !isVariantBoost) return null;
+  if (outOfStock) return null;
 
   const displayKey = chosen?.images?.[0] ?? p.images[0] ?? null;
   const sellingPrice = Number(chosen?.sellingPrice ?? p.sellingPrice);
@@ -94,6 +91,39 @@ async function toListItem(p: Product, ctx: ListItemContext): Promise<ProductList
   };
   if (ctx.distanceKm !== undefined) item.distanceKm = ctx.distanceKm;
   return item;
+}
+
+// Any one in-stock option of a promoted group is shown; whole-product boosts (variants null)
+// use the product's active variants, or none when it has no variants.
+function pickDisplayedOptions(
+  chosenBoosts: EligibleBoost[],
+  variantsByProduct: Map<string, ProductVariant[]>,
+  search: string | undefined,
+  schemas: Map<number, AttributeField[]>,
+): Map<string, ProductVariant | undefined> {
+  return new Map(chosenBoosts.map((b) => {
+    const pool = b.variants ?? variantsByProduct.get(b.product.id) ?? [];
+    const picked = variantSelection.pickVariantForSearch(pool, search, schemas.get(b.product.categoryId));
+    return [b.boostId, picked ?? undefined];
+  }));
+}
+
+async function buildBoostedItems(
+  chosenBoosts: EligibleBoost[],
+  displayedByBoost: Map<string, ProductVariant | undefined>,
+  ctx: Omit<ListItemContext, 'isBoosted' | 'boostedVariant'>,
+): Promise<ProductListItem[]> {
+  const resolved = await Promise.all(
+    chosenBoosts.map((b) => toListItem(b.product, {
+      ...ctx,
+      isBoosted: true,
+      boostedVariant: displayedByBoost.get(b.boostId),
+    })),
+  );
+  // One impression per boost whose promoted option actually made it into the response.
+  const shownBoostIds = chosenBoosts.filter((_, i) => resolved[i] !== null).map((b) => b.boostId);
+  await productBoostService.incrementImpressions(shownBoostIds);
+  return resolved.filter((item): item is ProductListItem => item !== null);
 }
 
 export async function getProducts(req: Request, res: Response): Promise<void> {
@@ -125,15 +155,18 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
     productService.getCategoryAttributeSchemas(boostedCategoryIds),
   ]);
 
+  const displayedByBoost = pickDisplayedOptions(chosenBoosts, boostedVariantsByProduct, search, boostedAttributeSchemas);
+
+  // The whole promoted group is kept out of the organic rows, so the same product only
+  // reappears organically through an option outside that group.
   const fullyExcludeProductIds: string[] = [];
-  const excludeVariantByProduct = new Map<string, ProductVariant>();
+  const promotedByProduct = new Map<string, { displayed: ProductVariant; excludedIds: Set<string> }>();
   for (const b of chosenBoosts) {
     const variants = boostedVariantsByProduct.get(b.product.id) ?? [];
-    const displayed = b.variant ?? variantSelection.pickVariantForSearch(
-      variants, search, b.product.name, boostedAttributeSchemas.get(b.product.categoryId),
-    );
-    if (displayed && variants.some((v) => v.id !== displayed.id)) {
-      excludeVariantByProduct.set(b.product.id, displayed);
+    const displayed = displayedByBoost.get(b.boostId);
+    const excludedIds = new Set(b.variants ? b.variants.map((v) => v.id) : displayed ? [displayed.id] : []);
+    if (displayed && variants.some((v) => !excludedIds.has(v.id))) {
+      promotedByProduct.set(b.product.id, { displayed, excludedIds });
     } else {
       fullyExcludeProductIds.push(b.product.id);
     }
@@ -163,19 +196,17 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
     productService.getCategoryAttributeSchemas(categoryIds),
   ]);
 
-  const boostedItemsResolved = await Promise.all(
-    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, search, isBoosted: true, boostedVariant: b.variant, attributeSchemasByCategory })),
-  );
-  const boostedItems = boostedItemsResolved.filter((item): item is ProductListItem => item !== null);
+  const boostedItems = await buildBoostedItems(chosenBoosts, displayedByBoost, { offersById, wishlistedIds, variantsByProduct, search, attributeSchemasByCategory });
 
   const organicItemsResolved = await Promise.all(
     rows.map(async (p) => {
       const distanceKm = hasLocation ? Number(p.get('distanceKm') as string | number) : undefined;
-      const excludedVariant = excludeVariantByProduct.get(p.id);
-      if (excludedVariant) {
+      const promoted = promotedByProduct.get(p.id);
+      if (promoted) {
         const alt = variantSelection.pickAlternateVariantForSearch(
           variantsByProduct.get(p.id) ?? [],
-          excludedVariant,
+          promoted.displayed,
+          promoted.excludedIds,
           search,
           p.name,
           attributeSchemasByCategory.get(p.categoryId),
@@ -187,10 +218,6 @@ export async function getProducts(req: Request, res: Response): Promise<void> {
     }),
   );
   const organicItems = organicItemsResolved.filter((item): item is ProductListItem => item !== null);
-
-  if (chosenBoosts.length > 0) {
-    await productBoostService.incrementImpressions(chosenBoosts.map((b) => b.boostId));
-  }
 
   sendSuccess(res, { products: [...boostedItems, ...organicItems], total: count, page, limit }, 'Products fetched');
 }
@@ -246,19 +273,13 @@ export async function getTrendingProducts(req: Request, res: Response): Promise<
     productService.getCategoryAttributeSchemas(categoryIds),
   ]);
 
-  const boostedItemsResolved = await Promise.all(
-    chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant, attributeSchemasByCategory })),
-  );
-  const boostedItems = boostedItemsResolved.filter((item): item is ProductListItem => item !== null);
+  const displayedByBoost = pickDisplayedOptions(chosenBoosts, variantsByProduct, undefined, attributeSchemasByCategory);
+  const boostedItems = await buildBoostedItems(chosenBoosts, displayedByBoost, { offersById, wishlistedIds, variantsByProduct, attributeSchemasByCategory });
 
   const organicItemsResolved = await Promise.all(
     rows.map((p) => toListItem(p, { offersById, wishlistedIds, variantsByProduct, isBoosted: false, attributeSchemasByCategory })),
   );
   const organicItems = organicItemsResolved.filter((item): item is ProductListItem => item !== null);
-
-  if (chosenBoosts.length > 0) {
-    await productBoostService.incrementImpressions(chosenBoosts.map((b) => b.boostId));
-  }
 
   sendSuccess(res, { products: [...boostedItems, ...organicItems] }, 'Trending products fetched');
 }
@@ -294,19 +315,13 @@ export async function getSimilarProducts(req: Request, res: Response): Promise<v
       productService.getCategoryAttributeSchemas(categoryIds),
     ]);
 
-    const boostedItemsResolved = await Promise.all(
-      chosenBoosts.map((b) => toListItem(b.product, { offersById, wishlistedIds, variantsByProduct, isBoosted: true, boostedVariant: b.variant, attributeSchemasByCategory })),
-    );
-    const boostedItems = boostedItemsResolved.filter((item): item is ProductListItem => item !== null);
+    const displayedByBoost = pickDisplayedOptions(chosenBoosts, variantsByProduct, undefined, attributeSchemasByCategory);
+    const boostedItems = await buildBoostedItems(chosenBoosts, displayedByBoost, { offersById, wishlistedIds, variantsByProduct, attributeSchemasByCategory });
 
     const organicItemsResolved = await Promise.all(
       rows.map((p) => toListItem(p, { offersById, wishlistedIds, variantsByProduct, isBoosted: false, attributeSchemasByCategory })),
     );
     const organicItems = organicItemsResolved.filter((item): item is ProductListItem => item !== null);
-
-    if (chosenBoosts.length > 0) {
-      await productBoostService.incrementImpressions(chosenBoosts.map((b) => b.boostId));
-    }
 
     sendSuccess(res, { products: [...boostedItems, ...organicItems] }, 'Similar products fetched');
   } catch (err: unknown) {

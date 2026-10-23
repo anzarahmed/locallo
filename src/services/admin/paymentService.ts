@@ -19,7 +19,7 @@ interface ListPaymentsFilter {
 
 export interface AdminPaymentRow {
   id: string;
-  productId: string;
+  productId: string | null;
   productName: string;
   productImage: string | null;
   sellerId: string;
@@ -80,7 +80,7 @@ export async function listAllPayments(
       return {
         id:              json.id,
         productId:       json.productId,
-        productName:     json.product?.name ?? 'Product',
+        productName:     json.product?.name ?? json.productName ?? 'Product',
         productImage,
         sellerId:        json.sellerId,
         sellerName:      json.seller?.sellerProfile?.businessName ?? json.seller?.fullName ?? json.seller?.mobile ?? 'Seller',

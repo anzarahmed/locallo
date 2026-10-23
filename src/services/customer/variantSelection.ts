@@ -42,14 +42,9 @@ function attributeHaystack(attributes: Record<string, unknown>, schema?: Attribu
   return parts.join(' ');
 }
 
-export function hasAnyStock(variants: ProductVariant[]): boolean {
-  return variants.some((v) => v.stock > 0);
-}
-
 export function pickVariantForSearch(
   variants: ProductVariant[],
   search?: string,
-  productName?: string,
   attributeSchema?: AttributeField[],
 ): ProductVariant | null {
   const inStock = variants.filter((v) => v.stock > 0);
@@ -58,15 +53,14 @@ export function pickVariantForSearch(
   const tokens = (search ?? '').toLowerCase().split(/\s+/).filter(Boolean);
   if (tokens.length === 0) return inStock[0];
 
-  const remainingTokens = tokens.filter((token) => !matchesToken(productName ?? '', token));
-  if (remainingTokens.length === 0) return inStock[0];
-
+  // Every word counts, including ones also in the product name: for "black m" on
+  // "Black Hoodie", Black M must still outrank Red M and Black S.
   let best = inStock[0];
   let bestScore = -1;
 
   for (const variant of inStock) {
     const haystack = attributeHaystack(variant.attributes as Record<string, unknown>, attributeSchema);
-    const score = remainingTokens.reduce((sum, token) => sum + (matchesToken(haystack, token) ? 1 : 0), 0);
+    const score = tokens.reduce((sum, token) => sum + (matchesToken(haystack, token) ? 1 : 0), 0);
     if (score > bestScore) {
       bestScore = score;
       best = variant;
@@ -76,9 +70,12 @@ export function pickVariantForSearch(
   return best;
 }
 
+// excludedIds holds every option already shown as promoted (the whole group); displayed is
+// the promoted option itself — when it fully matches the search there is no better alternate.
 export function pickAlternateVariantForSearch(
   variants: ProductVariant[],
-  excludedVariant: ProductVariant,
+  displayed: ProductVariant,
+  excludedIds: Set<string>,
   search?: string,
   productName?: string,
   attributeSchema?: AttributeField[],
@@ -92,13 +89,13 @@ export function pickAlternateVariantForSearch(
     return remainingTokens.reduce((sum, token) => sum + (matchesToken(haystack, token) ? 1 : 0), 0);
   };
 
-  if (scoreOf(excludedVariant) === remainingTokens.length) return null;
+  if (scoreOf(displayed) === remainingTokens.length) return null;
 
   let best: ProductVariant | null = null;
   let bestScore = 0;
 
   for (const variant of variants) {
-    if (variant.id === excludedVariant.id) continue;
+    if (excludedIds.has(variant.id)) continue;
     if (variant.stock <= 0) continue;
     const score = scoreOf(variant);
     if (score > bestScore) {

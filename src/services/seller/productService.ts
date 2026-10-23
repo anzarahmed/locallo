@@ -11,6 +11,7 @@ import type { AttributeField } from '../../types';
 import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import { recordPurchase } from './purchaseService';
+import { assertNoLiveBoost, cancelPendingBoosts } from './boostGuards';
 import sequelize from '../../config/database';
 
 type CreateProductInput = InferType<typeof createProductSchema>;
@@ -389,16 +390,31 @@ export async function updateSellerProduct(
   return reloaded;
 }
 
-export async function toggleSellerProduct(sellerId: string, productId: string): Promise<Product> {
+export async function toggleSellerProduct(
+  sellerId: string,
+  productId: string,
+): Promise<{ product: Product; cancelledBoosts: number }> {
   const product = await requireOwnProduct(sellerId, productId);
-  await product.update({ isActive: !product.isActive });
-  return product;
+  if (!product.isActive) {
+    await product.update({ isActive: true });
+    return { product, cancelledBoosts: 0 };
+  }
+
+  await assertNoLiveBoost(productId, 'hidden');
+  const cancelledBoosts = await sequelize.transaction(async (t) => {
+    const cancelled = await cancelPendingBoosts({ productId }, t);
+    await product.update({ isActive: false }, { transaction: t });
+    return cancelled;
+  });
+  return { product, cancelledBoosts };
 }
 
-export async function deleteSellerProduct(sellerId: string, productId: string): Promise<void> {
+export async function deleteSellerProduct(sellerId: string, productId: string): Promise<{ cancelledBoosts: number }> {
   const product = await requireOwnProduct(sellerId, productId);
+  await assertNoLiveBoost(productId, 'deleted');
 
-  await sequelize.transaction(async (t) => {
+  return sequelize.transaction(async (t) => {
+    const cancelledBoosts = await cancelPendingBoosts({ productId }, t);
     await recordPurchase({
       sellerId,
       productId:   product.id,
@@ -412,5 +428,6 @@ export async function deleteSellerProduct(sellerId: string, productId: string): 
     }, t);
 
     await product.destroy({ transaction: t });
+    return { cancelledBoosts };
   });
 }

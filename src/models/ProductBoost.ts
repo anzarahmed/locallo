@@ -28,15 +28,24 @@ export class ProductBoost extends Model {
   @Column(DataType.UUID)
   declare sellerId: string;
 
-  @AllowNull(false)
+  // Null once the product is deleted — the boost row is kept as a payment record.
+  @AllowNull(true)
   @ForeignKey(() => Product)
   @Column(DataType.UUID)
-  declare productId: string;
+  declare productId: string | null;
+
+  @Column(DataType.STRING(255))
+  declare productName: string | null;
 
   @AllowNull(true)
   @ForeignKey(() => ProductVariant)
   @Column(DataType.UUID)
   declare variantId: string | null;
+
+  // The options this boost promotes (null = whole product). variantId above is only the
+  // display anchor (first option).
+  @Column(DataType.ARRAY(DataType.UUID))
+  declare variantIds: string[] | null;
 
   @AllowNull(false)
   @Column(DataType.STRING(20))
@@ -98,7 +107,7 @@ export class ProductBoost extends Model {
   declare seller: User;
 
   @BelongsTo(() => Product)
-  declare product: Product;
+  declare product: Product | null;
 
   @BelongsTo(() => ProductVariant)
   declare variant: ProductVariant | null;

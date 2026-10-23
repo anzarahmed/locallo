@@ -4,6 +4,9 @@ import { ProductVariant } from '../../models/ProductVariant';
 import { ProductBoost } from '../../models/ProductBoost';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
+import { Category } from '../../models/Category';
+import { getGroupOptions } from './variantService';
+import { inStockCondition } from '../customer/productService';
 import { createRazorpayOrder } from '../../utils/razorpay';
 import { sendBoostPaymentConfirmedEmail, sendBoostPaymentFailedEmail } from '../../utils/mailer';
 import { getPresignedUrl } from '../../utils/imageStorage';
@@ -29,6 +32,56 @@ interface CreateBoostInput {
   city?: string;
   budget: number;
   variantId?: string | null;
+  variantIds?: string[] | null;
+}
+
+interface PromotedOptions {
+  variantId: string | null;
+  variantIds: string[] | null;
+}
+
+// The server is authoritative: any one option of a group (legacy single variantId from
+// older app builds included) expands to every active option in that group, frozen here.
+async function resolvePromotedOptions(product: Product, input: CreateBoostInput): Promise<PromotedOptions> {
+  const requestedIds = input.variantIds ?? (input.variantId ? [input.variantId] : []);
+
+  if (requestedIds.length === 0) {
+    // Same stock rule the customer listings apply, so a paid whole-product boost can be shown.
+    const inStock = await Product.count({ where: { id: product.id, [Op.and]: [inStockCondition()] } });
+    if (inStock === 0) {
+      throw Object.assign(new Error('This product is out of stock and cannot be promoted'), { status: 422 });
+    }
+    return { variantId: null, variantIds: null };
+  }
+
+  const productVariants = await ProductVariant.findAll({
+    where: { productId: product.id },
+    order: [['createdAt', 'ASC'], ['id', 'ASC']],
+  });
+  const variantById = new Map(productVariants.map(v => [v.id, v]));
+  if (requestedIds.some(id => !variantById.has(id))) {
+    throw Object.assign(new Error('Variant not found'), { status: 404 });
+  }
+
+  // An option hidden after the picker loaded is skipped rather than failing the request.
+  const activeVariants = productVariants.filter(v => v.isActive);
+  const requestedActive = requestedIds.filter(id => variantById.get(id)!.isActive);
+  const anchor = requestedActive.length > 0 ? variantById.get(requestedActive[0])! : null;
+  if (!anchor) {
+    throw Object.assign(new Error('Variant not found'), { status: 404 });
+  }
+
+  const group = getGroupOptions(product, anchor, activeVariants);
+  const groupIds = new Set(group.map(v => v.id));
+  if (requestedActive.some(id => !groupIds.has(id))) {
+    throw Object.assign(new Error('Selected options must belong to the same group'), { status: 422 });
+  }
+  if (!group.some(v => v.stock > 0)) {
+    throw Object.assign(new Error('All options in this group are out of stock'), { status: 422 });
+  }
+
+  const ordered = activeVariants.filter(v => groupIds.has(v.id)).map(v => v.id);
+  return { variantId: ordered[0], variantIds: ordered };
 }
 
 export async function createBoost(
@@ -36,21 +89,15 @@ export async function createBoost(
   productId: string,
   input: CreateBoostInput,
 ): Promise<ProductBoost> {
-  const product = await Product.findOne({ where: { id: productId, sellerId } });
+  const product = await Product.findOne({
+    where: { id: productId, sellerId },
+    include: [{ model: Category, attributes: ['id', 'attributeSchema'] }],
+  });
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
 
-  let variantId: string | null = null;
-  if (input.variantId) {
-    const variant = await ProductVariant.findOne({
-      where: { id: input.variantId, productId, isActive: true },
-    });
-    if (!variant) {
-      throw Object.assign(new Error('Variant not found'), { status: 404 });
-    }
-    variantId = variant.id;
-  }
+  const { variantId, variantIds } = await resolvePromotedOptions(product, input);
 
   await ProductBoost.update(
     { status: 'cancelled', paymentStatus: 'cancelled' },
@@ -76,7 +123,9 @@ export async function createBoost(
   return ProductBoost.create({
     sellerId,
     productId,
+    productName: product.name,
     variantId,
+    variantIds,
     audienceType,
     state: audienceType === 'state' || audienceType === 'city' ? input.state : null,
     city: audienceType === 'city' ? input.city : null,
@@ -103,7 +152,7 @@ export async function markBoostPaid(razorpayOrderId: string, paymentId: string, 
   const boost = await ProductBoost.findOne({ where: { razorpayOrderId }, include: [{ model: Product }] });
   if (!boost || boost.paymentStatus === 'paid') return;
 
-  const otherActivePaid = await ProductBoost.count({
+  const otherActivePaid = boost.productId === null ? 0 : await ProductBoost.count({
     where: {
       productId: boost.productId,
       status: 'active',
@@ -112,20 +161,27 @@ export async function markBoostPaid(razorpayOrderId: string, paymentId: string, 
     },
   });
 
-  if (otherActivePaid > 0) {
+  // A boost cancelled before payment landed (superseded, product hidden/deleted, or its
+  // options all hidden) must not go live — record the payment for a refund instead.
+  const refundReason = boost.status === 'cancelled'
+    ? 'was cancelled before payment completed'
+    : otherActivePaid > 0 ? 'was paid while the product already has a live paid boost' : null;
+
+  if (refundReason) {
     console.error(
-      `markBoostPaid: product ${boost.productId} already has a live paid boost; boost ${boost.id} ` +
-        `(order ${razorpayOrderId}, payment ${paymentId}) was paid too — needs a refund`,
+      `markBoostPaid: boost ${boost.id} (product ${boost.productId ?? 'deleted'}, order ${razorpayOrderId}, ` +
+        `payment ${paymentId}) ${refundReason} — needs a refund`,
     );
     await boost.update({ paymentStatus: 'paid', razorpayPaymentId: paymentId, razorpaySignature: signature });
-  } else {
-    await boost.update({
-      status: 'active',
-      paymentStatus: 'paid',
-      razorpayPaymentId: paymentId,
-      razorpaySignature: signature,
-    });
+    return;
   }
+
+  await boost.update({
+    status: 'active',
+    paymentStatus: 'paid',
+    razorpayPaymentId: paymentId,
+    razorpaySignature: signature,
+  });
 
   const seller = await User.findByPk(boost.sellerId, {
     include: [{ model: SellerProfile, attributes: ['email', 'businessName'] }],
@@ -136,7 +192,7 @@ export async function markBoostPaid(razorpayOrderId: string, paymentId: string, 
       await sendBoostPaymentConfirmedEmail(
         email,
         seller?.sellerProfile?.businessName ?? seller?.fullName ?? 'there',
-        boost.product.name,
+        boost.product?.name ?? boost.productName ?? 'your product',
         boost.amount,
       );
     } catch (err) {
@@ -159,7 +215,7 @@ export async function markBoostFailed(razorpayOrderId: string, paymentId: string
       await sendBoostPaymentFailedEmail(
         email,
         seller?.sellerProfile?.businessName ?? seller?.fullName ?? 'there',
-        boost.product.name,
+        boost.product?.name ?? boost.productName ?? 'your product',
         boost.amount,
       );
     } catch (err) {
@@ -179,8 +235,9 @@ export async function cancelBoost(sellerId: string, productId: string): Promise<
 
 export interface BoostPaymentRow {
   id: string;
-  productId: string;
+  productId: string | null;
   variantId: string | null;
+  variantIds: string[] | null;
   productName: string;
   productImage: string | null;
   audienceType: BoostAudienceType;
@@ -227,7 +284,8 @@ export async function getBoosts(
         id:              json.id,
         productId:       json.productId,
         variantId:       json.variantId,
-        productName:     json.product?.name ?? 'Product',
+        variantIds:      boost.variantIds,
+        productName:     json.product?.name ?? json.productName ?? 'Product',
         productImage,
         audienceType:    json.audienceType,
         state:           json.state,

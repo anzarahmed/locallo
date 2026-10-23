@@ -1,5 +1,5 @@
 import type { InferType } from 'yup';
-import { Op } from 'sequelize';
+import { Op, type Transaction } from 'sequelize';
 import sequelize from '../../config/database';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
@@ -10,6 +10,7 @@ import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import { recordPurchase } from './purchaseService';
 import { ProductBoost } from '../../models/ProductBoost';
+import { assertNoLiveBoost, cancelPendingBoosts } from './boostGuards';
 
 export async function syncProductStock(productId: string): Promise<void> {
   const total = ((await ProductVariant.sum('stock', { where: { productId } })) as number | null) ?? 0;
@@ -70,14 +71,93 @@ async function hasOtherActiveVariant(productId: string, variantId: string): Prom
   return count > 0;
 }
 
-async function assertNotBoosted(variantId: string, action: 'hidden' | 'deleted'): Promise<void> {
-  const count = await ProductBoost.count({ where: { variantId, status: 'active', paymentStatus: 'paid' } });
-  if (count > 0) {
-    throw Object.assign(
-      new Error(`This variant is currently a boosted product and cannot be ${action} while the boost is active.`),
-      { status: 409 },
-    );
+function otherListedIds(boosts: ProductBoost[], variantId: string): string[] {
+  return [...new Set(boosts.flatMap(b => b.variantIds ?? []))].filter(id => id !== variantId);
+}
+
+// Hiding/deleting an option of a promoted group is fine while another listed option
+// stays visible; the ID is deliberately left in variant_ids so unhiding restores it.
+async function assertNotLastBoostedOption(
+  productId: string,
+  variantId: string,
+  action: 'hidden' | 'deleted',
+): Promise<void> {
+  const boosts = await ProductBoost.findAll({
+    where: { productId, status: 'active', paymentStatus: 'paid', variantIds: { [Op.contains]: [variantId] } },
+  });
+  if (boosts.length === 0) return;
+
+  const candidateIds = otherListedIds(boosts, variantId);
+  const activeIds = new Set(candidateIds.length === 0 ? [] : (await ProductVariant.findAll({
+    where: { id: { [Op.in]: candidateIds }, productId, isActive: true },
+    attributes: ['id'],
+  })).map(v => v.id));
+
+  for (const boost of boosts) {
+    if (!(boost.variantIds ?? []).some(id => id !== variantId && activeIds.has(id))) {
+      throw Object.assign(
+        new Error(`This is the last visible option of a promoted group and cannot be ${action} while the boost is active.`),
+        { status: 409 },
+      );
+    }
   }
+}
+
+// variant_ids keeps a deleted ID (it simply stops resolving). variant_id is only a display
+// anchor whose FK is ON DELETE SET NULL, and older app builds read a null anchor as "whole
+// product", so it moves to a surviving listed option first. A boost left with no visible
+// listed option can't be shown; live paid ones are already blocked by assertNotLastBoostedOption,
+// so this only cancels unpaid (pending) ones before the seller can pay for them.
+async function detachDeletedOptionFromBoosts(productId: string, variantId: string, t: Transaction): Promise<number> {
+  const boosts = await ProductBoost.findAll({
+    where: { productId, status: { [Op.in]: ['pending', 'active'] }, variantIds: { [Op.contains]: [variantId] } },
+    transaction: t,
+  });
+  if (boosts.length === 0) return 0;
+
+  const candidateIds = otherListedIds(boosts, variantId);
+  const survivors = candidateIds.length === 0 ? [] : await ProductVariant.findAll({
+    where: { id: { [Op.in]: candidateIds }, productId },
+    attributes: ['id', 'isActive', 'createdAt'],
+    order: [['isActive', 'DESC'], ['createdAt', 'ASC'], ['id', 'ASC']],
+    transaction: t,
+  });
+
+  let cancelled = 0;
+  for (const boost of boosts) {
+    const listed = new Set(boost.variantIds ?? []);
+    const listedSurvivors = survivors.filter(v => v.id !== variantId && listed.has(v.id));
+    if (boost.status === 'pending' && !listedSurvivors.some(v => v.isActive)) {
+      cancelled += await cancelPendingBoosts({ id: boost.id }, t);
+      continue;
+    }
+    if (boost.variantId === variantId && listedSurvivors.length > 0) {
+      await boost.update({ variantId: listedSurvivors[0].id }, { transaction: t });
+    }
+  }
+  return cancelled;
+}
+
+// Hiding the last visible listed option of an unpaid boost cancels it (a live paid boost
+// is blocked earlier by assertNotLastBoostedOption); its IDs stay untouched.
+async function cancelPendingBoostsLeftHidden(productId: string, hiddenId: string, t: Transaction): Promise<number> {
+  const pending = await ProductBoost.findAll({
+    where: { productId, status: 'pending', variantIds: { [Op.contains]: [hiddenId] } },
+    transaction: t,
+  });
+  if (pending.length === 0) return 0;
+
+  const candidateIds = otherListedIds(pending, hiddenId);
+  const visibleIds = new Set(candidateIds.length === 0 ? [] : (await ProductVariant.findAll({
+    where: { id: { [Op.in]: candidateIds }, productId, isActive: true },
+    attributes: ['id'],
+    transaction: t,
+  })).map(v => v.id));
+
+  const emptied = pending
+    .filter(b => !(b.variantIds ?? []).some(id => id !== hiddenId && visibleIds.has(id)))
+    .map(b => b.id);
+  return emptied.length > 0 ? cancelPendingBoosts({ id: { [Op.in]: emptied } }, t) : 0;
 }
 
 function getVariantKeys(product: Product): string[] {
@@ -115,6 +195,14 @@ function findGroupSiblings(
     v.id !== targetVariant.id &&
     getComboKey(v.attributes as Record<string, unknown>, groupKeys) === targetKey,
   );
+}
+
+export function getGroupOptions(
+  product: Product,
+  anchor: ProductVariant,
+  activeVariants: ProductVariant[],
+): ProductVariant[] {
+  return [anchor, ...findGroupSiblings(product, anchor, activeVariants)];
 }
 
 // Same grouping as findGroupSiblings, but starting from the shared (non-SD) attributes
@@ -279,12 +367,13 @@ export async function updateVariant(
   variantId: string,
   sellerId: string,
   data: UpdateVariantInput,
-): Promise<{ variant: ProductVariant; siblings: ProductVariant[] }> {
+): Promise<{ variant: ProductVariant; siblings: ProductVariant[]; cancelledBoosts: number }> {
   const product = await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
 
-  if (data.isActive === false && variant.isActive) {
-    await assertNotBoosted(variantId, 'hidden');
+  const hiding = data.isActive === false && variant.isActive;
+  if (hiding) {
+    await assertNotLastBoostedOption(productId, variantId, 'hidden');
   }
 
   if (data.isActive === false && variant.isActive && !(await hasOtherActiveVariant(productId, variantId))) {
@@ -311,7 +400,7 @@ export async function updateVariant(
     siblings = findGroupSiblings(product, variant, allVariants);
   }
 
-  await sequelize.transaction(async (t) => {
+  const cancelledBoosts = await sequelize.transaction(async (t) => {
     await variant.update({
       ...(committedImages   !== undefined && { images:       committedImages }),
       ...(data.stock        !== undefined && { stock:        data.stock }),
@@ -320,9 +409,12 @@ export async function updateVariant(
       ...(data.isActive     !== undefined && { isActive:     data.isActive }),
     }, { transaction: t });
 
+    const cancelled = hiding ? await cancelPendingBoostsLeftHidden(productId, variantId, t) : 0;
+
     if (committedImages !== undefined && siblings.length > 0) {
       await Promise.all(siblings.map(s => s.update({ images: committedImages }, { transaction: t })));
     }
+    return cancelled;
   });
 
   // Sequelize's instance.update() only RETURNINGs on INSERT, not UPDATE — without
@@ -347,20 +439,23 @@ export async function updateVariant(
     });
   }
 
-  return { variant, siblings };
+  return { variant, siblings, cancelledBoosts };
 }
 
 export async function deleteVariant(
   productId: string,
   variantId: string,
   sellerId: string,
-): Promise<{ productDeleted: boolean }> {
+): Promise<{ productDeleted: boolean; cancelledBoosts: number }> {
   const product = await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
 
-  await assertNotBoosted(variantId, 'deleted');
+  await assertNotLastBoostedOption(productId, variantId, 'deleted');
 
   const totalCount = await ProductVariant.count({ where: { productId } });
+  if (totalCount === 1) {
+    await assertNoLiveBoost(productId, 'deleted');
+  }
   if (totalCount > 1 && !(await hasOtherActiveVariant(productId, variantId))) {
     throw Object.assign(
       new Error('You cannot delete this variant because it is the last visible variant of this product. Enable another variant before deleting this one.'),
@@ -370,7 +465,7 @@ export async function deleteVariant(
 
   const stockBefore = variant.stock;
 
-  const productDeleted = await sequelize.transaction(async (t) => {
+  const { productDeleted, cancelledBoosts } = await sequelize.transaction(async (t) => {
     // Recorded before destroy() — the FK needs the variant row to still exist,
     // and product_id/variant_id fall back to SET NULL on delete so the log survives.
     await recordPurchase({
@@ -385,38 +480,32 @@ export async function deleteVariant(
       costPriceAtPurchase: product.costPrice,
     }, t);
 
-    // The FK on product_boosts.variant_id is ON DELETE SET NULL, and a null
-    // variantId means "boost covers every variant of the product" — so without
-    // this, deleting a boosted variant would silently reassign its promotion
-    // to whichever other variant gets picked next, instead of ending it.
-    await ProductBoost.update(
-      { status: 'cancelled' },
-      { where: { variantId, status: { [Op.in]: ['pending', 'active'] } }, transaction: t },
-    );
+    const detached = await detachDeletedOptionFromBoosts(productId, variantId, t);
 
     await variant.destroy({ transaction: t });
     const remaining = await ProductVariant.count({ where: { productId }, transaction: t });
-    if (remaining > 0) return false;
+    if (remaining > 0) return { productDeleted: false, cancelledBoosts: detached };
+    const productWide = await cancelPendingBoosts({ productId }, t);
     await product.destroy({ transaction: t });
-    return true;
+    return { productDeleted: true, cancelledBoosts: detached + productWide };
   });
   if (!productDeleted) {
     await syncProductStock(productId);
     await syncProductVariantAttrs(productId);
   }
-  return { productDeleted };
+  return { productDeleted, cancelledBoosts };
 }
 
 export async function toggleVariant(
   productId: string,
   variantId: string,
   sellerId: string,
-): Promise<ProductVariant> {
+): Promise<{ variant: ProductVariant; cancelledBoosts: number }> {
   await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
 
   if (variant.isActive) {
-    await assertNotBoosted(variantId, 'hidden');
+    await assertNotLastBoostedOption(productId, variantId, 'hidden');
   }
 
   if (variant.isActive && !(await hasOtherActiveVariant(productId, variantId))) {
@@ -426,7 +515,11 @@ export async function toggleVariant(
     );
   }
 
-  await variant.update({ isActive: !variant.isActive });
-  return variant;
+  const hiding = variant.isActive;
+  const cancelledBoosts = await sequelize.transaction(async (t) => {
+    await variant.update({ isActive: !variant.isActive }, { transaction: t });
+    return hiding ? cancelPendingBoostsLeftHidden(productId, variantId, t) : 0;
+  });
+  return { variant, cancelledBoosts };
 }
 

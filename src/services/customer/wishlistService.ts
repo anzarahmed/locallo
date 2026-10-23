@@ -1,12 +1,20 @@
-import { Op } from 'sequelize';
+import { Op, literal } from 'sequelize';
 import { Wishlist } from '../../models/Wishlist';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { SellerProfile } from '../../models/SellerProfile';
-import { getActiveVariantsByProduct, hasAnyStock } from './variantSelection';
+import { inStockSql } from './productService';
 
 const LIST_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images', 'sellerId', 'categoryId'];
 const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'stock', 'sellingPrice', 'mrp', 'isActive'];
+
+// Filtered in SQL so pagination and count only see displayable rows: a variant-specific
+// entry needs that variant visible and in stock, a product entry needs the product in stock.
+const WISHLIST_IN_STOCK_CONDITION = literal(
+  'CASE WHEN "Wishlist".variant_id IS NOT NULL ' +
+  'THEN EXISTS (SELECT 1 FROM product_variants wv WHERE wv.id = "Wishlist".variant_id AND wv.is_active = true AND wv.stock > 0) ' +
+  `ELSE ${inStockSql('"Wishlist".product_id', '(SELECT stock FROM products WHERE products.id = "Wishlist".product_id)')} END`,
+);
 
 export async function toggleWishlist(
   customerId: string,
@@ -40,8 +48,8 @@ export async function listWishlist(
   page: number,
   limit: number,
 ): Promise<{ rows: Wishlist[]; count: number }> {
-  const { rows, count } = await Wishlist.findAndCountAll({
-    where: { customerId },
+  return Wishlist.findAndCountAll({
+    where: { customerId, [Op.and]: [WISHLIST_IN_STOCK_CONDITION] },
     include: [
       {
         model: Product,
@@ -59,14 +67,6 @@ export async function listWishlist(
     limit,
     offset: (page - 1) * limit,
   });
-
-  const activeVariantsByProduct = await getActiveVariantsByProduct(rows.map((w) => w.productId));
-  const inStockRows = rows.filter((w) => {
-    const activeVariants = activeVariantsByProduct.get(w.productId) ?? [];
-    return activeVariants.length > 0 ? hasAnyStock(activeVariants) : w.product.stock > 0;
-  });
-
-  return { rows: inStockRows, count };
 }
 
 export async function getSellerLocations(

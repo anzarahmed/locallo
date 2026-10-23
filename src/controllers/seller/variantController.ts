@@ -54,7 +54,7 @@ export async function createBatchVariants(req: Request, res: Response): Promise<
 
 export async function updateVariant(req: Request, res: Response): Promise<void> {
   try {
-    const { variant, siblings } = await variantService.updateVariant(
+    const { variant, siblings, cancelledBoosts } = await variantService.updateVariant(
       String(req.params.productId),
       String(req.params.variantId),
       req.seller!.id,
@@ -64,7 +64,7 @@ export async function updateVariant(req: Request, res: Response): Promise<void> 
       signVariant(variant.toJSON()),
       Promise.all(siblings.map(s => signVariant(s.toJSON()))),
     ]);
-    sendSuccess(res, { variant: signedVariant, siblings: signedSiblings }, 'Variant updated');
+    sendSuccess(res, { variant: signedVariant, siblings: signedSiblings, cancelledBoosts }, 'Variant updated');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to update variant');
   }
@@ -85,13 +85,13 @@ export async function deleteVariant(req: Request, res: Response): Promise<void> 
 
 export async function toggleVariant(req: Request, res: Response): Promise<void> {
   try {
-    const variant = await variantService.toggleVariant(
+    const { variant, cancelledBoosts } = await variantService.toggleVariant(
       String(req.params.productId),
       String(req.params.variantId),
       req.seller!.id,
     );
     const signed = await signVariant(variant.toJSON());
-    sendSuccess(res, { variant: signed }, 'Variant status updated');
+    sendSuccess(res, { variant: signed, cancelledBoosts }, 'Variant status updated');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to toggle variant');
   }
