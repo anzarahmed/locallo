@@ -7,9 +7,9 @@ import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 import { isPushConfigured } from '../../utils/push';
 import { getIstDateParts, getIstTimeString, istCalendarDateToUtc } from '../../utils/istDate';
-import type { PushStatus } from '../../types';
+import type { PushOptions, PushStatus } from '../../types';
 import { TEMPLATES, PROMOTIONAL_TYPES, PUSH_SCHEMA_VERSION } from './templates';
-import type { NotificationTemplate, NotificationType, TemplateParamsMap } from './templates';
+import type { BuiltNotification, NotificationTemplate, NotificationType, TemplateParamsMap } from './templates';
 
 const CHUNK_SIZE = 1000;
 const PROMO_DAILY_CAP = 1;
@@ -117,6 +117,50 @@ async function resolvePushEligible<P>(userIds: string[], template: NotificationT
   return usersUnderPromoCap([...eligible]);
 }
 
+export interface NotificationRowFields {
+  id: string;
+  customerId: string;
+  title: string;
+  message: string;
+  type: NotificationType;
+  referenceType: string | null;
+  referenceId: string | null;
+  data: Record<string, string>;
+  pushOptions: PushOptions;
+}
+
+export function buildNotificationRow<P>(
+  id: string,
+  userId: string,
+  type: NotificationType,
+  template: NotificationTemplate<P>,
+  built: BuiltNotification,
+): NotificationRowFields {
+  return {
+    id,
+    customerId: userId,
+    title: built.title,
+    message: built.body,
+    type,
+    referenceType: built.referenceType ?? null,
+    referenceId: built.referenceId ?? null,
+    data: {
+      schemaVersion: PUSH_SCHEMA_VERSION,
+      notificationId: id,
+      type,
+      screen: built.screen,
+      ...built.params,
+    },
+    pushOptions: {
+      pushClass: template.pushClass,
+      channel: template.channel,
+      ...(built.imageUrl ? { imageUrl: built.imageUrl } : {}),
+      ...(built.collapseKey ? { collapseKey: built.collapseKey } : {}),
+      ...(built.expiresAt ? { expiresAt: built.expiresAt.toISOString() } : {}),
+    },
+  };
+}
+
 // Writes one inbox row per user and queues a push where settings, devices and the
 // promotional cap allow. Rows whose dedupe key already exists are silently skipped,
 // which is what makes cron re-runs and webhook retries safe. Returns rows created.
@@ -130,13 +174,6 @@ export async function notifyMany<T extends NotificationType>(
   const template = TEMPLATES[type] as NotificationTemplate<TemplateParamsMap[T]>;
   const built = template.build(params);
   const quietUntil = template.pushClass === 'promotional' ? nextSendTime() : null;
-  const pushOptions = {
-    pushClass: template.pushClass,
-    channel: template.channel,
-    ...(built.imageUrl ? { imageUrl: built.imageUrl } : {}),
-    ...(built.collapseKey ? { collapseKey: built.collapseKey } : {}),
-    ...(built.expiresAt ? { expiresAt: built.expiresAt.toISOString() } : {}),
-  };
 
   let created = 0;
   for (let i = 0; i < userIds.length; i += CHUNK_SIZE) {
@@ -148,22 +185,8 @@ export async function notifyMany<T extends NotificationType>(
       const id = crypto.randomUUID();
       const pushStatus: PushStatus = eligible.has(userId) ? 'pending' : 'skipped';
       return {
-        id,
-        customerId: userId,
-        title: built.title,
-        message: built.body,
-        type,
-        referenceType: built.referenceType ?? null,
-        referenceId: built.referenceId ?? null,
+        ...buildNotificationRow(id, userId, type, template, built),
         dedupeKey: dedupeKeyFor ? dedupeKeyFor(userId) : null,
-        data: {
-          schemaVersion: PUSH_SCHEMA_VERSION,
-          notificationId: id,
-          type,
-          screen: built.screen,
-          ...built.params,
-        },
-        pushOptions,
         pushStatus,
         sendAfter: pushStatus === 'pending' ? (sendAfter ?? quietUntil ?? new Date()) : null,
       };

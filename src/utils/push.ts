@@ -3,6 +3,8 @@ import { getMessaging, type Message } from 'firebase-admin/messaging';
 import type { PushOptions } from '../types';
 
 const FCM_BATCH_SIZE = 500;
+// FCM rejects the whole message when android.ttl exceeds 4 weeks.
+const FCM_MAX_TTL_MS = 28 * 24 * 60 * 60 * 1000;
 
 const INVALID_TOKEN_CODES = new Set([
   'messaging/registration-token-not-registered',
@@ -75,7 +77,7 @@ export function buildPushMessage(token: string, content: PushContent): Message {
     data: content.data,
     android: {
       priority: isTransactional ? 'high' : 'normal',
-      ...(expiresAtMs !== null ? { ttl: Math.max(0, expiresAtMs - Date.now()) } : {}),
+      ...(expiresAtMs !== null ? { ttl: Math.min(FCM_MAX_TTL_MS, Math.max(0, expiresAtMs - Date.now())) } : {}),
       notification: {
         channelId: options.channel,
         sound: 'default',

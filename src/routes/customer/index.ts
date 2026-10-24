@@ -2,6 +2,7 @@ import { Router } from 'express';
 import { requestOtp, verifyOtp, logout } from '../../controllers/customer/customerAuthController';
 import { getProfile, updateProfile, uploadProfileImage, deleteAccount, getSettings, updateSettings } from '../../controllers/customer/customerProfileController';
 import { savePushToken, removePushToken } from '../../controllers/shared/pushTokenController';
+import { getTestPushTypes, postTestPush } from '../../controllers/shared/testPushController';
 import { getProducts, getProduct, getTrendingProducts, getSimilarProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
 import { addReview, getReviews, editReview, removeReview, uploadReviewImages } from '../../controllers/customer/reviewController';
@@ -17,6 +18,7 @@ import upload, { uploadArray } from '../../middleware/upload';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/customer/customerAuthSchemas';
 import { updateCustomerProfileSchema, updateCustomerSettingsSchema } from '../../validation/customer/customerProfileSchemas';
 import { registerPushTokenSchema } from '../../validation/shared/pushTokenSchemas';
+import { sendTestPushSchema } from '../../validation/shared/testPushSchemas';
 import { searchProductsSchema, audienceBodySchema } from '../../validation/customer/productSchemas';
 import { createReviewSchema, updateReviewSchema } from '../../validation/customer/reviewSchemas';
 
@@ -28,6 +30,9 @@ router.post('/auth/logout',      requireCustomer,             logout);
 
 router.put('/push-token',    requireCustomer, validate(registerPushTokenSchema), savePushToken);
 router.delete('/push-token', requireCustomer, removePushToken);
+
+router.get('/test/push-types', requireCustomer, getTestPushTypes('customer'));
+router.post('/test/push',      requireCustomer, validate(sendTestPushSchema), postTestPush('customer'));
 
 router.get('/settings', requireCustomer, getSettings);
 router.put('/settings', requireCustomer, validate(updateCustomerSettingsSchema), updateSettings);
