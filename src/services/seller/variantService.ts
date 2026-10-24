@@ -97,17 +97,23 @@ async function findBoostsEndedBy(productId: string, variantId: string): Promise<
     .map(b => b.id);
 }
 
+export const BOOST_ENDS_ON_HIDE_MESSAGE =
+  'The product is boosted, hiding this variant would lead to end of promotion. Are you sure you want to hide it?';
+
 // Hiding an option of a promoted group is fine while another listed option stays visible;
-// the ID is deliberately left in variant_ids so unhiding restores it. Deleting is allowed
-// (it ends the boost after the seller confirms — see deleteVariant).
-async function assertNotLastBoostedOption(productId: string, variantId: string): Promise<void> {
-  if ((await findBoostsEndedBy(productId, variantId)).length > 0) {
-    throw Object.assign(
-      new Error('This is the last visible option of a promoted group and cannot be hidden while the boost is active.'),
-      { status: 409 },
-    );
+// the ID is deliberately left in variant_ids so unhiding restores it. Hiding the last one
+// ends the boost, so (like deleteVariant) it needs the seller's confirmation — older app
+// builds don't send endBoost, so they get a 409 instead of silently ending a paid boost.
+async function resolveBoostsEndedByHide(productId: string, variantId: string, endBoost: boolean): Promise<string[]> {
+  const endingBoostIds = await findBoostsEndedBy(productId, variantId);
+  if (endingBoostIds.length > 0 && !endBoost) {
+    throw Object.assign(new Error(BOOST_ENDS_ON_HIDE_MESSAGE), { status: 409 });
   }
+  return endingBoostIds;
 }
+
+const LAST_VISIBLE_VARIANT_HIDE_MESSAGE =
+  'You cannot disable this variant because it is the last visible variant of this product. Enable another variant before disabling this one.';
 
 // variant_ids keeps a deleted ID (it simply stops resolving). variant_id is only a display
 // anchor whose FK is ON DELETE SET NULL, and older app builds read a null anchor as "whole
@@ -145,7 +151,7 @@ async function detachDeletedOptionFromBoosts(productId: string, variantId: strin
 }
 
 // Hiding the last visible listed option of an unpaid boost cancels it (a live paid boost
-// is blocked earlier by assertNotLastBoostedOption); its IDs stay untouched.
+// is completed by the caller after resolveBoostsEndedByHide); its IDs stay untouched.
 async function cancelPendingBoostsLeftHidden(productId: string, hiddenId: string, t: Transaction): Promise<number> {
   const pending = await ProductBoost.findAll({
     where: { productId, status: 'pending', variantIds: { [Op.contains]: [hiddenId] } },
@@ -373,21 +379,16 @@ export async function updateVariant(
   variantId: string,
   sellerId: string,
   data: UpdateVariantInput,
-): Promise<{ variant: ProductVariant; siblings: ProductVariant[]; cancelledBoosts: number }> {
+  endBoost: boolean,
+): Promise<{ variant: ProductVariant; siblings: ProductVariant[]; cancelledBoosts: number; endedBoosts: number }> {
   const product = await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
 
   const hiding = data.isActive === false && variant.isActive;
-  if (hiding) {
-    await assertNotLastBoostedOption(productId, variantId);
+  if (hiding && !(await hasOtherActiveVariant(productId, variantId))) {
+    throw Object.assign(new Error(LAST_VISIBLE_VARIANT_HIDE_MESSAGE), { status: 409 });
   }
-
-  if (data.isActive === false && variant.isActive && !(await hasOtherActiveVariant(productId, variantId))) {
-    throw Object.assign(
-      new Error('You cannot disable this variant because it is the last visible variant of this product. Enable another variant before disabling this one.'),
-      { status: 409 },
-    );
-  }
+  const endingBoostIds = hiding ? await resolveBoostsEndedByHide(productId, variantId, endBoost) : [];
 
   const stockBefore = variant.stock;
   const stockDelta = data.stock !== undefined ? data.stock - stockBefore : 0;
@@ -406,7 +407,10 @@ export async function updateVariant(
     siblings = findGroupSiblings(product, variant, allVariants);
   }
 
-  const cancelledBoosts = await sequelize.transaction(async (t) => {
+  const { cancelledBoosts, endedBoosts } = await sequelize.transaction(async (t) => {
+    const ended = endingBoostIds.length > 0
+      ? await completeLiveBoosts({ id: { [Op.in]: endingBoostIds } }, t)
+      : 0;
     await variant.update({
       ...(committedImages   !== undefined && { images:       committedImages }),
       ...(data.stock        !== undefined && { stock:        data.stock }),
@@ -420,7 +424,7 @@ export async function updateVariant(
     if (committedImages !== undefined && siblings.length > 0) {
       await Promise.all(siblings.map(s => s.update({ images: committedImages }, { transaction: t })));
     }
-    return cancelled;
+    return { cancelledBoosts: cancelled, endedBoosts: ended };
   });
 
   // Sequelize's instance.update() only RETURNINGs on INSERT, not UPDATE — without
@@ -445,7 +449,7 @@ export async function updateVariant(
     });
   }
 
-  return { variant, siblings, cancelledBoosts };
+  return { variant, siblings, cancelledBoosts, endedBoosts };
 }
 
 export async function deleteVariant(
@@ -514,26 +518,24 @@ export async function toggleVariant(
   productId: string,
   variantId: string,
   sellerId: string,
-): Promise<{ variant: ProductVariant; cancelledBoosts: number }> {
+  endBoost: boolean,
+): Promise<{ variant: ProductVariant; cancelledBoosts: number; endedBoosts: number }> {
   await requireOwnProduct(sellerId, productId);
   const variant = await requireOwnVariant(productId, variantId);
 
-  if (variant.isActive) {
-    await assertNotLastBoostedOption(productId, variantId);
-  }
-
-  if (variant.isActive && !(await hasOtherActiveVariant(productId, variantId))) {
-    throw Object.assign(
-      new Error('You cannot disable this variant because it is the last visible variant of this product. Enable another variant before disabling this one.'),
-      { status: 409 },
-    );
-  }
-
   const hiding = variant.isActive;
-  const cancelledBoosts = await sequelize.transaction(async (t) => {
+  if (hiding && !(await hasOtherActiveVariant(productId, variantId))) {
+    throw Object.assign(new Error(LAST_VISIBLE_VARIANT_HIDE_MESSAGE), { status: 409 });
+  }
+  const endingBoostIds = hiding ? await resolveBoostsEndedByHide(productId, variantId, endBoost) : [];
+
+  return sequelize.transaction(async (t) => {
+    const endedBoosts = endingBoostIds.length > 0
+      ? await completeLiveBoosts({ id: { [Op.in]: endingBoostIds } }, t)
+      : 0;
     await variant.update({ isActive: !variant.isActive }, { transaction: t });
-    return hiding ? cancelPendingBoostsLeftHidden(productId, variantId, t) : 0;
+    const cancelledBoosts = hiding ? await cancelPendingBoostsLeftHidden(productId, variantId, t) : 0;
+    return { variant, cancelledBoosts, endedBoosts };
   });
-  return { variant, cancelledBoosts };
 }
 

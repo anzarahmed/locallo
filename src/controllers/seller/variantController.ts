@@ -54,17 +54,18 @@ export async function createBatchVariants(req: Request, res: Response): Promise<
 
 export async function updateVariant(req: Request, res: Response): Promise<void> {
   try {
-    const { variant, siblings, cancelledBoosts } = await variantService.updateVariant(
+    const { variant, siblings, cancelledBoosts, endedBoosts } = await variantService.updateVariant(
       String(req.params.productId),
       String(req.params.variantId),
       req.seller!.id,
       req.body,
+      req.query.endBoost === 'true',
     );
     const [signedVariant, signedSiblings] = await Promise.all([
       signVariant(variant.toJSON()),
       Promise.all(siblings.map(s => signVariant(s.toJSON()))),
     ]);
-    sendSuccess(res, { variant: signedVariant, siblings: signedSiblings, cancelledBoosts }, 'Variant updated');
+    sendSuccess(res, { variant: signedVariant, siblings: signedSiblings, cancelledBoosts, endedBoosts }, 'Variant updated');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to update variant');
   }
@@ -86,13 +87,14 @@ export async function deleteVariant(req: Request, res: Response): Promise<void> 
 
 export async function toggleVariant(req: Request, res: Response): Promise<void> {
   try {
-    const { variant, cancelledBoosts } = await variantService.toggleVariant(
+    const { variant, cancelledBoosts, endedBoosts } = await variantService.toggleVariant(
       String(req.params.productId),
       String(req.params.variantId),
       req.seller!.id,
+      req.query.endBoost === 'true',
     );
     const signed = await signVariant(variant.toJSON());
-    sendSuccess(res, { variant: signed, cancelledBoosts }, 'Variant status updated');
+    sendSuccess(res, { variant: signed, cancelledBoosts, endedBoosts }, 'Variant status updated');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to toggle variant');
   }
