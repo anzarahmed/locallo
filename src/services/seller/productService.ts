@@ -391,9 +391,9 @@ export async function updateSellerProduct(
 }
 
 export const BOOST_ENDS_ON_PRODUCT_HIDE_MESSAGE =
-  'The product is boosted, hiding it would lead to end of promotion. Are you sure you want to hide it?';
+  "The product is boosted, hiding it will end the product's promotion. Are you sure you want to hide it?";
 export const BOOST_ENDS_ON_PRODUCT_DELETE_MESSAGE =
-  'The product is boosted, deletion would lead to end of promotion. Are you sure you want to delete it?';
+  "The product is boosted, deletion will end the product's promotion. Are you sure you want to delete it?";
 
 // Older app builds don't send endBoost, so they get a 409 instead of silently ending a paid boost.
 async function assertBoostEndConfirmed(productId: string, endBoost: boolean, message: string): Promise<void> {

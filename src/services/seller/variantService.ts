@@ -76,7 +76,7 @@ function otherListedIds(boosts: ProductBoost[], variantId: string): string[] {
 }
 
 export const BOOST_ENDS_ON_DELETE_MESSAGE =
-  'The product is boosted, deletion would lead to end of promotion. Are you sure you want to delete?';
+  "The product is boosted, deletion will end the product's promotion. Are you sure you want to delete it?";
 
 // Live paid boosts for which this is the last visible listed option — removing it leaves
 // them nothing to show.
@@ -98,7 +98,7 @@ async function findBoostsEndedBy(productId: string, variantId: string): Promise<
 }
 
 export const BOOST_ENDS_ON_HIDE_MESSAGE =
-  'The product is boosted, hiding this variant would lead to end of promotion. Are you sure you want to hide it?';
+  "The product is boosted, hiding this variant will end the product's promotion. Are you sure you want to hide it?";
 
 // Hiding an option of a promoted group is fine while another listed option stays visible;
 // the ID is deliberately left in variant_ids so unhiding restores it. Hiding the last one
@@ -113,7 +113,7 @@ async function resolveBoostsEndedByHide(productId: string, variantId: string, en
 }
 
 const LAST_VISIBLE_VARIANT_HIDE_MESSAGE =
-  'You cannot disable this variant because it is the last visible variant of this product. Enable another variant before disabling this one.';
+  'You cannot hide this variant because it is the last visible variant of this product. Enable another variant before hiding this one.';
 
 // variant_ids keeps a deleted ID (it simply stops resolving). variant_id is only a display
 // anchor whose FK is ON DELETE SET NULL, and older app builds read a null anchor as "whole
