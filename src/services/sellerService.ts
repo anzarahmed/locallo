@@ -40,12 +40,12 @@ export function getProducts(params?: {
   return apiGet(PATHS.PRODUCTS, params);
 }
 
-export function toggleProduct(id: string): Promise<{ cancelledBoosts?: number }> {
-  return apiPatch(`${PATHS.PRODUCTS}/${id}/toggle`);
+export function toggleProduct(id: string, endBoost = false): Promise<{ cancelledBoosts?: number; endedBoosts?: number }> {
+  return apiPatch(`${PATHS.PRODUCTS}/${id}/toggle${endBoost ? '?endBoost=true' : ''}`);
 }
 
-export function deleteProduct(id: string): Promise<{ cancelledBoosts?: number } | null> {
-  return apiDelete(`${PATHS.PRODUCTS}/${id}`);
+export function deleteProduct(id: string, endBoost = false): Promise<{ cancelledBoosts?: number; endedBoosts?: number } | null> {
+  return apiDelete(`${PATHS.PRODUCTS}/${id}${endBoost ? '?endBoost=true' : ''}`);
 }
 
 export function uploadProductImage(file: File): Promise<{ url: string }> {

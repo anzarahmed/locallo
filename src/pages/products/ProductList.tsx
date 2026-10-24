@@ -31,6 +31,8 @@ export default function ProductList(): JSX.Element {
   const [sortBy, setSortBy] = useState('sort_newest');
   const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [hideTarget, setHideTarget] = useState<Product | null>(null);
+  const [hiding, setHiding] = useState(false);
   const [previewId, setPreviewId] = useState<string | null>(null);
 
   const [sellProduct, setSellProduct] = useState<Product | null>(null);
@@ -80,7 +82,19 @@ export default function ProductList(): JSX.Element {
     setPage(1);
   }
 
+  function markBoosted(productId: string, isBoosted: boolean): void {
+    setProducts(prev => prev.map(p => p.id === productId ? { ...p, isBoosted } : p));
+  }
+
+  function isBoostConflict(err: unknown): boolean {
+    return err instanceof ApiError && err.status === 409;
+  }
+
   async function handleToggle(product: Product): Promise<void> {
+    if (product.isActive && product.isBoosted) {
+      setHideTarget(product);
+      return;
+    }
     try {
       const { cancelledBoosts } = await toggleProduct(product.id);
       setProducts(prev =>
@@ -90,7 +104,33 @@ export default function ProductList(): JSX.Element {
       const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (cancelledMsg) toast.info(cancelledMsg);
     } catch (err) {
+      // The list's isBoosted can be stale (boost paid after load) — ask instead of failing.
+      if (product.isActive && isBoostConflict(err)) {
+        markBoosted(product.id, true);
+        setHideTarget({ ...product, isBoosted: true });
+        return;
+      }
       toast.error(err instanceof ApiError ? err.message : 'Failed to update product');
+    }
+  }
+
+  async function confirmHide(): Promise<void> {
+    if (!hideTarget) return;
+    setHiding(true);
+    try {
+      const { cancelledBoosts, endedBoosts } = await toggleProduct(hideTarget.id, true);
+      setProducts(prev =>
+        prev.map(p => p.id === hideTarget.id ? { ...p, isActive: false, isBoosted: false } : p),
+      );
+      setHideTarget(null);
+      toast.success('Product hidden');
+      if (endedBoosts) toast.info('Promotion ended');
+      const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
+      if (cancelledMsg) toast.info(cancelledMsg);
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to update product');
+    } finally {
+      setHiding(false);
     }
   }
 
@@ -98,14 +138,20 @@ export default function ProductList(): JSX.Element {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const result = await deleteProduct(deleteTarget.id);
+      const result = await deleteProduct(deleteTarget.id, deleteTarget.isBoosted === true);
       setProducts(prev => prev.filter(p => p.id !== deleteTarget.id));
       setTotal(t => t - 1);
       setDeleteTarget(null);
       toast.success('Product deleted');
+      if (result?.endedBoosts) toast.info('Promotion ended');
       const cancelledMsg = cancelledBoostMessage(result?.cancelledBoosts);
       if (cancelledMsg) toast.info(cancelledMsg);
     } catch (err) {
+      if (!deleteTarget.isBoosted && isBoostConflict(err)) {
+        markBoosted(deleteTarget.id, true);
+        setDeleteTarget({ ...deleteTarget, isBoosted: true });
+        return;
+      }
       toast.error(err instanceof ApiError ? err.message : 'Failed to delete product');
     } finally {
       setDeleting(false);
@@ -356,16 +402,31 @@ export default function ProductList(): JSX.Element {
       {deleteTarget && (
         <ConfirmDeleteModal
           title="Delete Product"
-          message={
-            <>
-              Are you sure you want to delete{' '}
-              <span className="font-semibold text-gray-700">{deleteTarget.name}</span>?{' '}
-              This cannot be undone.
-            </>
-          }
+          message={deleteTarget.isBoosted
+            ? 'The product is boosted, deletion would lead to end of promotion. Are you sure you want to delete it?'
+            : (
+              <>
+                Are you sure you want to delete{' '}
+                <span className="font-semibold text-gray-700">{deleteTarget.name}</span>?{' '}
+                This cannot be undone.
+              </>
+            )}
           loading={deleting}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {hideTarget && (
+        <ConfirmDeleteModal
+          title="Hide Product"
+          message="The product is boosted, hiding it would lead to end of promotion. Are you sure you want to hide it?"
+          confirmLabel="Hide"
+          loadingLabel="Hiding…"
+          icon={<EyeOff size={20} className="text-rose-500" />}
+          loading={hiding}
+          onConfirm={() => void confirmHide()}
+          onCancel={() => setHideTarget(null)}
         />
       )}
 
