@@ -45,6 +45,8 @@ export default function VariantList(): JSX.Element {
   const [editingGroup, setEditingGroup] = useState<VariantGroup | null>(null);
   const [deleteTarget, setDeleteTarget] = useState<ProductVariant | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [hideTarget, setHideTarget] = useState<ProductVariant | null>(null);
+  const [hiding, setHiding] = useState(false);
   const [sellVariant, setSellVariant] = useState<ProductVariant | null>(null);
   const [selling, setSelling] = useState(false);
   const [boost, setBoost] = useState<ProductBoost | null>(null);
@@ -66,6 +68,16 @@ export default function VariantList(): JSX.Element {
       && !variants.some(v => v.id !== deleteTarget.id && v.isActive && boostedVariantIds.has(v.id))
     )
   );
+
+  // The server also refuses hiding the product's last visible variant; let that error
+  // surface directly instead of asking to confirm first.
+  function hideEndsBoost(variant: ProductVariant): boolean {
+    return liveBoost != null
+      && variant.isActive
+      && boostedVariantIds.has(variant.id)
+      && variants.some(v => v.id !== variant.id && v.isActive)
+      && !variants.some(v => v.id !== variant.id && v.isActive && boostedVariantIds.has(v.id));
+  }
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -96,6 +108,10 @@ export default function VariantList(): JSX.Element {
   }, [id]); // toast and navigate are stable
 
   async function handleToggle(variant: ProductVariant): Promise<void> {
+    if (hideEndsBoost(variant)) {
+      setHideTarget(variant);
+      return;
+    }
     try {
       const { variant: updated, cancelledBoosts } = await toggleVariant(id!, variant.id);
       setVariants(prev => prev.map(v => v.id === updated.id ? updated : v));
@@ -106,6 +122,30 @@ export default function VariantList(): JSX.Element {
       }
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to update variant');
+    }
+  }
+
+  async function confirmHide(): Promise<void> {
+    if (!hideTarget) return;
+    setHiding(true);
+    try {
+      const { variant: updated, cancelledBoosts, endedBoosts } = await toggleVariant(id!, hideTarget.id, true);
+      setVariants(prev => prev.map(v => v.id === updated.id ? updated : v));
+      setHideTarget(null);
+      toast.success('Variant hidden');
+      if (endedBoosts) {
+        toast.info('Promotion ended');
+        setBoost(null);
+      }
+      const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
+      if (cancelledMsg) {
+        toast.info(cancelledMsg);
+        setBoost(null);
+      }
+    } catch (err) {
+      toast.error(err instanceof ApiError ? err.message : 'Failed to update variant');
+    } finally {
+      setHiding(false);
     }
   }
 
@@ -355,6 +395,19 @@ export default function VariantList(): JSX.Element {
           loading={deleting}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setDeleteTarget(null)}
+        />
+      )}
+
+      {hideTarget && (
+        <ConfirmDeleteModal
+          title="Hide Variant"
+          message="The product is boosted, hiding this variant would lead to end of promotion. Are you sure you want to hide it?"
+          confirmLabel="Hide"
+          loadingLabel="Hiding…"
+          icon={<EyeOff size={20} className="text-rose-500" />}
+          loading={hiding}
+          onConfirm={() => void confirmHide()}
+          onCancel={() => setHideTarget(null)}
         />
       )}
 

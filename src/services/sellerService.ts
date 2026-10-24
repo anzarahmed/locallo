@@ -91,7 +91,7 @@ export function createBatchVariants(productId: string, data: Record<string, unkn
   return apiPost(`${PATHS.PRODUCTS}/${productId}/variants/batch`, data);
 }
 
-export function updateVariant(productId: string, variantId: string, data: Record<string, unknown>): Promise<{ variant: ProductVariant; siblings: ProductVariant[]; cancelledBoosts?: number }> {
+export function updateVariant(productId: string, variantId: string, data: Record<string, unknown>): Promise<{ variant: ProductVariant; siblings: ProductVariant[]; cancelledBoosts?: number; endedBoosts?: number }> {
   return apiPut(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}`, data);
 }
 
@@ -103,8 +103,12 @@ export function deleteVariant(
   return apiDelete(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}${endBoost ? '?endBoost=true' : ''}`);
 }
 
-export function toggleVariant(productId: string, variantId: string): Promise<{ variant: ProductVariant; cancelledBoosts?: number }> {
-  return apiPatch(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}/toggle`);
+export function toggleVariant(
+  productId: string,
+  variantId: string,
+  endBoost = false,
+): Promise<{ variant: ProductVariant; cancelledBoosts?: number; endedBoosts?: number }> {
+  return apiPatch(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}/toggle${endBoost ? '?endBoost=true' : ''}`);
 }
 
 export interface NotificationSettings {
