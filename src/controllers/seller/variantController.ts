@@ -76,6 +76,7 @@ export async function deleteVariant(req: Request, res: Response): Promise<void> 
       String(req.params.productId),
       String(req.params.variantId),
       req.seller!.id,
+      req.query.endBoost === 'true',
     );
     sendSuccess(res, result, result.productDeleted ? 'Last variant deleted — product removed' : 'Variant deleted');
   } catch (err: unknown) {
