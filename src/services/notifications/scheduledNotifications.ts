@@ -4,7 +4,7 @@ import { Offer } from '../../models/Offer';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 import { Wishlist } from '../../models/Wishlist';
-import { inStockSql } from '../customer/productService';
+import { hasVisibleVariantsSql, inStockSql } from '../customer/productService';
 import { resolveTodayWorkingHours } from '../customer/sellerService';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
 import { getIstDateString, getIstStartOfDay, getIstTimeString } from '../../utils/istDate';
@@ -23,11 +23,17 @@ const CLOSING_REMINDER_LEAD_MINUTES = 10;
 const OFFER_LIVE_WINDOW_MS = HOUR_MS;
 
 const PRODUCT_IN_STOCK_SQL = inStockSql('p.id', 'p.stock');
+const PRODUCT_HAS_VISIBLE_VARIANTS_SQL = hasVisibleVariantsSql('p.id');
 
 // A wishlist row pinned to a variant follows that variant; otherwise the product's stock.
 const WISHLIST_IN_STOCK_SQL = `(p.is_active AND CASE
     WHEN w.variant_id IS NOT NULL THEN COALESCE(v.is_active AND v.stock > 0, false)
     ELSE ${PRODUCT_IN_STOCK_SQL}
+  END)`;
+
+const WISHLIST_VISIBLE_SQL = `(p.is_active AND CASE
+    WHEN w.variant_id IS NOT NULL THEN COALESCE(v.is_active, false)
+    ELSE ${PRODUCT_HAS_VISIBLE_VARIANTS_SQL}
   END)`;
 
 async function selectIds(sql: string, replacements: Record<string, unknown> = {}): Promise<string[]> {
@@ -148,6 +154,7 @@ interface WishlistStockRow {
   product_images: string[] | null;
   variant_images: string[] | null;
   now_in_stock: boolean;
+  visible: boolean;
 }
 
 // Compares each wishlist row's last seen stock state with the current one, so every
@@ -156,7 +163,8 @@ export async function syncWishlistStock(now: Date = new Date()): Promise<void> {
   const rows = await sequelize.query<WishlistStockRow>(
     `SELECT w.id, w.customer_id, w.product_id, w.variant_id, w.in_stock, w.restock_notified_at,
             p.name, p.images AS product_images, v.images AS variant_images,
-            ${WISHLIST_IN_STOCK_SQL} AS now_in_stock
+            ${WISHLIST_IN_STOCK_SQL} AS now_in_stock,
+            ${WISHLIST_VISIBLE_SQL} AS visible
        FROM wishlists w
        JOIN products p ON p.id = w.product_id
        LEFT JOIN product_variants v ON v.id = w.variant_id
@@ -188,7 +196,8 @@ export async function syncWishlistStock(now: Date = new Date()): Promise<void> {
         { dedupeKey: `back_in_stock:${row.id}:${day}` },
       );
       restockNotified.push(row.id);
-    } else {
+    } else if (row.visible) {
+      // A product or variant the seller hid isn't out of stock, and its link would 404.
       await notify(
         row.customer_id,
         'wishlist_out_of_stock',
@@ -239,7 +248,7 @@ export async function sendOutOfStockDigests(now: Date = new Date()): Promise<voi
               ORDER BY n.created_at DESC LIMIT 1) AS last_count
        FROM products p
        JOIN users u ON u.id = p.seller_id AND u.is_active = true
-      WHERE p.is_active = true AND NOT ${PRODUCT_IN_STOCK_SQL}
+      WHERE p.is_active = true AND ${PRODUCT_HAS_VISIBLE_VARIANTS_SQL} AND NOT ${PRODUCT_IN_STOCK_SQL}
       GROUP BY p.seller_id
      HAVING COUNT(*) >= :threshold`,
     { replacements: { threshold: OUT_OF_STOCK_DIGEST_THRESHOLD }, type: QueryTypes.SELECT },

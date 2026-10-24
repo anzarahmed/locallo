@@ -1,10 +1,11 @@
-import { QueryTypes } from 'sequelize';
+import { Op, QueryTypes } from 'sequelize';
 import sequelize from '../../config/database';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 import { Category } from '../../models/Category';
 import { Brand } from '../../models/Brand';
 import { Product } from '../../models/Product';
+import { visibleVariantsCondition } from './productService';
 import { getIstDateString, getIstDayOfWeek, getIstTimeString } from '../../utils/istDate';
 import type { CustomDayOverride, CustomDayTime, DayOfWeek, WorkingHours } from '../../types';
 
@@ -128,7 +129,7 @@ export async function getSellerDetails(sellerId: string): Promise<SellerDetails>
     resolveCategories(profile.categoryIds ?? []),
     resolveBrands(profile.brandIds ?? []),
     getSellerRating(sellerId),
-    Product.count({ where: { sellerId, isActive: true } }),
+    Product.count({ where: { sellerId, isActive: true, [Op.and]: [visibleVariantsCondition()] } }),
   ]);
 
   return {

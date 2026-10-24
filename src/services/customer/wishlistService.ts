@@ -3,7 +3,7 @@ import { Wishlist } from '../../models/Wishlist';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { SellerProfile } from '../../models/SellerProfile';
-import { inStockSql } from './productService';
+import { hasVisibleVariantsSql, inStockSql } from './productService';
 
 const LIST_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images', 'sellerId', 'categoryId'];
 const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'stock', 'sellingPrice', 'mrp', 'isActive'];
@@ -11,14 +11,21 @@ const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'stock', 'sellingPrice
 // The wishlist is the only customer listing that keeps out-of-stock items, so stock is
 // returned as a flag instead of filtering; a variant hidden by the seller is still dropped.
 const WISHLIST_VISIBLE_CONDITION = literal(
-  '("Wishlist".variant_id IS NULL OR EXISTS (SELECT 1 FROM product_variants wv ' +
-  'WHERE wv.id = "Wishlist".variant_id AND wv.is_active = true))',
+  '(CASE WHEN "Wishlist".variant_id IS NULL ' +
+  `THEN ${hasVisibleVariantsSql('"Wishlist".product_id')} ` +
+  'ELSE EXISTS (SELECT 1 FROM product_variants wv WHERE wv.id = "Wishlist".variant_id AND wv.is_active = true) END)',
 );
 
 const WISHLIST_IN_STOCK_SQL =
   'CASE WHEN "Wishlist".variant_id IS NOT NULL ' +
   'THEN EXISTS (SELECT 1 FROM product_variants wv WHERE wv.id = "Wishlist".variant_id AND wv.stock > 0) ' +
   `ELSE ${inStockSql('"Wishlist".product_id', '(SELECT stock FROM products WHERE products.id = "Wishlist".product_id)')} END`;
+
+async function hasVisibleVariants(productId: string): Promise<boolean> {
+  const variantCount = await ProductVariant.count({ where: { productId } });
+  if (variantCount === 0) return true;
+  return (await ProductVariant.count({ where: { productId, isActive: true } })) > 0;
+}
 
 export async function toggleWishlist(
   customerId: string,
@@ -41,6 +48,10 @@ export async function toggleWishlist(
   if (existing) {
     await existing.destroy();
     return false;
+  }
+
+  if (!variantId && !(await hasVisibleVariants(productId))) {
+    throw Object.assign(new Error('Product not found'), { status: 404 });
   }
 
   await Wishlist.create({ customerId, productId, variantId: variantId ?? null });

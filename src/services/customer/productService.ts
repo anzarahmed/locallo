@@ -82,6 +82,17 @@ export function inStockCondition(): ReturnType<typeof literal> {
   return literal(inStockSql('"Product".id', '"Product".stock'));
 }
 
+// A product whose variants are all hidden by the seller is hidden from customers, even
+// though products.is_active stays true — showing any variant again brings it back.
+export function hasVisibleVariantsSql(productIdExpr: string): string {
+  return `(NOT EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = ${productIdExpr}) ` +
+    `OR EXISTS (SELECT 1 FROM product_variants pv WHERE pv.product_id = ${productIdExpr} AND pv.is_active = true))`;
+}
+
+export function visibleVariantsCondition(): ReturnType<typeof literal> {
+  return literal(hasVisibleVariantsSql('"Product".id'));
+}
+
 type Escape = (value: string) => string;
 
 function matchConditionSql(columnExpr: string, token: string, escape: Escape): string {
@@ -342,7 +353,7 @@ export async function getProductDetail(
   });
 
   if (variantRows.length === 0) {
-    throw Object.assign(new Error('Variant not found'), { status: 404 });
+    throw Object.assign(new Error('Product not found'), { status: 404 });
   }
 
   return { product, seller, rating, variants: variantRows.map(v => toVariantDetail(v, fullSchema)) };

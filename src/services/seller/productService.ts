@@ -231,6 +231,10 @@ export async function getSellerProducts(
           'variantCount',
         ],
         [
+          literal('(SELECT COUNT(*)::int FROM product_variants WHERE product_id = "Product".id AND is_active = true)'),
+          'activeVariantCount',
+        ],
+        [
           literal(`EXISTS (SELECT 1 FROM product_boosts WHERE product_id = "Product".id AND status = 'active' AND payment_status = 'paid')`),
           'isBoosted',
         ],
@@ -275,13 +279,14 @@ export async function getSellerProduct(sellerId: string, productId: string): Pro
     },
     include: [
       { model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] },
-      { model: ProductVariant, attributes: ['id'] },
+      { model: ProductVariant, attributes: ['id', 'isActive'] },
     ],
   });
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
   product.setDataValue('hasVariants', (product.variants?.length ?? 0) > 0);
+  product.setDataValue('activeVariantCount', (product.variants ?? []).filter(v => v.isActive).length);
   return product;
 }
 
