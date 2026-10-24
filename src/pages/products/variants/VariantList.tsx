@@ -139,10 +139,11 @@ export default function VariantList(): JSX.Element {
       const { variant: updated, cancelledBoosts, endedBoosts } = await toggleVariant(id!, hideTarget.id, hideEndsBoost(hideTarget));
       setVariants(prev => prev.map(v => v.id === updated.id ? updated : v));
       setHideTarget(null);
-      toast.success('Variant hidden');
       if (endedBoosts) {
-        toast.info('Promotion ended');
+        toast.success("Variant hidden successfully. The product's promotion has ended.");
         setBoost(null);
+      } else {
+        toast.success('Variant hidden');
       }
       const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (cancelledMsg) {
@@ -236,17 +237,18 @@ export default function VariantList(): JSX.Element {
       setDeleteTarget(null);
       const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (productDeleted) {
-        toast.success('Product deleted');
-        if (endedBoosts) toast.info('Promotion ended');
+        if (endedBoosts) toast.success("Product deleted successfully. The product's promotion has ended.");
+        else toast.success('Product deleted');
         if (cancelledMsg) toast.info(cancelledMsg);
         navigate('/products', { replace: true });
         return;
       }
       setVariants(prev => prev.filter(v => v.id !== deleteTarget.id));
-      toast.success('Variant deleted');
       if (endedBoosts) {
-        toast.info('Promotion ended');
+        toast.success("Variant deleted successfully. The product's promotion has ended.");
         setBoost(null);
+      } else {
+        toast.success('Variant deleted');
       }
       if (cancelledMsg) {
         toast.info(cancelledMsg);

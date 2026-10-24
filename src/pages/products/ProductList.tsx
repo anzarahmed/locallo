@@ -123,8 +123,8 @@ export default function ProductList(): JSX.Element {
         prev.map(p => p.id === hideTarget.id ? { ...p, isActive: false, isBoosted: false } : p),
       );
       setHideTarget(null);
-      toast.success('Product hidden');
-      if (endedBoosts) toast.info('Promotion ended');
+      if (endedBoosts) toast.success("Product hidden successfully. The product's promotion has ended.");
+      else toast.success('Product hidden');
       const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (cancelledMsg) toast.info(cancelledMsg);
     } catch (err) {
@@ -142,8 +142,8 @@ export default function ProductList(): JSX.Element {
       setProducts(prev => prev.filter(p => p.id !== deleteTarget.id));
       setTotal(t => t - 1);
       setDeleteTarget(null);
-      toast.success('Product deleted');
-      if (result?.endedBoosts) toast.info('Promotion ended');
+      if (result?.endedBoosts) toast.success("Product deleted successfully. The product's promotion has ended.");
+      else toast.success('Product deleted');
       const cancelledMsg = cancelledBoostMessage(result?.cancelledBoosts);
       if (cancelledMsg) toast.info(cancelledMsg);
     } catch (err) {
