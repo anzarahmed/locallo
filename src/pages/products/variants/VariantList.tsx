@@ -388,7 +388,7 @@ export default function VariantList(): JSX.Element {
         <ConfirmDeleteModal
           title={isLastVariant ? 'Delete Last Variant' : 'Delete Variant'}
           message={deleteEndsBoost
-            ? `The product is boosted, deletion would lead to end of promotion.${isLastVariant ? ' This is the last variant, so the product will also be permanently deleted.' : ''} Are you sure you want to delete?`
+            ? `The product is boosted, deletion will end the product's promotion.${isLastVariant ? ' This is the last variant, so the product will also be permanently deleted.' : ''} Are you sure you want to delete it?`
             : isLastVariant
             ? 'This is the last variant of this product. Deleting it will also permanently delete the product, and you will not be able to see it again.'
             : 'This variant will be permanently deleted.'}
@@ -401,7 +401,7 @@ export default function VariantList(): JSX.Element {
       {hideTarget && (
         <ConfirmDeleteModal
           title="Hide Variant"
-          message="The product is boosted, hiding this variant would lead to end of promotion. Are you sure you want to hide it?"
+          message="The product is boosted, hiding this variant will end the product's promotion. Are you sure you want to hide it?"
           confirmLabel="Hide"
           loadingLabel="Hiding…"
           icon={<EyeOff size={20} className="text-rose-500" />}

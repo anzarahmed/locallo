@@ -403,7 +403,7 @@ export default function ProductList(): JSX.Element {
         <ConfirmDeleteModal
           title="Delete Product"
           message={deleteTarget.isBoosted
-            ? 'The product is boosted, deletion would lead to end of promotion. Are you sure you want to delete it?'
+            ? "The product is boosted, deletion will end the product's promotion. Are you sure you want to delete it?"
             : (
               <>
                 Are you sure you want to delete{' '}
@@ -420,7 +420,7 @@ export default function ProductList(): JSX.Element {
       {hideTarget && (
         <ConfirmDeleteModal
           title="Hide Product"
-          message="The product is boosted, hiding it would lead to end of promotion. Are you sure you want to hide it?"
+          message="The product is boosted, hiding it will end the product's promotion. Are you sure you want to hide it?"
           confirmLabel="Hide"
           loadingLabel="Hiding…"
           icon={<EyeOff size={20} className="text-rose-500" />}
