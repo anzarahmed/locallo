@@ -21,7 +21,7 @@ export const FILTER_TABS: { value: FilterTab; label: string }[] = [
   { value: 'active',  label: 'In-Stock' },
 ];
 
-export const MIN_DAILY_BUDGET = 100;
+export const MIN_DAILY_BUDGET = 10;
 export const MAX_DAILY_BUDGET = 5000;
 export const DEFAULT_DAILY_BUDGET = 100;
 export const DAILY_BUDGET_STEP = 50;
