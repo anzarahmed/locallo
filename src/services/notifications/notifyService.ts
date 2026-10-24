@@ -8,7 +8,7 @@ import { SellerProfile } from '../../models/SellerProfile';
 import { isPushConfigured } from '../../utils/push';
 import { getIstDateParts, getIstTimeString, istCalendarDateToUtc } from '../../utils/istDate';
 import type { PushOptions, PushStatus } from '../../types';
-import { TEMPLATES, PROMOTIONAL_TYPES, PUSH_SCHEMA_VERSION } from './templates';
+import { TEMPLATES, PROMOTIONAL_TYPES } from './templates';
 import type { BuiltNotification, NotificationTemplate, NotificationType, TemplateParamsMap } from './templates';
 
 const CHUNK_SIZE = 1000;
@@ -145,10 +145,12 @@ export function buildNotificationRow<P>(
     referenceType: built.referenceType ?? null,
     referenceId: built.referenceId ?? null,
     data: {
-      schemaVersion: PUSH_SCHEMA_VERSION,
+      screen: built.screen,
+      dataTitle: built.dataTitle ?? '',
+      id: built.targetId ?? '',
+      variantId: built.variantId ?? '',
       notificationId: id,
       type,
-      screen: built.screen,
       ...built.params,
     },
     pushOptions: {

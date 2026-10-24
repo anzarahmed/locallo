@@ -1,7 +1,5 @@
 import type { NotificationSettings, PushChannel, PushClass } from '../../types';
 
-export const PUSH_SCHEMA_VERSION = '1';
-
 export type NotificationAudience = 'customer' | 'seller';
 export type SellerPushSetting = keyof Pick<NotificationSettings, 'offersAndPromotions' | 'sellerUpdates' | 'closingReminder'>;
 
@@ -33,6 +31,9 @@ export interface BuiltNotification {
   title: string;
   body: string;
   screen: string;
+  targetId?: string;
+  variantId?: string;
+  dataTitle?: string;
   params?: Record<string, string>;
   referenceType?: string;
   referenceId?: string;
@@ -61,10 +62,6 @@ function formatCloseTime(hhmm: string): string {
   const [h, m] = hhmm.split(':').map(Number);
   const suffix = h >= 12 ? 'PM' : 'AM';
   return `${String(h % 12 || 12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${suffix}`;
-}
-
-function productParams(productId: string, variantId?: string): Record<string, string> {
-  return variantId ? { productId, variantId } : { productId };
 }
 
 export const TEMPLATES: TemplateRegistry = {
@@ -107,7 +104,9 @@ export const TEMPLATES: TemplateRegistry = {
       title: 'Out of stock',
       body: `${productName} from your wishlist is out of stock right now. We'll let you know when it's back.`,
       screen: 'product',
-      params: productParams(productId, variantId),
+      targetId: productId,
+      variantId,
+      dataTitle: productName,
       referenceType: 'product',
       referenceId: productId,
     }),
@@ -118,7 +117,9 @@ export const TEMPLATES: TemplateRegistry = {
       title: 'Back in stock!',
       body: `${productName} is available again. Don't miss it this time.`,
       screen: 'product',
-      params: productParams(productId, variantId),
+      targetId: productId,
+      variantId,
+      dataTitle: productName,
       referenceType: 'product',
       referenceId: productId,
       imageUrl,
@@ -131,7 +132,8 @@ export const TEMPLATES: TemplateRegistry = {
       title: 'Big sale alert!',
       body: `${offerTitle} starts tomorrow. Get your wishlist ready.`,
       screen: 'offers',
-      params: { offerId: String(offerId), offerTitle },
+      targetId: String(offerId),
+      dataTitle: offerTitle,
       referenceType: 'offer',
       referenceId: String(offerId),
       collapseKey: `offer:${offerId}`,
@@ -143,7 +145,8 @@ export const TEMPLATES: TemplateRegistry = {
       title: `${offerTitle} is LIVE!`,
       body: 'Limited time only. Shop now.',
       screen: 'offers',
-      params: { offerId: String(offerId), offerTitle },
+      targetId: String(offerId),
+      dataTitle: offerTitle,
       referenceType: 'offer',
       referenceId: String(offerId),
       collapseKey: `offer:${offerId}`,
@@ -156,7 +159,8 @@ export const TEMPLATES: TemplateRegistry = {
       title: `Join ${offerTitle}!`,
       body: description ?? 'Create special deals and boost your sales.',
       screen: 'offer_detail',
-      params: { offerId: String(offerId), offerTitle },
+      targetId: String(offerId),
+      dataTitle: offerTitle,
       referenceType: 'offer',
       referenceId: String(offerId),
     }),
@@ -184,7 +188,8 @@ export const TEMPLATES: TemplateRegistry = {
       title: 'Your product is trending!',
       body: `${productName} just hit ${formatViews(milestone)} views. Keep the momentum going!`,
       screen: 'product',
-      params: { productId },
+      targetId: productId,
+      dataTitle: productName,
       referenceType: 'product',
       referenceId: productId,
     }),
@@ -222,7 +227,8 @@ export const TEMPLATES: TemplateRegistry = {
       title: 'Your boost went viral!',
       body: `${productName} reached its target views. Boost again to reach more customers.`,
       screen: 'boost_detail',
-      params: { boostId },
+      targetId: boostId,
+      dataTitle: productName,
       referenceType: 'boost',
       referenceId: boostId,
     }),
@@ -233,7 +239,8 @@ export const TEMPLATES: TemplateRegistry = {
       title: 'Boost payment successful',
       body: `Payment of ₹${amount} received. Your boost for ${productName} is now live.`,
       screen: 'boost_detail',
-      params: { boostId },
+      targetId: boostId,
+      dataTitle: productName,
       referenceType: 'boost',
       referenceId: boostId,
     }),

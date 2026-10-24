@@ -5,6 +5,8 @@ import type { PushOptions } from '../types';
 const FCM_BATCH_SIZE = 500;
 // FCM rejects the whole message when android.ttl exceeds 4 weeks.
 const FCM_MAX_TTL_MS = 28 * 24 * 60 * 60 * 1000;
+// Both mobile apps create only this channel; any other id lands in Android's fallback channel.
+const ANDROID_CHANNEL_ID = 'default_notification_channel';
 
 const INVALID_TOKEN_CODES = new Set([
   'messaging/registration-token-not-registered',
@@ -64,7 +66,6 @@ export interface TokenResult {
 
 export function buildPushMessage(token: string, content: PushContent): Message {
   const { options } = content;
-  const isTransactional = options.pushClass === 'transactional';
   const expiresAtMs = options.expiresAt ? Date.parse(options.expiresAt) : null;
 
   return {
@@ -76,28 +77,28 @@ export function buildPushMessage(token: string, content: PushContent): Message {
     },
     data: content.data,
     android: {
-      priority: isTransactional ? 'high' : 'normal',
+      priority: 'high',
       ...(expiresAtMs !== null ? { ttl: Math.min(FCM_MAX_TTL_MS, Math.max(0, expiresAtMs - Date.now())) } : {}),
       notification: {
-        channelId: options.channel,
+        channelId: ANDROID_CHANNEL_ID,
         sound: 'default',
         ...(options.collapseKey ? { tag: options.collapseKey } : {}),
       },
     },
     apns: {
       headers: {
-        'apns-priority': isTransactional ? '10' : '5',
+        'apns-priority': '10',
         'apns-push-type': 'alert',
         ...(options.collapseKey ? { 'apns-collapse-id': options.collapseKey } : {}),
         ...(expiresAtMs !== null ? { 'apns-expiration': String(Math.floor(expiresAtMs / 1000)) } : {}),
       },
       payload: {
         aps: {
+          alert: { title: content.title, body: content.body },
           sound: 'default',
           badge: content.badge,
           threadId: options.channel,
           ...(options.imageUrl ? { mutableContent: true } : {}),
-          'interruption-level': isTransactional ? 'active' : 'passive',
         },
       },
       ...(options.imageUrl ? { fcmOptions: { imageUrl: options.imageUrl } } : {}),
