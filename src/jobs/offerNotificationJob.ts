@@ -4,7 +4,7 @@ import { Offer } from '../models/Offer';
 import { User } from '../models/User';
 import { SellerProfile } from '../models/SellerProfile';
 import { OfferSellerNotification } from '../models/OfferSellerNotification';
-import { createNotification } from '../services/customer/notificationService';
+import { notify } from '../services/notifications/notifyService';
 import { sendOfferNotificationEmail } from '../utils/mailer';
 
 const MAX_ATTEMPTS = 5;
@@ -87,9 +87,12 @@ async function sendEmailChannel(row: OfferSellerNotification): Promise<void> {
 
 async function sendNotificationChannel(row: OfferSellerNotification): Promise<void> {
   try {
-    const message =
-      row.offer.description ?? `A new offer "${row.offer.title}" is available — open it to see the details.`;
-    await createNotification(row.sellerId, row.offer.title, message, 'offer', 'offer', String(row.offerId));
+    await notify(
+      row.sellerId,
+      'offer_join',
+      { offerId: row.offerId, offerTitle: row.offer.title, description: row.offer.description },
+      { dedupeKey: `offer_join:${row.offerId}:${row.sellerId}` },
+    );
     await OfferSellerNotification.update(
       { notificationStatus: 'sent', notificationSentAt: new Date(), notificationLastError: null },
       { where: { id: row.id } },

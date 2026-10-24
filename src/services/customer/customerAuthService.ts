@@ -3,7 +3,9 @@ import { UniqueConstraintError } from 'sequelize';
 import { User } from '../../models/User';
 import { sendOtp } from '../../utils/msg91';
 import { generateOtp, makeOtpExpiresAt } from '../../utils/otp';
-import { createUserSession } from '../../utils/session';
+import { createUserSession, hashToken } from '../../utils/session';
+import { Session } from '../../models/Session';
+import { notifySafely } from '../notifications/notifyService';
 import type { requestOtpSchema, verifyOtpSchema } from '../../validation/customer/customerAuthSchemas';
 
 type RequestOtpInput = InferType<typeof requestOtpSchema>;
@@ -49,7 +51,7 @@ export async function requestCustomerOtp(data: RequestOtpInput): Promise<{ otp: 
 
 export async function verifyCustomerOtp(
   data: VerifyOtpInput,
-): Promise<{ token: string; isNewUser: boolean; customer: object }> {
+): Promise<{ token: string; isNewUser: boolean; accountRestored: boolean; customer: object }> {
   const user = await User.findOne({ where: { mobile: data.phoneNumber, role: 'CUSTOMER' } });
 
   if (!user) {
@@ -70,6 +72,8 @@ export async function verifyCustomerOtp(
   }
 
   const isNewUser = !user.isVerified;
+  const accountRestored = Boolean(user.deletionRequestedAt);
+  const isFirstLogin = !user.firstLoginAt;
 
   await user.update({
     otpCode: null,
@@ -77,13 +81,17 @@ export async function verifyCustomerOtp(
     isVerified: true,
     isActive: true,
     deletionRequestedAt: null,
+    lastActiveAt: new Date(),
+    ...(isFirstLogin ? { firstLoginAt: new Date() } : {}),
   });
 
   const token = await createUserSession(user.id, 'CUSTOMER', data.deviceId, data.deviceType);
+  if (isFirstLogin) await notifySafely(user.id, 'welcome_customer', {}, { dedupeKey: `welcome_customer:${user.id}` });
 
   return {
     token,
     isNewUser,
+    accountRestored,
     customer: {
       id: user.id,
       mobile: user.mobile,
@@ -93,4 +101,8 @@ export async function verifyCustomerOtp(
       isActive: user.isActive,
     },
   };
+}
+
+export async function logoutCustomer(token: string): Promise<void> {
+  await Session.destroy({ where: { tokenHash: hashToken(token) } });
 }

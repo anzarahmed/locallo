@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { requestCustomerOtp, verifyCustomerOtp } from '../../services/customer/customerAuthService';
+import { requestCustomerOtp, verifyCustomerOtp, logoutCustomer } from '../../services/customer/customerAuthService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 
 export async function requestOtp(req: Request, res: Response): Promise<void> {
@@ -21,6 +21,15 @@ export async function verifyOtp(req: Request, res: Response): Promise<void> {
   try {
     const result = await verifyCustomerOtp(req.body);
     sendSuccess(res, result, 'OTP verified successfully');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function logout(req: Request, res: Response): Promise<void> {
+  try {
+    await logoutCustomer(req.headers.authorization!.slice(7));
+    sendSuccess(res, null, 'Logged out successfully');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }

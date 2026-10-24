@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { getCustomerProfile, updateCustomerProfile, uploadCustomerProfileImage, requestCustomerAccountDeletion } from '../../services/customer/customerProfileService';
+import { getCustomerProfile, updateCustomerProfile, uploadCustomerProfileImage, requestCustomerAccountDeletion, getCustomerSettings, updateCustomerSettings } from '../../services/customer/customerProfileService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
 import type { User } from '../../models/User';
@@ -56,5 +56,21 @@ export async function deleteAccount(req: Request, res: Response): Promise<void> 
     sendSuccess(res, null, 'Account scheduled for deletion in 30 days. Log in again during this period to reactivate it.');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to delete account');
+  }
+}
+
+export async function getSettings(req: Request, res: Response): Promise<void> {
+  try {
+    sendSuccess(res, await getCustomerSettings(req.customer!.id), 'Settings fetched');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function updateSettings(req: Request, res: Response): Promise<void> {
+  try {
+    sendSuccess(res, await updateCustomerSettings(req.customer!.id, req.body), 'Settings updated');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
   }
 }

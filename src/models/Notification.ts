@@ -12,6 +12,7 @@ import {
   UpdatedAt,
 } from 'sequelize-typescript';
 import { User } from './User';
+import type { PushOptions, PushStatus } from '../types';
 
 @Table({ tableName: 'notifications', timestamps: true, underscored: true })
 export class Notification extends Model {
@@ -20,9 +21,10 @@ export class Notification extends Model {
   @Column(DataType.UUID)
   declare id: string;
 
+  // Holds seller ids too; the column was renamed to user_id, the attribute kept to limit churn.
   @AllowNull(false)
   @ForeignKey(() => User)
-  @Column(DataType.UUID)
+  @Column({ type: DataType.UUID, field: 'user_id' })
   declare customerId: string;
 
   @BelongsTo(() => User)
@@ -51,6 +53,34 @@ export class Notification extends Model {
   @Default(false)
   @Column(DataType.BOOLEAN)
   declare isRead: boolean;
+
+  @Column(DataType.TEXT)
+  declare dedupeKey: string | null;
+
+  @Column(DataType.JSONB)
+  declare data: Record<string, string> | null;
+
+  @Column(DataType.JSONB)
+  declare pushOptions: PushOptions | null;
+
+  @AllowNull(false)
+  @Default('skipped')
+  @Column(DataType.ENUM('skipped', 'pending', 'sent', 'failed'))
+  declare pushStatus: PushStatus;
+
+  @AllowNull(false)
+  @Default(0)
+  @Column(DataType.SMALLINT)
+  declare pushAttempts: number;
+
+  @Column(DataType.TEXT)
+  declare pushLastError: string | null;
+
+  @Column(DataType.DATE)
+  declare pushSentAt: Date | null;
+
+  @Column(DataType.DATE)
+  declare sendAfter: Date | null;
 
   @CreatedAt
   declare createdAt: Date;

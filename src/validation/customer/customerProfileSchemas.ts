@@ -8,3 +8,7 @@ export const updateCustomerProfileSchema = Yup.object({
     .required('Date of birth is required'),
   gender: Yup.string().oneOf(['male', 'female', 'other'], 'Invalid gender').required('Gender is required'),
 });
+
+export const updateCustomerSettingsSchema = Yup.object({
+  promotionalPush: Yup.boolean().required('promotionalPush is required'),
+});

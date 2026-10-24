@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { requestOtp, verifyOtp } from '../../controllers/customer/customerAuthController';
-import { getProfile, updateProfile, uploadProfileImage, deleteAccount } from '../../controllers/customer/customerProfileController';
+import { requestOtp, verifyOtp, logout } from '../../controllers/customer/customerAuthController';
+import { getProfile, updateProfile, uploadProfileImage, deleteAccount, getSettings, updateSettings } from '../../controllers/customer/customerProfileController';
+import { savePushToken, removePushToken } from '../../controllers/shared/pushTokenController';
 import { getProducts, getProduct, getTrendingProducts, getSimilarProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
 import { addReview, getReviews, editReview, removeReview, uploadReviewImages } from '../../controllers/customer/reviewController';
@@ -14,7 +15,8 @@ import { requireCustomer, optionalCustomer } from '../../middleware/auth';
 import { validate } from '../../middleware/validate';
 import upload, { uploadArray } from '../../middleware/upload';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/customer/customerAuthSchemas';
-import { updateCustomerProfileSchema } from '../../validation/customer/customerProfileSchemas';
+import { updateCustomerProfileSchema, updateCustomerSettingsSchema } from '../../validation/customer/customerProfileSchemas';
+import { registerPushTokenSchema } from '../../validation/shared/pushTokenSchemas';
 import { searchProductsSchema, audienceBodySchema } from '../../validation/customer/productSchemas';
 import { createReviewSchema, updateReviewSchema } from '../../validation/customer/reviewSchemas';
 
@@ -22,6 +24,13 @@ const router = Router();
 
 router.post('/auth/request-otp', validate(requestOtpSchema), requestOtp);
 router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
+router.post('/auth/logout',      requireCustomer,             logout);
+
+router.put('/push-token',    requireCustomer, validate(registerPushTokenSchema), savePushToken);
+router.delete('/push-token', requireCustomer, removePushToken);
+
+router.get('/settings', requireCustomer, getSettings);
+router.put('/settings', requireCustomer, validate(updateCustomerSettingsSchema), updateSettings);
 
 router.get('/cms-pages',       getCmsPages);
 router.get('/cms-pages/:slug', getCmsPage);

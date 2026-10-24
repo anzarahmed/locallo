@@ -4,6 +4,7 @@ import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { SellerProfile } from '../../models/SellerProfile';
 import { OfferProduct } from '../../models/OfferProduct';
+import { notifySafely } from '../notifications/notifyService';
 import { TRENDING_ATTRIBUTES, SELLER_VERIFIED_CONDITION, buildSearchCondition, getSequelizeEscape, inStockCondition } from './productService';
 
 export const BOOST_SLOTS = 4;
@@ -147,7 +148,7 @@ export async function incrementImpressions(boostIds: string[]): Promise<void> {
 
   await ProductBoost.increment('impressionCount', { by: 1, where: { id: { [Op.in]: boostIds } } });
 
-  await ProductBoost.update(
+  const [, completed] = await ProductBoost.update(
     { status: 'completed' },
     {
       where: {
@@ -155,8 +156,16 @@ export async function incrementImpressions(boostIds: string[]): Promise<void> {
         status: 'active',
         [Op.and]: [sequelizeWhere(col('impression_count'), Op.gte, col('estimated_impressions_max'))],
       },
+      returning: true,
     },
   );
+
+  await Promise.all(completed.map((boost) => notifySafely(
+    boost.sellerId,
+    'boost_completed',
+    { boostId: boost.id, productName: boost.productName ?? 'Your product' },
+    { dedupeKey: `boost_completed:${boost.id}` },
+  )));
 }
 
 export async function isProductBoosted(productId: string, variantId?: string, state?: string, city?: string): Promise<boolean> {

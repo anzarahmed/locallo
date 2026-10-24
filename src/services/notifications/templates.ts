@@ -1,0 +1,263 @@
+import type { NotificationSettings, PushChannel, PushClass } from '../../types';
+
+export const PUSH_SCHEMA_VERSION = '1';
+
+export type NotificationAudience = 'customer' | 'seller';
+export type SellerPushSetting = keyof Pick<NotificationSettings, 'offersAndPromotions' | 'sellerUpdates' | 'closingReminder'>;
+
+export interface TemplateParamsMap {
+  welcome_customer: Record<string, never>;
+  welcome_seller: Record<string, never>;
+  profile_incomplete: Record<string, never>;
+  wishlist_weekly: { count: number };
+  wishlist_out_of_stock: { productId: string; variantId?: string; productName: string };
+  back_in_stock: { productId: string; variantId?: string; productName: string; imageUrl?: string };
+  offer_upcoming: { offerId: number; offerTitle: string };
+  offer_live: { offerId: number; offerTitle: string; endsAt: Date };
+  offer_join: { offerId: number; offerTitle: string; description: string | null };
+  first_product_nudge: Record<string, never>;
+  kyc_pending: Record<string, never>;
+  views_milestone: { productId: string; productName: string; milestone: number };
+  out_of_stock_digest: { count: number };
+  seller_inactive: Record<string, never>;
+  boost_suggestion: Record<string, never>;
+  boost_completed: { boostId: string; productName: string };
+  boost_paid: { boostId: string; productName: string; amount: number };
+  share_shop: Record<string, never>;
+  closing_soon: { closeTime: string };
+}
+
+export type NotificationType = keyof TemplateParamsMap;
+
+export interface BuiltNotification {
+  title: string;
+  body: string;
+  screen: string;
+  params?: Record<string, string>;
+  referenceType?: string;
+  referenceId?: string;
+  imageUrl?: string;
+  collapseKey?: string;
+  expiresAt?: Date;
+}
+
+export interface NotificationTemplate<P> {
+  audience: NotificationAudience;
+  pushClass: PushClass;
+  channel: PushChannel;
+  // false = inbox only: the user is already in the app, or the message isn't actionable.
+  push: boolean;
+  sellerSetting?: SellerPushSetting;
+  build: (params: P) => BuiltNotification;
+}
+
+type TemplateRegistry = { [K in NotificationType]: NotificationTemplate<TemplateParamsMap[K]> };
+
+function formatViews(n: number): string {
+  return n >= 1000 ? `${n / 1000}K` : String(n);
+}
+
+function formatCloseTime(hhmm: string): string {
+  const [h, m] = hhmm.split(':').map(Number);
+  const suffix = h >= 12 ? 'PM' : 'AM';
+  return `${String(h % 12 || 12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${suffix}`;
+}
+
+function productParams(productId: string, variantId?: string): Record<string, string> {
+  return variantId ? { productId, variantId } : { productId };
+}
+
+export const TEMPLATES: TemplateRegistry = {
+  welcome_customer: {
+    audience: 'customer', pushClass: 'transactional', channel: 'transactional', push: false,
+    build: () => ({
+      title: 'Welcome to Loccalo!',
+      body: 'Join, support & discover amazing local sellers. Shop now.',
+      screen: 'home',
+    }),
+  },
+  welcome_seller: {
+    audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: false,
+    build: () => ({
+      title: 'Welcome to Loccalo!',
+      body: 'Congratulations on starting your new selling journey with us.',
+      screen: 'dashboard',
+    }),
+  },
+  profile_incomplete: {
+    audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true,
+    build: () => ({
+      title: 'Complete your profile',
+      body: 'Get personalised picks and nearby deals in 1 minute.',
+      screen: 'profile',
+    }),
+  },
+  wishlist_weekly: {
+    audience: 'customer', pushClass: 'promotional', channel: 'wishlist', push: true,
+    build: ({ count }) => ({
+      title: 'Your wishlist is waiting',
+      body: `You've saved ${count} ${count === 1 ? 'item' : 'items'}. Take another look before they're gone.`,
+      screen: 'wishlist',
+      collapseKey: 'wishlist_weekly',
+    }),
+  },
+  wishlist_out_of_stock: {
+    audience: 'customer', pushClass: 'transactional', channel: 'wishlist', push: false,
+    build: ({ productId, variantId, productName }) => ({
+      title: 'Out of stock',
+      body: `${productName} from your wishlist is out of stock right now. We'll let you know when it's back.`,
+      screen: 'product',
+      params: productParams(productId, variantId),
+      referenceType: 'product',
+      referenceId: productId,
+    }),
+  },
+  back_in_stock: {
+    audience: 'customer', pushClass: 'transactional', channel: 'wishlist', push: true,
+    build: ({ productId, variantId, productName, imageUrl }) => ({
+      title: 'Back in stock!',
+      body: `${productName} is available again. Don't miss it this time.`,
+      screen: 'product',
+      params: productParams(productId, variantId),
+      referenceType: 'product',
+      referenceId: productId,
+      imageUrl,
+      collapseKey: `back_in_stock:${productId}`,
+    }),
+  },
+  offer_upcoming: {
+    audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true,
+    build: ({ offerId, offerTitle }) => ({
+      title: 'Big sale alert!',
+      body: `${offerTitle} starts tomorrow. Get your wishlist ready.`,
+      screen: 'offers',
+      params: { offerId: String(offerId), offerTitle },
+      referenceType: 'offer',
+      referenceId: String(offerId),
+      collapseKey: `offer:${offerId}`,
+    }),
+  },
+  offer_live: {
+    audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true,
+    build: ({ offerId, offerTitle, endsAt }) => ({
+      title: `${offerTitle} is LIVE!`,
+      body: 'Limited time only. Shop now.',
+      screen: 'offers',
+      params: { offerId: String(offerId), offerTitle },
+      referenceType: 'offer',
+      referenceId: String(offerId),
+      collapseKey: `offer:${offerId}`,
+      expiresAt: endsAt,
+    }),
+  },
+  offer_join: {
+    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true, sellerSetting: 'offersAndPromotions',
+    build: ({ offerId, offerTitle, description }) => ({
+      title: `Join ${offerTitle}!`,
+      body: description ?? 'Create special deals and boost your sales.',
+      screen: 'offer_detail',
+      params: { offerId: String(offerId), offerTitle },
+      referenceType: 'offer',
+      referenceId: String(offerId),
+    }),
+  },
+  first_product_nudge: {
+    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true, sellerSetting: 'sellerUpdates',
+    build: () => ({
+      title: 'Ready to start selling?',
+      body: 'Upload your first product in 3 easy steps.',
+      screen: 'add_product',
+    }),
+  },
+  kyc_pending: {
+    audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: true,
+    build: () => ({
+      title: 'Complete your KYC',
+      body: 'Verify your account to start selling on Loccalo.',
+      screen: 'kyc',
+      collapseKey: 'kyc_pending',
+    }),
+  },
+  views_milestone: {
+    audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true,
+    build: ({ productId, productName, milestone }) => ({
+      title: 'Your product is trending!',
+      body: `${productName} just hit ${formatViews(milestone)} views. Keep the momentum going!`,
+      screen: 'product',
+      params: { productId },
+      referenceType: 'product',
+      referenceId: productId,
+    }),
+  },
+  out_of_stock_digest: {
+    audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true,
+    build: ({ count }) => ({
+      title: `${count} products are out of stock`,
+      body: 'Restock them so customers can find them again.',
+      screen: 'products',
+      // count is read back by the next digest to decide whether anything new went out of stock.
+      params: { filter: 'outOfStock', count: String(count) },
+      collapseKey: 'out_of_stock_digest',
+    }),
+  },
+  seller_inactive: {
+    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true, sellerSetting: 'sellerUpdates',
+    build: () => ({
+      title: 'We miss you!',
+      body: 'Keep your catalogue fresh and stay connected with your customers.',
+      screen: 'dashboard',
+    }),
+  },
+  boost_suggestion: {
+    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true, sellerSetting: 'offersAndPromotions',
+    build: () => ({
+      title: 'Get more eyes on your products',
+      body: 'Boost a product to increase visibility and sales.',
+      screen: 'boost_create',
+    }),
+  },
+  boost_completed: {
+    audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: true,
+    build: ({ boostId, productName }) => ({
+      title: 'Your boost went viral!',
+      body: `${productName} reached its target views. Boost again to reach more customers.`,
+      screen: 'boost_detail',
+      params: { boostId },
+      referenceType: 'boost',
+      referenceId: boostId,
+    }),
+  },
+  boost_paid: {
+    audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: true,
+    build: ({ boostId, productName, amount }) => ({
+      title: 'Boost payment successful',
+      body: `Payment of ₹${amount} received. Your boost for ${productName} is now live.`,
+      screen: 'boost_detail',
+      params: { boostId },
+      referenceType: 'boost',
+      referenceId: boostId,
+    }),
+  },
+  share_shop: {
+    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true, sellerSetting: 'sellerUpdates',
+    build: () => ({
+      title: 'Share your shop!',
+      body: 'Your new products are live. Share your shop link so more customers find you.',
+      screen: 'share_shop',
+    }),
+  },
+  closing_soon: {
+    audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true, sellerSetting: 'closingReminder',
+    build: ({ closeTime }) => ({
+      title: 'Shop closing soon',
+      body: `Closing at ${formatCloseTime(closeTime)}. Want to extend today's hours?`,
+      screen: 'special_hours',
+      collapseKey: 'closing_soon',
+    }),
+  },
+};
+
+export const OFFER_NOTIFICATION_TYPES: readonly string[] = ['offer', 'offer_upcoming', 'offer_live', 'offer_join'];
+
+export const PROMOTIONAL_TYPES: readonly NotificationType[] = (Object.keys(TEMPLATES) as NotificationType[])
+  .filter((type) => TEMPLATES[type].pushClass === 'promotional');

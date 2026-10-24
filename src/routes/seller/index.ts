@@ -19,6 +19,8 @@ import { createProductBoost, getActiveProductBoost, cancelProductBoost, getBoost
 import { getOffers, getAcceptedOffers, getOffer, acceptOffer } from '../../controllers/seller/offerController';
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/seller/notificationController';
 import { getCmsPages, getCmsPage } from '../../controllers/customer/cmsPageController';
+import { savePushToken, removePushToken } from '../../controllers/shared/pushTokenController';
+import { registerPushTokenSchema } from '../../validation/shared/pushTokenSchemas';
 import { validate } from '../../middleware/validate';
 import { uploadSingle } from '../../middleware/upload';
 import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema, setCustomDaySchema } from '../../validation/seller/sellerSchemas';
@@ -36,6 +38,9 @@ const router = Router();
 router.post('/auth/request-otp', validate(requestOtpSchema), requestOtp);
 router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
 router.post('/auth/logout',      requireSeller,               logout);
+
+router.put('/push-token',    requireSeller, validate(registerPushTokenSchema), savePushToken);
+router.delete('/push-token', requireSeller, removePushToken);
 
 router.get('/cms-pages',       getCmsPages);
 router.get('/cms-pages/:slug', getCmsPage);

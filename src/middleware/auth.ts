@@ -12,6 +12,16 @@ interface JwtPayload {
   role?: string;
 }
 
+const LAST_ACTIVE_THROTTLE_MS = 60 * 60 * 1000;
+
+function touchLastActive(user: User): void {
+  const last = user.lastActiveAt?.getTime() ?? 0;
+  if (Date.now() - last < LAST_ACTIVE_THROTTLE_MS) return;
+  User.update({ lastActiveAt: new Date() }, { where: { id: user.id }, silent: true }).catch((err: unknown) => {
+    console.error(`auth: failed to update last_active_at for user ${user.id}`, err);
+  });
+}
+
 export async function requireAdmin(req: Request, res: Response, next: NextFunction): Promise<void> {
   const header = req.headers.authorization;
   if (!header?.startsWith('Bearer ')) {
@@ -110,6 +120,8 @@ export async function requireSeller(req: Request, res: Response, next: NextFunct
   }
 
   req.seller = user;
+  req.sessionId = session.id;
+  touchLastActive(user);
   next();
 }
 
@@ -149,6 +161,8 @@ export async function requireCustomer(req: Request, res: Response, next: NextFun
   }
 
   req.customer = user;
+  req.sessionId = session.id;
+  touchLastActive(user);
   next();
 }
 

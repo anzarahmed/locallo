@@ -4,6 +4,7 @@ import { Session } from '../../models/Session';
 import { sendOtp } from '../../utils/msg91';
 import { generateOtp, makeOtpExpiresAt } from '../../utils/otp';
 import { hashToken, createUserSession } from '../../utils/session';
+import { notifySafely } from '../notifications/notifyService';
 import type { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/sellerAuthSchemas';
 
 type RequestOtpInput = InferType<typeof requestOtpSchema>;
@@ -41,7 +42,9 @@ export async function logoutSeller(token: string): Promise<void> {
   await Session.destroy({ where: { tokenHash: hashToken(token) } });
 }
 
-export async function verifySellerOtp(data: VerifyOtpInput): Promise<{ token: string; seller: object }> {
+export async function verifySellerOtp(
+  data: VerifyOtpInput,
+): Promise<{ token: string; accountRestored: boolean; seller: object }> {
   const user = await findActiveSeller(data.phoneNumber);
 
   if (!user.otpCode || !user.otpExpiresAt) {
@@ -54,18 +57,25 @@ export async function verifySellerOtp(data: VerifyOtpInput): Promise<{ token: st
     throw Object.assign(new Error('Invalid OTP'), { status: 422 });
   }
 
+  const accountRestored = Boolean(user.deletionRequestedAt);
+  const isFirstLogin = !user.firstLoginAt;
+
   await user.update({
     otpCode: null,
     otpExpiresAt: null,
     isVerified: true,
     isActive: true,
     deletionRequestedAt: null,
+    lastActiveAt: new Date(),
+    ...(isFirstLogin ? { firstLoginAt: new Date() } : {}),
   });
 
   const token = await createUserSession(user.id, 'SELLER', data.deviceId, data.deviceType);
+  if (isFirstLogin) await notifySafely(user.id, 'welcome_seller', {}, { dedupeKey: `welcome_seller:${user.id}` });
 
   return {
     token,
+    accountRestored,
     seller: {
       id: user.id,
       mobile: user.mobile,

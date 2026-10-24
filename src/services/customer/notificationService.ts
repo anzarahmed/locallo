@@ -1,25 +1,8 @@
 import { Op } from 'sequelize';
 import { Notification } from '../../models/Notification';
+import { OFFER_NOTIFICATION_TYPES } from '../notifications/templates';
 
 export type NotificationFilter = 'all' | 'offers' | 'other';
-
-export async function createNotification(
-  userId: string,
-  title: string,
-  message: string,
-  type: string,
-  referenceType?: string,
-  referenceId?: string,
-): Promise<Notification> {
-  return Notification.create({
-    customerId: userId,
-    title,
-    message,
-    type,
-    referenceType: referenceType ?? null,
-    referenceId: referenceId ?? null,
-  });
-}
 
 export async function listNotifications(
   customerId: string,
@@ -28,8 +11,8 @@ export async function listNotifications(
   filter: NotificationFilter = 'all',
 ): Promise<{ rows: Notification[]; count: number }> {
   const where: Record<string, unknown> = { customerId };
-  if (filter === 'offers') where.type = 'offer';
-  else if (filter === 'other') where.type = { [Op.ne]: 'offer' };
+  if (filter === 'offers') where.type = { [Op.in]: OFFER_NOTIFICATION_TYPES };
+  else if (filter === 'other') where.type = { [Op.notIn]: OFFER_NOTIFICATION_TYPES };
 
   const { rows, count } = await Notification.findAndCountAll({
     where,

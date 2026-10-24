@@ -4,6 +4,8 @@ import app from './app';
 import sequelize from './config/database';
 import { startOfferNotificationCron } from './jobs/offerNotificationJob';
 import { startAccountDeletionCron } from './jobs/accountDeletionJob';
+import { startPushDispatchCron } from './jobs/pushDispatchJob';
+import { startNotificationSchedulerCron } from './jobs/notificationSchedulerJob';
 
 const PORT = process.env.PORT ?? 3000;
 
@@ -13,6 +15,8 @@ async function bootstrap() {
 
   startOfferNotificationCron();
   startAccountDeletionCron();
+  startPushDispatchCron();
+  startNotificationSchedulerCron();
 
   app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`);

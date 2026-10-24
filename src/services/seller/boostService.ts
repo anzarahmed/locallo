@@ -10,6 +10,7 @@ import { inStockCondition } from '../customer/productService';
 import { createRazorpayOrder } from '../../utils/razorpay';
 import { sendBoostPaymentConfirmedEmail, sendBoostPaymentFailedEmail } from '../../utils/mailer';
 import { getPresignedUrl } from '../../utils/imageStorage';
+import { notifySafely } from '../notifications/notifyService';
 import type { BoostAudienceType, BoostStatus, PaymentStatus } from '../../types';
 
 const IMPRESSIONS_PER_RUPEE = 20;
@@ -182,6 +183,13 @@ export async function markBoostPaid(razorpayOrderId: string, paymentId: string, 
     razorpayPaymentId: paymentId,
     razorpaySignature: signature,
   });
+
+  await notifySafely(
+    boost.sellerId,
+    'boost_paid',
+    { boostId: boost.id, productName: boost.product?.name ?? boost.productName ?? 'your product', amount: boost.amount },
+    { dedupeKey: `boost_paid:${boost.id}` },
+  );
 
   const seller = await User.findByPk(boost.sellerId, {
     include: [{ model: SellerProfile, attributes: ['email', 'businessName'] }],

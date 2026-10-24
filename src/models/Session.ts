@@ -38,6 +38,12 @@ export class Session extends Model {
   @Column(DataType.DATE)
   declare expiresAt: Date | null;
 
+  @Column(DataType.TEXT)
+  declare pushToken: string | null;
+
+  @Column(DataType.DATE)
+  declare pushTokenUpdatedAt: Date | null;
+
   @CreatedAt
   declare createdAt: Date;
 }

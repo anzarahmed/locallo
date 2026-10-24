@@ -35,7 +35,7 @@ function isShopOpenNow(time: CustomDayTime, now: Date): boolean {
   return currentTime >= time.open && currentTime < time.close;
 }
 
-function resolveTodayWorkingHours(
+export function resolveTodayWorkingHours(
   workingHours: WorkingHours,
   override: CustomDayOverride | null,
 ): TodayWorkingHours {

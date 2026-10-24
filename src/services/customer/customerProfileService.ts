@@ -4,9 +4,15 @@ import { Review } from '../../models/Review';
 import { Session } from '../../models/Session';
 import sequelize from '../../config/database';
 import { saveCustomerProfileImage, deleteImage } from '../../utils/imageStorage';
-import type { updateCustomerProfileSchema } from '../../validation/customer/customerProfileSchemas';
+import { removeNotificationsOfType } from '../notifications/notifyService';
+import type { updateCustomerProfileSchema, updateCustomerSettingsSchema } from '../../validation/customer/customerProfileSchemas';
 
 type UpdateCustomerProfileInput = InferType<typeof updateCustomerProfileSchema>;
+type UpdateCustomerSettingsInput = InferType<typeof updateCustomerSettingsSchema>;
+
+export interface CustomerSettings {
+  promotionalPush: boolean;
+}
 
 export async function getCustomerProfile(userId: string): Promise<User> {
   const user = await User.findOne({ where: { id: userId, role: 'CUSTOMER' } });
@@ -31,8 +37,20 @@ export async function updateCustomerProfile(
     dateOfBirth: data.dateOfBirth,
     gender: data.gender,
   });
+  await removeNotificationsOfType(userId, 'profile_incomplete');
 
   return user;
+}
+
+export async function getCustomerSettings(userId: string): Promise<CustomerSettings> {
+  const user = await getCustomerProfile(userId);
+  return { promotionalPush: user.promotionalPush };
+}
+
+export async function updateCustomerSettings(userId: string, data: UpdateCustomerSettingsInput): Promise<CustomerSettings> {
+  const user = await getCustomerProfile(userId);
+  await user.update({ promotionalPush: data.promotionalPush });
+  return { promotionalPush: user.promotionalPush };
 }
 
 export async function uploadCustomerProfileImage(userId: string, file: Express.Multer.File): Promise<User> {

@@ -35,6 +35,7 @@ export interface NotificationSettings {
   wishlistPriceDrops: boolean;
   sellerUpdates: boolean;
   useAiForPrimaryImage: boolean;
+  closingReminder: boolean;
 }
 
 export interface CustomDayTime {
@@ -106,4 +107,16 @@ export interface DashboardStats {
   totalCustomers: number;
   totalActiveProducts: number;
   totalPaymentsThisMonth: number;
+}
+
+export type PushStatus = 'skipped' | 'pending' | 'sent' | 'failed';
+export type PushClass = 'transactional' | 'promotional';
+export type PushChannel = 'transactional' | 'offers' | 'wishlist' | 'seller_updates';
+
+export interface PushOptions {
+  pushClass: PushClass;
+  channel: PushChannel;
+  imageUrl?: string;
+  collapseKey?: string;
+  expiresAt?: string;
 }

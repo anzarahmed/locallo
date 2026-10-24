@@ -39,6 +39,12 @@ export class Wishlist extends Model {
   @Column(DataType.DATE)
   declare createdAt: Date;
 
+  @Column(DataType.BOOLEAN)
+  declare inStock: boolean | null;
+
+  @Column(DataType.DATE)
+  declare restockNotifiedAt: Date | null;
+
   @BelongsTo(() => User)
   declare customer: User;
 

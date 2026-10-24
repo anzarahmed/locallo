@@ -70,6 +70,17 @@ export class User extends Model {
   @Column(DataType.DATE)
   declare deletionRequestedAt: Date | null;
 
+  @Column(DataType.DATE)
+  declare lastActiveAt: Date | null;
+
+  @Column(DataType.DATE)
+  declare firstLoginAt: Date | null;
+
+  @Default(false)
+  @AllowNull(false)
+  @Column(DataType.BOOLEAN)
+  declare promotionalPush: boolean;
+
   @CreatedAt
   declare createdAt: Date;
 
