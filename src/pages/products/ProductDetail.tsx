@@ -193,6 +193,7 @@ export default function ProductDetail(): JSX.Element {
   const totalVariantStock = variants.reduce((sum, v) => sum + v.stock, 0);
   const outVariants = variants.filter(v => v.stock === 0).length;
   const lowVariants = variants.filter(v => v.stock > 0 && v.stock <= 5).length;
+  const allVariantsHidden = variants.length > 0 && variants.every(v => !v.isActive);
 
   return (
     <div className="min-h-screen bg-gray-100 pb-16">
@@ -279,14 +280,21 @@ export default function ProductDetail(): JSX.Element {
             <div className="flex-1 min-w-0 space-y-4">
               {/* Badges */}
               <div className="flex flex-wrap items-center gap-2">
-                <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
-                  product.isActive
-                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                    : 'bg-gray-50 text-gray-500 border-gray-200'
-                }`}>
-                  {product.isActive ? <Eye size={12} /> : <EyeOff size={12} />}
-                  {product.isActive ? 'Visible to customers' : 'Hidden'}
-                </span>
+                {product.isActive && allVariantsHidden ? (
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border bg-amber-50 text-amber-700 border-amber-200">
+                    <EyeOff size={12} />
+                    Hidden · no visible variants
+                  </span>
+                ) : (
+                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium border ${
+                    product.isActive
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-gray-50 text-gray-500 border-gray-200'
+                  }`}>
+                    {product.isActive ? <Eye size={12} /> : <EyeOff size={12} />}
+                    {product.isActive ? 'Visible to customers' : 'Hidden'}
+                  </span>
+                )}
                 {product.isBoosted && (
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium bg-violet-50 text-violet-700 border border-violet-200">
                     <Rocket size={12} />

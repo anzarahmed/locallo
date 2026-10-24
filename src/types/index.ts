@@ -97,6 +97,7 @@ export interface Product {
   attributes?: Record<string, unknown>;
   variants?: Array<{ id: string }>;
   variantCount?: number;
+  activeVariantCount?: number;
   hasVariants?: boolean;
   isBoosted?: boolean;
   viewCount?: number;

@@ -18,6 +18,9 @@ import SellModal from '../../../components/ui/SellModal';
 import type { Product, ProductVariant, ProductBoost, AttributeField } from '../../../types';
 import VariantSheet from './VariantSheet';
 
+const LAST_VISIBLE_NOTE =
+  'This is the last visible variant, so the product will be hidden from customers until you show a variant again.';
+
 function variantMatches(variant: ProductVariant, schema: AttributeField[], query: string): boolean {
   const q = query.trim().toLowerCase();
   if (!q) return true;
@@ -62,20 +65,24 @@ export default function VariantList(): JSX.Element {
   const liveBoost = boost?.status === 'active' && boost.paymentStatus === 'paid' ? boost : null;
   const wholeProductBoosted = liveBoost != null && liveBoost.variantIds === null;
   const boostedVariantIds = new Set(liveBoost?.variantIds ?? []);
+  const deleteLeavesNoneVisible = deleteTarget != null && !isLastVariant && isLastVisible(deleteTarget);
   const deleteEndsBoost = deleteTarget != null && liveBoost != null && (
-    isLastVariant || (
+    isLastVariant || deleteLeavesNoneVisible || (
       boostedVariantIds.has(deleteTarget.id)
       && !variants.some(v => v.id !== deleteTarget.id && v.isActive && boostedVariantIds.has(v.id))
     )
   );
 
-  // The server also refuses hiding the product's last visible variant; let that error
-  // surface directly instead of asking to confirm first.
+  function isLastVisible(variant: ProductVariant): boolean {
+    return variant.isActive && !variants.some(v => v.id !== variant.id && v.isActive);
+  }
+
+  // Hiding the last visible variant hides the product, so it ends any boost on it —
+  // including a whole-product boost, whose variantIds is null.
   function hideEndsBoost(variant: ProductVariant): boolean {
-    return liveBoost != null
-      && variant.isActive
-      && boostedVariantIds.has(variant.id)
-      && variants.some(v => v.id !== variant.id && v.isActive)
+    if (liveBoost == null || !variant.isActive) return false;
+    if (isLastVisible(variant)) return true;
+    return boostedVariantIds.has(variant.id)
       && !variants.some(v => v.id !== variant.id && v.isActive && boostedVariantIds.has(v.id));
   }
 
@@ -108,7 +115,7 @@ export default function VariantList(): JSX.Element {
   }, [id]); // toast and navigate are stable
 
   async function handleToggle(variant: ProductVariant): Promise<void> {
-    if (hideEndsBoost(variant)) {
+    if (hideEndsBoost(variant) || isLastVisible(variant)) {
       setHideTarget(variant);
       return;
     }
@@ -129,7 +136,7 @@ export default function VariantList(): JSX.Element {
     if (!hideTarget) return;
     setHiding(true);
     try {
-      const { variant: updated, cancelledBoosts, endedBoosts } = await toggleVariant(id!, hideTarget.id, true);
+      const { variant: updated, cancelledBoosts, endedBoosts } = await toggleVariant(id!, hideTarget.id, hideEndsBoost(hideTarget));
       setVariants(prev => prev.map(v => v.id === updated.id ? updated : v));
       setHideTarget(null);
       toast.success('Variant hidden');
@@ -218,11 +225,6 @@ export default function VariantList(): JSX.Element {
   }
 
   function handleDeleteClick(variant: ProductVariant): void {
-    const otherActiveExists = variants.some(v => v.id !== variant.id && v.isActive);
-    if (variants.length > 1 && !otherActiveExists) {
-      toast.error('You cannot delete this variant because it is the last visible variant of this product. Enable another variant before deleting this one.');
-      return;
-    }
     setDeleteTarget(variant);
   }
 
@@ -387,11 +389,14 @@ export default function VariantList(): JSX.Element {
       {deleteTarget && (
         <ConfirmDeleteModal
           title={isLastVariant ? 'Delete Last Variant' : 'Delete Variant'}
-          message={deleteEndsBoost
-            ? `The product is boosted, deletion will end the product's promotion.${isLastVariant ? ' This is the last variant, so the product will also be permanently deleted.' : ''} Are you sure you want to delete it?`
-            : isLastVariant
-            ? 'This is the last variant of this product. Deleting it will also permanently delete the product, and you will not be able to see it again.'
-            : 'This variant will be permanently deleted.'}
+          message={[
+            deleteEndsBoost && "The product is boosted, deletion will end the product's promotion.",
+            isLastVariant
+              ? 'This is the last variant of this product. Deleting it will also permanently delete the product, and you will not be able to see it again.'
+              : deleteEndsBoost ? null : 'This variant will be permanently deleted.',
+            deleteLeavesNoneVisible && LAST_VISIBLE_NOTE,
+            deleteEndsBoost && 'Are you sure you want to delete it?',
+          ].filter(Boolean).join(' ')}
           loading={deleting}
           onConfirm={() => void confirmDelete()}
           onCancel={() => setDeleteTarget(null)}
@@ -401,7 +406,11 @@ export default function VariantList(): JSX.Element {
       {hideTarget && (
         <ConfirmDeleteModal
           title="Hide Variant"
-          message="The product is boosted, hiding this variant will end the product's promotion. Are you sure you want to hide it?"
+          message={[
+            hideEndsBoost(hideTarget) && "The product is boosted, hiding this variant will end the product's promotion.",
+            isLastVisible(hideTarget) && LAST_VISIBLE_NOTE,
+            'Are you sure you want to hide it?',
+          ].filter(Boolean).join(' ')}
           confirmLabel="Hide"
           loadingLabel="Hiding…"
           icon={<EyeOff size={20} className="text-rose-500" />}

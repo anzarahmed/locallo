@@ -533,9 +533,13 @@ function ProductCard({ product, loadingVariants, loadingPromote, onView, onEdit,
             <p className="text-sm font-semibold text-gray-800 leading-snug line-clamp-2 flex-1 group-hover:text-teal-600 transition-colors">
               {product.name}
             </p>
-            {!product.isActive && (
+            {!product.isActive ? (
               <span className="shrink-0 text-[10px] font-semibold text-gray-400 bg-gray-100 px-2 py-0.5 rounded-full mt-0.5">
                 Hidden
+              </span>
+            ) : (product.variantCount ?? 0) > 0 && product.activeVariantCount === 0 && (
+              <span className="shrink-0 text-[10px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-full mt-0.5">
+                Hidden · no visible variants
               </span>
             )}
           </div>
