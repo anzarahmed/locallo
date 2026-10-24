@@ -393,7 +393,7 @@ export default function VariantList(): JSX.Element {
             deleteEndsBoost && "The product is boosted, deletion will end the product's promotion.",
             isLastVariant
               ? 'This is the last variant of this product. Deleting it will also permanently delete the product, and you will not be able to see it again.'
-              : deleteEndsBoost ? null : 'This variant will be permanently deleted.',
+              : deleteEndsBoost ? null : 'Are you sure you want to delete this variant? This action cannot be undone.',
             deleteLeavesNoneVisible && LAST_VISIBLE_NOTE,
             deleteEndsBoost && 'Are you sure you want to delete it?',
           ].filter(Boolean).join(' ')}
