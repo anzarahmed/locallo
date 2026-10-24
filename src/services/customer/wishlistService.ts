@@ -8,13 +8,17 @@ import { inStockSql } from './productService';
 const LIST_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images', 'sellerId', 'categoryId'];
 const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'stock', 'sellingPrice', 'mrp', 'isActive'];
 
-// Filtered in SQL so pagination and count only see displayable rows: a variant-specific
-// entry needs that variant visible and in stock, a product entry needs the product in stock.
-const WISHLIST_IN_STOCK_CONDITION = literal(
-  'CASE WHEN "Wishlist".variant_id IS NOT NULL ' +
-  'THEN EXISTS (SELECT 1 FROM product_variants wv WHERE wv.id = "Wishlist".variant_id AND wv.is_active = true AND wv.stock > 0) ' +
-  `ELSE ${inStockSql('"Wishlist".product_id', '(SELECT stock FROM products WHERE products.id = "Wishlist".product_id)')} END`,
+// The wishlist is the only customer listing that keeps out-of-stock items, so stock is
+// returned as a flag instead of filtering; a variant hidden by the seller is still dropped.
+const WISHLIST_VISIBLE_CONDITION = literal(
+  '("Wishlist".variant_id IS NULL OR EXISTS (SELECT 1 FROM product_variants wv ' +
+  'WHERE wv.id = "Wishlist".variant_id AND wv.is_active = true))',
 );
+
+const WISHLIST_IN_STOCK_SQL =
+  'CASE WHEN "Wishlist".variant_id IS NOT NULL ' +
+  'THEN EXISTS (SELECT 1 FROM product_variants wv WHERE wv.id = "Wishlist".variant_id AND wv.stock > 0) ' +
+  `ELSE ${inStockSql('"Wishlist".product_id', '(SELECT stock FROM products WHERE products.id = "Wishlist".product_id)')} END`;
 
 export async function toggleWishlist(
   customerId: string,
@@ -49,7 +53,8 @@ export async function listWishlist(
   limit: number,
 ): Promise<{ rows: Wishlist[]; count: number }> {
   return Wishlist.findAndCountAll({
-    where: { customerId, [Op.and]: [WISHLIST_IN_STOCK_CONDITION] },
+    attributes: { include: [[literal(WISHLIST_IN_STOCK_SQL), 'inStock']] },
+    where: { customerId, [Op.and]: [WISHLIST_VISIBLE_CONDITION] },
     include: [
       {
         model: Product,

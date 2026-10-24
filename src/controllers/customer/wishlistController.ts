@@ -5,6 +5,7 @@ import { parsePagination } from '../../utils/pagination';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import * as wishlistService from '../../services/customer/wishlistService';
 import * as productService from '../../services/customer/productService';
+import type { Wishlist } from '../../models/Wishlist';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
@@ -20,6 +21,7 @@ interface WishlistItem {
   variantStock: number | null;
   variantAttributes: Record<string, unknown> | null;
   variantIsActive: boolean | null;
+  inStock: boolean;
   lat: number | null;
   long: number | null;
   rating: number;
@@ -71,6 +73,7 @@ export async function getWishlist(req: Request, res: Response): Promise<void> {
           ? normalizeFreeTextAttributes(v.attributes as Record<string, unknown>, attributeSchemasByCategory.get(w.product.categoryId) ?? [])
           : null,
         variantIsActive: v ? v.isActive : null,
+        inStock: Boolean(w.getDataValue('inStock' as keyof Wishlist)),
         lat: location?.lat ?? null,
         long: location?.long ?? null,
         rating: 0,
