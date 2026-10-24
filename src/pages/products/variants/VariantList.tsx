@@ -60,6 +60,12 @@ export default function VariantList(): JSX.Element {
   const liveBoost = boost?.status === 'active' && boost.paymentStatus === 'paid' ? boost : null;
   const wholeProductBoosted = liveBoost != null && liveBoost.variantIds === null;
   const boostedVariantIds = new Set(liveBoost?.variantIds ?? []);
+  const deleteEndsBoost = deleteTarget != null && liveBoost != null && (
+    isLastVariant || (
+      boostedVariantIds.has(deleteTarget.id)
+      && !variants.some(v => v.id !== deleteTarget.id && v.isActive && boostedVariantIds.has(v.id))
+    )
+  );
 
   useEffect(() => {
     async function load(): Promise<void> {
@@ -184,17 +190,22 @@ export default function VariantList(): JSX.Element {
     if (!deleteTarget) return;
     setDeleting(true);
     try {
-      const { productDeleted, cancelledBoosts } = await deleteVariant(id!, deleteTarget.id);
+      const { productDeleted, cancelledBoosts, endedBoosts } = await deleteVariant(id!, deleteTarget.id, deleteEndsBoost);
       setDeleteTarget(null);
       const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (productDeleted) {
         toast.success('Product deleted');
+        if (endedBoosts) toast.info('Promotion ended');
         if (cancelledMsg) toast.info(cancelledMsg);
         navigate('/products', { replace: true });
         return;
       }
       setVariants(prev => prev.filter(v => v.id !== deleteTarget.id));
       toast.success('Variant deleted');
+      if (endedBoosts) {
+        toast.info('Promotion ended');
+        setBoost(null);
+      }
       if (cancelledMsg) {
         toast.info(cancelledMsg);
         setBoost(null);
@@ -336,7 +347,9 @@ export default function VariantList(): JSX.Element {
       {deleteTarget && (
         <ConfirmDeleteModal
           title={isLastVariant ? 'Delete Last Variant' : 'Delete Variant'}
-          message={isLastVariant
+          message={deleteEndsBoost
+            ? `The product is boosted, deletion would lead to end of promotion.${isLastVariant ? ' This is the last variant, so the product will also be permanently deleted.' : ''} Are you sure you want to delete?`
+            : isLastVariant
             ? 'This is the last variant of this product. Deleting it will also permanently delete the product, and you will not be able to see it again.'
             : 'This variant will be permanently deleted.'}
           loading={deleting}

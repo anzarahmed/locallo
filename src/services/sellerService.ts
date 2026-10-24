@@ -95,8 +95,12 @@ export function updateVariant(productId: string, variantId: string, data: Record
   return apiPut(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}`, data);
 }
 
-export function deleteVariant(productId: string, variantId: string): Promise<{ productDeleted: boolean; cancelledBoosts?: number }> {
-  return apiDelete(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}`);
+export function deleteVariant(
+  productId: string,
+  variantId: string,
+  endBoost = false,
+): Promise<{ productDeleted: boolean; cancelledBoosts?: number; endedBoosts?: number }> {
+  return apiDelete(`${PATHS.PRODUCTS}/${productId}/variants/${variantId}${endBoost ? '?endBoost=true' : ''}`);
 }
 
 export function toggleVariant(productId: string, variantId: string): Promise<{ variant: ProductVariant; cancelledBoosts?: number }> {
