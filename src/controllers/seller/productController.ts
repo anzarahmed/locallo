@@ -119,8 +119,12 @@ export async function updateProduct(req: Request, res: Response): Promise<void> 
 
 export async function toggleProduct(req: Request, res: Response): Promise<void> {
   try {
-    const { product, cancelledBoosts } = await productService.toggleSellerProduct(req.seller!.id, String(req.params.id));
-    sendSuccess(res, { product, cancelledBoosts }, 'Product status updated');
+    const { product, cancelledBoosts, endedBoosts } = await productService.toggleSellerProduct(
+      req.seller!.id,
+      String(req.params.id),
+      req.query.endBoost === 'true',
+    );
+    sendSuccess(res, { product, cancelledBoosts, endedBoosts }, 'Product status updated');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to toggle product');
   }
@@ -128,8 +132,12 @@ export async function toggleProduct(req: Request, res: Response): Promise<void> 
 
 export async function deleteProduct(req: Request, res: Response): Promise<void> {
   try {
-    const { cancelledBoosts } = await productService.deleteSellerProduct(req.seller!.id, String(req.params.id));
-    sendSuccess(res, { cancelledBoosts }, 'Product deleted');
+    const { cancelledBoosts, endedBoosts } = await productService.deleteSellerProduct(
+      req.seller!.id,
+      String(req.params.id),
+      req.query.endBoost === 'true',
+    );
+    sendSuccess(res, { cancelledBoosts, endedBoosts }, 'Product deleted');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to delete product');
   }

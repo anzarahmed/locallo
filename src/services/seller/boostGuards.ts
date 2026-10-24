@@ -1,17 +1,6 @@
 import { Op, type Transaction } from 'sequelize';
 import { ProductBoost } from '../../models/ProductBoost';
 
-// A live paid boost must always have something visible to show, so a product can't be
-// hidden or deleted out from under one.
-export async function assertNoLiveBoost(productId: string, action: 'hidden' | 'deleted'): Promise<void> {
-  if (await hasLiveBoost(productId)) {
-    throw Object.assign(
-      new Error(`This product is currently boosted and cannot be ${action} while the boost is active.`),
-      { status: 409 },
-    );
-  }
-}
-
 export async function hasLiveBoost(productId: string): Promise<boolean> {
   const live = await ProductBoost.count({ where: { productId, status: 'active', paymentStatus: 'paid' } });
   return live > 0;

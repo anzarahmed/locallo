@@ -11,7 +11,7 @@ import type { AttributeField } from '../../types';
 import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import { recordPurchase } from './purchaseService';
-import { assertNoLiveBoost, cancelPendingBoosts } from './boostGuards';
+import { cancelPendingBoosts, completeLiveBoosts, hasLiveBoost } from './boostGuards';
 import sequelize from '../../config/database';
 
 type CreateProductInput = InferType<typeof createProductSchema>;
@@ -390,30 +390,50 @@ export async function updateSellerProduct(
   return reloaded;
 }
 
+export const BOOST_ENDS_ON_PRODUCT_HIDE_MESSAGE =
+  'The product is boosted, hiding it would lead to end of promotion. Are you sure you want to hide it?';
+export const BOOST_ENDS_ON_PRODUCT_DELETE_MESSAGE =
+  'The product is boosted, deletion would lead to end of promotion. Are you sure you want to delete it?';
+
+// Older app builds don't send endBoost, so they get a 409 instead of silently ending a paid boost.
+async function assertBoostEndConfirmed(productId: string, endBoost: boolean, message: string): Promise<void> {
+  if (!endBoost && await hasLiveBoost(productId)) {
+    throw Object.assign(new Error(message), { status: 409 });
+  }
+}
+
 export async function toggleSellerProduct(
   sellerId: string,
   productId: string,
-): Promise<{ product: Product; cancelledBoosts: number }> {
+  endBoost: boolean,
+): Promise<{ product: Product; cancelledBoosts: number; endedBoosts: number }> {
   const product = await requireOwnProduct(sellerId, productId);
   if (!product.isActive) {
     await product.update({ isActive: true });
-    return { product, cancelledBoosts: 0 };
+    return { product, cancelledBoosts: 0, endedBoosts: 0 };
   }
 
-  await assertNoLiveBoost(productId, 'hidden');
-  const cancelledBoosts = await sequelize.transaction(async (t) => {
+  await assertBoostEndConfirmed(productId, endBoost, BOOST_ENDS_ON_PRODUCT_HIDE_MESSAGE);
+  const { cancelledBoosts, endedBoosts } = await sequelize.transaction(async (t) => {
+    const ended = await completeLiveBoosts({ productId }, t);
     const cancelled = await cancelPendingBoosts({ productId }, t);
     await product.update({ isActive: false }, { transaction: t });
-    return cancelled;
+    return { cancelledBoosts: cancelled, endedBoosts: ended };
   });
-  return { product, cancelledBoosts };
+  return { product, cancelledBoosts, endedBoosts };
 }
 
-export async function deleteSellerProduct(sellerId: string, productId: string): Promise<{ cancelledBoosts: number }> {
+export async function deleteSellerProduct(
+  sellerId: string,
+  productId: string,
+  endBoost: boolean,
+): Promise<{ cancelledBoosts: number; endedBoosts: number }> {
   const product = await requireOwnProduct(sellerId, productId);
-  await assertNoLiveBoost(productId, 'deleted');
+  await assertBoostEndConfirmed(productId, endBoost, BOOST_ENDS_ON_PRODUCT_DELETE_MESSAGE);
 
   return sequelize.transaction(async (t) => {
+    // Must run before destroy: product_id is ON DELETE SET NULL, so afterwards the rows can't be matched.
+    const endedBoosts = await completeLiveBoosts({ productId }, t);
     const cancelledBoosts = await cancelPendingBoosts({ productId }, t);
     await recordPurchase({
       sellerId,
@@ -428,6 +448,6 @@ export async function deleteSellerProduct(sellerId: string, productId: string): 
     }, t);
 
     await product.destroy({ transaction: t });
-    return { cancelledBoosts };
+    return { cancelledBoosts, endedBoosts };
   });
 }
