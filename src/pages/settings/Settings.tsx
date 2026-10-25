@@ -25,7 +25,7 @@ interface NotifRow {
 
 const NOTIF_ROWS: NotifRow[] = [
   { key: 'pushNotifications',  label: 'Push notifications',  description: 'Order alerts and app activity', Icon: Bell         },
-  { key: 'emailUpdates',       label: 'Email updates',       description: 'Reports and account summaries',  Icon: Mail         },
+  { key: 'emailUpdates',       label: 'Email updates',       description: 'Tips, offers and reminders',     Icon: Mail         },
   { key: 'smsAlerts',          label: 'SMS alerts',          description: 'Critical alerts via text',       Icon: MessageSquare },
   { key: 'offersAndPromotions',label: 'Offers & promotions', description: 'Deals and promotional campaigns', Icon: Tag          },
   { key: 'wishlistPriceDrops', label: 'Wishlist price drops',description: 'Notify buyers when prices drop', Icon: Heart        },
