@@ -5,7 +5,8 @@ import { User } from '../models/User';
 import { SellerProfile } from '../models/SellerProfile';
 import { OfferSellerNotification } from '../models/OfferSellerNotification';
 import { notify } from '../services/notifications/notifyService';
-import { sendOfferNotificationEmail } from '../utils/mailer';
+import { sendSellerEmail } from '../utils/mailer';
+import { offerManiaEmail } from '../utils/emailTemplates/seller/offerManiaEmail';
 
 const MAX_ATTEMPTS = 5;
 const BATCH_SIZE = 500;
@@ -56,7 +57,8 @@ async function expireNearStartOffers(): Promise<void> {
 }
 
 async function sendEmailChannel(row: OfferSellerNotification): Promise<void> {
-  const email = row.seller.sellerProfile?.email ?? row.seller.email;
+  const profile = row.seller.sellerProfile;
+  const email = profile?.email || row.seller.email;
 
   if (!email) {
     await OfferSellerNotification.update(
@@ -65,9 +67,17 @@ async function sendEmailChannel(row: OfferSellerNotification): Promise<void> {
     );
     return;
   }
+  if (profile?.notificationSettings?.emailUpdates !== true) {
+    await OfferSellerNotification.update(
+      { emailStatus: 'failed', emailLastError: 'Seller turned off email updates' },
+      { where: { id: row.id } },
+    );
+    return;
+  }
 
   try {
-    await sendOfferNotificationEmail(email, row.offer.title, row.offer.description);
+    const sellerName = row.seller.fullName || profile.businessName;
+    await sendSellerEmail(email, offerManiaEmail(sellerName, row.offerId));
     await OfferSellerNotification.update(
       { emailStatus: 'sent', emailSentAt: new Date(), emailLastError: null },
       { where: { id: row.id } },
@@ -131,7 +141,7 @@ async function processPendingOfferNotifications(): Promise<void> {
       },
       include: [
         { model: Offer },
-        { model: User, include: [{ model: SellerProfile, attributes: ['email'] }] },
+        { model: User, include: [{ model: SellerProfile, attributes: ['email', 'businessName', 'notificationSettings'] }] },
       ],
       limit: BATCH_SIZE,
       order: [['createdAt', 'ASC']],

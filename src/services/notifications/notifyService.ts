@@ -7,9 +7,12 @@ import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 import { isPushConfigured } from '../../utils/push';
 import { getIstDateParts, getIstTimeString, istCalendarDateToUtc } from '../../utils/istDate';
-import type { PushOptions, PushStatus } from '../../types';
+import type { EmailStatus, PushOptions, PushStatus } from '../../types';
+import type { EmailContent } from '../../utils/emailTemplates/sellerEmailLayout';
 import { TEMPLATES, PROMOTIONAL_TYPES } from './templates';
 import type { BuiltNotification, NotificationTemplate, NotificationType, TemplateParamsMap } from './templates';
+import { getSellerEmailTemplate, isEmailGateOpen } from './sellerEmails';
+import { loadSellerRecipients } from './sellerRecipients';
 
 const CHUNK_SIZE = 1000;
 const PROMO_DAILY_CAP = 1;
@@ -117,6 +120,33 @@ async function resolvePushEligible<P>(userIds: string[], template: NotificationT
   return usersUnderPromoCap([...eligible]);
 }
 
+interface EmailFields {
+  emailStatus: EmailStatus | null;
+  emailContent: EmailContent | null;
+}
+
+const NO_EMAIL: EmailFields = { emailStatus: null, emailContent: null };
+
+// Rendered at insert time so the dispatch job needs no params, and the email always
+// matches the inbox row even if the template changes before it is sent.
+async function resolveEmails<T extends NotificationType>(
+  userIds: string[],
+  type: T,
+  params: TemplateParamsMap[T],
+): Promise<Map<string, EmailFields>> {
+  const emailTemplate = getSellerEmailTemplate(type);
+  if (!emailTemplate) return new Map();
+
+  const recipients = await loadSellerRecipients(userIds);
+  return new Map(userIds.map((userId) => {
+    const recipient = recipients.get(userId);
+    if (!recipient) return [userId, NO_EMAIL];
+    const emailContent = emailTemplate.build(params, recipient.name);
+    const sendable = Boolean(recipient.email) && isEmailGateOpen(emailTemplate.gate, recipient.settings);
+    return [userId, { emailStatus: sendable ? 'pending' : 'skipped', emailContent }];
+  }));
+}
+
 export interface NotificationRowFields {
   id: string;
   customerId: string;
@@ -164,7 +194,7 @@ export function buildNotificationRow<P>(
 }
 
 // Writes one inbox row per user and queues a push where settings, devices and the
-// promotional cap allow. Rows whose dedupe key already exists are silently skipped,
+// promotional cap allow, plus a seller email where the type has one (emailDispatchJob). Rows whose dedupe key already exists are silently skipped,
 // which is what makes cron re-runs and webhook retries safe. Returns rows created.
 export async function notifyMany<T extends NotificationType>(
   userIds: string[],
@@ -182,6 +212,7 @@ export async function notifyMany<T extends NotificationType>(
     const chunk = await withoutExistingDedupeKeys(userIds.slice(i, i + CHUNK_SIZE), dedupeKeyFor);
     if (chunk.length === 0) continue;
     const eligible = await resolvePushEligible(chunk, template);
+    const emails = await resolveEmails(chunk, type, params);
 
     const rows = chunk.map((userId) => {
       const id = crypto.randomUUID();
@@ -191,6 +222,7 @@ export async function notifyMany<T extends NotificationType>(
         dedupeKey: dedupeKeyFor ? dedupeKeyFor(userId) : null,
         pushStatus,
         sendAfter: pushStatus === 'pending' ? (sendAfter ?? quietUntil ?? new Date()) : null,
+        ...(emails.get(userId) ?? NO_EMAIL),
       };
     });
 

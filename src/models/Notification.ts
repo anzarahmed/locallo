@@ -12,7 +12,8 @@ import {
   UpdatedAt,
 } from 'sequelize-typescript';
 import { User } from './User';
-import type { PushOptions, PushStatus } from '../types';
+import type { EmailStatus, PushOptions, PushStatus } from '../types';
+import type { EmailContent } from '../utils/emailTemplates/sellerEmailLayout';
 
 @Table({ tableName: 'notifications', timestamps: true, underscored: true })
 export class Notification extends Model {
@@ -81,6 +82,26 @@ export class Notification extends Model {
 
   @Column(DataType.DATE)
   declare sendAfter: Date | null;
+
+  @Column(DataType.ENUM('skipped', 'pending', 'sent', 'failed'))
+  declare emailStatus: EmailStatus | null;
+
+  @Column(DataType.JSONB)
+  declare emailContent: EmailContent | null;
+
+  @AllowNull(false)
+  @Default(0)
+  @Column(DataType.SMALLINT)
+  declare emailAttempts: number;
+
+  @Column(DataType.TEXT)
+  declare emailLastError: string | null;
+
+  @Column(DataType.DATE)
+  declare emailSentAt: Date | null;
+
+  @Column(DataType.DATE)
+  declare emailSendAfter: Date | null;
 
   @CreatedAt
   declare createdAt: Date;

@@ -61,7 +61,7 @@ export async function sendProfileReminders(now: Date = new Date()): Promise<void
 }
 
 export async function sendFirstProductNudges(now: Date = new Date()): Promise<void> {
-  const windows = [
+  const windows: { reminder: 1 | 2; fromDays: number; toDays: number }[] = [
     { reminder: 1, fromDays: 3, toDays: 1 },
     { reminder: 2, fromDays: 7, toDays: 4 },
   ];
@@ -73,7 +73,7 @@ export async function sendFirstProductNudges(now: Date = new Date()): Promise<vo
           AND NOT EXISTS (SELECT 1 FROM products p WHERE p.seller_id = u.id)`,
       { from: new Date(now.getTime() - fromDays * DAY_MS), to: new Date(now.getTime() - toDays * DAY_MS) },
     );
-    await notifyMany(ids, 'first_product_nudge', {}, (id) => `first_product_nudge:${id}:${reminder}`);
+    await notifyMany(ids, 'first_product_nudge', { reminder }, (id) => `first_product_nudge:${id}:${reminder}`);
   }
 }
 

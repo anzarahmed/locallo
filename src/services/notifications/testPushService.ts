@@ -11,6 +11,11 @@ import { isPushConfigured, sendPushToTokens } from '../../utils/push';
 import type { TokenOutcome } from '../../utils/push';
 import { countUnreadNotifications } from '../customer/notificationService';
 import { buildNotificationRow } from './notifyService';
+import { getSellerEmailTemplate } from './sellerEmails';
+import { getSellerRecipient } from './sellerRecipients';
+import { sendSellerEmail } from '../../utils/mailer';
+import { offerManiaEmail } from '../../utils/emailTemplates/seller/offerManiaEmail';
+import type { EmailContent } from '../../utils/emailTemplates/sellerEmailLayout';
 import { TEMPLATES } from './templates';
 import type { NotificationAudience, NotificationTemplate, NotificationType, TemplateParamsMap } from './templates';
 
@@ -60,15 +65,30 @@ async function sampleOffer(): Promise<SampleOffer> {
   return { offerId: offer.id, offerTitle: offer.title, description: offer.description, endsAt };
 }
 
-async function sampleBoost(userId: string): Promise<{ boostId: string; productName: string; amount: number }> {
+interface SampleBoost {
+  boostId: string;
+  productId: string | null;
+  productName: string;
+  amount: number;
+  target: number;
+}
+
+async function sampleBoost(userId: string): Promise<SampleBoost> {
   const boost = await ProductBoost.findOne({ where: { sellerId: userId }, order: [['createdAt', 'DESC']] });
-  if (!boost) return { boostId: FALLBACK_ID, productName: 'Sample Product', amount: 99 };
-  return { boostId: boost.id, productName: boost.productName ?? 'Sample Product', amount: Number(boost.amount) };
+  if (!boost) return { boostId: FALLBACK_ID, productId: null, productName: 'Sample Product', amount: 99, target: 2000 };
+  return {
+    boostId: boost.id,
+    productId: boost.productId,
+    productName: boost.productName ?? 'Sample Product',
+    amount: Number(boost.amount),
+    target: boost.estimatedImpressionsMax,
+  };
 }
 
 const SAMPLE_PARAMS: SampleBuilders = {
   welcome_customer: async () => ({}),
   welcome_seller: async () => ({}),
+  seller_registered: async () => ({}),
   profile_incomplete: async () => ({}),
   wishlist_weekly: async (userId) => ({ count: Math.max(1, await Wishlist.count({ where: { customerId: userId } })) }),
   wishlist_out_of_stock: async (userId) => {
@@ -88,7 +108,7 @@ const SAMPLE_PARAMS: SampleBuilders = {
     const { offerId, offerTitle, description } = await sampleOffer();
     return { offerId, offerTitle, description };
   },
-  first_product_nudge: async () => ({}),
+  first_product_nudge: async () => ({ reminder: 1 }),
   kyc_pending: async () => ({}),
   views_milestone: async (userId) => {
     const { productId, productName } = await sampleSellerProduct(userId);
@@ -100,12 +120,18 @@ const SAMPLE_PARAMS: SampleBuilders = {
   seller_inactive: async () => ({}),
   boost_suggestion: async () => ({}),
   boost_completed: async (userId) => {
-    const { boostId, productName } = await sampleBoost(userId);
-    return { boostId, productName };
+    const { boostId, productId, productName, target } = await sampleBoost(userId);
+    return { boostId, productId, productName, target };
   },
-  boost_paid: sampleBoost,
+  boost_paid: async (userId) => {
+    const { boostId, productName, amount } = await sampleBoost(userId);
+    return { boostId, productName, amount, transactionId: 'pay_SAMPLE123456', campaign: 'Pan India · ₹50/day' };
+  },
   share_shop: async () => ({}),
   closing_soon: async () => ({ closeTime: '21:00' }),
+  upload_limit_90: async () => ({}),
+  buy_storage: async () => ({}),
+  account_deleted: async () => ({ recoveryDays: 60 }),
 };
 
 export interface TestPushTypeItem {
@@ -117,6 +143,7 @@ export interface TestPushTypeItem {
   channel: string;
   // false = production only writes an inbox row for this type; the test still pushes it.
   pushInProduction: boolean;
+  hasEmail: boolean;
 }
 
 export interface TestPushDeviceResult {
@@ -158,6 +185,7 @@ export async function listTestPushTypes(userId: string, audience: NotificationAu
       pushClass: template.pushClass,
       channel: template.channel,
       pushInProduction: template.push,
+      hasEmail: audience === 'seller' && (type === 'offer_join' || Boolean(getSellerEmailTemplate(type))),
     };
   }));
 }
@@ -234,4 +262,43 @@ export async function sendTestPush(
       ...(r.error ? { error: r.error } : {}),
     })),
   };
+}
+
+export interface TestEmailResult {
+  type: NotificationType;
+  to: string;
+  subject: string;
+}
+
+async function buildTestEmail<T extends NotificationType>(
+  type: T,
+  userId: string,
+  sellerName: string,
+  overrides: Record<string, unknown>,
+): Promise<EmailContent | null> {
+  const params = { ...(await SAMPLE_PARAMS[type](userId)), ...overrides } as TemplateParamsMap[T];
+  // offer_join's email is sent by the offer outbox, not the notification pipeline.
+  if (type === 'offer_join') return offerManiaEmail(sellerName, (params as TemplateParamsMap['offer_join']).offerId);
+  return getSellerEmailTemplate(type)?.build(params, sellerName) ?? null;
+}
+
+// Sends straight to the caller's own email, bypassing the seller's email settings.
+export async function sendTestEmail(
+  userId: string,
+  type: NotificationType,
+  overrides: Record<string, unknown> = {},
+): Promise<TestEmailResult> {
+  const recipient = await getSellerRecipient(userId);
+  if (!recipient?.email) {
+    throw Object.assign(new Error('No email address on this seller account'), { status: 404 });
+  }
+
+  const content = await buildTestEmail(type, userId, recipient.name, overrides);
+  if (!content) {
+    const allowed = typesFor('seller').filter((t) => t === 'offer_join' || getSellerEmailTemplate(t));
+    throw Object.assign(new Error(`"${type}" has no seller email. Allowed: ${allowed.join(', ')}`), { status: 422 });
+  }
+
+  await sendSellerEmail(recipient.email, content);
+  return { type, to: recipient.email, subject: content.subject };
 }

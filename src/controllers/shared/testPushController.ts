@@ -1,5 +1,5 @@
 import type { Request, RequestHandler, Response } from 'express';
-import { listTestPushTypes, sendTestPush } from '../../services/notifications/testPushService';
+import { listTestPushTypes, sendTestEmail, sendTestPush } from '../../services/notifications/testPushService';
 import type { NotificationAudience, NotificationType } from '../../services/notifications/templates';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 
@@ -28,4 +28,13 @@ export function postTestPush(audience: NotificationAudience): RequestHandler {
       handleServiceError(err, res);
     }
   };
+}
+
+export async function postTestEmail(req: Request, res: Response): Promise<void> {
+  try {
+    const { type, params } = req.body as { type: NotificationType; params?: Record<string, unknown> };
+    sendSuccess(res, await sendTestEmail(req.seller!.id, type, params ?? {}), 'Test email sent');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
 }

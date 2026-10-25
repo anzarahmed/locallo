@@ -2,15 +2,15 @@ import { Op, literal } from 'sequelize';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { ProductBoost } from '../../models/ProductBoost';
-import { User } from '../../models/User';
-import { SellerProfile } from '../../models/SellerProfile';
 import { Category } from '../../models/Category';
 import { getGroupOptions } from './variantService';
 import { inStockCondition } from '../customer/productService';
 import { createRazorpayOrder } from '../../utils/razorpay';
-import { sendBoostPaymentConfirmedEmail, sendBoostPaymentFailedEmail } from '../../utils/mailer';
+import { sendSellerEmail } from '../../utils/mailer';
+import { boostPaymentFailedEmail } from '../../utils/emailTemplates/seller/boostPaymentFailedEmail';
 import { getPresignedUrl } from '../../utils/imageStorage';
 import { notifySafely } from '../notifications/notifyService';
+import { getSellerRecipient } from '../notifications/sellerRecipients';
 import type { BoostAudienceType, BoostStatus, PaymentStatus } from '../../types';
 
 const IMPRESSIONS_PER_RUPEE = 20;
@@ -186,26 +186,24 @@ export async function markBoostPaid(razorpayOrderId: string, paymentId: string, 
   await notifySafely(
     boost.sellerId,
     'boost_paid',
-    { boostId: boost.id, productName: boost.product?.name ?? boost.productName ?? 'your product', amount: boost.amount },
+    {
+      boostId: boost.id,
+      productName: boost.product?.name ?? boost.productName ?? 'your product',
+      amount: boost.amount,
+      transactionId: paymentId,
+      campaign: boostCampaignLabel(boost),
+    },
     { dedupeKey: `boost_paid:${boost.id}` },
   );
+}
 
-  const seller = await User.findByPk(boost.sellerId, {
-    include: [{ model: SellerProfile, attributes: ['email', 'businessName'] }],
-  });
-  const email = seller?.sellerProfile?.email ?? seller?.email;
-  if (email) {
-    try {
-      await sendBoostPaymentConfirmedEmail(
-        email,
-        seller?.sellerProfile?.businessName ?? seller?.fullName ?? 'there',
-        boost.product?.name ?? boost.productName ?? 'your product',
-        boost.amount,
-      );
-    } catch (err) {
-      console.error('markBoostPaid: failed to send confirmation email', err);
-    }
-  }
+const AUDIENCE_LABELS: Record<BoostAudienceType, string> = { pan_india: 'Pan India', state: 'State', city: 'City' };
+
+// Boosts have no name, so the email's "Campaign" line describes the audience and budget.
+function boostCampaignLabel(boost: ProductBoost): string {
+  const place = [boost.city, boost.state].filter(Boolean).join(', ');
+  const audience = boost.audienceType === 'pan_india' || !place ? AUDIENCE_LABELS[boost.audienceType] : place;
+  return `${audience} · ₹${boost.dailyBudget}/day`;
 }
 
 export async function markBoostFailed(razorpayOrderId: string, paymentId: string): Promise<void> {
@@ -213,21 +211,16 @@ export async function markBoostFailed(razorpayOrderId: string, paymentId: string
   if (!boost || boost.paymentStatus !== 'pending') return;
   await boost.update({ paymentStatus: 'failed', status: 'cancelled', razorpayPaymentId: paymentId });
 
-  const seller = await User.findByPk(boost.sellerId, {
-    include: [{ model: SellerProfile, attributes: ['email', 'businessName'] }],
-  });
-  const email = seller?.sellerProfile?.email ?? seller?.email;
-  if (email) {
-    try {
-      await sendBoostPaymentFailedEmail(
-        email,
-        seller?.sellerProfile?.businessName ?? seller?.fullName ?? 'there',
-        boost.product?.name ?? boost.productName ?? 'your product',
-        boost.amount,
+  try {
+    const recipient = await getSellerRecipient(boost.sellerId);
+    if (recipient?.email) {
+      await sendSellerEmail(
+        recipient.email,
+        boostPaymentFailedEmail(recipient.name, boost.product?.name ?? boost.productName ?? 'your product', boost.amount),
       );
-    } catch (err) {
-      console.error('markBoostFailed: failed to send failure email', err);
     }
+  } catch (err) {
+    console.error('markBoostFailed: failed to send failure email', err);
   }
 }
 

@@ -110,6 +110,7 @@ export interface DashboardStats {
 }
 
 export type PushStatus = 'skipped' | 'pending' | 'sent' | 'failed';
+export type EmailStatus = PushStatus;
 export type PushClass = 'transactional' | 'promotional';
 export type PushChannel = 'transactional' | 'offers' | 'wishlist' | 'seller_updates';
 

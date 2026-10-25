@@ -6,6 +6,7 @@ export type SellerPushSetting = keyof Pick<NotificationSettings, 'offersAndPromo
 export interface TemplateParamsMap {
   welcome_customer: Record<string, never>;
   welcome_seller: Record<string, never>;
+  seller_registered: Record<string, never>;
   profile_incomplete: Record<string, never>;
   wishlist_weekly: { count: number };
   wishlist_out_of_stock: { productId: string; variantId?: string; productName: string };
@@ -13,16 +14,19 @@ export interface TemplateParamsMap {
   offer_upcoming: { offerId: number; offerTitle: string };
   offer_live: { offerId: number; offerTitle: string; endsAt: Date };
   offer_join: { offerId: number; offerTitle: string; description: string | null };
-  first_product_nudge: Record<string, never>;
+  first_product_nudge: { reminder: 1 | 2 };
   kyc_pending: Record<string, never>;
   views_milestone: { productId: string; productName: string; milestone: number };
   out_of_stock_digest: { count: number };
   seller_inactive: Record<string, never>;
   boost_suggestion: Record<string, never>;
-  boost_completed: { boostId: string; productName: string };
-  boost_paid: { boostId: string; productName: string; amount: number };
+  boost_completed: { boostId: string; productId: string | null; productName: string; target: number };
+  boost_paid: { boostId: string; productName: string; amount: number; transactionId: string; campaign: string };
   share_shop: Record<string, never>;
   closing_soon: { closeTime: string };
+  upload_limit_90: Record<string, never>;
+  buy_storage: Record<string, never>;
+  account_deleted: { recoveryDays: number };
 }
 
 export type NotificationType = keyof TemplateParamsMap;
@@ -58,7 +62,7 @@ function formatViews(n: number): string {
   return n >= 1000 ? `${n / 1000}K` : String(n);
 }
 
-function formatCloseTime(hhmm: string): string {
+export function formatCloseTime(hhmm: string): string {
   const [h, m] = hhmm.split(':').map(Number);
   const suffix = h >= 12 ? 'PM' : 'AM';
   return `${String(h % 12 || 12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${suffix}`;
@@ -78,6 +82,14 @@ export const TEMPLATES: TemplateRegistry = {
     build: () => ({
       title: 'Welcome to Loccalo!',
       body: 'Congratulations on starting your new selling journey with us.',
+      screen: 'dashboard',
+    }),
+  },
+  seller_registered: {
+    audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: false,
+    build: () => ({
+      title: 'Your seller registration is complete',
+      body: 'Your Loccalo seller account is ready. Set up your store and start adding products.',
       screen: 'dashboard',
     }),
   },
@@ -260,6 +272,31 @@ export const TEMPLATES: TemplateRegistry = {
       body: `Closing at ${formatCloseTime(closeTime)}. Want to extend today's hours?`,
       screen: 'special_hours',
       collapseKey: 'closing_soon',
+    }),
+  },
+  // No trigger yet: product upload limits and storage plans don't exist. Sendable via the test endpoints.
+  upload_limit_90: {
+    audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true,
+    build: () => ({
+      title: 'You’ve used 90% of your upload limit',
+      body: 'Add more storage to keep growing your catalogue.',
+      screen: 'dashboard',
+    }),
+  },
+  buy_storage: {
+    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true, sellerSetting: 'offersAndPromotions',
+    build: () => ({
+      title: 'Need more space for your products?',
+      body: 'Buy additional storage to showcase more products.',
+      screen: 'dashboard',
+    }),
+  },
+  account_deleted: {
+    audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: false,
+    build: ({ recoveryDays }) => ({
+      title: 'Your seller account has been deleted',
+      body: `Log in again within ${recoveryDays} days to restore your account.`,
+      screen: 'dashboard',
     }),
   },
 };

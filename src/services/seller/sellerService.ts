@@ -10,7 +10,10 @@ import { Review } from '../../models/Review';
 import { Session } from '../../models/Session';
 import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
 import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
-import { sendKycVerificationEmail } from '../../utils/mailer';
+import { sendSellerEmail } from '../../utils/mailer';
+import { kycVerificationEmail } from '../../utils/emailTemplates/seller/kycVerificationEmail';
+import { notifySafely } from '../notifications/notifyService';
+import { getSellerRecipient } from '../notifications/sellerRecipients';
 import { isIstDateTodayOrFuture } from '../../utils/istDate';
 import { createDefaultLedgers } from './ledgerService';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
@@ -19,6 +22,8 @@ type CreateSellerInput       = InferType<typeof createSellerSchema>;
 type UpdateSellerInput       = InferType<typeof updateSellerSchema>;
 type UpdateAddressInput      = InferType<typeof updateAddressSchema>;
 type AdminUpdateSellerInput  = InferType<typeof adminUpdateSellerSchema>;
+
+export const SELLER_DELETION_HOLD_DAYS = 60;
 
 async function requireSellerProfile(userId: string): Promise<SellerProfile> {
   const profile = await SellerProfile.findOne({ where: { userId } });
@@ -32,7 +37,7 @@ export async function createSeller(
   data: CreateSellerInput,
   adminId: string,
 ): Promise<{ user: User; profile: SellerProfile }> {
-  return sequelize.transaction(async (t) => {
+  const created = await sequelize.transaction(async (t) => {
     const existing = await User.findOne({ where: { mobile: data.mobile, role: 'SELLER' }, transaction: t });
     if (existing) {
       throw Object.assign(new Error('Mobile number already registered'), { status: 409 });
@@ -84,6 +89,9 @@ export async function createSeller(
 
     return { user, profile };
   });
+
+  await notifySafely(created.user.id, 'seller_registered', {}, { dedupeKey: `seller_registered:${created.user.id}` });
+  return created;
 }
 
 export async function updateSellerProfile(
@@ -161,6 +169,8 @@ export async function requestSellerAccountDeletion(userId: string): Promise<void
     await Session.destroy({ where: { actorType: 'user', actorId: userId }, transaction: t });
     await user.update({ isActive: false, deletionRequestedAt: new Date() }, { transaction: t });
   });
+
+  await notifySafely(userId, 'account_deleted', { recoveryDays: SELLER_DELETION_HOLD_DAYS });
 }
 
 export async function permanentlyDeleteSellerAccount(userId: string): Promise<void> {
@@ -464,7 +474,10 @@ export async function setSellerKycVerification(
   }
 
   try {
-    await sendKycVerificationEmail(profile.email, profile.businessName, verified);
+    const recipient = await getSellerRecipient(sellerId);
+    if (recipient?.email) {
+      await sendSellerEmail(recipient.email, kycVerificationEmail(recipient.name, profile.businessName, verified));
+    }
   } catch (err: unknown) {
     console.error('[setSellerKycVerification] failed to send notification email:', err);
   }

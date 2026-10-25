@@ -99,13 +99,14 @@ export class SellerProfile extends Model {
   declare workingHours: Record<string, unknown>;
 
   @Default({
-    pushNotifications: false,
-    emailUpdates: false,
+    pushNotifications: true,
+    emailUpdates: true,
     smsAlerts: false,
-    offersAndPromotions: false,
+    offersAndPromotions: true,
     wishlistPriceDrops: false,
-    sellerUpdates: false,
+    sellerUpdates: true,
     useAiForPrimaryImage: true,
+    closingReminder: false,
   })
   @AllowNull(false)
   @Column(DataType.JSONB)

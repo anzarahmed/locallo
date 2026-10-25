@@ -1,10 +1,11 @@
 import cron from 'node-cron';
 import { Op } from 'sequelize';
 import { User } from '../models/User';
-import { permanentlyDeleteSellerAccount } from '../services/seller/sellerService';
+import { permanentlyDeleteSellerAccount, SELLER_DELETION_HOLD_DAYS } from '../services/seller/sellerService';
 import { permanentlyDeleteCustomerAccount } from '../services/customer/customerProfileService';
 
-const HOLD_DAYS = 30;
+const CUSTOMER_HOLD_DAYS = 30;
+const DAY_MS = 24 * 60 * 60 * 1000;
 const BATCH_SIZE = 500;
 
 let isRunning = false;
@@ -14,9 +15,14 @@ async function processExpiredDeletions(): Promise<void> {
   isRunning = true;
 
   try {
-    const cutoff = new Date(Date.now() - HOLD_DAYS * 24 * 60 * 60 * 1000);
+    const now = Date.now();
     const users = await User.findAll({
-      where: { deletionRequestedAt: { [Op.lte]: cutoff } },
+      where: {
+        [Op.or]: [
+          { role: 'SELLER', deletionRequestedAt: { [Op.lte]: new Date(now - SELLER_DELETION_HOLD_DAYS * DAY_MS) } },
+          { role: { [Op.ne]: 'SELLER' }, deletionRequestedAt: { [Op.lte]: new Date(now - CUSTOMER_HOLD_DAYS * DAY_MS) } },
+        ],
+      },
       attributes: ['id', 'role'],
       limit: BATCH_SIZE,
     });

@@ -163,7 +163,12 @@ export async function incrementImpressions(boostIds: string[]): Promise<void> {
   await Promise.all(completed.map((boost) => notifySafely(
     boost.sellerId,
     'boost_completed',
-    { boostId: boost.id, productName: boost.productName ?? 'Your product' },
+    {
+      boostId: boost.id,
+      productId: boost.productId,
+      productName: boost.productName ?? 'Your product',
+      target: boost.estimatedImpressionsMax,
+    },
     { dedupeKey: `boost_completed:${boost.id}` },
   )));
 }

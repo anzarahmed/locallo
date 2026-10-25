@@ -1,8 +1,5 @@
 import nodemailer from 'nodemailer';
-import { kycVerificationEmail } from './emailTemplates/kycVerificationEmail';
-import { offerNotificationEmail } from './emailTemplates/offerNotificationEmail';
-import { boostPaymentConfirmedEmail } from './emailTemplates/boostPaymentConfirmedEmail';
-import { boostPaymentFailedEmail } from './emailTemplates/boostPaymentFailedEmail';
+import type { EmailContent } from './emailTemplates/sellerEmailLayout';
 
 const transporter = nodemailer.createTransport({
   service: 'gmail',
@@ -36,64 +33,12 @@ export async function sendPasswordResetEmail(to: string, resetUrl: string): Prom
   });
 }
 
-export async function sendKycVerificationEmail(
-  to: string,
-  businessName: string,
-  verified: boolean,
-): Promise<void> {
-  const { subject, html } = kycVerificationEmail(businessName, verified);
-
+export async function sendSellerEmail(to: string, content: EmailContent): Promise<void> {
   await transporter.sendMail({
-    from: `"Localo" <${process.env.GMAIL_USER}>`,
+    from: `"Loccalo" <${process.env.GMAIL_USER}>`,
     to,
-    subject,
-    html,
-  });
-}
-
-export async function sendOfferNotificationEmail(
-  to: string,
-  offerTitle: string,
-  offerDescription: string | null,
-): Promise<void> {
-  const { subject, html } = offerNotificationEmail(offerTitle, offerDescription);
-
-  await transporter.sendMail({
-    from: `"Localo" <${process.env.GMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  });
-}
-
-export async function sendBoostPaymentConfirmedEmail(
-  to: string,
-  businessName: string,
-  productName: string,
-  amount: number,
-): Promise<void> {
-  const { subject, html } = boostPaymentConfirmedEmail(businessName, productName, amount);
-
-  await transporter.sendMail({
-    from: `"Localo" <${process.env.GMAIL_USER}>`,
-    to,
-    subject,
-    html,
-  });
-}
-
-export async function sendBoostPaymentFailedEmail(
-  to: string,
-  businessName: string,
-  productName: string,
-  amount: number,
-): Promise<void> {
-  const { subject, html } = boostPaymentFailedEmail(businessName, productName, amount);
-
-  await transporter.sendMail({
-    from: `"Localo" <${process.env.GMAIL_USER}>`,
-    to,
-    subject,
-    html,
+    subject: content.subject,
+    html: content.html,
+    text: content.text,
   });
 }
