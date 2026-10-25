@@ -248,6 +248,40 @@ function findGroupSiblingsByAttrs(
   return allVariants.filter(v => getComboKey(v.attributes as Record<string, unknown>, groupKeys) === targetKey);
 }
 
+// variant_ids is set when the boost is created, so an option added to a promoted group later
+// has to be appended here or it never shows as boosted. Whole-product boosts (NULL) already
+// cover every option and never match the overlap.
+async function addNewOptionsToGroupBoosts(
+  product: Product,
+  newVariants: ProductVariant[],
+  existingVariants: ProductVariant[],
+  t: Transaction,
+): Promise<void> {
+  const additions = new Map<string, { boost: ProductBoost; ids: string[] }>();
+  for (const variant of newVariants) {
+    const siblingIds = findGroupSiblings(product, variant, existingVariants).map(v => v.id);
+    if (siblingIds.length === 0) continue;
+
+    const boosts = await ProductBoost.findAll({
+      where: {
+        productId: product.id,
+        status: { [Op.in]: ['pending', 'active'] },
+        variantIds: { [Op.overlap]: siblingIds },
+      },
+      transaction: t,
+    });
+    for (const boost of boosts) {
+      const entry = additions.get(boost.id) ?? { boost, ids: [] };
+      entry.ids.push(variant.id);
+      additions.set(boost.id, entry);
+    }
+  }
+
+  for (const { boost, ids } of additions.values()) {
+    await boost.update({ variantIds: [...new Set([...(boost.variantIds ?? []), ...ids])] }, { transaction: t });
+  }
+}
+
 export async function getProductVariants(
   productId: string,
   sellerId: string,
@@ -268,8 +302,8 @@ export async function createVariant(
   const product = await requireOwnProduct(sellerId, productId);
 
   const variantKeys = getVariantKeys(product);
+  const existingVariants = await ProductVariant.findAll({ where: { productId } });
   if (variantKeys.length > 0) {
-    const existingVariants = await ProductVariant.findAll({ where: { productId } });
     const existingKeys = new Set(
       existingVariants.map(v => getComboKey(v.attributes as Record<string, unknown>, variantKeys)),
     );
@@ -280,14 +314,19 @@ export async function createVariant(
   }
 
   const schema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
-  const variant = await ProductVariant.create({
-    productId,
-    attributes:   normalizeFreeTextAttributes(data.attributes as Record<string, unknown>, schema),
-    images:       await commitImages((data.images ?? []).map(normalizeImageKey)),
-    stock:        data.stock,
-    sellingPrice: data.sellingPrice,
-    mrp:          data.mrp ?? null,
-    isActive:     data.isActive ?? true,
+  const images = await commitImages((data.images ?? []).map(normalizeImageKey));
+  const variant = await sequelize.transaction(async (t) => {
+    const created = await ProductVariant.create({
+      productId,
+      attributes:   normalizeFreeTextAttributes(data.attributes as Record<string, unknown>, schema),
+      images,
+      stock:        data.stock,
+      sellingPrice: data.sellingPrice,
+      mrp:          data.mrp ?? null,
+      isActive:     data.isActive ?? true,
+    }, { transaction: t });
+    await addNewOptionsToGroupBoosts(product, [created], existingVariants, t);
+    return created;
   });
   await syncProductStock(productId);
   await syncProductVariantAttrs(productId);
@@ -362,6 +401,7 @@ export async function createBatchVariants(
     if (groupSiblings.length > 0) {
       await Promise.all(groupSiblings.map(s => s.update({ images }, { transaction: t })));
     }
+    await addNewOptionsToGroupBoosts(product, created, existingVariants, t);
 
     return created;
   });
