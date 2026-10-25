@@ -42,7 +42,8 @@ interface PromotedOptions {
 }
 
 // The server is authoritative: any one option of a group (legacy single variantId from
-// older app builds included) expands to every active option in that group, frozen here.
+// older app builds included) expands to every option in that group, frozen here. Hidden
+// options are included so unhiding one while the boost runs puts it in the promotion.
 async function resolvePromotedOptions(product: Product, input: CreateBoostInput): Promise<PromotedOptions> {
   const requestedIds = input.variantIds ?? (input.variantId ? [input.variantId] : []);
 
@@ -64,25 +65,23 @@ async function resolvePromotedOptions(product: Product, input: CreateBoostInput)
     throw Object.assign(new Error('Variant not found'), { status: 404 });
   }
 
-  // An option hidden after the picker loaded is skipped rather than failing the request.
-  const activeVariants = productVariants.filter(v => v.isActive);
-  const requestedActive = requestedIds.filter(id => variantById.get(id)!.isActive);
-  const anchor = requestedActive.length > 0 ? variantById.get(requestedActive[0])! : null;
-  if (!anchor) {
-    throw Object.assign(new Error('Variant not found'), { status: 404 });
-  }
-
-  const group = getGroupOptions(product, anchor, activeVariants);
+  const anchor = variantById.get(requestedIds[0])!;
+  const group = getGroupOptions(product, anchor, productVariants);
   const groupIds = new Set(group.map(v => v.id));
-  if (requestedActive.some(id => !groupIds.has(id))) {
+  if (requestedIds.some(id => !groupIds.has(id))) {
     throw Object.assign(new Error('Selected options must belong to the same group'), { status: 422 });
   }
-  if (!group.some(v => v.stock > 0)) {
+
+  const ordered = productVariants.filter(v => groupIds.has(v.id));
+  const visible = ordered.filter(v => v.isActive);
+  if (visible.length === 0) {
+    throw Object.assign(new Error('Variant not found'), { status: 404 });
+  }
+  if (!visible.some(v => v.stock > 0)) {
     throw Object.assign(new Error('All options in this group are out of stock'), { status: 422 });
   }
 
-  const ordered = activeVariants.filter(v => groupIds.has(v.id)).map(v => v.id);
-  return { variantId: ordered[0], variantIds: ordered };
+  return { variantId: visible[0].id, variantIds: ordered.map(v => v.id) };
 }
 
 export async function createBoost(
