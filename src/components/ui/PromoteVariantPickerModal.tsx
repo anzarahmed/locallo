@@ -10,6 +10,7 @@ interface PickerGroup {
   variants: ProductVariant[];
   thumbnailSrc: string | undefined;
   inStockCount: number;
+  canPromote: boolean;
 }
 
 interface PromoteVariantPickerModalProps {
@@ -30,27 +31,34 @@ export default function PromoteVariantPickerModal({
   const sdField = schema.find(f => f.isVariant === true && f.isStockDependent === true);
 
   const groups = useMemo<PickerGroup[]>(() => {
-    const activeVariants = variants.filter(v => v.isActive);
     if (sdField) {
-      return groupVariants(activeVariants, sdField.key).map(g => ({
-        key: g.key,
-        label: groupLabel(g.nonSdAttrs, schema),
-        variants: g.variants,
-        thumbnailSrc: g.variants[0]?.thumbnails?.[0] ?? g.variants[0]?.images[0],
-        inStockCount: g.variants.filter(v => v.stock > 0).length,
-      }));
+      // Hidden options go into the boost (and its counts) so unhiding one later puts it in the
+      // promotion, but the server only accepts a group with a visible in-stock option.
+      return groupVariants(variants, sdField.key).flatMap(g => {
+        const visible = g.variants.filter(v => v.isActive);
+        if (visible.length === 0) return [];
+        return [{
+          key: g.key,
+          label: groupLabel(g.nonSdAttrs, schema),
+          variants: g.variants,
+          thumbnailSrc: visible[0].thumbnails?.[0] ?? visible[0].images[0],
+          inStockCount: g.variants.filter(v => v.stock > 0).length,
+          canPromote: visible.some(v => v.stock > 0),
+        }];
+      });
     }
-    return activeVariants.map(v => ({
+    return variants.filter(v => v.isActive).map(v => ({
       key: v.id,
       label: variantLabel(v.attributes, schema),
       variants: [v],
       thumbnailSrc: v.thumbnails?.[0] ?? v.images[0],
       inStockCount: v.stock > 0 ? 1 : 0,
+      canPromote: v.stock > 0,
     }));
   }, [variants, schema, sdField]);
 
   const [selectedKey, setSelectedKey] = useState<string | null>(
-    groups.find(g => g.inStockCount > 0)?.key ?? null,
+    groups.find(g => g.canPromote)?.key ?? null,
   );
   const selectedGroup = groups.find(g => g.key === selectedKey) ?? null;
 
@@ -72,7 +80,9 @@ export default function PromoteVariantPickerModal({
             const imageUrl = group.thumbnailSrc ? resolveImage(group.thumbnailSrc) : null;
             const selectedRow = group.key === selectedKey;
             const optionCount = group.variants.length;
-            const soldOut = group.inStockCount === 0;
+            const stockText = group.inStockCount === 0
+              ? 'Out of stock'
+              : `${group.inStockCount} in stock${group.canPromote ? '' : ' · none visible'}`;
 
             const thumbnail = (
               <div className="w-12 h-12 rounded-lg bg-gray-100 overflow-hidden shrink-0 flex items-center justify-center">
@@ -89,7 +99,7 @@ export default function PromoteVariantPickerModal({
                 key={group.key}
                 type="button"
                 onClick={() => setSelectedKey(group.key)}
-                disabled={soldOut}
+                disabled={!group.canPromote}
                 className={`w-full text-left p-3 rounded-xl border transition-colors flex gap-3 items-center disabled:opacity-50 disabled:cursor-not-allowed ${
                   selectedRow ? 'border-teal-200 bg-teal-50/60' : 'border-gray-100 hover:bg-gray-50'
                 }`}
@@ -100,7 +110,7 @@ export default function PromoteVariantPickerModal({
                   <p className="text-sm font-bold text-indigo-600 truncate">{group.label}</p>
                   <p className="text-xs text-gray-400 mt-0.5">
                     {optionCount} option{optionCount !== 1 ? 's' : ''} ·{' '}
-                    {soldOut ? 'Out of stock' : `${group.inStockCount} in stock`}
+                    {stockText}
                   </p>
                 </div>
 
