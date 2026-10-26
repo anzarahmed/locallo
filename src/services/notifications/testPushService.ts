@@ -128,7 +128,7 @@ const SAMPLE_PARAMS: SampleBuilders = {
   },
   boost_paid: async (userId) => {
     const { boostId, productName, amount } = await sampleBoost(userId);
-    return { boostId, productName, amount, transactionId: 'pay_SAMPLE123456', campaign: 'Pan India · ₹50/day' };
+    return { boostId, productName, amount, transactionId: 'pay_SAMPLE123456', campaign: 'Pan India' };
   },
   share_shop: async () => ({}),
   closing_soon: async () => ({ closeTime: '21:00' }),

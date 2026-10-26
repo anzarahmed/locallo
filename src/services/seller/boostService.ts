@@ -199,11 +199,9 @@ export async function markBoostPaid(razorpayOrderId: string, paymentId: string, 
 
 const AUDIENCE_LABELS: Record<BoostAudienceType, string> = { pan_india: 'Pan India', state: 'State', city: 'City' };
 
-// Boosts have no name, so the email's "Campaign" line describes the audience and budget.
+// Boosts have no name, so the email's "Campaign" line shows the audience type.
 function boostCampaignLabel(boost: ProductBoost): string {
-  const place = [boost.city, boost.state].filter(Boolean).join(', ');
-  const audience = boost.audienceType === 'pan_india' || !place ? AUDIENCE_LABELS[boost.audienceType] : place;
-  return `${audience} · ₹${boost.dailyBudget}/day`;
+  return AUDIENCE_LABELS[boost.audienceType];
 }
 
 export async function markBoostFailed(razorpayOrderId: string, paymentId: string): Promise<void> {
