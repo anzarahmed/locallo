@@ -7,8 +7,8 @@ import { ProductBoost } from '../../models/ProductBoost';
 import { Session } from '../../models/Session';
 import { Wishlist } from '../../models/Wishlist';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
-import { isPushConfigured, sendPushToTokens } from '../../utils/push';
-import type { TokenOutcome } from '../../utils/push';
+import { buildPushMessage, isPushConfigured, sendPushToTokens, toFcmWirePayload } from '../../utils/push';
+import type { PushContent, TokenOutcome } from '../../utils/push';
 import { countUnreadNotifications } from '../customer/notificationService';
 import { buildNotificationRow } from './notifyService';
 import { getSellerEmailTemplate } from './sellerEmails';
@@ -161,6 +161,8 @@ export interface TestPushResult {
   title: string;
   body: string;
   data: Record<string, string>;
+  // Exactly what each device receives; only the token differs (see devices[].tokenSuffix).
+  payload: { message: object };
   devices: TestPushDeviceResult[];
 }
 
@@ -232,13 +234,14 @@ export async function sendTestPush(
   await Notification.create({ ...row, dedupeKey: null, pushStatus: 'skipped', sendAfter: null });
 
   const badge = await countUnreadNotifications(userId);
-  const results = await sendPushToTokens(tokens, {
+  const content: PushContent = {
     title: row.title,
     body: row.message,
     data: row.data,
     badge,
     options: row.pushOptions,
-  });
+  };
+  const results = await sendPushToTokens(tokens, content);
 
   const invalidTokens = results.filter((r) => r.outcome === 'invalid_token').map((r) => r.token);
   if (invalidTokens.length > 0) {
@@ -259,6 +262,7 @@ export async function sendTestPush(
     title: row.title,
     body: row.message,
     data: row.data,
+    payload: toFcmWirePayload(buildPushMessage('<device token>', content)),
     devices: results.map((r) => ({
       tokenSuffix: r.token.slice(-8),
       outcome: r.outcome,

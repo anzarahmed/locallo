@@ -98,6 +98,20 @@ export function buildPushMessage(token: string, content: PushContent): Message {
   };
 }
 
+// firebase-admin takes camelCase and renames android.notification.channelId to channel_id when
+// it posts to FCM v1; this returns the body as FCM actually receives it.
+export function toFcmWirePayload(message: Message): { message: object } {
+  const notification = message.android?.notification;
+  if (!notification) return { message };
+  const { channelId, ...androidNotification } = notification;
+  return {
+    message: {
+      ...message,
+      android: { ...message.android, notification: { channel_id: channelId, ...androidNotification } },
+    },
+  };
+}
+
 function classifyError(code: string, message: string): TokenOutcome {
   if (INVALID_TOKEN_CODES.has(code)) return 'invalid_token';
   // FCM v1 reports a malformed token as a generic INVALID_ARGUMENT; only the message tells it
