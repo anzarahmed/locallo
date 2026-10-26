@@ -3,8 +3,6 @@ import { getMessaging, type Message } from 'firebase-admin/messaging';
 import type { PushOptions } from '../types';
 
 const FCM_BATCH_SIZE = 500;
-// FCM rejects the whole message when android.ttl exceeds 4 weeks.
-const FCM_MAX_TTL_MS = 28 * 24 * 60 * 60 * 1000;
 // Both mobile apps create only this channel; any other id lands in Android's fallback channel.
 const ANDROID_CHANNEL_ID = 'default_notification_channel';
 
@@ -64,44 +62,38 @@ export interface TokenResult {
   error?: string;
 }
 
+// The message shape is fixed by the mobile team — send exactly these fields, nothing extra.
 export function buildPushMessage(token: string, content: PushContent): Message {
-  const { options } = content;
-  const expiresAtMs = options.expiresAt ? Date.parse(options.expiresAt) : null;
-
   return {
     token,
     notification: {
       title: content.title,
       body: content.body,
-      ...(options.imageUrl ? { imageUrl: options.imageUrl } : {}),
     },
-    data: content.data,
+    data: {
+      screen: content.data.screen ?? '',
+      dataTitle: content.data.dataTitle ?? '',
+      id: content.data.id ?? '',
+      variantId: content.data.variantId ?? '',
+    },
     android: {
       priority: 'high',
-      ...(expiresAtMs !== null ? { ttl: Math.min(FCM_MAX_TTL_MS, Math.max(0, expiresAtMs - Date.now())) } : {}),
       notification: {
         channelId: ANDROID_CHANNEL_ID,
         sound: 'default',
-        ...(options.collapseKey ? { tag: options.collapseKey } : {}),
       },
     },
     apns: {
       headers: {
         'apns-priority': '10',
-        'apns-push-type': 'alert',
-        ...(options.collapseKey ? { 'apns-collapse-id': options.collapseKey } : {}),
-        ...(expiresAtMs !== null ? { 'apns-expiration': String(Math.floor(expiresAtMs / 1000)) } : {}),
       },
       payload: {
         aps: {
           alert: { title: content.title, body: content.body },
           sound: 'default',
           badge: content.badge,
-          threadId: options.channel,
-          ...(options.imageUrl ? { mutableContent: true } : {}),
         },
       },
-      ...(options.imageUrl ? { fcmOptions: { imageUrl: options.imageUrl } } : {}),
     },
   };
 }
