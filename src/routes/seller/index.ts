@@ -20,9 +20,9 @@ import { getOffers, getAcceptedOffers, getOffer, acceptOffer } from '../../contr
 import { getNotifications, markNotificationRead, deleteNotification } from '../../controllers/seller/notificationController';
 import { getCmsPages, getCmsPage } from '../../controllers/customer/cmsPageController';
 import { savePushToken, removePushToken } from '../../controllers/shared/pushTokenController';
-import { getTestPushTypes, postTestEmail, postTestPush } from '../../controllers/shared/testPushController';
+import { getTestEmailTypes, getTestPushTypes, postAllTestEmails, postTestEmail, postTestPush } from '../../controllers/shared/testPushController';
 import { registerPushTokenSchema } from '../../validation/shared/pushTokenSchemas';
-import { sendTestPushSchema } from '../../validation/shared/testPushSchemas';
+import { sendTestEmailSchema, sendTestPushSchema } from '../../validation/shared/testPushSchemas';
 import { validate } from '../../middleware/validate';
 import { uploadSingle } from '../../middleware/upload';
 import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema, setCustomDaySchema } from '../../validation/seller/sellerSchemas';
@@ -46,7 +46,9 @@ router.delete('/push-token', requireSeller, removePushToken);
 
 router.get('/test/push-types', requireSeller, getTestPushTypes('seller'));
 router.post('/test/push',      requireSeller, validate(sendTestPushSchema), postTestPush('seller'));
-router.post('/test/email',     requireSeller, validate(sendTestPushSchema), postTestEmail);
+router.get('/test/email-types', requireSeller, getTestEmailTypes);
+router.post('/test/email',     requireSeller, validate(sendTestEmailSchema), postTestEmail);
+router.post('/test/email/all', requireSeller, postAllTestEmails);
 
 router.get('/cms-pages',       getCmsPages);
 router.get('/cms-pages/:slug', getCmsPage);

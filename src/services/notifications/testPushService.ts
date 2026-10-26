@@ -13,8 +13,11 @@ import { countUnreadNotifications } from '../customer/notificationService';
 import { buildNotificationRow } from './notifyService';
 import { getSellerEmailTemplate } from './sellerEmails';
 import { getSellerRecipient } from './sellerRecipients';
+import type { SellerRecipient } from './sellerRecipients';
 import { sendSellerEmail } from '../../utils/mailer';
 import { offerManiaEmail } from '../../utils/emailTemplates/seller/offerManiaEmail';
+import { boostPaymentFailedEmail } from '../../utils/emailTemplates/seller/boostPaymentFailedEmail';
+import { kycVerificationEmail } from '../../utils/emailTemplates/seller/kycVerificationEmail';
 import type { EmailContent } from '../../utils/emailTemplates/sellerEmailLayout';
 import { TEMPLATES } from './templates';
 import type { NotificationAudience, NotificationTemplate, NotificationType, TemplateParamsMap } from './templates';
@@ -185,7 +188,7 @@ export async function listTestPushTypes(userId: string, audience: NotificationAu
       pushClass: template.pushClass,
       channel: template.channel,
       pushInProduction: template.push,
-      hasEmail: audience === 'seller' && (type === 'offer_join' || Boolean(getSellerEmailTemplate(type))),
+      hasEmail: audience === 'seller' && hasSellerEmail(type),
     };
   }));
 }
@@ -264,41 +267,139 @@ export async function sendTestPush(
   };
 }
 
+// Emails sent outside the notification pipeline (direct sendSellerEmail calls), so they have no NotificationType.
+const DIRECT_EMAIL_TYPES = ['boost_payment_failed', 'kyc_verified', 'kyc_revoked'] as const;
+type DirectEmailType = typeof DIRECT_EMAIL_TYPES[number];
+export type TestEmailType = NotificationType | DirectEmailType;
+
+function hasSellerEmail(type: NotificationType): boolean {
+  return type === 'offer_join' || Boolean(getSellerEmailTemplate(type));
+}
+
+export const TEST_EMAIL_TYPES: TestEmailType[] = [
+  ...(Object.keys(TEMPLATES) as NotificationType[]).filter((type) => TEMPLATES[type].audience === 'seller' && hasSellerEmail(type)),
+  ...DIRECT_EMAIL_TYPES,
+];
+
+// first_product_nudge renders a different template per reminder, so send-all covers both.
+interface TestEmailCase {
+  type: TestEmailType;
+  params: Record<string, unknown>;
+}
+
+const ALL_EMAIL_CASES: TestEmailCase[] = TEST_EMAIL_TYPES.flatMap((type): TestEmailCase[] =>
+  type === 'first_product_nudge'
+    ? [{ type, params: { reminder: 1 } }, { type, params: { reminder: 2 } }]
+    : [{ type, params: {} }]);
+
+function isDirectEmailType(type: TestEmailType): type is DirectEmailType {
+  return (DIRECT_EMAIL_TYPES as readonly string[]).includes(type);
+}
+
 export interface TestEmailResult {
-  type: NotificationType;
+  type: TestEmailType;
   to: string;
   subject: string;
 }
 
-async function buildTestEmail<T extends NotificationType>(
-  type: T,
+export interface TestEmailTypeItem {
+  type: TestEmailType;
+  params?: Record<string, unknown>;
+  subject: string;
+}
+
+export interface TestEmailBatchItem {
+  type: TestEmailType;
+  params: Record<string, unknown>;
+  subject: string | null;
+  outcome: 'sent' | 'failed';
+  error?: string;
+}
+
+export interface TestEmailBatchResult {
+  to: string;
+  sent: number;
+  failed: number;
+  emails: TestEmailBatchItem[];
+}
+
+async function buildDirectTestEmail(
+  type: DirectEmailType,
   userId: string,
-  sellerName: string,
+  recipient: SellerRecipient,
+  overrides: Record<string, unknown>,
+): Promise<EmailContent> {
+  if (type === 'boost_payment_failed') {
+    const { productName, amount } = await sampleBoost(userId);
+    const params = { productName, amount, ...overrides } as { productName: string; amount: number };
+    return boostPaymentFailedEmail(recipient.name, params.productName, Number(params.amount));
+  }
+  const businessName = typeof overrides.businessName === 'string' ? overrides.businessName : recipient.businessName ?? 'Sample Shop';
+  return kycVerificationEmail(recipient.name, businessName, type === 'kyc_verified');
+}
+
+async function buildTestEmail<T extends NotificationType>(
+  type: T | DirectEmailType,
+  userId: string,
+  recipient: SellerRecipient,
   overrides: Record<string, unknown>,
 ): Promise<EmailContent | null> {
+  if (isDirectEmailType(type)) return buildDirectTestEmail(type, userId, recipient, overrides);
   const params = { ...(await SAMPLE_PARAMS[type](userId)), ...overrides } as TemplateParamsMap[T];
   // offer_join's email is sent by the offer outbox, not the notification pipeline.
-  if (type === 'offer_join') return offerManiaEmail(sellerName, (params as TemplateParamsMap['offer_join']).offerId);
-  return getSellerEmailTemplate(type)?.build(params, sellerName) ?? null;
+  if (type === 'offer_join') return offerManiaEmail(recipient.name, (params as TemplateParamsMap['offer_join']).offerId);
+  return getSellerEmailTemplate(type)?.build(params, recipient.name) ?? null;
+}
+
+async function requireEmailRecipient(userId: string): Promise<SellerRecipient & { email: string }> {
+  const recipient = await getSellerRecipient(userId);
+  if (!recipient?.email) {
+    throw Object.assign(new Error('No email address on this seller account'), { status: 404 });
+  }
+  return recipient as SellerRecipient & { email: string };
+}
+
+export async function listTestEmailTypes(userId: string): Promise<TestEmailTypeItem[]> {
+  const recipient = (await getSellerRecipient(userId)) ?? { userId, email: null, name: 'Seller', businessName: null, settings: {} };
+  return Promise.all(ALL_EMAIL_CASES.map(async ({ type, params }) => ({
+    type,
+    ...(Object.keys(params).length > 0 ? { params } : {}),
+    subject: (await buildTestEmail(type, userId, recipient, params))?.subject ?? '',
+  })));
 }
 
 // Sends straight to the caller's own email, bypassing the seller's email settings.
 export async function sendTestEmail(
   userId: string,
-  type: NotificationType,
+  type: TestEmailType,
   overrides: Record<string, unknown> = {},
 ): Promise<TestEmailResult> {
-  const recipient = await getSellerRecipient(userId);
-  if (!recipient?.email) {
-    throw Object.assign(new Error('No email address on this seller account'), { status: 404 });
-  }
-
-  const content = await buildTestEmail(type, userId, recipient.name, overrides);
+  const recipient = await requireEmailRecipient(userId);
+  const content = await buildTestEmail(type, userId, recipient, overrides);
   if (!content) {
-    const allowed = typesFor('seller').filter((t) => t === 'offer_join' || getSellerEmailTemplate(t));
-    throw Object.assign(new Error(`"${type}" has no seller email. Allowed: ${allowed.join(', ')}`), { status: 422 });
+    throw Object.assign(new Error(`"${type}" has no seller email. Allowed: ${TEST_EMAIL_TYPES.join(', ')}`), { status: 422 });
   }
 
   await sendSellerEmail(recipient.email, content);
   return { type, to: recipient.email, subject: content.subject };
+}
+
+// Sequential on purpose: Gmail SMTP throttles bursts of parallel sends from one account.
+export async function sendAllTestEmails(userId: string): Promise<TestEmailBatchResult> {
+  const recipient = await requireEmailRecipient(userId);
+  const emails: TestEmailBatchItem[] = [];
+  for (const { type, params } of ALL_EMAIL_CASES) {
+    let subject: string | null = null;
+    try {
+      const content = await buildTestEmail(type, userId, recipient, params);
+      if (!content) throw new Error('No email template');
+      subject = content.subject;
+      await sendSellerEmail(recipient.email, content);
+      emails.push({ type, params, subject, outcome: 'sent' });
+    } catch (err: unknown) {
+      emails.push({ type, params, subject, outcome: 'failed', error: err instanceof Error ? err.message : String(err) });
+    }
+  }
+  const sent = emails.filter((e) => e.outcome === 'sent').length;
+  return { to: recipient.email, sent, failed: emails.length - sent, emails };
 }
