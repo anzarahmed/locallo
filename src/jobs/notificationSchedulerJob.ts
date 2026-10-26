@@ -1,7 +1,8 @@
 import cron from 'node-cron';
 import {
   sendProfileReminders,
-  sendFirstProductNudges,
+  sendStartUploadingNudges,
+  sendUploadGuideNudges,
   sendOfferLiveNotifications,
   sendOfferUpcomingNotifications,
   sendWishlistWeekly,
@@ -45,11 +46,10 @@ function schedule(name: string, expression: string, tasks: Task[]): void {
 }
 
 export function startNotificationSchedulerCron(): void {
-  schedule('minute', '* * * * *', [sendClosingReminders]);
+  schedule('minute', '* * * * *', [sendClosingReminders, sendStartUploadingNudges]);
   schedule('five-minutes', '*/5 * * * *', [syncWishlistStock, sendOfferLiveNotifications]);
-  schedule('hourly', '7 * * * *', [sendProfileReminders, sendFirstProductNudges, sendViewMilestones]);
-  schedule('daily', '0 10 * * *', [sendOfferUpcomingNotifications, sendOutOfStockDigests, sendInactivityReminders, sendBoostSuggestions]);
-  schedule('weekly-kyc', '0 10 * * 1', [sendKycReminders]);
+  schedule('hourly', '7 * * * *', [sendProfileReminders, sendUploadGuideNudges, sendViewMilestones]);
+  schedule('daily', '0 10 * * *', [sendOfferUpcomingNotifications, sendOutOfStockDigests, sendInactivityReminders, sendBoostSuggestions, sendKycReminders]);
   schedule('weekly-wishlist', '0 11 * * 0', [sendWishlistWeekly]);
   schedule('monthly', '0 11 1 * *', [sendShareShopReminders]);
   console.log('Notification scheduler crons scheduled (IST)');

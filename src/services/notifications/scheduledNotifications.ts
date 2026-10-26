@@ -16,7 +16,7 @@ const DAY_MS = 24 * HOUR_MS;
 
 const VIEW_MILESTONES = [500, 1000, 10000, 100000];
 export const OUT_OF_STOCK_DIGEST_THRESHOLD = 10;
-const KYC_REMINDER_LIMIT = 4;
+const START_UPLOADING_DELAY_MS = 60 * 1000;
 const BOOST_SUGGESTION_INTERVAL_DAYS = 15;
 const RESTOCK_NOTIFY_COOLDOWN_DAYS = 7;
 const CLOSING_REMINDER_LEAD_MINUTES = 10;
@@ -60,21 +60,24 @@ export async function sendProfileReminders(now: Date = new Date()): Promise<void
   await notifyMany(ids, 'profile_incomplete', {}, (id) => `profile_incomplete:${id}`);
 }
 
-export async function sendFirstProductNudges(now: Date = new Date()): Promise<void> {
-  const windows: { reminder: 1 | 2; fromDays: number; toDays: number }[] = [
-    { reminder: 1, fromDays: 3, toDays: 1 },
-    { reminder: 2, fromDays: 7, toDays: 4 },
-  ];
-  for (const { reminder, fromDays, toDays } of windows) {
-    const ids = await selectIds(
-      `SELECT u.id FROM users u
-        WHERE u.role = 'SELLER' AND u.is_active = true
-          AND u.first_login_at BETWEEN :from AND :to
-          AND NOT EXISTS (SELECT 1 FROM products p WHERE p.seller_id = u.id)`,
-      { from: new Date(now.getTime() - fromDays * DAY_MS), to: new Date(now.getTime() - toDays * DAY_MS) },
-    );
-    await notifyMany(ids, 'first_product_nudge', { reminder }, (id) => `first_product_nudge:${id}:${reminder}`);
-  }
+async function sendFirstProductNudge(reminder: 1 | 2, from: Date, to: Date): Promise<void> {
+  const ids = await selectIds(
+    `SELECT u.id FROM users u
+      WHERE u.role = 'SELLER' AND u.is_active = true
+        AND u.first_login_at BETWEEN :from AND :to
+        AND NOT EXISTS (SELECT 1 FROM products p WHERE p.seller_id = u.id)`,
+    { from, to },
+  );
+  await notifyMany(ids, 'first_product_nudge', { reminder }, (id) => `first_product_nudge:${id}:${reminder}`);
+}
+
+// The window runs a day past the lead time so a missed tick still reaches the seller; the dedupe key stops repeats.
+export async function sendStartUploadingNudges(now: Date = new Date()): Promise<void> {
+  await sendFirstProductNudge(1, new Date(now.getTime() - DAY_MS), new Date(now.getTime() - START_UPLOADING_DELAY_MS));
+}
+
+export async function sendUploadGuideNudges(now: Date = new Date()): Promise<void> {
+  await sendFirstProductNudge(2, new Date(now.getTime() - 2 * DAY_MS), new Date(now.getTime() - DAY_MS));
 }
 
 export async function sendOfferLiveNotifications(now: Date = new Date()): Promise<void> {
@@ -269,11 +272,10 @@ export async function sendInactivityReminders(now: Date = new Date()): Promise<v
   );
 
   for (const row of rows) {
-    const idleDays = (now.getTime() - row.last_active_at.getTime()) / DAY_MS;
-    const stage = idleDays >= 60 ? 60 : 30;
     // Keyed on the inactivity spell, so a seller who comes back and lapses again is reminded again.
+    // The ':30' suffix matches keys from the old 30/60-day stages, so nobody is re-sent on deploy.
     const spell = getIstDateString(row.last_active_at);
-    await notify(row.id, 'seller_inactive', {}, { dedupeKey: `seller_inactive:${row.id}:${spell}:${stage}` });
+    await notify(row.id, 'seller_inactive', {}, { dedupeKey: `seller_inactive:${row.id}:${spell}:30` });
   }
 }
 
@@ -297,17 +299,23 @@ export async function sendBoostSuggestions(now: Date = new Date()): Promise<void
   await notifyMany(ids, 'boost_suggestion', {}, (id) => `boost_suggestion:${id}:${day}`);
 }
 
+// Weeks are counted from each seller's registration date, and the key is per week rather
+// than per day, so the daily sweep sends once a week and catches up if a run is missed.
 export async function sendKycReminders(now: Date = new Date()): Promise<void> {
-  const ids = await selectIds(
-    `SELECT u.id FROM users u
-       JOIN seller_profiles sp ON sp.user_id = u.id
-      WHERE u.role = 'SELLER' AND u.is_active = true AND sp.is_verified = false
-        AND (sp.kyc_documents->>'aadhar' IS NULL OR sp.kyc_documents->>'pan' IS NULL)
-        AND (SELECT COUNT(*) FROM notifications n WHERE n.user_id = u.id AND n.type = 'kyc_pending') < :limit`,
-    { limit: KYC_REMINDER_LIMIT },
+  const rows = await sequelize.query<{ id: string; week: number }>(
+    `SELECT id, days_registered / 7 AS week FROM (
+       SELECT u.id,
+              ((:now::timestamptz AT TIME ZONE 'Asia/Kolkata')::date - (u.created_at AT TIME ZONE 'Asia/Kolkata')::date) AS days_registered
+         FROM users u
+         JOIN seller_profiles sp ON sp.user_id = u.id
+        WHERE u.role = 'SELLER' AND u.is_active = true AND sp.is_verified = false
+          AND (sp.kyc_documents->>'aadhar' IS NULL OR sp.kyc_documents->>'pan' IS NULL)
+     ) pending
+     WHERE days_registered >= 7`,
+    { replacements: { now }, type: QueryTypes.SELECT },
   );
-  const day = getIstDateString(now);
-  await notifyMany(ids, 'kyc_pending', {}, (id) => `kyc_pending:${id}:${day}`);
+  const weekById = new Map(rows.map((r) => [r.id, r.week]));
+  await notifyMany([...weekById.keys()], 'kyc_pending', {}, (id) => `kyc_pending:${id}:w${weekById.get(id)}`);
 }
 
 export async function sendShareShopReminders(now: Date = new Date()): Promise<void> {

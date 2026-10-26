@@ -13,13 +13,11 @@ import { inactiveSellerEmail } from '../../utils/emailTemplates/seller/inactiveS
 import { boostSuggestionEmail } from '../../utils/emailTemplates/seller/boostSuggestionEmail';
 import { boostTargetReachedEmail } from '../../utils/emailTemplates/seller/boostTargetReachedEmail';
 import { boostPaymentReceivedEmail } from '../../utils/emailTemplates/seller/boostPaymentReceivedEmail';
-import { closingSoonEmail } from '../../utils/emailTemplates/seller/closingSoonEmail';
 import { accountDeletedEmail } from '../../utils/emailTemplates/seller/accountDeletedEmail';
-import { formatCloseTime } from './templates';
 import type { NotificationType, TemplateParamsMap } from './templates';
 
 // 'always' = transactional; promotional emails follow the seller's "Email updates" toggle.
-export type SellerEmailGate = 'always' | keyof Pick<NotificationSettings, 'emailUpdates' | 'closingReminder'>;
+export type SellerEmailGate = 'always' | keyof Pick<NotificationSettings, 'emailUpdates'>;
 
 export interface SellerEmailTemplate<P> {
   gate: SellerEmailGate;
@@ -29,6 +27,7 @@ export interface SellerEmailTemplate<P> {
 type SellerEmailRegistry = Partial<{ [K in NotificationType]: SellerEmailTemplate<TemplateParamsMap[K]> }>;
 
 // offer_join is absent on purpose: the offer outbox (offerNotificationJob) sends that email.
+// closing_soon is push-only by spec.
 export const SELLER_EMAILS: SellerEmailRegistry = {
   seller_registered: { gate: 'always', build: (_, name) => registrationCompleteEmail(name) },
   welcome_seller: { gate: 'always', build: (_, name) => newJourneyEmail(name) },
@@ -55,7 +54,6 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
     build: ({ productName, amount, transactionId, campaign }, name) =>
       boostPaymentReceivedEmail(name, { productName, amount, transactionId, campaign }),
   },
-  closing_soon: { gate: 'closingReminder', build: ({ closeTime }, name) => closingSoonEmail(name, formatCloseTime(closeTime)) },
   account_deleted: { gate: 'always', build: ({ recoveryDays }, name) => accountDeletedEmail(name, recoveryDays) },
 };
 
