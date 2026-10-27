@@ -8,6 +8,8 @@ import type { createVariantSchema, updateVariantSchema, createBatchVariantSchema
 import type { AttributeField } from '../../types';
 import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
+import { getComboKey, getGroupAttributeKeys, getStockDependentField, newGroupLabels } from '../../utils/variantGroups';
+import { assertCanAdd, consumeGroupUnits, notifyLimitThreshold, type LimitUsage } from './productLimitService';
 import { recordPurchase } from './purchaseService';
 import { ProductBoost } from '../../models/ProductBoost';
 import { cancelPendingBoosts, completeLiveBoosts, hasLiveBoost } from './boostGuards';
@@ -48,7 +50,7 @@ type CreateBatchVariantInput = InferType<typeof createBatchVariantSchema>;
 async function requireOwnProduct(sellerId: string, productId: string): Promise<Product> {
   const product = await Product.findOne({
     where: { id: productId, sellerId },
-    include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }],
+    include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema', 'productLimit'] }],
   });
   if (!product) {
     throw Object.assign(new Error('Product not found'), { status: 404 });
@@ -189,17 +191,6 @@ function getVariantKeys(product: Product): string[] {
   return schema.filter(f => f.isVariant).map(f => f.key);
 }
 
-function normalizeAttrValue(v: unknown): string {
-  return String(v ?? '').trim().toLowerCase();
-}
-
-function getComboKey(attrs: Record<string, unknown>, variantKeys: string[]): string {
-  return variantKeys
-    .map(key => `${key}:${normalizeAttrValue(attrs[key])}`)
-    .sort()
-    .join('|');
-}
-
 // Options of the same non-stock-dependent attributes (e.g. all sizes of one color) are
 // treated as one visual "group" sharing a single image set — mirrors the grouping the
 // seller panel already computes client-side via groupVariants()/sdField in VariantList.
@@ -209,10 +200,9 @@ function findGroupSiblings(
   allVariants: ProductVariant[],
 ): ProductVariant[] {
   const schema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
-  const sdField = schema.find(f => f.isVariant && f.isStockDependent);
-  if (!sdField) return [];
+  if (!getStockDependentField(schema)) return [];
 
-  const groupKeys = schema.filter(f => f.isVariant && f.key !== sdField.key).map(f => f.key);
+  const groupKeys = getGroupAttributeKeys(schema);
   const targetKey = getComboKey(targetVariant.attributes as Record<string, unknown>, groupKeys);
 
   return allVariants.filter(v =>
@@ -238,10 +228,9 @@ function findGroupSiblingsByAttrs(
   allVariants: ProductVariant[],
 ): ProductVariant[] {
   const schema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
-  const sdField = schema.find(f => f.isVariant && f.isStockDependent);
-  if (!sdField) return [];
+  if (!getStockDependentField(schema)) return [];
 
-  const groupKeys = schema.filter(f => f.isVariant && f.key !== sdField.key).map(f => f.key);
+  const groupKeys = getGroupAttributeKeys(schema);
   if (groupKeys.length === 0) return [];
   const targetKey = getComboKey(groupAttrs, groupKeys);
 
@@ -314,7 +303,16 @@ export async function createVariant(
   }
 
   const schema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
+  // Hidden options still count as existing, so adding a size to a hidden group is free.
+  const openedGroups = newGroupLabels(
+    schema,
+    [data.attributes as Record<string, unknown>],
+    existingVariants.map(v => v.attributes as Record<string, unknown>),
+  );
+  await assertCanAdd(sellerId, product.category, openedGroups.length);
+
   const images = await commitImages((data.images ?? []).map(normalizeImageKey));
+  let limitUsage: LimitUsage | null = null;
   const variant = await sequelize.transaction(async (t) => {
     const created = await ProductVariant.create({
       productId,
@@ -326,8 +324,14 @@ export async function createVariant(
       isActive:     data.isActive ?? true,
     }, { transaction: t });
     await addNewOptionsToGroupBoosts(product, [created], existingVariants, t);
+    limitUsage = await consumeGroupUnits(
+      t,
+      { sellerId, category: product.category, productId, productName: product.name },
+      openedGroups,
+    );
     return created;
   });
+  notifyLimitThreshold(limitUsage);
   await syncProductStock(productId);
   await syncProductVariantAttrs(productId);
 
@@ -354,7 +358,6 @@ export async function createBatchVariants(
   const product = await requireOwnProduct(sellerId, productId);
 
   const batchSchema = (product.category?.attributeSchema as AttributeField[] | undefined) ?? [];
-  const images = await commitImages((data.images ?? []).map(normalizeImageKey));
   const sharedAttrs = (data.attributes as Record<string, string>) ?? {};
   const rowAttrs = data.rows.map(row =>
     normalizeFreeTextAttributes(
@@ -383,6 +386,15 @@ export async function createBatchVariants(
   // to match, the same way editing one option's photos propagates to its siblings.
   const groupSiblings = findGroupSiblingsByAttrs(product, sharedAttrs, existingVariants);
 
+  const openedGroups = newGroupLabels(
+    batchSchema,
+    rowAttrs,
+    existingVariants.map(v => v.attributes as Record<string, unknown>),
+  );
+  await assertCanAdd(sellerId, product.category, openedGroups.length);
+
+  const images = await commitImages((data.images ?? []).map(normalizeImageKey));
+  let limitUsage: LimitUsage | null = null;
   const variants = await sequelize.transaction(async (t) => {
     const created = await Promise.all(
       rowAttrs.map((attrs, i) =>
@@ -402,9 +414,15 @@ export async function createBatchVariants(
       await Promise.all(groupSiblings.map(s => s.update({ images }, { transaction: t })));
     }
     await addNewOptionsToGroupBoosts(product, created, existingVariants, t);
+    limitUsage = await consumeGroupUnits(
+      t,
+      { sellerId, category: product.category, productId, productName: product.name },
+      openedGroups,
+    );
 
     return created;
   });
+  notifyLimitThreshold(limitUsage);
 
   await syncProductStock(productId);
   await syncProductVariantAttrs(productId);

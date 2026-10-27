@@ -44,6 +44,12 @@ export class Category extends Model {
   @Column(DataType.STRING(500))
   declare icon: string | null;
 
+  // Per seller: each product without variants, or each variant group, uses one unit of
+  // the seller's allowance in this category.
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  declare productLimit: number;
+
   @ForeignKey(() => MasterCategory)
   @Column(DataType.INTEGER)
   declare masterCategoryId: number | null;

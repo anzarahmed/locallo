@@ -67,6 +67,7 @@ export async function createCategory(data: CreateCategoryInput): Promise<Categor
       masterCategoryId: data.masterCategoryId,
       attributeSchema: data.attributeSchema ?? [],
       icon,
+      productLimit: data.productLimit,
     });
   } catch (err: unknown) {
     return wrapForeignKeyError(err);

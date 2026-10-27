@@ -22,6 +22,7 @@ export const createCategorySchema = Yup.object({
   masterCategoryId: Yup.number().integer().positive().required('Master Category is required'),
   attributeSchema:  Yup.array(attributeFieldSchema).optional(),
   icon:             Yup.string().nullable().optional(),
+  productLimit:     Yup.number().integer().min(0, 'Limit cannot be negative').required('Product listing limit is required'),
 });
 
 export const updateCategorySchema = Yup.object({
@@ -31,4 +32,5 @@ export const updateCategorySchema = Yup.object({
   masterCategoryId: Yup.number().integer().positive(),
   attributeSchema:  Yup.array(attributeFieldSchema).optional(),
   icon:             Yup.string().nullable().optional(),
+  productLimit:     Yup.number().integer().min(0, 'Limit cannot be negative'),
 });

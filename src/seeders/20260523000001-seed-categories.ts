@@ -8,6 +8,8 @@ interface CategorySeed {
   attributeSchema: AttributeField[];
 }
 
+const DEFAULT_PRODUCT_LIMIT = 200;
+
 const CATEGORIES: CategorySeed[] = [
   // ── 1. Grocery ────────────────────────────────────────────────────────────────
   {
@@ -794,11 +796,12 @@ async function up(queryInterface: QueryInterface): Promise<void> {
   await queryInterface.sequelize.transaction(async (t) => {
     for (const cat of CATEGORIES) {
       await queryInterface.sequelize.query(
-        `INSERT INTO categories (name, slug, is_active, sort_order, attribute_schema, created_at, updated_at)
-         VALUES (:name, :slug, TRUE, :sortOrder, :schema::jsonb, NOW(), NOW())
+        `INSERT INTO categories (name, slug, is_active, sort_order, attribute_schema, product_limit, created_at, updated_at)
+         VALUES (:name, :slug, TRUE, :sortOrder, :schema::jsonb, :productLimit, NOW(), NOW())
          ON CONFLICT (slug) DO UPDATE SET
            attribute_schema = EXCLUDED.attribute_schema,
            sort_order       = EXCLUDED.sort_order,
+           product_limit    = EXCLUDED.product_limit,
            updated_at       = NOW()`,
         {
           replacements: {
@@ -806,6 +809,7 @@ async function up(queryInterface: QueryInterface): Promise<void> {
             slug:      cat.slug,
             sortOrder: cat.sortOrder,
             schema:    JSON.stringify(cat.attributeSchema),
+            productLimit: DEFAULT_PRODUCT_LIMIT,
           },
           transaction: t,
         },
@@ -820,6 +824,11 @@ async function down(queryInterface: QueryInterface): Promise<void> {
     await queryInterface.sequelize.query(
       `DELETE FROM categories WHERE slug IN (${slugList})`,
       { transaction: t },
+    );
+
+    await queryInterface.sequelize.query(
+      `UPDATE categories SET product_limit = NULL, updated_at = NOW() WHERE slug IN (:slugs)`,
+      { replacements: { slugs: CATEGORIES.map(c => c.slug) }, transaction: t },
     );
 
     await queryInterface.sequelize.query(

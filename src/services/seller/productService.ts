@@ -12,6 +12,8 @@ import { normalizeImageKey, commitImages } from '../../utils/imageStorage';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
 import { recordPurchase } from './purchaseService';
 import { cancelPendingBoosts, completeLiveBoosts, hasLiveBoost } from './boostGuards';
+import { assertCanAdd, consumeGroupUnits, consumeUnit, notifyLimitThreshold, type LimitUsage } from './productLimitService';
+import { newGroupLabels } from '../../utils/variantGroups';
 import sequelize from '../../config/database';
 
 type CreateProductInput = InferType<typeof createProductSchema>;
@@ -95,8 +97,14 @@ export async function createProduct(
     ? data.rows!.reduce((sum, row) => sum + row.stock, 0)
     : undefined;
 
+  // Rows normally share one group (they differ only in the stock-dependent value).
+  await assertCanAdd(sellerId, category, hasRows
+    ? newGroupLabels(schema, data.rows!.map(r => ({ ...normalizedAttributes, ...(r.attributes as Record<string, unknown>) })), []).length
+    : 1);
+
   const committedImages = await commitImages((data.images ?? []).map(normalizeImageKey));
 
+  let limitUsage: LimitUsage | null = null;
   const product = await sequelize.transaction(async (t) => {
     const created = await Product.create({
       sellerId,
@@ -141,6 +149,11 @@ export async function createProduct(
         isActive:     true,
       }));
       const createdVariants = await ProductVariant.bulkCreate(variants, { transaction: t, returning: true });
+      limitUsage = await consumeGroupUnits(
+        t,
+        { sellerId, category, productId: created.id, productName: created.name },
+        newGroupLabels(schema, variants.map(v => v.attributes as Record<string, unknown>), []),
+      );
 
       for (const variant of createdVariants) {
         await recordPurchase({
@@ -156,6 +169,14 @@ export async function createProduct(
         }, t);
       }
     } else {
+      limitUsage = await consumeUnit(t, {
+        sellerId,
+        category,
+        productId:   created.id,
+        productName: created.name,
+        groupLabel:  null,
+        reason:      'product',
+      });
       await recordPurchase({
         sellerId,
         productId:   created.id,
@@ -171,6 +192,7 @@ export async function createProduct(
 
     return created;
   });
+  notifyLimitThreshold(limitUsage);
 
   const reloaded = await product.reload({ include: [{ model: Category, attributes: ['id', 'name', 'slug', 'attributeSchema'] }] });
   reloaded.setDataValue('hasVariants', hasRows);

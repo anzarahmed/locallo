@@ -24,7 +24,7 @@ export interface TemplateParamsMap {
   boost_paid: { boostId: string; productName: string; amount: number; transactionId: string; campaign: string };
   share_shop: Record<string, never>;
   closing_soon: { closeTime: string };
-  upload_limit_90: Record<string, never>;
+  upload_limit_90: { categoryId: number; categoryName: string; used: number; limit: number };
   buy_storage: Record<string, never>;
   account_deleted: { recoveryDays: number };
 }
@@ -274,12 +274,11 @@ export const TEMPLATES: TemplateRegistry = {
       collapseKey: 'closing_soon',
     }),
   },
-  // No trigger yet: product upload limits and storage plans don't exist. Sendable via the test endpoints.
   upload_limit_90: {
     audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true,
-    build: () => ({
-      title: 'You’ve used 90% of your upload limit',
-      body: 'Add more storage to keep growing your catalogue.',
+    build: ({ categoryName, used, limit }) => ({
+      title: `You’ve used 90% of your ${categoryName} limit`,
+      body: `${used} of ${limit} listings used — ${Math.max(0, limit - used)} left in ${categoryName}.`,
       screen: 'dashboard',
     }),
   },

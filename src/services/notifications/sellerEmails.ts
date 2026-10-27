@@ -40,7 +40,10 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
     gate: 'always',
     build: ({ productId, productName, milestone }, name) => viewsMilestoneEmail(name, productId, productName, milestone),
   },
-  upload_limit_90: { gate: 'always', build: (_, name) => uploadLimitReachedEmail(name) },
+  upload_limit_90: {
+    gate: 'always',
+    build: ({ categoryName, used, limit }, name) => uploadLimitReachedEmail(name, categoryName, used, limit),
+  },
   buy_storage: { gate: 'emailUpdates', build: (_, name) => buyStorageEmail(name) },
   out_of_stock_digest: { gate: 'always', build: (_, name) => outOfStockEmail(name) },
   seller_inactive: { gate: 'emailUpdates', build: (_, name) => inactiveSellerEmail(name) },

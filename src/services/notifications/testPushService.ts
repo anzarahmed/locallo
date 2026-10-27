@@ -6,6 +6,7 @@ import { Product } from '../../models/Product';
 import { ProductBoost } from '../../models/ProductBoost';
 import { Session } from '../../models/Session';
 import { Wishlist } from '../../models/Wishlist';
+import { getSellerLimits } from '../seller/productLimitService';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
 import { buildPushMessage, isPushConfigured, sendPushToTokens, toFcmWirePayload } from '../../utils/push';
 import type { PushContent, TokenOutcome } from '../../utils/push';
@@ -132,7 +133,10 @@ const SAMPLE_PARAMS: SampleBuilders = {
   },
   share_shop: async () => ({}),
   closing_soon: async () => ({ closeTime: '21:00' }),
-  upload_limit_90: async () => ({}),
+  upload_limit_90: async (userId) => {
+    const [first] = await getSellerLimits(userId);
+    return { categoryId: first?.categoryId ?? 0, categoryName: first?.categoryName ?? 'Fashion', used: 180, limit: 200 };
+  },
   buy_storage: async () => ({}),
   account_deleted: async () => ({ recoveryDays: 60 }),
 };

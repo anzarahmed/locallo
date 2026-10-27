@@ -12,6 +12,7 @@ import { getCategories, getMyCategories } from '../../controllers/seller/categor
 import { getVariants, createVariant, createBatchVariants, updateVariant, deleteVariant, toggleVariant } from '../../controllers/seller/variantController';
 import { markProductSold, markVariantSold, getSoldLogs } from '../../controllers/seller/soldController';
 import { getPurchaseLogs } from '../../controllers/seller/purchaseController';
+import { getProductLimits, getProductLimitLogs } from '../../controllers/seller/productLimitController';
 import { addLedger, getLedgers, editLedger, removeLedger } from '../../controllers/seller/ledgerController';
 import { addExpense, getExpenses, editExpense, removeExpense } from '../../controllers/seller/expenseController';
 import { getPnlSummary } from '../../controllers/seller/pnlController';
@@ -98,6 +99,8 @@ router.get('/payments', requireSeller, getBoostPayments);
 
 router.get('/sold-logs', requireSeller, getSoldLogs);
 router.get('/purchase-logs', requireSeller, getPurchaseLogs);
+router.get('/product-limits', requireSeller, getProductLimits);
+router.get('/product-limit-logs', requireSeller, getProductLimitLogs);
 
 router.post('/ledgers',       requireSeller, validate(createLedgerSchema), addLedger);
 router.get('/ledgers',        requireSeller, getLedgers);
