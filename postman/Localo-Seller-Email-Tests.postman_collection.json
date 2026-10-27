@@ -1,0 +1,1965 @@
+{
+  "info": {
+    "name": "Localo — Seller Auth + Test Emails + Test Push",
+    "description": "Seller OTP login + test-email and test-push APIs for QA.\n\nRun **Seller Auth → Request OTP**, then **Verify OTP** (OTP and token are captured automatically), then any request under **Test Emails**. Emails go to the logged-in seller's own address. For pushes, set `fcmToken` to a real device FCM token and run **Test Push → Register push token** first.\n\n`baseUrl` defaults to QA (`https://loccalo.in/api`); request paths keep the `/api/sellers/...` prefix the seller panel uses. For local, set `baseUrl` to `http://localhost:3000`.\n\nDefault seller: Riddhima Shopee (+91 9314403888, riddhima@yopmail.com).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{sellerToken}}",
+        "type": "string"
+      }
+    ]
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "if (!pm.collectionVariables.get('deviceId')) pm.collectionVariables.set('deviceId', pm.variables.replaceIn('{{$guid}}'));"
+        ]
+      }
+    }
+  ],
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "https://loccalo.in/api"
+    },
+    {
+      "key": "countryCode",
+      "value": "+91"
+    },
+    {
+      "key": "phoneNumber",
+      "value": "9314403888"
+    },
+    {
+      "key": "deviceId",
+      "value": ""
+    },
+    {
+      "key": "deviceType",
+      "value": "web"
+    },
+    {
+      "key": "otp",
+      "value": ""
+    },
+    {
+      "key": "sellerToken",
+      "value": ""
+    },
+    {
+      "key": "fcmToken",
+      "value": ""
+    }
+  ],
+  "item": [
+    {
+      "name": "Seller Auth",
+      "item": [
+        {
+          "name": "Request OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sellers/auth/request-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sellers",
+                "auth",
+                "request-otp"
+              ]
+            },
+            "description": "Sends a 4-digit OTP to the seller's mobile via MSG91. The response includes `otp`, which is saved to the `otp` variable automatically.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"deviceId\": \"{{deviceId}}\",\n  \"deviceType\": \"{{deviceType}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const otp = pm.response.json()?.data?.otp;",
+                  "if (otp) pm.collectionVariables.set('otp', String(otp));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sellers/auth/verify-otp",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sellers",
+                "auth",
+                "verify-otp"
+              ]
+            },
+            "description": "Verifies the OTP and returns `{ token, accountRestored, seller }`. The token is saved to `sellerToken` and used by every other request.",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"countryCode\": \"{{countryCode}}\",\n  \"phoneNumber\": \"{{phoneNumber}}\",\n  \"deviceId\": \"{{deviceId}}\",\n  \"deviceType\": \"{{deviceType}}\",\n  \"otp\": \"{{otp}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
+            "auth": {
+              "type": "noauth"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "const token = pm.response.json()?.data?.token;",
+                  "if (token) pm.collectionVariables.set('sellerToken', token);"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sellers/auth/logout",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sellers",
+                "auth",
+                "logout"
+              ]
+            },
+            "description": "Invalidates the current session and clears `sellerToken`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.collectionVariables.set('sellerToken', '');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Test Emails",
+      "item": [
+        {
+          "name": "List email types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sellers/test/email-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sellers",
+                "test",
+                "email-types"
+              ]
+            },
+            "description": "Every testable seller email type with its subject."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Send ALL emails",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sellers/test/email/all",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sellers",
+                "test",
+                "email",
+                "all"
+              ]
+            },
+            "description": "Sends all 18 seller emails (both first_product_nudge reminders) sequentially to the caller. Returns `{ to, sent, failed, emails[] }`."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('none failed', () => pm.expect(pm.response.json().data.failed).to.eql(0));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Single email",
+          "item": [
+            {
+              "name": "Registration complete — seller_registered",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Registration complete** (`seller_registered`). Transactional (always sent).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"seller_registered\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Welcome / new journey — welcome_seller",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Welcome / new journey** (`welcome_seller`). Transactional (always sent).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"welcome_seller\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Start uploading (reminder 1) — first_product_nudge",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Start uploading (reminder 1)** (`first_product_nudge`). Promotional (gated by emailUpdates setting; the test API ignores it).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"first_product_nudge\",\n  \"params\": {\n    \"reminder\": 1\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Upload guide (reminder 2) — first_product_nudge",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Upload guide (reminder 2)** (`first_product_nudge`). Promotional (gated by emailUpdates setting; the test API ignores it).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"first_product_nudge\",\n  \"params\": {\n    \"reminder\": 2\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Complete KYC — kyc_pending",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Complete KYC** (`kyc_pending`). Transactional (always sent).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"kyc_pending\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "KYC verified — kyc_verified",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**KYC verified** (`kyc_verified`). Direct send (outside the notification pipeline).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"kyc_verified\",\n  \"params\": {\n    \"businessName\": \"Riddhima Shopee\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "KYC revoked — kyc_revoked",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**KYC revoked** (`kyc_revoked`). Direct send (outside the notification pipeline).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"kyc_revoked\",\n  \"params\": {\n    \"businessName\": \"Riddhima Shopee\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Views milestone — views_milestone",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Views milestone** (`views_milestone`). Transactional (always sent).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"views_milestone\",\n  \"params\": {\n    \"productId\": \"d0000000-0000-4000-8000-000000000002\",\n    \"productName\": \"Demo Canvas Tote\",\n    \"milestone\": 1000\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Upload limit 90% — upload_limit_90",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Upload limit 90%** (`upload_limit_90`). Transactional (always sent).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"upload_limit_90\",\n  \"params\": {\n    \"categoryId\": 1,\n    \"categoryName\": \"Grocery\",\n    \"used\": 45,\n    \"limit\": 50\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Buy storage — buy_storage",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Buy storage** (`buy_storage`). Promotional (gated by emailUpdates setting; the test API ignores it).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"buy_storage\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Out of stock digest — out_of_stock_digest",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Out of stock digest** (`out_of_stock_digest`). Transactional (always sent).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"out_of_stock_digest\",\n  \"params\": {\n    \"count\": 3\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Inactive seller — seller_inactive",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Inactive seller** (`seller_inactive`). Promotional (gated by emailUpdates setting; the test API ignores it).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"seller_inactive\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Boost suggestion — boost_suggestion",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Boost suggestion** (`boost_suggestion`). Promotional (gated by emailUpdates setting; the test API ignores it).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"boost_suggestion\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Boost target reached — boost_completed",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Boost target reached** (`boost_completed`). Transactional (always sent).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"boost_completed\",\n  \"params\": {\n    \"boostId\": \"5f295b0d-f8f7-46b3-a12c-d0594aacf9d8\",\n    \"productName\": \"Men's Solid Crew Neck T-Shirt\",\n    \"productId\": \"18d765b4-03c8-41c6-b3d3-2c39301edafb\",\n    \"target\": 2000\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Boost payment received — boost_paid",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Boost payment received** (`boost_paid`). Transactional (always sent).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"boost_paid\",\n  \"params\": {\n    \"boostId\": \"5f295b0d-f8f7-46b3-a12c-d0594aacf9d8\",\n    \"productName\": \"Men's Solid Crew Neck T-Shirt\",\n    \"amount\": 100,\n    \"transactionId\": \"pay_SAMPLE123456\",\n    \"campaign\": \"Pan India\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Boost payment failed — boost_payment_failed",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Boost payment failed** (`boost_payment_failed`). Direct send (outside the notification pipeline).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"boost_payment_failed\",\n  \"params\": {\n    \"productName\": \"Men's Solid Crew Neck T-Shirt\",\n    \"amount\": 100\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Offer Mania — offer_join",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Offer Mania** (`offer_join`). Promotional — sent by the offer outbox in production.\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"offer_join\",\n  \"params\": {\n    \"offerId\": 40,\n    \"offerTitle\": \"bogo\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Account deleted — account_deleted",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/email",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "email"
+                  ]
+                },
+                "description": "**Account deleted** (`account_deleted`). Transactional (always sent).\n\nSent to the logged-in seller's own email. Any omitted `params` are auto-filled by the server from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"account_deleted\",\n  \"params\": {\n    \"recoveryDays\": 60\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Test Push",
+      "item": [
+        {
+          "name": "Register push token",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/sellers/push-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sellers",
+                "push-token"
+              ]
+            },
+            "description": "Registers an FCM device token for the logged-in seller. Set the `fcmToken` collection variable to a real token from the seller app/device first (min 20 chars).",
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"token\": \"{{fcmToken}}\"\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Remove push token",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sellers/push-token",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sellers",
+                "push-token"
+              ]
+            },
+            "description": "Removes the current session's registered push token."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "List push types",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/sellers/test/push-types",
+              "host": [
+                "{{baseUrl}}"
+              ],
+              "path": [
+                "api",
+                "sellers",
+                "test",
+                "push-types"
+              ]
+            },
+            "description": "Every seller notification type with a preview built from sample params (and hasEmail)."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('status 200', () => pm.response.to.have.status(200));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Single push",
+          "item": [
+            {
+              "name": "Welcome seller — welcome_seller",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Welcome seller** (`welcome_seller`). Transactional (push: false in production; test API sends anyway).\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"welcome_seller\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Seller registered — seller_registered",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Seller registered** (`seller_registered`). Transactional (push: false in production; test API sends anyway).\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"seller_registered\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Offer Mania — join offer — offer_join",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Offer Mania — join offer** (`offer_join`). Promotional · offersAndPromotions.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"offer_join\",\n  \"params\": {\n    \"offerId\": 40,\n    \"offerTitle\": \"bogo\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Start uploading (reminder 1) — first_product_nudge",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Start uploading (reminder 1)** (`first_product_nudge`). Promotional · sellerUpdates.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"first_product_nudge\",\n  \"params\": {\n    \"reminder\": 1\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Upload guide (reminder 2) — first_product_nudge",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Upload guide (reminder 2)** (`first_product_nudge`). Promotional · sellerUpdates.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"first_product_nudge\",\n  \"params\": {\n    \"reminder\": 2\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Complete KYC — kyc_pending",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Complete KYC** (`kyc_pending`). Transactional.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"kyc_pending\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Views milestone — views_milestone",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Views milestone** (`views_milestone`). Transactional.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"views_milestone\",\n  \"params\": {\n    \"productId\": \"d0000000-0000-4000-8000-000000000002\",\n    \"productName\": \"Demo Canvas Tote\",\n    \"milestone\": 1000\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Out of stock digest — out_of_stock_digest",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Out of stock digest** (`out_of_stock_digest`). Transactional.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"out_of_stock_digest\",\n  \"params\": {\n    \"count\": 3\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Inactive seller — seller_inactive",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Inactive seller** (`seller_inactive`). Promotional · sellerUpdates.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"seller_inactive\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Boost suggestion — boost_suggestion",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Boost suggestion** (`boost_suggestion`). Promotional · offersAndPromotions.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"boost_suggestion\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Boost target reached — boost_completed",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Boost target reached** (`boost_completed`). Transactional.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"boost_completed\",\n  \"params\": {\n    \"boostId\": \"5f295b0d-f8f7-46b3-a12c-d0594aacf9d8\",\n    \"productName\": \"Men's Solid Crew Neck T-Shirt\",\n    \"productId\": \"18d765b4-03c8-41c6-b3d3-2c39301edafb\",\n    \"target\": 2000\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Boost payment received — boost_paid",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Boost payment received** (`boost_paid`). Transactional.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"boost_paid\",\n  \"params\": {\n    \"boostId\": \"5f295b0d-f8f7-46b3-a12c-d0594aacf9d8\",\n    \"productName\": \"Men's Solid Crew Neck T-Shirt\",\n    \"amount\": 100,\n    \"transactionId\": \"pay_SAMPLE123456\",\n    \"campaign\": \"Pan India\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Share shop — share_shop",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Share shop** (`share_shop`). Promotional · sellerUpdates.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"share_shop\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Shop closing soon — closing_soon",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Shop closing soon** (`closing_soon`). Transactional · closingReminder.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"closing_soon\",\n  \"params\": {\n    \"closeTime\": \"21:00\"\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Upload limit 90% — upload_limit_90",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Upload limit 90%** (`upload_limit_90`). Transactional.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"upload_limit_90\",\n  \"params\": {\n    \"categoryId\": 1,\n    \"categoryName\": \"Grocery\",\n    \"used\": 45,\n    \"limit\": 50\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Buy storage — buy_storage",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Buy storage** (`buy_storage`). Promotional · offersAndPromotions.\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"buy_storage\",\n  \"params\": {}\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            },
+            {
+              "name": "Account deleted — account_deleted",
+              "request": {
+                "method": "POST",
+                "header": [
+                  {
+                    "key": "Content-Type",
+                    "value": "application/json"
+                  }
+                ],
+                "url": {
+                  "raw": "{{baseUrl}}/api/sellers/test/push",
+                  "host": [
+                    "{{baseUrl}}"
+                  ],
+                  "path": [
+                    "api",
+                    "sellers",
+                    "test",
+                    "push"
+                  ]
+                },
+                "description": "**Account deleted** (`account_deleted`). Transactional (push: false in production; test API sends anyway).\n\nSent only to the logged-in seller's own registered devices (run **Register push token** first, else 404). Skips notification settings, quiet hours, caps and dedupe; writes a real inbox row. Response shows FCM's outcome per device and the exact `payload` sent. Omitted `params` are auto-filled from the seller's latest product/boost/offer.",
+                "body": {
+                  "mode": "raw",
+                  "raw": "{\n  \"type\": \"account_deleted\",\n  \"params\": {\n    \"recoveryDays\": 60\n  }\n}",
+                  "options": {
+                    "raw": {
+                      "language": "json"
+                    }
+                  }
+                }
+              },
+              "event": [
+                {
+                  "listen": "test",
+                  "script": {
+                    "type": "text/javascript",
+                    "exec": [
+                      "pm.test('status 200', () => pm.response.to.have.status(200));"
+                    ]
+                  }
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
