@@ -29,6 +29,7 @@ interface CategoryPayload {
   masterCategoryId: number;
   attributeSchema?: AttributeField[];
   icon?: string | null;
+  productLimit: number;
 }
 
 interface UpdateCategoryPayload {
@@ -38,6 +39,7 @@ interface UpdateCategoryPayload {
   masterCategoryId?: number;
   attributeSchema?: AttributeField[];
   icon?: string | null;
+  productLimit?: number;
 }
 
 export function getCategories(includeInactive = false): Promise<Category[]> {

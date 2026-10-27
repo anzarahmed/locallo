@@ -56,6 +56,7 @@ export interface Category {
   masterCategory?: { id: number; name: string; slug: string } | null;
   attributeSchema?: AttributeField[] | null;
   icon?: string | null;
+  productLimit: number;
 }
 
 export interface Brand {

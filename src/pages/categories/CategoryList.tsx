@@ -48,16 +48,18 @@ function CategoryModal({ category, masterCategories, onClose, onSaved }: Categor
     slug:            category?.slug            ?? '',
     attributeSchema: category?.attributeSchema ?? [],
     icon:            category?.icon            ?? null,
+    productLimit:    category ? String(category.productLimit) : '',
   };
 
   async function handleSubmit(
     values: CategoryFormValues,
     { setSubmitting, setStatus }: FormikHelpers<CategoryFormValues>,
   ): Promise<void> {
+    const productLimit = Number(values.productLimit);
     try {
       const saved = isEdit && category
-        ? await updateCategory(category.id, { ...values, masterCategoryId: values.masterCategoryId as number })
-        : await createCategory({ name: values.name, slug: values.slug, masterCategoryId: values.masterCategoryId as number, attributeSchema: values.attributeSchema, icon: values.icon });
+        ? await updateCategory(category.id, { ...values, masterCategoryId: values.masterCategoryId as number, productLimit })
+        : await createCategory({ name: values.name, slug: values.slug, masterCategoryId: values.masterCategoryId as number, attributeSchema: values.attributeSchema, icon: values.icon, productLimit });
       toast.success(isEdit ? 'Category updated' : 'Category added');
       onSaved(saved);
     } catch (err: unknown) {
@@ -130,6 +132,21 @@ function CategoryModal({ category, masterCategories, onClose, onSaved }: Categor
               touched={f.touched.slug}
               error={f.errors.slug}
             />
+
+            <div>
+              <AuthField
+                label="Product listing limit" name="productLimit" placeholder="e.g. 200" required
+                inputMode="numeric"
+                value={f.values.productLimit}
+                onChange={f.handleChange}
+                onBlur={f.handleBlur}
+                touched={f.touched.productLimit}
+                error={f.errors.productLimit}
+              />
+              <p className="mt-1.5 text-xs text-gray-500">
+                Per seller. Each product without variants, or each variant group, uses 1.
+              </p>
+            </div>
 
             <IconUploadField
               label="Category Icon"
@@ -382,6 +399,19 @@ export default function CategoryList(): JSX.Element {
       meta: { align: 'center' },
       cell: ({ row }: { row: Row<Category> }) => (
         <span className="text-xs text-gray-500">{row.original.attributeSchema?.length ?? 0}</span>
+      ),
+    },
+    {
+      id: 'productLimit',
+      accessorFn: (row: Category) => row.productLimit,
+      header: 'Limit',
+      enableSorting: false,
+      enableColumnFilter: false,
+      meta: { align: 'right', className: 'w-24' },
+      cell: ({ row }: { row: Row<Category> }) => (
+        <span className="text-sm text-gray-600 tabular-nums">
+          {row.original.productLimit}
+        </span>
       ),
     },
     {
