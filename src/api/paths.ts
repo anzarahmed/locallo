@@ -20,6 +20,8 @@ export const PATHS = {
   SOLD_LOGS:      '/api/sellers/sold-logs',
   PAYMENTS:       '/api/sellers/payments',
   PURCHASE_LOGS:  '/api/sellers/purchase-logs',
+  PRODUCT_LIMITS:     '/api/sellers/product-limits',
+  PRODUCT_LIMIT_LOGS: '/api/sellers/product-limit-logs',
   PRODUCT_SELL:   (id: string): string => `/api/sellers/products/${id}/sell`,
   PRODUCT_BOOST:  (id: string): string => `/api/sellers/products/${id}/boost`,
   PRODUCT_BOOST_CANCEL: (id: string): string => `/api/sellers/products/${id}/boost/cancel`,

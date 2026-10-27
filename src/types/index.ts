@@ -154,6 +154,38 @@ export interface PurchaseLog {
   productImage: string | null;
 }
 
+export interface CategoryLimit {
+  categoryId: number;
+  categoryName: string;
+  limit: number;
+  used: number;
+  remaining: number;
+}
+
+export type ProductLimitReason = 'product' | 'variant_group' | 'initial_balance';
+
+export interface ProductLimitLog {
+  id: string;
+  categoryId: number | null;
+  categoryName: string;
+  productId: string | null;
+  productName: string;
+  groupLabel: string | null;
+  reason: ProductLimitReason;
+  units: number;
+  usedAfter: number;
+  limitAtTime: number | null;
+  remainingAfter: number | null;
+  createdAt: string;
+}
+
+export interface ProductLimitLogsResponse {
+  logs: ProductLimitLog[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
 export interface PurchaseLogsResponse {
   logs: PurchaseLog[];
   total: number;

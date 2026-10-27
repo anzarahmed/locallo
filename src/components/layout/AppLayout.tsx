@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Archive, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt, Bell, BadgePercent, AlertTriangle, CreditCard } from 'lucide-react';
+import { LayoutDashboard, Archive, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt, Bell, BadgePercent, AlertTriangle, CreditCard, Gauge } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
 import { useState, useRef, useEffect, type JSX } from 'react';
@@ -21,6 +21,7 @@ const BASE_NAV: NavItem[] = [
   { to: '/payments',   icon: <CreditCard size={20} />,      label: 'Payments'  },
 ];
 
+const LIMITS_NAV:   NavItem = { to: '/product-limits', icon: <Gauge size={20} />, label: 'Listing Limits' };
 const PNL_NAV:      NavItem = { to: '/pnl',      icon: <BarChart2 size={20} />, label: 'P&L'      };
 const PROFILE_NAV:  NavItem = { to: '/profile',  icon: <User size={20} />,     label: 'Shop Settings'  };
 const SETTINGS_NAV: NavItem = { to: '/settings', icon: <Settings size={20} />, label: 'Settings' };
@@ -43,7 +44,7 @@ export default function AppLayout(): JSX.Element {
       .catch(() => {});
   }, []);
 
-  const sidebarNav = [...BASE_NAV, ...(showPnl ? [PNL_NAV] : [])];
+  const sidebarNav = [...BASE_NAV, LIMITS_NAV, ...(showPnl ? [PNL_NAV] : [])];
   const mobileNav  = [...BASE_NAV, ...(showPnl ? [PNL_NAV] : []), PROFILE_NAV, SETTINGS_NAV];
 
   return (
@@ -228,6 +229,14 @@ function ProfileMenu({ seller, photo, logout, navigate }: ProfileMenuProps): JSX
           >
             <User size={15} className="text-gray-400" />
             Shop Settings
+          </button>
+
+          <button
+            onClick={() => { setOpen(false); navigate('/product-limits'); }}
+            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+          >
+            <Gauge size={15} className="text-gray-400" />
+            Listing Limits
           </button>
 
           <button

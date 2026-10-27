@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { ArrowLeft, Camera, Eye, EyeOff, Loader2, Package, Pencil, Plus, Rocket, Search, ShoppingBag, Trash2, X } from 'lucide-react';
 import {
   getProductVariants, toggleVariant, deleteVariant, markVariantSold, updateVariant,
-  uploadProductImage, getActiveBoost,
+  uploadProductImage, getActiveBoost, getProductLimits,
 } from '../../../services/sellerService';
 import { MAX_SECONDARY_IMAGES } from '../../../constants';
 import { useToast } from '../../../hooks/useToast';
@@ -15,7 +15,7 @@ import { toTitleCase } from '../../../lib/textFormat';
 import { categorySupportsVariants, groupVariants, sellItemLabel, type VariantGroup } from '../../../lib/variantUtils';
 import ConfirmDeleteModal from '../../../components/ui/ConfirmDeleteModal';
 import SellModal from '../../../components/ui/SellModal';
-import type { Product, ProductVariant, ProductBoost, AttributeField } from '../../../types';
+import type { Product, ProductVariant, ProductBoost, AttributeField, CategoryLimit } from '../../../types';
 import VariantSheet from './VariantSheet';
 
 const LAST_VISIBLE_NOTE =
@@ -54,6 +54,7 @@ export default function VariantList(): JSX.Element {
   const [selling, setSelling] = useState(false);
   const [boost, setBoost] = useState<ProductBoost | null>(null);
   const [search, setSearch] = useState('');
+  const [categoryLimit, setCategoryLimit] = useState<CategoryLimit | null>(null);
 
   const schema = product?.category?.attributeSchema ?? [];
   const sdField = schema.find(f => f.isVariant === true && f.isStockDependent === true);
@@ -61,6 +62,9 @@ export default function VariantList(): JSX.Element {
   const groups = sdField ? groupVariants(filteredVariants, sdField.key) : null;
   const isLastVariant = variants.length === 1;
   const noSearchResults = search.trim() !== '' && variants.length > 0 && filteredVariants.length === 0;
+  const limitReached = categoryLimit?.remaining === 0;
+  // "Add Option" only exists for stock-dependent fields with a fixed option list (e.g. a size select).
+  const canAddToExistingGroups = Boolean(groups && sdField?.options?.length);
 
   const liveBoost = boost?.status === 'active' && boost.paymentStatus === 'paid' ? boost : null;
   const wholeProductBoosted = liveBoost != null && liveBoost.variantIds === null;
@@ -97,6 +101,7 @@ export default function VariantList(): JSX.Element {
         }
         setProduct(data.product);
         setVariants(data.variants);
+        void loadCategoryLimit(data.product.categoryId);
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to load variants');
         navigate(`/products/${id}/edit`);
@@ -113,6 +118,15 @@ export default function VariantList(): JSX.Element {
     }
     void load();
   }, [id]); // toast and navigate are stable
+
+  async function loadCategoryLimit(categoryId: number): Promise<void> {
+    try {
+      const { limits } = await getProductLimits();
+      setCategoryLimit(limits.find(l => l.categoryId === categoryId) ?? null);
+    } catch {
+      // informational only — the server still enforces the limit on save
+    }
+  }
 
   async function handleToggle(variant: ProductVariant): Promise<void> {
     if (hideEndsBoost(variant) || isLastVisible(variant)) {
@@ -193,6 +207,7 @@ export default function VariantList(): JSX.Element {
       } catch {
         setVariants(prev => [...prev, ...updatedVariants]);
       }
+      if (product) void loadCategoryLimit(product.categoryId);
     }
     setSheetOpen(false);
     setEditingVariant(null);
@@ -290,7 +305,9 @@ export default function VariantList(): JSX.Element {
           <button
             type="button"
             onClick={openAdd}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors shrink-0"
+            disabled={limitReached}
+            title={limitReached ? 'Listing limit reached for this category' : undefined}
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 disabled:opacity-50 disabled:cursor-not-allowed transition-colors shrink-0"
           >
             <Plus size={15} />
             Add Variant
@@ -310,6 +327,20 @@ export default function VariantList(): JSX.Element {
               placeholder="Search variants by color, size…"
               className="w-full bg-white rounded-2xl shadow-sm pl-11 pr-4 py-3 text-sm text-gray-700 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-teal-500/20"
             />
+          </div>
+        )}
+        {!loading && categoryLimit && (
+          <div className={`mb-3 rounded-2xl border px-4 py-3 text-xs ${
+            limitReached ? 'bg-red-50 border-red-200 text-red-700' : 'bg-white border-gray-100 text-gray-600'
+          }`}>
+            <span className="font-semibold">
+              {categoryLimit.remaining} of {categoryLimit.limit} listings left in {categoryLimit.categoryName}.
+            </span>
+            {' '}{!limitReached
+              ? 'Each new variant group uses 1 permanently — deleting it later won\'t restore it.'
+              : canAddToExistingGroups
+                ? 'You can still add options to existing groups, but not new groups.'
+                : 'New variant groups can\'t be added until your limit is increased.'}
           </div>
         )}
         {!loading && wholeProductBoosted && (

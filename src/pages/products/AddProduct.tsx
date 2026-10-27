@@ -5,7 +5,7 @@ import {
   ArrowLeft, Camera, X, Plus, Sparkles, Loader2, ChevronDown,
 } from 'lucide-react';
 import {
-  getProfile, getSettings, uploadProductImage, analyzeProductImage, createProduct,
+  getProfile, getSettings, uploadProductImage, analyzeProductImage, createProduct, getProductLimits,
 } from '../../services/sellerService';
 import { addProductSchema, addProductSchemaComboStock, type AddProductFormValues } from '../../validation/productSchemas';
 import { useToast } from '../../hooks/useToast';
@@ -21,12 +21,18 @@ import {
 } from '../../lib/variantUtils';
 import FormField from '../../components/ui/FormField';
 import AttrInput from '../../components/ui/AttrInput';
-import type { SellerCategory, AttributeField, AttributeFieldOption } from '../../types';
+import type { SellerCategory, AttributeField, AttributeFieldOption, CategoryLimit } from '../../types';
 
 interface AiHint {
   categoryName: string;
   confidence: 'high' | 'medium' | 'low';
   categoryAvailable: boolean;
+  categoryFull: boolean;
+}
+
+function categoryOptionLabel(cat: SellerCategory, limit: CategoryLimit | undefined): string {
+  if (!limit) return cat.name;
+  return limit.remaining === 0 ? `${cat.name} — limit reached` : `${cat.name} (${limit.remaining} left)`;
 }
 
 export default function AddProduct(): JSX.Element {
@@ -34,6 +40,7 @@ export default function AddProduct(): JSX.Element {
   const toast = useToast();
 
   const [categories, setCategories] = useState<SellerCategory[]>([]);
+  const [limits, setLimits] = useState<Map<number, CategoryLimit>>(new Map());
   const [primaryImage, setPrimaryImage] = useState<string | null>(null);
   const [primaryImageError, setPrimaryImageError] = useState<string | null>(null);
   const [secondaryImages, setSecondaryImages] = useState<string[]>([]);
@@ -68,6 +75,12 @@ export default function AddProduct(): JSX.Element {
         // silently ignore — user can still manually select when dropdown is populated
       }
       try {
+        const data = await getProductLimits();
+        setLimits(new Map(data.limits.map(l => [l.categoryId, l])));
+      } catch {
+        // silently ignore — the server still enforces limits on submit
+      }
+      try {
         const { notificationSettings } = await getSettings();
         setUseAiForPrimaryImage(notificationSettings?.useAiForPrimaryImage ?? false);
       } catch {
@@ -76,6 +89,10 @@ export default function AddProduct(): JSX.Element {
     }
     void load();
   }, []);
+
+  function isCategoryFull(categoryId: number): boolean {
+    return limits.get(categoryId)?.remaining === 0;
+  }
 
   const form = useFormik<AddProductFormValues>({
     initialValues: {
@@ -140,7 +157,9 @@ export default function AddProduct(): JSX.Element {
 
       if (result.suggestions) {
         const s = result.suggestions;
-        const matchedCat = s.categoryId ? categories.find(c => c.id === s.categoryId) : undefined;
+        const matchedCat = s.categoryId && !isCategoryFull(s.categoryId)
+          ? categories.find(c => c.id === s.categoryId)
+          : undefined;
         void form.setValues({
           name:         s.name ?? '',
           description:  s.description ?? '',
@@ -180,6 +199,7 @@ export default function AddProduct(): JSX.Element {
           categoryName: s.categoryName ?? 'Unknown',
           confidence:   s.confidence,
           categoryAvailable: !!matchedCat,
+          categoryFull:      !!s.categoryId && isCategoryFull(s.categoryId),
         });
       }
     } catch (err) {
@@ -325,6 +345,8 @@ export default function AddProduct(): JSX.Element {
     }
   }
 
+  const selectedLimit = limits.get(Number(form.values.categoryId));
+
   return (
     <div className="min-h-screen bg-gray-100 pb-28">
       {/* Teal header */}
@@ -442,7 +464,9 @@ export default function AddProduct(): JSX.Element {
                 </span>
                 {aiHint.categoryAvailable
                   ? '. Review and adjust as needed.'
-                  : '. This category isn\'t in your profile — please select one manually.'}
+                  : aiHint.categoryFull
+                    ? '. You\'ve reached your listing limit for this category — please select another one.'
+                    : '. This category isn\'t in your profile — please select one manually.'}
               </p>
             </div>
             <button
@@ -614,23 +638,33 @@ export default function AddProduct(): JSX.Element {
         {/* Category */}
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
           <FormField label="Category" required error={form.touched.categoryId ? form.errors.categoryId as string : undefined}>
-            <div className="relative">
-              <select
-                value={form.values.categoryId}
-                onChange={e => {
-                  const id = Number(e.target.value);
-                  void form.setFieldValue('categoryId', id);
-                  applyCategory(id);
-                }}
-                onBlur={() => void form.setFieldTouched('categoryId')}
-                className={`w-full appearance-none ${inputCls(!!form.touched.categoryId && !!form.errors.categoryId)} pr-8`}
-              >
-                <option value={0} disabled>Select a category</option>
-                {categories.map(cat => (
-                  <option key={cat.id} value={cat.id}>{cat.name}</option>
-                ))}
-              </select>
-              <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+            <div>
+              <div className="relative">
+                <select
+                  value={form.values.categoryId}
+                  onChange={e => {
+                    const id = Number(e.target.value);
+                    void form.setFieldValue('categoryId', id);
+                    applyCategory(id);
+                  }}
+                  onBlur={() => void form.setFieldTouched('categoryId')}
+                  className={`w-full appearance-none ${inputCls(!!form.touched.categoryId && !!form.errors.categoryId)} pr-8`}
+                >
+                  <option value={0} disabled>Select a category</option>
+                  {categories.map(cat => (
+                    <option key={cat.id} value={cat.id} disabled={isCategoryFull(cat.id)}>
+                      {categoryOptionLabel(cat, limits.get(cat.id))}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
+              </div>
+              {selectedLimit && (
+                <p className="text-xs text-gray-500 mt-1.5">
+                  {selectedLimit.remaining} of {selectedLimit.limit} listings left in {selectedLimit.categoryName}.
+                  {' '}Adding this product uses 1 permanently — deleting it later won't restore it.
+                </p>
+              )}
             </div>
           </FormField>
         </div>

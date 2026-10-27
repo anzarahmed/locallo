@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse, PurchaseLogsResponse, CustomDayOverride, TopProduct, ProductBoost, ProductReviewsResponse, PaymentsResponse, PaymentStatus } from '../types';
+import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse, PurchaseLogsResponse, CategoryLimit, ProductLimitLogsResponse, CustomDayOverride, TopProduct, ProductBoost, ProductReviewsResponse, PaymentsResponse, PaymentStatus } from '../types';
 import type { FilterTab } from '../constants';
 
 export function getDashboardStats(): Promise<DashboardStats> {
@@ -188,6 +188,18 @@ export function getPurchaseLogs(params?: {
   to?: string;
 }): Promise<PurchaseLogsResponse> {
   return apiGet(PATHS.PURCHASE_LOGS, params);
+}
+
+export function getProductLimits(): Promise<{ limits: CategoryLimit[] }> {
+  return apiGet(PATHS.PRODUCT_LIMITS);
+}
+
+export function getProductLimitLogs(params?: {
+  page?: number;
+  limit?: number;
+  categoryId?: number;
+}): Promise<ProductLimitLogsResponse> {
+  return apiGet(PATHS.PRODUCT_LIMIT_LOGS, params);
 }
 
 export function getPayments(params?: { page?: number; limit?: number; paymentStatus?: PaymentStatus }): Promise<PaymentsResponse> {
