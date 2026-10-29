@@ -42,7 +42,7 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
   },
   upload_limit_90: {
     gate: 'always',
-    build: ({ categoryName, used, limit }, name) => uploadLimitReachedEmail(name, categoryName, used, limit),
+    build: ({ categoryName }, name) => uploadLimitReachedEmail(name, categoryName),
   },
   buy_storage: { gate: 'emailUpdates', build: (_, name) => buyStorageEmail(name) },
   out_of_stock_digest: { gate: 'always', build: (_, name) => outOfStockEmail(name) },
