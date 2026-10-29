@@ -14,6 +14,7 @@ import {
   toggleProduct, deleteProduct,
 } from '../../controllers/admin/productController';
 import { getPayments } from '../../controllers/admin/paymentController';
+import { getAppConfigs, editAppConfig } from '../../controllers/admin/appConfigController';
 import { requestOtp as requestMobileOtp, verifyOtp as verifyMobileOtp } from '../../controllers/admin/mobileVerificationController';
 import { getCustomers, getCustomer, patchCustomerStatus } from '../../controllers/admin/customerController';
 import {
@@ -39,6 +40,7 @@ import { createCmsPageSchema, updateCmsPageSchema } from '../../validation/admin
 import { requestMobileOtpSchema, verifyMobileOtpSchema } from '../../validation/admin/mobileVerificationSchemas';
 import { createSubAdminSchema, updateSubAdminSchema } from '../../validation/admin/subAdminSchemas';
 import { updateRolePermissionsSchema } from '../../validation/admin/rolePermissionSchemas';
+import { updateAppConfigSchema } from '../../validation/admin/appConfigSchemas';
 
 const router = Router();
 
@@ -142,5 +144,9 @@ router.delete('/products/:id',          requireAdmin, requirePermission('product
 
 // Payments (super_admin only)
 router.get   ('/payments',              requireAdmin, requireSuperAdmin,   getPayments);
+
+// App configs — version / force update / maintenance per app + platform (super_admin only)
+router.get   ('/app-configs',           requireAdmin, requireSuperAdmin,   getAppConfigs);
+router.put   ('/app-configs/:app',      requireAdmin, requireSuperAdmin,   validate(updateAppConfigSchema), editAppConfig);
 
 export default router;

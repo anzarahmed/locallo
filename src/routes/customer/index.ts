@@ -3,6 +3,7 @@ import { requestOtp, verifyOtp, logout } from '../../controllers/customer/custom
 import { getProfile, updateProfile, uploadProfileImage, deleteAccount, getSettings, updateSettings } from '../../controllers/customer/customerProfileController';
 import { savePushToken, removePushToken } from '../../controllers/shared/pushTokenController';
 import { getTestPushTypes, postTestPush } from '../../controllers/shared/testPushController';
+import { getAppConfig } from '../../controllers/shared/appConfigController';
 import { getProducts, getProduct, getTrendingProducts, getSimilarProducts } from '../../controllers/customer/productController';
 import { toggleWishlist, getWishlist } from '../../controllers/customer/wishlistController';
 import { addReview, getReviews, editReview, removeReview, uploadReviewImages } from '../../controllers/customer/reviewController';
@@ -36,6 +37,8 @@ router.post('/test/push',      requireCustomer, validate(sendTestPushSchema), po
 
 router.get('/settings', requireCustomer, getSettings);
 router.put('/settings', requireCustomer, validate(updateCustomerSettingsSchema), updateSettings);
+
+router.get('/app-config', getAppConfig('customer'));
 
 router.get('/cms-pages',       getCmsPages);
 router.get('/cms-pages/:slug', getCmsPage);

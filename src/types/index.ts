@@ -9,6 +9,18 @@ export type PermissionMap = Partial<Record<PermissionModule, PermissionAction[]>
 
 export type CmsAudience = 'customer' | 'seller';
 
+export type AppType = 'customer' | 'seller';
+export type AppPlatform = 'android' | 'ios';
+
+// Key names (incl. the "maintanance" spelling) are fixed by the mobile apps.
+export interface PlatformAppConfig {
+  version_code: number;
+  is_force_update: boolean;
+  is_app_maintanance: boolean;
+}
+
+export type AppConfigPayload = Record<AppPlatform, PlatformAppConfig>;
+
 export type AttributeFieldType = 'text' | 'textarea' | 'number' | 'select' | 'multiselect' | 'color';
 
 export interface AttributeFieldOption {
