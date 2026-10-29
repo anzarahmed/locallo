@@ -13,6 +13,7 @@ const PAGE_TITLES: Record<string, string> = {
   '/products':          'Products',
   '/sub-admins':        'Sub-Admins',
   '/role-permissions':  'Role Permissions',
+  '/app-configs':       'App Config',
 };
 
 // Routes that require a specific permission to access
@@ -23,7 +24,7 @@ const ROUTE_PERMISSIONS: { prefix: string; module: PermissionModule; action: Per
 ];
 
 // Routes only accessible to super_admin
-const SUPER_ADMIN_ONLY_PREFIXES = ['/sub-admins', '/role-permissions', '/payments'];
+const SUPER_ADMIN_ONLY_PREFIXES = ['/sub-admins', '/role-permissions', '/payments', '/app-configs'];
 
 function resolveTitle(pathname: string): string {
   return (

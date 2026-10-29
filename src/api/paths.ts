@@ -56,6 +56,10 @@ export const PATHS = {
   PAYMENTS: {
     LIST:   '/api/admins/payments',
   },
+  APP_CONFIGS: {
+    LIST:   '/api/admins/app-configs',
+    BY_APP: (app: string) => `/api/admins/app-configs/${app}`,
+  },
   CUSTOMERS: {
     LIST:   '/api/admins/customers',
     BY_ID:  (id: string) => `/api/admins/customers/${id}`,

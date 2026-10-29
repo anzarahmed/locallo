@@ -18,6 +18,7 @@ import {
   ShieldCheck,
   UserCog,
   UserRound,
+  Smartphone,
   type LucideIcon,
 } from 'lucide-react';
 import { useState, type JSX } from 'react';
@@ -37,6 +38,7 @@ const NAV_ITEMS: NavItem[] = [
   { to: '/sellers',    icon: Users,            label: 'Sellers',    permission: { module: 'sellers',    action: 'list' } },
   { to: '/products',   icon: Package,          label: 'Products',   permission: { module: 'products',   action: 'list' } },
   { to: '/payments',   icon: CreditCard,       label: 'Payments',   superAdminOnly: true },
+  { to: '/app-configs', icon: Smartphone,      label: 'App Config', superAdminOnly: true },
   { to: '/master-categories', icon: FolderTree, label: 'Master Categories', permission: { module: 'masterCategories', action: 'list' } },
   { to: '/categories', icon: Tag,              label: 'Categories', permission: { module: 'categories', action: 'list' } },
   { to: '/brands',     icon: Tags,             label: 'Brands',     permission: { module: 'brands',     action: 'list' } },

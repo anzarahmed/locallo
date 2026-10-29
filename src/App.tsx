@@ -21,6 +21,7 @@ const FaqList = lazy(() => import('./pages/faqs/FaqList'));
 const CmsPageList = lazy(() => import('./pages/cms-pages/CmsPageList'));
 const ProductList = lazy(() => import('./pages/products/ProductList'));
 const PaymentList = lazy(() => import('./pages/payments/PaymentList'));
+const AppConfigPage = lazy(() => import('./pages/app-configs/AppConfigPage'));
 const CustomerList = lazy(() => import('./pages/customers/CustomerList'));
 const SubAdminList = lazy(() => import('./pages/sub-admins/SubAdminList'));
 const RoleList = lazy(() => import('./pages/sub-admins/RoleList'));
@@ -49,6 +50,7 @@ export default function App(): JSX.Element {
             <Route path="/sellers/:id/edit" element={<SellerForm />} />
             <Route path="/products"          element={<ProductList />} />
             <Route path="/payments"          element={<PaymentList />} />
+            <Route path="/app-configs"       element={<AppConfigPage />} />
             <Route path="/master-categories" element={<MasterCategoryList />} />
             <Route path="/categories"       element={<CategoryList />} />
             <Route path="/brands"           element={<BrandList />} />
