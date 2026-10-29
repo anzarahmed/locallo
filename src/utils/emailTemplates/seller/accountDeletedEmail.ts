@@ -11,6 +11,6 @@ export function accountDeletedEmail(sellerName: string, recoveryDays: number): E
     ],
     cta: { label: 'LOG IN TO RECOVER ACCOUNT', url: sellerPanelUrl('/login') },
     afterCta: ['If you did not request this account deletion, please contact Loccalo Support immediately.'],
-    signOff: 'Team Loccalo Support',
+    signOff: 'Team Loccalo',
   });
 }
