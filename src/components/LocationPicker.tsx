@@ -1,4 +1,8 @@
-import { useEffect, useRef, useState, useCallback, type JSX } from 'react';
+import {
+  useEffect, useRef, useState, useCallback, useId,
+  type JSX, type KeyboardEvent, type RefObject,
+} from 'react';
+import { createPortal } from 'react-dom';
 import {
   APIProvider,
   Map,
@@ -31,6 +35,100 @@ export interface LocationPickerProps {
 
 // ── Places Autocomplete input ─────────────────────────────────────────────────
 
+const MIN_QUERY_LENGTH = 3;
+const SEARCH_DEBOUNCE_MS = 300;
+const DROPDOWN_MAX_HEIGHT = 280;
+const SEARCH_REGION_CODES: string[] = ['in'];
+
+interface Suggestion {
+  readonly placeId: string;
+  readonly mainText: string;
+  readonly secondaryText: string;
+  readonly prediction: google.maps.places.PlacePrediction;
+}
+
+interface SearchResults {
+  readonly query: string;
+  readonly items: Suggestion[];
+}
+
+interface DropdownStyle {
+  position: 'fixed';
+  left: number;
+  width: number;
+  zIndex: number;
+  top?: number;
+  bottom?: number;
+}
+
+function toSuggestion(s: google.maps.places.AutocompleteSuggestion): Suggestion[] {
+  const p = s.placePrediction;
+  if (!p) return [];
+  return [{
+    placeId: p.placeId,
+    mainText: p.mainText?.text ?? p.text.text,
+    secondaryText: p.secondaryText?.text ?? '',
+    prediction: p,
+  }];
+}
+
+interface SuggestionListProps {
+  listId: string;
+  listRef: RefObject<HTMLDivElement | null>;
+  style: DropdownStyle;
+  suggestions: Suggestion[];
+  activeIndex: number;
+  loading: boolean;
+  onSelect: (s: Suggestion) => void;
+  onHover: (index: number) => void;
+}
+
+function SuggestionList({
+  listId, listRef, style, suggestions, activeIndex, loading, onSelect, onHover,
+}: SuggestionListProps): JSX.Element {
+  return createPortal(
+    <div
+      ref={listRef}
+      style={style}
+      className="bg-white border border-gray-200 rounded-xl shadow-2xl overflow-hidden"
+    >
+      <ul id={listId} role="listbox" className="max-h-[248px] overflow-y-auto py-1">
+        {suggestions.length === 0 ? (
+          <li className="px-4 py-3 text-sm text-gray-400 italic text-center flex items-center justify-center gap-2">
+            {loading ? <><Loader2 className="w-4 h-4 animate-spin" /> Searching…</> : 'No matches'}
+          </li>
+        ) : (
+          suggestions.map((s, i) => (
+            <li
+              key={s.placeId}
+              id={`${listId}-opt-${i}`}
+              role="option"
+              aria-selected={i === activeIndex}
+              onMouseDown={(e): void => { e.preventDefault(); onSelect(s); }}
+              onMouseEnter={(): void => onHover(i)}
+              className={`flex items-start gap-2.5 mx-1 px-3 py-2 rounded-lg cursor-pointer select-none transition-colors ${
+                i === activeIndex ? 'bg-indigo-50' : 'hover:bg-gray-50'
+              }`}
+            >
+              <MapPin className={`w-4 h-4 mt-0.5 shrink-0 ${i === activeIndex ? 'text-indigo-600' : 'text-gray-400'}`} />
+              <span className="min-w-0">
+                <span className="block text-sm font-medium text-gray-900 truncate">{s.mainText}</span>
+                {s.secondaryText && (
+                  <span className="block text-xs text-gray-500 truncate">{s.secondaryText}</span>
+                )}
+              </span>
+            </li>
+          ))
+        )}
+      </ul>
+      <p className="px-3 py-1.5 border-t border-gray-100 text-right text-[11px] text-gray-400">
+        Powered by Google
+      </p>
+    </div>,
+    document.body,
+  );
+}
+
 interface AutocompleteInputProps {
   onPlace: (pos: LatLng) => void;
   onAddress?: (address: string) => void;
@@ -40,44 +138,171 @@ interface AutocompleteInputProps {
 
 function AutocompleteInput({ onPlace, onAddress, onLocate, locating }: AutocompleteInputProps): JSX.Element {
   const placesLib = useMapsLibrary('places');
-  const inputRef = useRef<HTMLInputElement>(null);
-  const acRef = useRef<google.maps.places.Autocomplete | null>(null);
+  const toast = useToast();
+  const listId = useId();
+
+  const [query, setQuery] = useState<string>('');
+  const [isOpen, setIsOpen] = useState<boolean>(false);
+  const [results, setResults] = useState<SearchResults>({ query: '', items: [] });
+  const [activeIndex, setActiveIndex] = useState<number>(-1);
+  const [dropdownStyle, setDropdownStyle] = useState<DropdownStyle | null>(null);
+
+  const wrapperRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const sessionTokenRef = useRef<google.maps.places.AutocompleteSessionToken | null>(null);
+  const requestIdRef = useRef<number>(0);
   const onPlaceRef = useRef(onPlace);
   const onAddressRef = useRef(onAddress);
-  onPlaceRef.current = onPlace;
-  onAddressRef.current = onAddress;
+  const toastRef = useRef(toast);
+  useEffect((): void => {
+    onPlaceRef.current = onPlace;
+    onAddressRef.current = onAddress;
+    toastRef.current = toast;
+  }, [onPlace, onAddress, toast]);
+
+  const trimmed = query.trim();
+  const showDropdown = isOpen && trimmed.length >= MIN_QUERY_LENGTH;
+  const suggestions = results.items;
+  const loading = results.query !== trimmed;
 
   useEffect((): (() => void) | undefined => {
-    if (!placesLib || !inputRef.current) return undefined;
+    if (!placesLib || !isOpen) return undefined;
+    const requestId = ++requestIdRef.current;
+    if (trimmed.length < MIN_QUERY_LENGTH) return undefined;
 
-    acRef.current = new placesLib.Autocomplete(inputRef.current, {
-      fields: ['geometry', 'formatted_address'],
-    });
+    const timer = setTimeout((): void => {
+      sessionTokenRef.current ??= new placesLib.AutocompleteSessionToken();
+      placesLib.AutocompleteSuggestion.fetchAutocompleteSuggestions({
+        input: trimmed,
+        sessionToken: sessionTokenRef.current,
+        includedRegionCodes: SEARCH_REGION_CODES,
+      })
+        .then(({ suggestions: found }): void => {
+          if (requestId !== requestIdRef.current) return;
+          setResults({ query: trimmed, items: found.flatMap(toSuggestion) });
+          setActiveIndex(-1);
+        })
+        .catch((): void => {
+          if (requestId !== requestIdRef.current) return;
+          setResults({ query: trimmed, items: [] });
+          toastRef.current.error('Address search failed. Try again or pin the location on the map.');
+        });
+    }, SEARCH_DEBOUNCE_MS);
 
-    const listener = acRef.current.addListener('place_changed', (): void => {
-      const place = acRef.current?.getPlace();
-      const loc = place?.geometry?.location;
+    return (): void => clearTimeout(timer);
+  }, [placesLib, isOpen, trimmed]);
+
+  const calcPosition = useCallback((): DropdownStyle | null => {
+    if (!wrapperRef.current) return null;
+    const rect = wrapperRef.current.getBoundingClientRect();
+    const viewportHeight = window.innerHeight;
+    const GAP = 4;
+    const showAbove = viewportHeight - rect.bottom < DROPDOWN_MAX_HEIGHT && rect.top > DROPDOWN_MAX_HEIGHT;
+    return {
+      position: 'fixed',
+      left: rect.left,
+      width: rect.width,
+      zIndex: 9999,
+      ...(showAbove ? { bottom: viewportHeight - rect.top + GAP } : { top: rect.bottom + GAP }),
+    };
+  }, []);
+
+  useEffect((): (() => void) | undefined => {
+    if (!showDropdown) return undefined;
+    const update = (): void => setDropdownStyle(calcPosition());
+    window.addEventListener('scroll', update, true);
+    window.addEventListener('resize', update);
+    return (): void => {
+      window.removeEventListener('scroll', update, true);
+      window.removeEventListener('resize', update);
+    };
+  }, [showDropdown, calcPosition]);
+
+  useEffect((): (() => void) | undefined => {
+    if (!isOpen) return undefined;
+    function handleOutside(e: MouseEvent): void {
+      const target = e.target as Node;
+      if (wrapperRef.current?.contains(target) || listRef.current?.contains(target)) return;
+      setIsOpen(false);
+      setActiveIndex(-1);
+    }
+    document.addEventListener('mousedown', handleOutside);
+    return (): void => document.removeEventListener('mousedown', handleOutside);
+  }, [isOpen]);
+
+  useEffect((): void => {
+    if (activeIndex < 0) return;
+    document.getElementById(`${listId}-opt-${activeIndex}`)?.scrollIntoView({ block: 'nearest' });
+  }, [activeIndex, listId]);
+
+  async function selectSuggestion(s: Suggestion): Promise<void> {
+    setIsOpen(false);
+    setActiveIndex(-1);
+    setQuery(s.secondaryText ? `${s.mainText}, ${s.secondaryText}` : s.mainText);
+    try {
+      const { place } = await s.prediction.toPlace().fetchFields({ fields: ['location', 'formattedAddress'] });
+      // The details call closes the billing session; the next search must start a new one.
+      sessionTokenRef.current = null;
+      const loc = place.location;
       if (!loc) return;
       onPlaceRef.current({ lat: loc.lat(), lng: loc.lng() });
-      const addr = place?.formatted_address ?? '';
-      if (inputRef.current) inputRef.current.value = addr;
-      if (addr) onAddressRef.current?.(addr);
-    });
+      const addr = place.formattedAddress ?? '';
+      if (addr) {
+        setQuery(addr);
+        onAddressRef.current?.(addr);
+      }
+    } catch {
+      toastRef.current.error("Couldn't load that place. Try again or pin the location on the map.");
+    }
+  }
 
-    return (): void => {
-      google.maps.event.removeListener(listener);
-    };
-  }, [placesLib]);
+  function handleKeyDown(e: KeyboardEvent<HTMLInputElement>): void {
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault();
+        if (!isOpen) { setIsOpen(true); setActiveIndex(-1); setDropdownStyle(calcPosition()); return; }
+        setActiveIndex((i): number => Math.min(i + 1, suggestions.length - 1));
+        break;
+      case 'ArrowUp':
+        e.preventDefault();
+        setActiveIndex((i): number => Math.max(i - 1, -1));
+        break;
+      case 'Enter': {
+        e.preventDefault();
+        const picked = showDropdown ? suggestions[activeIndex] ?? suggestions[0] : undefined;
+        if (picked) void selectSuggestion(picked);
+        break;
+      }
+      case 'Escape':
+        if (isOpen) { e.preventDefault(); setIsOpen(false); setActiveIndex(-1); }
+        break;
+      case 'Tab':
+        setIsOpen(false);
+        break;
+    }
+  }
 
   return (
-    <div className="relative">
+    <div ref={wrapperRef} className="relative">
       <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
       <input
-        ref={inputRef}
         type="text"
+        role="combobox"
+        aria-expanded={showDropdown}
+        aria-autocomplete="list"
+        aria-controls={listId}
+        aria-activedescendant={showDropdown && activeIndex >= 0 ? `${listId}-opt-${activeIndex}` : undefined}
+        autoComplete="off"
+        value={query}
+        onChange={(e): void => {
+          setQuery(e.target.value);
+          setIsOpen(true);
+          setActiveIndex(-1);
+          setDropdownStyle(calcPosition());
+        }}
+        onKeyDown={handleKeyDown}
         placeholder="Search address or place..."
         aria-label="Search address"
-        onKeyDown={(e): void => { if (e.key === 'Enter') e.preventDefault(); }}
         className={`w-full pl-9 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-transparent ${onLocate ? 'pr-10' : 'pr-4'}`}
       />
       {onLocate && (
@@ -95,6 +320,18 @@ function AutocompleteInput({ onPlace, onAddress, onLocate, locating }: Autocompl
             <LocateFixed className="w-4 h-4" />
           )}
         </button>
+      )}
+      {showDropdown && dropdownStyle && (
+        <SuggestionList
+          listId={listId}
+          listRef={listRef}
+          style={dropdownStyle}
+          suggestions={suggestions}
+          activeIndex={activeIndex}
+          loading={loading}
+          onSelect={(s): void => { void selectSuggestion(s); }}
+          onHover={setActiveIndex}
+        />
       )}
     </div>
   );
