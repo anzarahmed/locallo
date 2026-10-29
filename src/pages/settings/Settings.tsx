@@ -66,7 +66,7 @@ export default function Settings(): JSX.Element {
     try {
       const { notificationSettings: saved } = await updateSettings({ [key]: value });
       setSettings(saved ?? next);
-      toast.success('Settings saved');
+      toast.success(key === 'useAiForPrimaryImage' ? 'AI feature status updated successfully.' : 'Notification settings updated successfully.');
     } catch (err) {
       setSettings(settings);
       const msg = err instanceof ApiError ? err.message : 'Failed to save setting';

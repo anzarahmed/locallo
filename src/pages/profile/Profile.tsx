@@ -138,7 +138,7 @@ export default function Profile(): JSX.Element {
         bio:          values.bio,
         workingHours: values.workingHours,
       });
-      toast.success('Profile updated successfully');
+      toast.success('Shop details updated successfully.');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to update profile');
     } finally {
@@ -619,7 +619,7 @@ function SpecialHoursCard({ override, loading, workingHours, onSaved, onCleared 
       });
       onSaved(result.customDayOverride);
       setEditing(false);
-      toast.success('Special hours saved');
+      toast.success('Special hours updated successfully.');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to save special hours');
     } finally {
@@ -631,7 +631,7 @@ function SpecialHoursCard({ override, loading, workingHours, onSaved, onCleared 
     try {
       await clearCustomDay();
       onCleared();
-      toast.success('Special hours cleared');
+      toast.success('Special hours removed successfully.');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to clear special hours');
     }

@@ -136,6 +136,7 @@ export default function VariantList(): JSX.Element {
     try {
       const { variant: updated, cancelledBoosts } = await toggleVariant(id!, variant.id);
       setVariants(prev => prev.map(v => v.id === updated.id ? updated : v));
+      toast.success(updated.isActive ? 'Variant activated successfully.' : 'Variant deactivated successfully.');
       const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (cancelledMsg) {
         toast.info(cancelledMsg);
@@ -154,10 +155,10 @@ export default function VariantList(): JSX.Element {
       setVariants(prev => prev.map(v => v.id === updated.id ? updated : v));
       setHideTarget(null);
       if (endedBoosts) {
-        toast.success("Variant hidden successfully. The product's promotion has ended.");
+        toast.success("Variant deactivated successfully. The product's promotion has ended.");
         setBoost(null);
       } else {
-        toast.success('Variant hidden');
+        toast.success('Variant deactivated successfully.');
       }
       const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (cancelledMsg) {
@@ -199,7 +200,7 @@ export default function VariantList(): JSX.Element {
     const isUpdate = updatedVariants.every(v => variants.some(ev => ev.id === v.id));
     if (isUpdate) {
       setVariants(prev => prev.map(v => updatedVariants.find(u => u.id === v.id) ?? v));
-      toast.success(updatedVariants.length > 1 ? 'Variants updated' : 'Variant updated');
+      toast.success('Variant updated successfully.');
     } else {
       try {
         const data = await getProductVariants(id!);
@@ -217,7 +218,7 @@ export default function VariantList(): JSX.Element {
   function handleGroupSaved(updated: ProductVariant[]): void {
     setVariants(prev => prev.map(v => updated.find(u => u.id === v.id) ?? v));
     setEditingGroup(null);
-    toast.success('Variants updated');
+    toast.success('Variant updated successfully.');
   }
 
   async function handleSell(quantity: number): Promise<void> {
@@ -231,7 +232,7 @@ export default function VariantList(): JSX.Element {
       setVariants(newVariants);
       const newProductStock = newVariants.reduce((sum, v) => sum + v.stock, 0);
       setProduct(prev => prev ? { ...prev, stock: newProductStock } : prev);
-      toast.success(`Marked ${quantity} unit${quantity !== 1 ? 's' : ''} as sold`);
+      toast.success('Variant marked as sold successfully.');
       setSellVariant(null);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to record sale');
@@ -253,7 +254,7 @@ export default function VariantList(): JSX.Element {
       const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (productDeleted) {
         if (endedBoosts) toast.success("Product deleted successfully. The product's promotion has ended.");
-        else toast.success('Product deleted');
+        else toast.success('Product deleted successfully.');
         if (cancelledMsg) toast.info(cancelledMsg);
         navigate('/products', { replace: true });
         return;
@@ -263,7 +264,7 @@ export default function VariantList(): JSX.Element {
         toast.success("Variant deleted successfully. The product's promotion has ended.");
         setBoost(null);
       } else {
-        toast.success('Variant deleted');
+        toast.success('Variant deleted successfully.');
       }
       if (cancelledMsg) {
         toast.info(cancelledMsg);

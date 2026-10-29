@@ -365,7 +365,7 @@ export default function VariantSheet({
         rows,
       });
       onSaved(result.variants);
-      toast.success(`Created ${result.variants.length} variant${result.variants.length === 1 ? '' : 's'}`);
+      toast.success('Variant added successfully.');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to save variant');
     }

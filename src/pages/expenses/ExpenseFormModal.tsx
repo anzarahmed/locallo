@@ -70,7 +70,7 @@ export default function ExpenseFormModal({
       const { expense: saved } = isEdit
         ? await updateExpense(expense.id, payload)
         : await createExpense(payload);
-      toast.success(isEdit ? 'Expense updated' : 'Expense recorded');
+      toast.success(isEdit ? 'Expense updated successfully.' : 'Expense added successfully.');
       onSaved(saved);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to save expense');
@@ -89,7 +89,7 @@ export default function ExpenseFormModal({
       form.setFieldValue('ledgerId', ledger.id);
       setNewLedgerName('');
       setShowNewLedger(false);
-      toast.success('Ledger created');
+      toast.success('Ledger entry added successfully.');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to create ledger');
     } finally {

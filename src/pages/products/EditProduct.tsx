@@ -370,7 +370,7 @@ export default function EditProduct(): JSX.Element {
         }));
       }
 
-      toast.success('Product updated');
+      toast.success('Product updated successfully.');
       dirtyRef.current = false;
       navigate(hasVariants || hasCombinations ? `/products/${id}/variants` : '/products');
     } catch (err) {

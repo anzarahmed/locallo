@@ -139,7 +139,7 @@ export default function BoostProductModal({ product, variants, schema, onClose, 
         },
         theme: { color: '#1B9E98' },
         handler: () => {
-          toast.success('Payment received — your boost is now live!');
+          toast.success('Product promoted successfully.');
           onBoosted(boost);
           onClose();
         },

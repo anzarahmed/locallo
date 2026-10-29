@@ -332,7 +332,7 @@ export default function AddProduct(): JSX.Element {
         ...(productRows && { rows: productRows }),
       });
 
-      toast.success('Product added successfully');
+      toast.success('Product added successfully.');
       if (product.hasVariants) {
         navigate(`/products/${product.id}/variants`, { state: { from: '/products' } });
       } else {

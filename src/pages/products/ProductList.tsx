@@ -100,7 +100,7 @@ export default function ProductList(): JSX.Element {
       setProducts(prev =>
         prev.map(p => p.id === product.id ? { ...p, isActive: !p.isActive } : p),
       );
-      toast.success(product.isActive ? 'Product hidden' : 'Product is now visible');
+      toast.success(product.isActive ? 'Product deactivated successfully.' : 'Product activated successfully.');
       const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (cancelledMsg) toast.info(cancelledMsg);
     } catch (err) {
@@ -123,8 +123,8 @@ export default function ProductList(): JSX.Element {
         prev.map(p => p.id === hideTarget.id ? { ...p, isActive: false, isBoosted: false } : p),
       );
       setHideTarget(null);
-      if (endedBoosts) toast.success("Product hidden successfully. The product's promotion has ended.");
-      else toast.success('Product hidden');
+      if (endedBoosts) toast.success("Product deactivated successfully. The product's promotion has ended.");
+      else toast.success('Product deactivated successfully.');
       const cancelledMsg = cancelledBoostMessage(cancelledBoosts);
       if (cancelledMsg) toast.info(cancelledMsg);
     } catch (err) {
@@ -143,7 +143,7 @@ export default function ProductList(): JSX.Element {
       setTotal(t => t - 1);
       setDeleteTarget(null);
       if (result?.endedBoosts) toast.success("Product deleted successfully. The product's promotion has ended.");
-      else toast.success('Product deleted');
+      else toast.success('Product deleted successfully.');
       const cancelledMsg = cancelledBoostMessage(result?.cancelledBoosts);
       if (cancelledMsg) toast.info(cancelledMsg);
     } catch (err) {
@@ -195,7 +195,7 @@ export default function ProductList(): JSX.Element {
       setProducts(prev =>
         prev.map(p => p.id === sellProduct.id ? { ...p, stock: p.stock - quantity } : p),
       );
-      toast.success(`Marked ${quantity} unit${quantity !== 1 ? 's' : ''} as sold`);
+      toast.success('Product marked as sold successfully.');
       setSellProduct(null);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to record sale');
@@ -216,7 +216,7 @@ export default function ProductList(): JSX.Element {
           return { ...p, stock: Math.max(0, p.stock - quantity) };
         }),
       );
-      toast.success(`Marked ${quantity} unit${quantity !== 1 ? 's' : ''} as sold`);
+      toast.success('Variant marked as sold successfully.');
       setSelectedVariant(null);
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to record sale');

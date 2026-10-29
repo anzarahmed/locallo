@@ -76,7 +76,7 @@ export default function AcceptOfferProducts(): JSX.Element {
     setSaving(true);
     try {
       await acceptOffer(Number(id), [...selected]);
-      toast.success(selected.size > 0 ? 'Offer applied to selected products' : 'Offer removed from all products');
+      toast.success(selected.size > 0 ? 'Product added to offer successfully.' : 'Product removed from offer successfully.');
       navigate(`/offers/${id}`, { replace: true, state: navState });
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to update offer selection');

@@ -94,7 +94,7 @@ export default function Expenses(): JSX.Element {
     setDeleting(true);
     try {
       await deleteExpense(deleteTarget.id);
-      toast.success('Expense deleted');
+      toast.success('Expense deleted successfully.');
       setExpenses(prev => prev.filter(e => e.id !== deleteTarget.id));
       setTotal(t => t - 1);
       setDeleteTarget(null);

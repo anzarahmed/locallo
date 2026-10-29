@@ -49,7 +49,7 @@ export default function LedgerManagerModal({
       const { ledger } = await createLedger(trimmed);
       onLedgerCreated(ledger);
       setName('');
-      toast.success('Ledger created');
+      toast.success('Ledger entry added successfully.');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to create ledger');
     } finally {
@@ -75,7 +75,7 @@ export default function LedgerManagerModal({
       const { ledger } = await updateLedger(id, trimmed);
       onLedgerUpdated(ledger);
       setEditingId(null);
-      toast.success('Ledger renamed');
+      toast.success('Ledger entry updated successfully.');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to rename ledger');
     } finally {
@@ -88,7 +88,7 @@ export default function LedgerManagerModal({
     try {
       await deleteLedger(id);
       onLedgerDeleted(id);
-      toast.success('Ledger deleted');
+      toast.success('Ledger entry deleted successfully.');
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to delete ledger');
     } finally {
