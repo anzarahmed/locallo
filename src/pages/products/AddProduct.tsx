@@ -2,7 +2,7 @@ import { useEffect, useState, type JSX, type ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFormik, type FormikHelpers } from 'formik';
 import {
-  ArrowLeft, Camera, X, Plus, Sparkles, Loader2, ChevronDown,
+  ArrowLeft, Camera, X, Plus, Sparkles, Loader2, Info,
 } from 'lucide-react';
 import {
   getProfile, getSettings, uploadProductImage, analyzeProductImage, createProduct, getProductLimits,
@@ -21,6 +21,7 @@ import {
 } from '../../lib/variantUtils';
 import FormField from '../../components/ui/FormField';
 import AttrInput from '../../components/ui/AttrInput';
+import CategorySelect from './CategorySelect';
 import type { SellerCategory, AttributeField, AttributeFieldOption, CategoryLimit } from '../../types';
 
 interface AiHint {
@@ -28,11 +29,6 @@ interface AiHint {
   confidence: 'high' | 'medium' | 'low';
   categoryAvailable: boolean;
   categoryFull: boolean;
-}
-
-function categoryOptionLabel(cat: SellerCategory, limit: CategoryLimit | undefined): string {
-  if (!limit) return cat.name;
-  return limit.remaining === 0 ? `${cat.name} — limit reached` : `${cat.name} (${limit.remaining} left)`;
 }
 
 export default function AddProduct(): JSX.Element {
@@ -639,31 +635,25 @@ export default function AddProduct(): JSX.Element {
         <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
           <FormField label="Category" required error={form.touched.categoryId ? form.errors.categoryId as string : undefined}>
             <div>
-              <div className="relative">
-                <select
-                  value={form.values.categoryId}
-                  onChange={e => {
-                    const id = Number(e.target.value);
-                    void form.setFieldValue('categoryId', id);
-                    applyCategory(id);
-                  }}
-                  onBlur={() => void form.setFieldTouched('categoryId')}
-                  className={`w-full appearance-none ${inputCls(!!form.touched.categoryId && !!form.errors.categoryId)} pr-8`}
-                >
-                  <option value={0} disabled>Select a category</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id} disabled={isCategoryFull(cat.id)}>
-                      {categoryOptionLabel(cat, limits.get(cat.id))}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 pointer-events-none" />
-              </div>
+              <CategorySelect
+                value={Number(form.values.categoryId)}
+                categories={categories}
+                limits={limits}
+                onChange={id => {
+                  void form.setFieldValue('categoryId', id);
+                  applyCategory(id);
+                }}
+                onBlur={() => void form.setFieldTouched('categoryId')}
+                hasError={!!form.touched.categoryId && !!form.errors.categoryId}
+              />
               {selectedLimit && (
-                <p className="text-xs text-gray-500 mt-1.5">
-                  {selectedLimit.remaining} of {selectedLimit.limit} listings left in {selectedLimit.categoryName}.
-                  {' '}Adding this product uses 1 permanently — deleting it later won't restore it.
-                </p>
+                <div className="flex items-start gap-2.5 mt-3 px-3.5 py-3 rounded-xl bg-teal-50 text-teal-700">
+                  <Info size={16} className="shrink-0 mt-0.5" />
+                  <p className="text-sm font-semibold leading-snug">
+                    {selectedLimit.remaining} of {selectedLimit.limit} listings left in {selectedLimit.categoryName}.
+                    {' '}Adding this product uses 1 permanently — deleting it later won't restore it.
+                  </p>
+                </div>
               )}
             </div>
           </FormField>
