@@ -356,7 +356,7 @@ async function buildTestEmail<T extends NotificationType>(
   const params = { ...(await SAMPLE_PARAMS[type](userId)), ...overrides } as TemplateParamsMap[T];
   // offer_join's email is sent by the offer outbox, not the notification pipeline.
   if (type === 'offer_join') return offerManiaEmail(recipient.name, (params as TemplateParamsMap['offer_join']).offerId);
-  return getSellerEmailTemplate(type)?.build(params, recipient.name) ?? null;
+  return getSellerEmailTemplate(type)?.build(params, recipient.name, recipient) ?? null;
 }
 
 async function requireEmailRecipient(userId: string): Promise<SellerRecipient & { email: string }> {

@@ -141,7 +141,7 @@ async function resolveEmails<T extends NotificationType>(
   return new Map(userIds.map((userId) => {
     const recipient = recipients.get(userId);
     if (!recipient) return [userId, NO_EMAIL];
-    const emailContent = emailTemplate.build(params, recipient.name);
+    const emailContent = emailTemplate.build(params, recipient.name, recipient);
     const sendable = Boolean(recipient.email) && isEmailGateOpen(emailTemplate.gate, recipient.settings);
     return [userId, { emailStatus: sendable ? 'pending' : 'skipped', emailContent }];
   }));

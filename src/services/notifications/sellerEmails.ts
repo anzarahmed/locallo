@@ -14,6 +14,8 @@ import { boostSuggestionEmail } from '../../utils/emailTemplates/seller/boostSug
 import { boostTargetReachedEmail } from '../../utils/emailTemplates/seller/boostTargetReachedEmail';
 import { boostPaymentReceivedEmail } from '../../utils/emailTemplates/seller/boostPaymentReceivedEmail';
 import { accountDeletedEmail } from '../../utils/emailTemplates/seller/accountDeletedEmail';
+import { shareShopEmail } from '../../utils/emailTemplates/seller/shareShopEmail';
+import type { SellerRecipient } from './sellerRecipients';
 import type { NotificationType, TemplateParamsMap } from './templates';
 
 // 'always' = transactional; promotional emails follow the seller's "Email updates" toggle.
@@ -21,7 +23,7 @@ export type SellerEmailGate = 'always' | keyof Pick<NotificationSettings, 'email
 
 export interface SellerEmailTemplate<P> {
   gate: SellerEmailGate;
-  build: (params: P, sellerName: string) => EmailContent;
+  build: (params: P, sellerName: string, recipient: SellerRecipient) => EmailContent;
 }
 
 type SellerEmailRegistry = Partial<{ [K in NotificationType]: SellerEmailTemplate<TemplateParamsMap[K]> }>;
@@ -56,6 +58,10 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
     gate: 'always',
     build: ({ productName, amount, transactionId, campaign }, name) =>
       boostPaymentReceivedEmail(name, { productName, amount, transactionId, campaign }),
+  },
+  share_shop: {
+    gate: 'emailUpdates',
+    build: (_, name, { userId, businessName }) => shareShopEmail(name, userId, businessName ?? name),
   },
   account_deleted: { gate: 'always', build: ({ recoveryDays }, name) => accountDeletedEmail(name, recoveryDays) },
 };
