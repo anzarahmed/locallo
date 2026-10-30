@@ -3,7 +3,7 @@ import { Package, ChevronLeft, ChevronRight, ChevronDown, Star, Heart, MapPin, S
 import { getSellerProduct, getProductVariants, getProfile, getProducts, getProductReviews } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
 import { resolveImage } from '../../lib/imageUtils';
-import { formatPrice, discountPct } from '../../lib/formatters';
+import { formatPrice, discountPct, hasDiscount } from '../../lib/formatters';
 import { toTitleCase } from '../../lib/textFormat';
 import type { Product, ProductVariant, AttributeField, SellerProfile, ProductReview } from '../../types';
 
@@ -440,9 +440,9 @@ export default function ProductPreview({ productId, onClose }: ProductPreviewPro
                     )}
                     <div className="text-right shrink-0">
                       <p className="text-lg font-bold text-gray-900 leading-tight">{formatPrice(displayPrice)}</p>
-                      {(displayMrp != null && displayMrp > displayPrice) || discount !== null ? (
+                      {hasDiscount(displayMrp, displayPrice) || discount !== null ? (
                         <p className="flex items-baseline gap-1.5 justify-end whitespace-nowrap">
-                          {displayMrp != null && displayMrp > displayPrice && (
+                          {hasDiscount(displayMrp, displayPrice) && (
                             <span className="text-xs text-gray-400 line-through">{formatPrice(displayMrp)}</span>
                           )}
                           {discount !== null && (

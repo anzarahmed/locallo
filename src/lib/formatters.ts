@@ -5,13 +5,17 @@ export function formatPrice(val: number | null | undefined): string {
   return `₹${val.toLocaleString('en-IN')}`;
 }
 
+// DECIMAL prices reach the client as strings ("1500.00") despite their number types,
+// and comparing those directly is alphabetical: "1500.00" < "900.00".
 export function discountPct(selling: number, mrp: number | null | undefined): number | null {
-  if (!mrp || mrp <= selling) return null;
-  return Math.round(((mrp - selling) / mrp) * 100);
+  const sellingValue = Number(selling);
+  const mrpValue = Number(mrp);
+  if (!mrpValue || mrpValue <= sellingValue) return null;
+  return Math.round(((mrpValue - sellingValue) / mrpValue) * 100);
 }
 
 export function hasDiscount(mrp: number | null | undefined, sellingPrice: number): boolean {
-  return mrp != null && mrp > sellingPrice;
+  return mrp != null && Number(mrp) > Number(sellingPrice);
 }
 
 export function formatRelativeTime(iso: string): string {
