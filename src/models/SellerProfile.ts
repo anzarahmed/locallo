@@ -106,7 +106,6 @@ export class SellerProfile extends Model {
     wishlistPriceDrops: false,
     sellerUpdates: true,
     useAiForPrimaryImage: true,
-    closingReminder: false,
   })
   @AllowNull(false)
   @Column(DataType.JSONB)

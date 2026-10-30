@@ -339,7 +339,7 @@ function minusMinutes(hhmm: string, minutes: number): string {
 
 export async function sendClosingReminders(now: Date = new Date()): Promise<void> {
   const profiles = await SellerProfile.findAll({
-    where: { notificationSettings: { closingReminder: true } },
+    where: { notificationSettings: { pushNotifications: true } },
     attributes: ['userId', 'workingHours', 'customDayOverride'],
     include: [{ model: User, attributes: [], where: { isActive: true }, required: true }],
   });

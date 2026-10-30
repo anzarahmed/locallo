@@ -47,7 +47,6 @@ export interface NotificationSettings {
   wishlistPriceDrops: boolean;
   sellerUpdates: boolean;
   useAiForPrimaryImage: boolean;
-  closingReminder: boolean;
 }
 
 export interface CustomDayTime {

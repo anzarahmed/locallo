@@ -30,8 +30,9 @@ export async function getTodayWorkingHours(sellerId: string): Promise<TodayWorki
   return resolveTodayWorkingHours(profile.workingHours as WorkingHours, profile.customDayOverride as CustomDayOverride | null);
 }
 
-function isShopOpenNow(time: CustomDayTime, now: Date): boolean {
-  if (time.isClosed || !time.open || !time.close) return false;
+// working_hours can be empty for a seller, so a day's entry may be missing at runtime.
+function isShopOpenNow(time: CustomDayTime | undefined, now: Date): boolean {
+  if (!time || time.isClosed || !time.open || !time.close) return false;
   const currentTime = getIstTimeString(now);
   return currentTime >= time.open && currentTime < time.close;
 }

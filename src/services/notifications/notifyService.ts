@@ -56,11 +56,7 @@ async function usersWithPrefsOn<P>(userIds: string[], template: NotificationTemp
     });
     return new Set(
       profiles
-        .filter((p) => {
-          const settings = p.notificationSettings;
-          if (settings?.pushNotifications !== true) return false;
-          return !template.sellerSetting || settings[template.sellerSetting] === true;
-        })
+        .filter((p) => p.notificationSettings?.pushNotifications === true)
         .map((p) => p.userId),
     );
   }

@@ -1,7 +1,6 @@
-import type { NotificationSettings, PushChannel, PushClass } from '../../types';
+import type { PushChannel, PushClass } from '../../types';
 
 export type NotificationAudience = 'customer' | 'seller';
-export type SellerPushSetting = keyof Pick<NotificationSettings, 'offersAndPromotions' | 'sellerUpdates' | 'closingReminder'>;
 
 export interface TemplateParamsMap {
   welcome_customer: Record<string, never>;
@@ -52,7 +51,6 @@ export interface NotificationTemplate<P> {
   channel: PushChannel;
   // false = inbox only: the user is already in the app, or the message isn't actionable.
   push: boolean;
-  sellerSetting?: SellerPushSetting;
   build: (params: P) => BuiltNotification;
 }
 
@@ -160,7 +158,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   offer_join: {
-    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true, sellerSetting: 'offersAndPromotions',
+    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true,
     build: ({ offerId, offerTitle, description }) => ({
       title: `Join ${offerTitle}!`,
       body: description ?? 'Create special deals and boost your sales.',
@@ -172,7 +170,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   first_product_nudge: {
-    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true, sellerSetting: 'sellerUpdates',
+    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true,
     build: () => ({
       title: 'Ready to start selling?',
       body: 'Upload your first product in 3 easy steps.',
@@ -212,7 +210,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   seller_inactive: {
-    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true, sellerSetting: 'sellerUpdates',
+    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true,
     build: () => ({
       title: 'We miss you!',
       body: 'Keep your catalogue fresh and stay connected with your customers.',
@@ -220,7 +218,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   boost_suggestion: {
-    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true, sellerSetting: 'offersAndPromotions',
+    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true,
     build: () => ({
       title: 'Get more eyes on your products',
       body: 'Boost a product to increase visibility and sales.',
@@ -252,7 +250,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   share_shop: {
-    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true, sellerSetting: 'sellerUpdates',
+    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true,
     build: () => ({
       title: 'Share your shop!',
       body: 'Your new products are live. Share your shop link so more customers find you.',
@@ -260,7 +258,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   closing_soon: {
-    audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true, sellerSetting: 'closingReminder',
+    audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true,
     build: () => ({
       title: 'Shop Closing Soon',
       body: 'Your shop is approaching closing time. Would you like to extend your shop hours for today?',
@@ -277,7 +275,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   buy_storage: {
-    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true, sellerSetting: 'offersAndPromotions',
+    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true,
     build: () => ({
       title: 'Need more space for your products?',
       body: 'Buy additional storage to showcase more products.',
