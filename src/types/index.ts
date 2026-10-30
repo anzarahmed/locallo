@@ -323,6 +323,7 @@ export interface NotificationsResponse {
   total: number;
   page: number;
   limit: number;
+  unreadCount: number;
 }
 
 export interface OffersResponse {

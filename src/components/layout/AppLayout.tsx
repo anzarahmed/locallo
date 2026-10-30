@@ -26,6 +26,10 @@ const PNL_NAV:      NavItem = { to: '/pnl',      icon: <BarChart2 size={20} />, 
 const PROFILE_NAV:  NavItem = { to: '/profile',  icon: <User size={20} />,     label: 'Shop Settings'  };
 const SETTINGS_NAV: NavItem = { to: '/settings', icon: <Settings size={20} />, label: 'Settings' };
 
+export interface AppLayoutContext {
+  setHasUnread: (hasUnread: boolean) => void;
+}
+
 export default function AppLayout(): JSX.Element {
   const { logout, seller } = useAuth();
   const { showPnl } = useModulePrefs();
@@ -104,7 +108,7 @@ export default function AppLayout(): JSX.Element {
 
         {/* ── Main content ── */}
         <main className="flex-1 pb-20 md:pb-0">
-          <Outlet />
+          <Outlet context={{ setHasUnread } satisfies AppLayoutContext} />
         </main>
       </div>
 

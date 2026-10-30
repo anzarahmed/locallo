@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { Bell, BadgePercent } from 'lucide-react';
 import { getNotifications } from '../../services/notificationService';
 import { useToast } from '../../hooks/useToast';
@@ -8,6 +8,7 @@ import { formatRelativeTime } from '../../lib/formatters';
 import { NOTIFICATION_FILTER_TABS } from '../../constants';
 import { offerTypeIcon } from '../../lib/offerUtils';
 import type { OfferNavState } from '../../lib/offerUtils';
+import type { AppLayoutContext } from '../../components/layout/AppLayout';
 import type { Notification, NotificationFilter } from '../../types';
 
 const PAGE_LIMIT = 20;
@@ -31,6 +32,7 @@ function typeIcon({ type, offerType }: Notification): JSX.Element {
 export default function NotificationList(): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
+  const { setHasUnread } = useOutletContext<AppLayoutContext>();
 
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [total, setTotal] = useState(0);
@@ -45,6 +47,7 @@ export default function NotificationList(): JSX.Element {
         const data = await getNotifications({ page, limit: PAGE_LIMIT, filter });
         setNotifications(data.notifications);
         setTotal(data.total);
+        setHasUnread(data.unreadCount > 0);
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to load notifications');
       } finally {
