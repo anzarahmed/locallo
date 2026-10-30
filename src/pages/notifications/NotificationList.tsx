@@ -6,6 +6,7 @@ import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { formatRelativeTime } from '../../lib/formatters';
 import { NOTIFICATION_FILTER_TABS } from '../../constants';
+import { offerTypeIcon } from '../../lib/offerUtils';
 import type { OfferNavState } from '../../lib/offerUtils';
 import type { Notification, NotificationFilter } from '../../types';
 
@@ -18,7 +19,11 @@ function resolveRoute(notification: Notification): string | null {
   return null;
 }
 
-function typeIcon(type: string): JSX.Element {
+function typeIcon({ type, offerType }: Notification): JSX.Element {
+  if (offerType) {
+    const OfferIcon = offerTypeIcon(offerType);
+    return <OfferIcon size={18} className="text-teal-600" />;
+  }
   if (type === 'offer') return <BadgePercent size={18} className="text-teal-600" />;
   return <Bell size={18} className="text-teal-600" />;
 }
@@ -155,7 +160,7 @@ function NotificationCard({ notification, onClick }: NotificationCardProps): JSX
       } ${notification.isRead ? 'border-gray-100' : 'border-teal-100'}`}
     >
       <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center shrink-0">
-        {typeIcon(notification.type)}
+        {typeIcon(notification)}
       </div>
 
       <div className="flex-1 min-w-0">

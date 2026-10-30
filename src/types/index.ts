@@ -313,6 +313,7 @@ export interface Notification {
   type: string;
   referenceType: string | null;
   referenceId: string | null;
+  offerType: OfferType | null;
   isRead: boolean;
   createdAt: string;
 }

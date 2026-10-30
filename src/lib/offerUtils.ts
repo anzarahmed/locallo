@@ -1,5 +1,5 @@
 import { IndianRupee, Percent, Tag, type LucideIcon } from 'lucide-react';
-import type { BogoConfig, FlatAmountOffConfig, Offer, PercentageOffConfig } from '../types';
+import type { BogoConfig, FlatAmountOffConfig, Offer, OfferType, PercentageOffConfig } from '../types';
 
 export function offerTypeLabel(offer: Offer): string {
   switch (offer.offerType) {
@@ -9,8 +9,8 @@ export function offerTypeLabel(offer: Offer): string {
   }
 }
 
-export function offerTypeIcon(offer: Offer): LucideIcon {
-  switch (offer.offerType) {
+export function offerTypeIcon(offerType: OfferType): LucideIcon {
+  switch (offerType) {
     case 'percentage_off': return Percent;
     case 'flat_amount_off': return IndianRupee;
     case 'bogo': return Tag;

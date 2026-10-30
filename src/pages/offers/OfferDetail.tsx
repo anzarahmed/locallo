@@ -168,6 +168,6 @@ function AcceptedProductRow({ product }: { product: Product }): JSX.Element {
 }
 
 function OfferTypeIcon({ offer }: { offer: Offer }): JSX.Element {
-  const Icon = offerTypeIcon(offer);
+  const Icon = offerTypeIcon(offer.offerType);
   return <Icon size={12} />;
 }
