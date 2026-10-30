@@ -132,7 +132,7 @@ const SAMPLE_PARAMS: SampleBuilders = {
     return { boostId, productName, amount, transactionId: 'pay_SAMPLE123456', campaign: 'Pan India' };
   },
   share_shop: async () => ({}),
-  closing_soon: async () => ({ closeTime: '21:00' }),
+  closing_soon: async () => ({}),
   upload_limit_90: async (userId) => {
     const [first] = await getSellerLimits(userId);
     return { categoryId: first?.categoryId ?? 0, categoryName: first?.categoryName ?? 'Fashion', used: 180, limit: 200 };

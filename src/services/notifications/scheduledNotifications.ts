@@ -355,6 +355,6 @@ export async function sendClosingReminders(now: Date = new Date()): Promise<void
     // A window rather than an exact minute, so a delayed cron tick still sends it.
     if (currentTime < minusMinutes(close, CLOSING_REMINDER_LEAD_MINUTES) || currentTime >= close) continue;
 
-    await notify(profile.userId, 'closing_soon', { closeTime: close }, { dedupeKey: `closing_soon:${profile.userId}:${today.date}` });
+    await notify(profile.userId, 'closing_soon', {}, { dedupeKey: `closing_soon:${profile.userId}:${today.date}` });
   }
 }

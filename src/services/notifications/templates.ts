@@ -23,7 +23,7 @@ export interface TemplateParamsMap {
   boost_completed: { boostId: string; productId: string | null; productName: string; target: number };
   boost_paid: { boostId: string; productName: string; amount: number; transactionId: string; campaign: string };
   share_shop: Record<string, never>;
-  closing_soon: { closeTime: string };
+  closing_soon: Record<string, never>;
   upload_limit_90: { categoryId: number; categoryName: string; used: number; limit: number };
   buy_storage: Record<string, never>;
   account_deleted: { recoveryDays: number };
@@ -60,12 +60,6 @@ type TemplateRegistry = { [K in NotificationType]: NotificationTemplate<Template
 
 function formatViews(n: number): string {
   return n >= 1000 ? `${n / 1000}K` : String(n);
-}
-
-export function formatCloseTime(hhmm: string): string {
-  const [h, m] = hhmm.split(':').map(Number);
-  const suffix = h >= 12 ? 'PM' : 'AM';
-  return `${String(h % 12 || 12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${suffix}`;
 }
 
 export const TEMPLATES: TemplateRegistry = {
@@ -267,9 +261,9 @@ export const TEMPLATES: TemplateRegistry = {
   },
   closing_soon: {
     audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true, sellerSetting: 'closingReminder',
-    build: ({ closeTime }) => ({
-      title: 'Shop closing soon',
-      body: `Closing at ${formatCloseTime(closeTime)}. Want to extend today's hours?`,
+    build: () => ({
+      title: 'Shop Closing Soon',
+      body: 'Your shop is approaching closing time. Would you like to extend your shop hours for today?',
       screen: 'special_hours',
       collapseKey: 'closing_soon',
     }),
