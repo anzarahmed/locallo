@@ -4,6 +4,7 @@ import { parsePagination } from '../../utils/pagination';
 import * as notificationService from '../../services/customer/notificationService';
 import type { NotificationFilter } from '../../services/customer/notificationService';
 import type { Notification } from '../../models/Notification';
+import type { OfferType } from '../../types';
 
 const NOTIFICATION_FILTERS: readonly NotificationFilter[] = ['all', 'offers', 'other'];
 
@@ -19,11 +20,12 @@ interface NotificationItem {
   type: string;
   referenceType: string | null;
   referenceId: string | null;
+  offerType: OfferType | null;
   isRead: boolean;
   createdAt: Date;
 }
 
-function toItem(n: Notification): NotificationItem {
+function toItem(n: Notification, offerTypes: Map<string, OfferType>): NotificationItem {
   return {
     id: n.id,
     title: n.title,
@@ -31,6 +33,7 @@ function toItem(n: Notification): NotificationItem {
     type: n.type,
     referenceType: n.referenceType,
     referenceId: n.referenceId,
+    offerType: n.referenceType === 'offer' ? offerTypes.get(n.referenceId ?? '') ?? null : null,
     isRead: n.isRead,
     createdAt: n.createdAt,
   };
@@ -40,14 +43,16 @@ export async function getNotifications(req: Request, res: Response): Promise<voi
   const { page, limit } = parsePagination(req);
   const filter = parseFilter(req);
   const { rows, count } = await notificationService.listNotifications(req.seller!.id, page, limit, filter);
-  const notifications = rows.map(toItem);
+  const offerTypes = await notificationService.getOfferTypes(rows);
+  const notifications = rows.map((n) => toItem(n, offerTypes));
   sendSuccess(res, { notifications, total: count, page, limit }, 'Notifications fetched');
 }
 
 export async function markNotificationRead(req: Request, res: Response): Promise<void> {
   try {
     const notification = await notificationService.markNotificationRead(req.seller!.id, String(req.params.id));
-    sendSuccess(res, toItem(notification), 'Notification marked as read');
+    const offerTypes = await notificationService.getOfferTypes([notification]);
+    sendSuccess(res, toItem(notification, offerTypes), 'Notification marked as read');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Notification not found');
   }
