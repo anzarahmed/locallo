@@ -5,6 +5,7 @@ import { newJourneyEmail } from '../../utils/emailTemplates/seller/newJourneyEma
 import { startUploadingEmail } from '../../utils/emailTemplates/seller/startUploadingEmail';
 import { uploadGuideEmail } from '../../utils/emailTemplates/seller/uploadGuideEmail';
 import { completeKycEmail } from '../../utils/emailTemplates/seller/completeKycEmail';
+import { kycVerificationEmail } from '../../utils/emailTemplates/seller/kycVerificationEmail';
 import { viewsMilestoneEmail } from '../../utils/emailTemplates/seller/viewsMilestoneEmail';
 import { uploadLimitReachedEmail } from '../../utils/emailTemplates/seller/uploadLimitReachedEmail';
 import { uploadLimitFullEmail } from '../../utils/emailTemplates/seller/uploadLimitFullEmail';
@@ -39,6 +40,14 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
     build: ({ reminder }, name) => (reminder === 1 ? startUploadingEmail(name) : uploadGuideEmail(name)),
   },
   kyc_pending: { gate: 'always', build: (_, name) => completeKycEmail(name) },
+  kyc_verified: {
+    gate: 'always',
+    build: (_, name, { businessName }) => kycVerificationEmail(name, businessName ?? name, true),
+  },
+  kyc_revoked: {
+    gate: 'always',
+    build: (_, name, { businessName }) => kycVerificationEmail(name, businessName ?? name, false),
+  },
   views_milestone: {
     gate: 'always',
     build: ({ productId, productName, milestone }, name) => viewsMilestoneEmail(name, productId, productName, milestone),

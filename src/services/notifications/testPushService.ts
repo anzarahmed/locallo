@@ -18,7 +18,6 @@ import type { SellerRecipient } from './sellerRecipients';
 import { sendSellerEmail } from '../../utils/mailer';
 import { offerManiaEmail } from '../../utils/emailTemplates/seller/offerManiaEmail';
 import { boostPaymentFailedEmail } from '../../utils/emailTemplates/seller/boostPaymentFailedEmail';
-import { kycVerificationEmail } from '../../utils/emailTemplates/seller/kycVerificationEmail';
 import type { EmailContent } from '../../utils/emailTemplates/sellerEmailLayout';
 import { TEMPLATES } from './templates';
 import type { NotificationAudience, NotificationTemplate, NotificationType, TemplateParamsMap } from './templates';
@@ -114,6 +113,8 @@ const SAMPLE_PARAMS: SampleBuilders = {
   },
   first_product_nudge: async () => ({ reminder: 1 }),
   kyc_pending: async () => ({}),
+  kyc_verified: async () => ({}),
+  kyc_revoked: async () => ({}),
   views_milestone: async (userId) => {
     const { productId, productName } = await sampleSellerProduct(userId);
     return { productId, productName, milestone: 1000 };
@@ -280,7 +281,7 @@ export async function sendTestPush(
 }
 
 // Emails sent outside the notification pipeline (direct sendSellerEmail calls), so they have no NotificationType.
-const DIRECT_EMAIL_TYPES = ['boost_payment_failed', 'kyc_verified', 'kyc_revoked'] as const;
+const DIRECT_EMAIL_TYPES = ['boost_payment_failed'] as const;
 type DirectEmailType = typeof DIRECT_EMAIL_TYPES[number];
 export type TestEmailType = NotificationType | DirectEmailType;
 
@@ -336,18 +337,13 @@ export interface TestEmailBatchResult {
 }
 
 async function buildDirectTestEmail(
-  type: DirectEmailType,
   userId: string,
   recipient: SellerRecipient,
   overrides: Record<string, unknown>,
 ): Promise<EmailContent> {
-  if (type === 'boost_payment_failed') {
-    const { productName, amount } = await sampleBoost(userId);
-    const params = { productName, amount, ...overrides } as { productName: string; amount: number };
-    return boostPaymentFailedEmail(recipient.name, params.productName, Number(params.amount));
-  }
-  const businessName = typeof overrides.businessName === 'string' ? overrides.businessName : recipient.businessName ?? 'Sample Shop';
-  return kycVerificationEmail(recipient.name, businessName, type === 'kyc_verified');
+  const { productName, amount } = await sampleBoost(userId);
+  const params = { productName, amount, ...overrides } as { productName: string; amount: number };
+  return boostPaymentFailedEmail(recipient.name, params.productName, Number(params.amount));
 }
 
 async function buildTestEmail<T extends NotificationType>(
@@ -356,7 +352,7 @@ async function buildTestEmail<T extends NotificationType>(
   recipient: SellerRecipient,
   overrides: Record<string, unknown>,
 ): Promise<EmailContent | null> {
-  if (isDirectEmailType(type)) return buildDirectTestEmail(type, userId, recipient, overrides);
+  if (isDirectEmailType(type)) return buildDirectTestEmail(userId, recipient, overrides);
   const params = { ...(await SAMPLE_PARAMS[type](userId)), ...overrides } as TemplateParamsMap[T];
   // offer_join's email is sent by the offer outbox, not the notification pipeline.
   if (type === 'offer_join') return offerManiaEmail(recipient.name, (params as TemplateParamsMap['offer_join']).offerId);

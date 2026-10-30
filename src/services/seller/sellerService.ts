@@ -10,10 +10,7 @@ import { Review } from '../../models/Review';
 import { Session } from '../../models/Session';
 import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
 import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
-import { sendSellerEmail } from '../../utils/mailer';
-import { kycVerificationEmail } from '../../utils/emailTemplates/seller/kycVerificationEmail';
 import { notifySafely } from '../notifications/notifyService';
-import { getSellerRecipient } from '../notifications/sellerRecipients';
 import { isIstDateTodayOrFuture } from '../../utils/istDate';
 import { createDefaultLedgers } from './ledgerService';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
@@ -463,6 +460,7 @@ export async function setSellerKycVerification(
   adminId: string,
 ): Promise<SellerProfile> {
   const profile = await requireSellerProfile(sellerId);
+  const statusChanged = profile.isVerified !== verified;
 
   if (verified) {
     if (!profile.kycDocuments.aadhar || !profile.kycDocuments.pan) {
@@ -473,14 +471,7 @@ export async function setSellerKycVerification(
     await profile.update({ isVerified: false, verifiedBy: null, verifiedAt: null });
   }
 
-  try {
-    const recipient = await getSellerRecipient(sellerId);
-    if (recipient?.email) {
-      await sendSellerEmail(recipient.email, kycVerificationEmail(recipient.name, profile.businessName, verified));
-    }
-  } catch (err: unknown) {
-    console.error('[setSellerKycVerification] failed to send notification email:', err);
-  }
+  if (statusChanged) await notifySafely(sellerId, verified ? 'kyc_verified' : 'kyc_revoked', {});
 
   return profile;
 }

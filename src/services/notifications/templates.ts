@@ -15,6 +15,8 @@ export interface TemplateParamsMap {
   offer_join: { offerId: number; offerTitle: string; description: string | null };
   first_product_nudge: { reminder: 1 | 2 };
   kyc_pending: Record<string, never>;
+  kyc_verified: Record<string, never>;
+  kyc_revoked: Record<string, never>;
   views_milestone: { productId: string; productName: string; milestone: number };
   out_of_stock_digest: { count: number };
   seller_inactive: Record<string, never>;
@@ -185,6 +187,22 @@ export const TEMPLATES: TemplateRegistry = {
       body: 'Verify your account to start selling on Loccalo.',
       screen: 'kyc',
       collapseKey: 'kyc_pending',
+    }),
+  },
+  kyc_verified: {
+    audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: true,
+    build: () => ({
+      title: 'Your KYC verification is complete',
+      body: 'Congratulations! Your seller account is now verified on Loccalo.',
+      screen: 'dashboard',
+    }),
+  },
+  kyc_revoked: {
+    audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: true,
+    build: () => ({
+      title: 'Your KYC verification has been revoked',
+      body: 'Please contact support or re-submit your KYC documents.',
+      screen: 'kyc',
     }),
   },
   views_milestone: {
