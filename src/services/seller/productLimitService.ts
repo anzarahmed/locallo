@@ -94,8 +94,10 @@ export async function consumeGroupUnits(
   groupLabels: (string | null)[],
 ): Promise<LimitUsage | null> {
   let crossed: LimitUsage | null = null;
-  for (const groupLabel of groupLabels) {
-    crossed = (await consumeUnit(t, { ...input, groupLabel, reason: 'variant_group' })) ?? crossed;
+  for (const [i, groupLabel] of groupLabels.entries()) {
+    const usage = await consumeUnit(t, { ...input, groupLabel, reason: 'variant_group' });
+    // The seller sees this count, so include the units the batch adds after the crossing one.
+    if (usage) crossed = { ...usage, used: usage.used + groupLabels.length - i - 1 };
   }
   return crossed;
 }
