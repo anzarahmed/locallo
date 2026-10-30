@@ -43,9 +43,11 @@ export async function getNotifications(req: Request, res: Response): Promise<voi
   const { page, limit } = parsePagination(req);
   const filter = parseFilter(req);
   const { rows, count } = await notificationService.listNotifications(req.seller!.id, page, limit, filter);
+  // Must run after listNotifications, which marks the returned rows as read.
+  const unreadCount = await notificationService.countUnreadNotifications(req.seller!.id);
   const offerTypes = await notificationService.getOfferTypes(rows);
   const notifications = rows.map((n) => toItem(n, offerTypes));
-  sendSuccess(res, { notifications, total: count, page, limit }, 'Notifications fetched');
+  sendSuccess(res, { notifications, total: count, page, limit, unreadCount }, 'Notifications fetched');
 }
 
 export async function markNotificationRead(req: Request, res: Response): Promise<void> {
