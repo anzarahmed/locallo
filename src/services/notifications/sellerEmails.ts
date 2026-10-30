@@ -7,6 +7,7 @@ import { uploadGuideEmail } from '../../utils/emailTemplates/seller/uploadGuideE
 import { completeKycEmail } from '../../utils/emailTemplates/seller/completeKycEmail';
 import { viewsMilestoneEmail } from '../../utils/emailTemplates/seller/viewsMilestoneEmail';
 import { uploadLimitReachedEmail } from '../../utils/emailTemplates/seller/uploadLimitReachedEmail';
+import { uploadLimitFullEmail } from '../../utils/emailTemplates/seller/uploadLimitFullEmail';
 import { buyStorageEmail } from '../../utils/emailTemplates/seller/buyStorageEmail';
 import { outOfStockEmail } from '../../utils/emailTemplates/seller/outOfStockEmail';
 import { inactiveSellerEmail } from '../../utils/emailTemplates/seller/inactiveSellerEmail';
@@ -45,6 +46,10 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
   upload_limit_90: {
     gate: 'always',
     build: ({ categoryName, used, limit }, name) => uploadLimitReachedEmail(name, categoryName, used, limit),
+  },
+  upload_limit_100: {
+    gate: 'always',
+    build: ({ categoryName, used, limit }, name) => uploadLimitFullEmail(name, categoryName, used, limit),
   },
   buy_storage: { gate: 'emailUpdates', build: (_, name) => buyStorageEmail(name) },
   out_of_stock_digest: { gate: 'always', build: (_, name) => outOfStockEmail(name) },

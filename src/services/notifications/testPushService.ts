@@ -137,6 +137,10 @@ const SAMPLE_PARAMS: SampleBuilders = {
     const [first] = await getSellerLimits(userId);
     return { categoryId: first?.categoryId ?? 0, categoryName: first?.categoryName ?? 'Fashion', used: 180, limit: 200 };
   },
+  upload_limit_100: async (userId) => {
+    const [first] = await getSellerLimits(userId);
+    return { categoryId: first?.categoryId ?? 0, categoryName: first?.categoryName ?? 'Fashion', used: 200, limit: 200 };
+  },
   buy_storage: async () => ({}),
   account_deleted: async () => ({ recoveryDays: 60 }),
 };

@@ -54,7 +54,7 @@ export async function assertCanAdd(sellerId: string, category: Category, units =
   }
 }
 
-// Returns usage when this unit crossed the 90% threshold, so the caller can notify after commit.
+// Returns usage when this unit crossed 90% or filled the limit, so the caller can notify after commit.
 export async function consumeUnit(t: Transaction, input: ConsumeUnitsInput): Promise<LimitUsage | null> {
   const { sellerId, category } = input;
   await Category.sequelize!.query(
@@ -84,7 +84,8 @@ export async function consumeUnit(t: Transaction, input: ConsumeUnitsInput): Pro
 
   if (limit === 0) return null;
   const threshold = Math.ceil(limit * NINETY_PERCENT);
-  if (usedBefore >= threshold || usedAfter < threshold) return null;
+  const crossedNinety = usedBefore < threshold && usedAfter >= threshold;
+  if (!crossedNinety && usedAfter < limit) return null;
   return { sellerId, categoryId: category.id, categoryName: locked?.name ?? category.name, used: usedAfter, limit };
 }
 
@@ -104,12 +105,14 @@ export async function consumeGroupUnits(
 
 export function notifyLimitThreshold(usage: LimitUsage | null): void {
   if (!usage) return;
+  // A single add can cross both thresholds (a batch, or any limit under 10); only the full alert goes out then.
+  const type = usage.used >= usage.limit ? 'upload_limit_100' : 'upload_limit_90';
   void notifySafely(
     usage.sellerId,
-    'upload_limit_90',
+    type,
     { categoryId: usage.categoryId, categoryName: usage.categoryName, used: usage.used, limit: usage.limit },
     // The limit is in the key so raising it re-arms the alert for the new ceiling.
-    { dedupeKey: `upload_limit_90:${usage.sellerId}:${usage.categoryId}:${usage.limit}` },
+    { dedupeKey: `${type}:${usage.sellerId}:${usage.categoryId}:${usage.limit}` },
   );
 }
 

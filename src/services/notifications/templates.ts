@@ -24,6 +24,7 @@ export interface TemplateParamsMap {
   share_shop: Record<string, never>;
   closing_soon: Record<string, never>;
   upload_limit_90: { categoryId: number; categoryName: string; used: number; limit: number };
+  upload_limit_100: { categoryId: number; categoryName: string; used: number; limit: number };
   buy_storage: Record<string, never>;
   account_deleted: { recoveryDays: number };
 }
@@ -271,6 +272,14 @@ export const TEMPLATES: TemplateRegistry = {
     build: ({ categoryName, used, limit }) => ({
       title: `You’ve used 90% of your ${categoryName} limit`,
       body: `${used} of ${limit} listings used — ${Math.max(0, limit - used)} left in ${categoryName}.`,
+      screen: 'dashboard',
+    }),
+  },
+  upload_limit_100: {
+    audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: false,
+    build: ({ categoryName, used, limit }) => ({
+      title: `You’ve reached your ${categoryName} limit`,
+      body: `${used} of ${limit} listings used. Contact Loccalo admin to add more in ${categoryName}.`,
       screen: 'dashboard',
     }),
   },
