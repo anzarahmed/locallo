@@ -6,6 +6,7 @@ const CmsPage = lazy(() => import('./pages/cms/CmsPage'));
 const Home = lazy(() => import('./pages/home/Home'));
 const FaqPage = lazy(() => import('./pages/faq/FaqPage'));
 const ShopLanding = lazy(() => import('./pages/shop/ShopLanding'));
+const ProductLanding = lazy(() => import('./pages/product/ProductLanding'));
 
 const PageFallback = (): JSX.Element => <div className="min-h-screen bg-white" />;
 
@@ -26,6 +27,7 @@ function AppRoutes(): JSX.Element {
         <Route path="/terms-of-use"   element={<CmsPage slug="terms-of-use" />} />
         <Route path="/faq"            element={<FaqPage />} />
         <Route path="/shop/:sellerId" element={<ShopLanding />} />
+        <Route path="/product/:productId" element={<ProductLanding />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
