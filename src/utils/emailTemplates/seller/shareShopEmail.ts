@@ -3,7 +3,7 @@ import type { EmailContent } from '../sellerEmailLayout';
 
 export function shopLinkUrl(sellerId: string, shopName: string): string {
   const base = (process.env.SHOP_LINK_BASE_URL ?? 'https://loccalo.in').replace(/\/+$/, '');
-  return `${base}/shop/${encodeURIComponent(sellerId)}?${new URLSearchParams({ title: shopName }).toString()}`;
+  return `${base}/customer/shop/${encodeURIComponent(sellerId)}?${new URLSearchParams({ title: shopName }).toString()}`;
 }
 
 export function shareShopEmail(sellerName: string, sellerId: string, shopName: string): EmailContent {
