@@ -59,6 +59,8 @@ export interface NotificationTemplate<P> {
 
 type TemplateRegistry = { [K in NotificationType]: NotificationTemplate<TemplateParamsMap[K]> };
 
+const HIGH_VIEWS_MILESTONE = 10000;
+
 function formatViews(n: number): string {
   return n >= 1000 ? `${n / 1000}K` : String(n);
 }
@@ -209,7 +211,9 @@ export const TEMPLATES: TemplateRegistry = {
     audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true,
     build: ({ productId, productName, milestone }) => ({
       title: 'Your product is trending!',
-      body: `🎉 Congrats! Your product hit ${formatViews(milestone)} views. Keep the momentum going!`,
+      body: milestone >= HIGH_VIEWS_MILESTONE
+        ? `🤯 Your top product reached ${formatViews(milestone)} views! Engage now to convert.`
+        : `🎉 Congrats! Your product hit ${formatViews(milestone)} views. Keep the momentum going!`,
       screen: 'product',
       targetId: productId,
       dataTitle: productName,
@@ -232,7 +236,7 @@ export const TEMPLATES: TemplateRegistry = {
     audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true,
     build: () => ({
       title: 'We miss you!',
-      body: 'Keep your catalogue fresh and stay connected with your customers.',
+      body: '👋 We Miss You! You’ve been inactive for over 30 days. Keep uploading products and stay connected with your customers.',
       screen: 'dashboard',
     }),
   },
@@ -240,7 +244,7 @@ export const TEMPLATES: TemplateRegistry = {
     audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true,
     build: () => ({
       title: 'Get more eyes on your products',
-      body: 'Boost a product to increase visibility and sales.',
+      body: '🚀Boost product to Boost your product visibility & sales',
       screen: 'boost_create',
     }),
   },
@@ -287,17 +291,17 @@ export const TEMPLATES: TemplateRegistry = {
   },
   upload_limit_90: {
     audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true,
-    build: ({ categoryName, used, limit }) => ({
+    build: ({ categoryName }) => ({
       title: `You’ve used 90% of your ${categoryName} limit`,
-      body: `${used} of ${limit} listings used — ${Math.max(0, limit - used)} left in ${categoryName}.`,
+      body: '⚠️ You\'re at 90% upload limit. Add more storage to list more products.',
       screen: 'dashboard',
     }),
   },
   upload_limit_100: {
     audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: false,
-    build: ({ categoryName, used, limit }) => ({
+    build: ({ categoryName }) => ({
       title: `You’ve reached your ${categoryName} limit`,
-      body: `${used} of ${limit} listings used. Contact Loccalo admin to add more in ${categoryName}.`,
+      body: '📦 Out of listing space? Upgrade storage now & expand your catalog.',
       screen: 'dashboard',
     }),
   },
