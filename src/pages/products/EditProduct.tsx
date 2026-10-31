@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type JSX, type ChangeEvent } from 'react';
 import { useNavigate, useParams, useBlocker } from 'react-router-dom';
 import { useFormik, type FormikHelpers } from 'formik';
-import { ArrowLeft, Camera, X, Plus, Loader2, ChevronDown, ChevronRight, Eye, Star } from 'lucide-react';
+import { ArrowLeft, Camera, X, Plus, Loader2, ChevronDown, ChevronRight, Eye, Star, Info } from 'lucide-react';
 import {
-  getProfile, getSellerProduct, updateProduct, uploadProductImage, createVariant, getProductReviews,
+  getProfile, getSellerProduct, updateProduct, uploadProductImage, createVariant, getProductReviews, getProductLimits,
 } from '../../services/sellerService';
 import { editProductSchema, editProductSchemaSkipStock, type AddProductFormValues } from '../../validation/productSchemas';
 import { useToast } from '../../hooks/useToast';
@@ -20,7 +20,7 @@ import {
 import FormField from '../../components/ui/FormField';
 import AttrInput from '../../components/ui/AttrInput';
 import ConfirmLeaveModal from '../../components/ui/ConfirmLeaveModal';
-import type { SellerCategory, AttributeField, AttributeFieldOption, ProductReview } from '../../types';
+import type { SellerCategory, AttributeField, AttributeFieldOption, ProductReview, CategoryLimit } from '../../types';
 import { formatDate } from '../../lib/dateFormat';
 
 const EMPTY_VALUES: AddProductFormValues = {
@@ -28,6 +28,13 @@ const EMPTY_VALUES: AddProductFormValues = {
 };
 
 const REVIEWS_PAGE_SIZE = 10;
+
+function limitNote(hasVariantFields: boolean, remaining: number): string {
+  if (!hasVariantFields) return 'Editing this product doesn\'t use any.';
+  return remaining > 0
+    ? 'Each new variant group uses 1 permanently — deleting it later won\'t restore it.'
+    : 'New variant groups can\'t be added until your limit is increased.';
+}
 
 export default function EditProduct(): JSX.Element {
   const { id } = useParams<{ id: string }>();
@@ -37,6 +44,7 @@ export default function EditProduct(): JSX.Element {
   const [pageLoading, setPageLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [categories, setCategories] = useState<SellerCategory[]>([]);
+  const [categoryLimit, setCategoryLimit] = useState<CategoryLimit | null>(null);
   const [primaryImage, setPrimaryImage] = useState<string | null>(null);
   const [primaryImageError, setPrimaryImageError] = useState<string | null>(null);
   const [secondaryImages, setSecondaryImages] = useState<string[]>([]);
@@ -76,11 +84,14 @@ export default function EditProduct(): JSX.Element {
   useEffect(() => {
     async function load(): Promise<void> {
       try {
-        const [{ product }, profileData] = await Promise.all([
+        const [{ product }, profileData, limitData] = await Promise.all([
           getSellerProduct(id!),
           getProfile(),
+          // the notice is informational — the server still enforces limits on submit
+          getProductLimits().catch(() => null),
         ]);
         setCategories(profileData.profile.categories);
+        setCategoryLimit(limitData?.limits.find(l => l.categoryId === product.categoryId) ?? null);
         const allImages = product.images ?? [];
         const primary = allImages[0] ?? null;
         const secondary = allImages.slice(1, 1 + MAX_SECONDARY_IMAGES);
@@ -659,18 +670,29 @@ export default function EditProduct(): JSX.Element {
           {/* Category */}
           <div className="bg-white rounded-2xl shadow-sm p-4 space-y-4">
             <FormField label="Category">
-              <div className="relative">
-                <select
-                  value={form.values.categoryId}
-                  disabled
-                  className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-500 cursor-not-allowed pr-8"
-                >
-                  <option value={0} disabled>Select a category</option>
-                  {categories.map(cat => (
-                    <option key={cat.id} value={cat.id}>{cat.name}</option>
-                  ))}
-                </select>
-                <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
+              <div>
+                <div className="relative">
+                  <select
+                    value={form.values.categoryId}
+                    disabled
+                    className="w-full appearance-none bg-gray-50 border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-500 cursor-not-allowed pr-8"
+                  >
+                    <option value={0} disabled>Select a category</option>
+                    {categories.map(cat => (
+                      <option key={cat.id} value={cat.id}>{cat.name}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-300 pointer-events-none" />
+                </div>
+                {categoryLimit && (
+                  <div className="flex items-start gap-2.5 mt-3 px-3.5 py-3 rounded-xl bg-teal-50 text-teal-700">
+                    <Info size={16} className="shrink-0 mt-0.5" />
+                    <p className="text-sm font-semibold leading-snug">
+                      {categoryLimit.remaining} of {categoryLimit.limit} listings left in {categoryLimit.categoryName}.
+                      {' '}{limitNote(variantFields.length > 0, categoryLimit.remaining)}
+                    </p>
+                  </div>
+                )}
               </div>
             </FormField>
           </div>
