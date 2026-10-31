@@ -3,3 +3,7 @@ const CUSTOMER_SITE_URL: string = (import.meta.env.VITE_CUSTOMER_SITE_URL ?? 'ht
 export function shopLinkUrl(sellerId: string, shopName: string): string {
   return `${CUSTOMER_SITE_URL}/shop/${encodeURIComponent(sellerId)}?${new URLSearchParams({ title: shopName }).toString()}`;
 }
+
+export function productLinkUrl(productId: string): string {
+  return `${CUSTOMER_SITE_URL}/product/${encodeURIComponent(productId)}`;
+}

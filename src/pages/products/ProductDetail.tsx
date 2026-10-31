@@ -2,10 +2,13 @@ import { useState, useEffect, type JSX, type ReactNode } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
   ArrowLeft, Package, Pencil, Layers, Eye, EyeOff, Rocket,
-  MapPin, TrendingUp, Star, Heart,
+  MapPin, TrendingUp, Star, Heart, Share2,
 } from 'lucide-react';
+import { useToast } from '../../hooks/useToast';
 import { getSellerProduct, getProductVariants } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
+import { copyToClipboard } from '../../lib/clipboard';
+import { productLinkUrl } from '../../lib/shopLink';
 import { resolveImage } from '../../lib/imageUtils';
 import { formatPrice, discountPct } from '../../lib/formatters';
 import type { AttributeField, Product, ProductVariant } from '../../types';
@@ -143,6 +146,13 @@ function Skeleton(): JSX.Element {
 export default function ProductDetail(): JSX.Element {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const toast = useToast();
+
+  async function handleShareProduct(productId: string): Promise<void> {
+    const copied = await copyToClipboard(productLinkUrl(productId));
+    if (copied) toast.success('Product link copied to clipboard');
+    else toast.error('Could not copy product link');
+  }
 
   function goBack(): void {
     // React Router stamps each in-app entry with idx; 0 means this page was opened directly (new tab, refresh, external link).
@@ -213,11 +223,11 @@ export default function ProductDetail(): JSX.Element {
           <ArrowLeft size={18} />
         </button>
         <div className="flex-1 min-w-0">
-          <h1 className="text-white text-[20px] font-bold leading-tight truncate">
+          <h1 className="text-white text-[20px] font-bold leading-tight line-clamp-2 wrap-anywhere">
             {loading ? 'Product Details' : (product?.name ?? 'Product Details')}
           </h1>
           {!loading && product?.category && (
-            <p className="text-white/70 text-sm truncate">{product.category.name}</p>
+            <p className="text-white/70 text-sm line-clamp-1 wrap-anywhere">{product.category.name}</p>
           )}
         </div>
         {!loading && product && (
@@ -225,6 +235,17 @@ export default function ProductDetail(): JSX.Element {
             <Eye size={13} />
             {product.viewCount ?? 0} views
           </span>
+        )}
+        {!loading && product && (
+          <button
+            type="button"
+            onClick={() => void handleShareProduct(product.id)}
+            title="Copy product link"
+            aria-label="Copy product link"
+            className="w-9 h-9 rounded-full bg-white/20 flex items-center justify-center text-white hover:bg-white/30 transition-colors shrink-0"
+          >
+            <Share2 size={18} />
+          </button>
         )}
       </div>
 
@@ -311,7 +332,7 @@ export default function ProductDetail(): JSX.Element {
 
               {/* Name + dates */}
               <div>
-                <h2 className="text-lg font-bold text-gray-900 leading-snug">{product.name}</h2>
+                <h2 className="text-lg font-bold text-gray-900 leading-snug wrap-anywhere">{product.name}</h2>
                 <div className="flex flex-wrap items-center gap-x-4 gap-y-1 mt-1.5 text-xs text-gray-400">
                   <span>
                     Added {formatDate(product.createdAt)}
