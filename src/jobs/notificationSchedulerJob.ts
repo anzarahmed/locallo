@@ -15,6 +15,12 @@ import {
   sendShareShopReminders,
   sendClosingReminders,
 } from '../services/notifications/scheduledNotifications';
+import {
+  EMAIL_FREQ_TEST_ON,
+  sendKycRemindersTest,
+  sendInactivityRemindersTest,
+  sendBoostSuggestionsTest,
+} from '../services/notifications/emailFrequencyTest';
 
 const TIMEZONE = 'Asia/Kolkata';
 
@@ -52,5 +58,10 @@ export function startNotificationSchedulerCron(): void {
   schedule('daily', '0 10 * * *', [sendOfferUpcomingNotifications, sendOutOfStockDigests, sendInactivityReminders, sendBoostSuggestions, sendKycReminders]);
   schedule('weekly-wishlist', '0 11 * * 0', [sendWishlistWeekly]);
   schedule('monthly', '0 11 1 * *', [sendShareShopReminders]);
+  // TEMP: remove after email frequency QA.
+  if (EMAIL_FREQ_TEST_ON) {
+    schedule('email-freq-test', '* * * * *', [sendKycRemindersTest, sendInactivityRemindersTest, sendBoostSuggestionsTest]);
+    console.log('Email frequency test cron scheduled');
+  }
   console.log('Notification scheduler crons scheduled (IST)');
 }
