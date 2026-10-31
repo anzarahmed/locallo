@@ -184,7 +184,7 @@ export const TEMPLATES: TemplateRegistry = {
     audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: true,
     build: () => ({
       title: 'Complete your KYC',
-      body: 'Verify your account to start selling on Loccalo.',
+      body: 'Complete KYC verification to activate your account & start selling.',
       screen: 'kyc',
       collapseKey: 'kyc_pending',
     }),
@@ -209,7 +209,7 @@ export const TEMPLATES: TemplateRegistry = {
     audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true,
     build: ({ productId, productName, milestone }) => ({
       title: 'Your product is trending!',
-      body: `${productName} just hit ${formatViews(milestone)} views. Keep the momentum going!`,
+      body: `🎉 Congrats! Your product hit ${formatViews(milestone)} views. Keep the momentum going!`,
       screen: 'product',
       targetId: productId,
       dataTitle: productName,
