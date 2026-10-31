@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
-import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight, CalendarDays, Pencil, X, Trash2 } from 'lucide-react';
+import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight, CalendarDays, Pencil, X, Trash2, Share2 } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
@@ -18,6 +18,8 @@ import LocationDisplay from '../../components/LocationDisplay';
 import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
 import DatePicker from '../../components/ui/DatePicker';
 import { formatDate, toDate, toIsoDate } from '../../lib/dateFormat';
+import { shopLinkUrl } from '../../lib/shopLink';
+import { copyToClipboard } from '../../lib/clipboard';
 
 type DayFieldErrors  = Partial<{ open: string; close: string }>;
 type DayFieldTouched = Partial<{ open: boolean; close: boolean }>;
@@ -146,6 +148,13 @@ export default function Profile(): JSX.Element {
     }
   }
 
+  async function handleShareShop(): Promise<void> {
+    if (!seller) return;
+    const copied = await copyToClipboard(shopLinkUrl(seller.id, seller.businessName ?? seller.fullName ?? ''));
+    if (copied) toast.success('Shop link copied to clipboard');
+    else toast.error('Could not copy shop link');
+  }
+
   function handleCopy(day: Day): void {
     setCopiedDay((prev) => (prev === day ? null : day));
   }
@@ -171,8 +180,21 @@ export default function Profile(): JSX.Element {
           borderRadius: '0 0 28px 28px',
         }}
       >
-        <h1 className="text-white text-xl font-bold">Shop Settings</h1>
-        <p className="text-white/60 text-sm mt-0.5">{seller?.mobile}</p>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <h1 className="text-white text-xl font-bold">Shop Settings</h1>
+            <p className="text-white/60 text-sm mt-0.5">{seller?.mobile}</p>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleShareShop()}
+            title="Copy shop link"
+            aria-label="Copy shop link"
+            className="shrink-0 p-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors"
+          >
+            <Share2 size={18} />
+          </button>
+        </div>
       </div>
 
       <div className="px-4 md:px-8 -mt-10 relative z-10 pb-10 max-w-3xl mx-auto">
@@ -855,7 +877,7 @@ function WorkingHoursRow({
 
   return (
     <div
-      className={`flex items-center gap-2 px-3 py-3 border-b border-gray-50 last:border-0 ${
+      className={`flex flex-wrap sm:flex-nowrap items-center gap-2 px-3 py-3 border-b border-gray-50 last:border-0 ${
         isClosed ? 'bg-gray-50/60' : ''
       }`}
     >
@@ -880,7 +902,7 @@ function WorkingHoursRow({
       </label>
 
       {/* Time inputs or closed label */}
-      <div className="flex-1">
+      <div className="order-last sm:order-none basis-full sm:basis-0 sm:flex-1 min-w-0">
         {isClosed ? (
           <span className="text-xs text-gray-400 italic">Closed all day</span>
         ) : (
@@ -915,7 +937,7 @@ function WorkingHoursRow({
       </div>
 
       {/* Copy / Paste */}
-      <div className="flex items-center gap-0.5 shrink-0">
+      <div className="flex items-center gap-0.5 shrink-0 ml-auto sm:ml-0">
         <button
           type="button"
           onClick={onCopy}
