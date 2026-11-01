@@ -1,10 +1,13 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, ChevronDown, ShoppingBag, Loader2, Rocket } from 'lucide-react';
-import { getProducts, toggleProduct, deleteProduct, markProductSold, markVariantSold, getProductVariants, getActiveBoost } from '../../services/sellerService';
+import { Package, Eye, EyeOff, Layers, Pencil, Trash2, Star, ChevronDown, ShoppingBag, Loader2, Rocket, Share2 } from 'lucide-react';
+import { getProducts, toggleProduct, deleteProduct, markProductSold, markVariantSold, getProductVariants, getActiveBoost, getProfile } from '../../services/sellerService';
+import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { cancelledBoostMessage } from '../../lib/boostUtils';
 import { ApiError } from '../../lib/axios';
+import { copyToClipboard } from '../../lib/clipboard';
+import { shopLinkUrl } from '../../lib/shopLink';
 import { resolveImage } from '../../lib/imageUtils';
 import { hasDiscount } from '../../lib/formatters';
 import { categorySupportsVariants, sellItemLabel } from '../../lib/variantUtils';
@@ -22,6 +25,7 @@ import ProductPreview from './ProductPreview';
 export default function ProductList(): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
+  const { seller, updateSeller } = useAuth();
 
   const [products, setProducts] = useState<Product[]>([]);
   const [total, setTotal] = useState(0);
@@ -71,6 +75,21 @@ export default function ProductList(): JSX.Element {
     }
     void load();
   }, [page, filter, sortBy]); // toast is stable
+
+  // The login response has no businessName, and fetching it on click would push the clipboard write outside the user gesture.
+  useEffect(() => {
+    if (seller?.businessName) return;
+    getProfile()
+      .then(({ profile }) => updateSeller({ businessName: profile.businessName }))
+      .catch(() => undefined);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function handleShareShop(): Promise<void> {
+    if (!seller) return;
+    const copied = await copyToClipboard(shopLinkUrl(seller.id, seller.businessName ?? seller.fullName ?? ''));
+    if (copied) toast.success('Shop link copied to clipboard');
+    else toast.error('Could not copy shop link');
+  }
 
   function handleFilterChange(f: FilterTab): void {
     setFilter(f);
@@ -285,7 +304,7 @@ export default function ProductList(): JSX.Element {
           borderRadius: '0 0 28px 28px',
         }}
       >
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <h1 className="text-white text-2xl font-bold leading-tight">My Products</h1>
             {!loading && (
@@ -294,12 +313,23 @@ export default function ProductList(): JSX.Element {
               </p>
             )}
           </div>
-          <button
-            onClick={() => navigate('/products/add')}
-            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors"
-          >
-            + Add Product
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={() => void handleShareShop()}
+              title="Copy shop link"
+              aria-label="Copy shop link"
+              className="shrink-0 p-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors"
+            >
+              <Share2 size={18} />
+            </button>
+            <button
+              onClick={() => navigate('/products/add')}
+              className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-white/20 text-white text-sm font-semibold hover:bg-white/30 transition-colors"
+            >
+              + Add Product
+            </button>
+          </div>
         </div>
       </div>
 
