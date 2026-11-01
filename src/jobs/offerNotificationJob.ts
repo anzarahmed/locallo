@@ -67,9 +67,9 @@ async function sendEmailChannel(row: OfferSellerNotification): Promise<void> {
     );
     return;
   }
-  if (profile?.notificationSettings?.emailUpdates !== true) {
+  if (profile?.notificationSettings?.offersAndPromotions !== true) {
     await OfferSellerNotification.update(
-      { emailStatus: 'failed', emailLastError: 'Seller turned off email updates' },
+      { emailStatus: 'failed', emailLastError: 'Seller turned off offers and promotions' },
       { where: { id: row.id } },
     );
     return;

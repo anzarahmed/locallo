@@ -20,8 +20,8 @@ import { shareShopEmail } from '../../utils/emailTemplates/seller/shareShopEmail
 import type { SellerRecipient } from './sellerRecipients';
 import type { NotificationType, TemplateParamsMap } from './templates';
 
-// 'always' = transactional; promotional emails follow the seller's "Email updates" toggle.
-export type SellerEmailGate = 'always' | keyof Pick<NotificationSettings, 'emailUpdates'>;
+// Every seller email is 'always' except the Offers & Promotions group, which follows that toggle.
+export type SellerEmailGate = 'always' | keyof Pick<NotificationSettings, 'offersAndPromotions'>;
 
 export interface SellerEmailTemplate<P> {
   gate: SellerEmailGate;
@@ -36,7 +36,7 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
   seller_registered: { gate: 'always', build: (_, name) => registrationCompleteEmail(name) },
   welcome_seller: { gate: 'always', build: (_, name) => newJourneyEmail(name) },
   first_product_nudge: {
-    gate: 'emailUpdates',
+    gate: 'always',
     build: ({ reminder }, name) => (reminder === 1 ? startUploadingEmail(name) : uploadGuideEmail(name)),
   },
   kyc_pending: { gate: 'always', build: (_, name) => completeKycEmail(name) },
@@ -60,10 +60,10 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
     gate: 'always',
     build: ({ categoryName, used, limit }, name) => uploadLimitFullEmail(name, categoryName, used, limit),
   },
-  buy_storage: { gate: 'emailUpdates', build: (_, name) => buyStorageEmail(name) },
+  buy_storage: { gate: 'always', build: (_, name) => buyStorageEmail(name) },
   out_of_stock_digest: { gate: 'always', build: (_, name) => outOfStockEmail(name) },
-  seller_inactive: { gate: 'emailUpdates', build: (_, name) => inactiveSellerEmail(name) },
-  boost_suggestion: { gate: 'emailUpdates', build: (_, name) => boostSuggestionEmail(name) },
+  seller_inactive: { gate: 'always', build: (_, name) => inactiveSellerEmail(name) },
+  boost_suggestion: { gate: 'offersAndPromotions', build: (_, name) => boostSuggestionEmail(name) },
   boost_completed: {
     gate: 'always',
     build: ({ productId, productName, target }, name) => boostTargetReachedEmail(name, productId, productName, target),
@@ -74,7 +74,7 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
       boostPaymentReceivedEmail(name, { productName, amount, transactionId, campaign }),
   },
   share_shop: {
-    gate: 'emailUpdates',
+    gate: 'always',
     build: (_, name, { userId, businessName }) => shareShopEmail(name, userId, businessName ?? name),
   },
   account_deleted: { gate: 'always', build: ({ recoveryDays }, name) => accountDeletedEmail(name, recoveryDays) },

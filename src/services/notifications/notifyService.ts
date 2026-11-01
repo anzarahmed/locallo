@@ -9,7 +9,7 @@ import { isPushConfigured } from '../../utils/push';
 import { getIstDateParts, getIstTimeString, istCalendarDateToUtc } from '../../utils/istDate';
 import type { EmailStatus, PushOptions, PushStatus } from '../../types';
 import type { EmailContent } from '../../utils/emailTemplates/sellerEmailLayout';
-import { TEMPLATES, PROMOTIONAL_TYPES } from './templates';
+import { TEMPLATES, PROMOTIONAL_TYPES, OFFERS_AND_PROMOTIONS_TYPES } from './templates';
 import type { BuiltNotification, NotificationTemplate, NotificationType, TemplateParamsMap } from './templates';
 import { getSellerEmailTemplate, isEmailGateOpen } from './sellerEmails';
 import { loadSellerRecipients } from './sellerRecipients';
@@ -48,15 +48,21 @@ async function usersWithDevices(userIds: string[]): Promise<Set<string>> {
   return new Set(sessions.map((s) => s.actorId));
 }
 
-async function usersWithPrefsOn<P>(userIds: string[], template: NotificationTemplate<P>): Promise<Set<string>> {
+async function usersWithPrefsOn<P>(
+  userIds: string[],
+  type: NotificationType,
+  template: NotificationTemplate<P>,
+): Promise<Set<string>> {
   if (template.audience === 'seller') {
     const profiles = await SellerProfile.findAll({
       where: { userId: { [Op.in]: userIds } },
       attributes: ['userId', 'notificationSettings'],
     });
+    // Offers pushes follow only their own toggle, even when pushNotifications is off.
+    const setting = OFFERS_AND_PROMOTIONS_TYPES.includes(type) ? 'offersAndPromotions' : 'pushNotifications';
     return new Set(
       profiles
-        .filter((p) => p.notificationSettings?.pushNotifications === true)
+        .filter((p) => p.notificationSettings?.[setting] === true)
         .map((p) => p.userId),
     );
   }
@@ -103,13 +109,17 @@ async function withoutExistingDedupeKeys(
   return userIds.filter((id) => !taken.has(dedupeKeyFor(id)));
 }
 
-async function resolvePushEligible<P>(userIds: string[], template: NotificationTemplate<P>): Promise<Set<string>> {
+async function resolvePushEligible<P>(
+  userIds: string[],
+  type: NotificationType,
+  template: NotificationTemplate<P>,
+): Promise<Set<string>> {
   if (!template.push || !isPushConfigured() || userIds.length === 0) return new Set();
 
   let eligible = await usersWithDevices(userIds);
   if (eligible.size === 0) return eligible;
 
-  const withPrefs = await usersWithPrefsOn([...eligible], template);
+  const withPrefs = await usersWithPrefsOn([...eligible], type, template);
   eligible = new Set([...eligible].filter((id) => withPrefs.has(id)));
   if (eligible.size === 0 || template.pushClass === 'transactional') return eligible;
 
@@ -207,7 +217,7 @@ export async function notifyMany<T extends NotificationType>(
   for (let i = 0; i < userIds.length; i += CHUNK_SIZE) {
     const chunk = await withoutExistingDedupeKeys(userIds.slice(i, i + CHUNK_SIZE), dedupeKeyFor);
     if (chunk.length === 0) continue;
-    const eligible = await resolvePushEligible(chunk, template);
+    const eligible = await resolvePushEligible(chunk, type, template);
     const emails = await resolveEmails(chunk, type, params);
 
     const rows = chunk.map((userId) => {

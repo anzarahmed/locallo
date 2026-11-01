@@ -325,5 +325,7 @@ export const TEMPLATES: TemplateRegistry = {
 
 export const OFFER_NOTIFICATION_TYPES: readonly string[] = ['offer', 'offer_upcoming', 'offer_live', 'offer_join'];
 
+export const OFFERS_AND_PROMOTIONS_TYPES: readonly NotificationType[] = ['offer_join', 'boost_suggestion'];
+
 export const PROMOTIONAL_TYPES: readonly NotificationType[] = (Object.keys(TEMPLATES) as NotificationType[])
   .filter((type) => TEMPLATES[type].pushClass === 'promotional');
