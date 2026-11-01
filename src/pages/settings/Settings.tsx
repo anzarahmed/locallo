@@ -1,5 +1,5 @@
 import { useEffect, useState, type JSX } from 'react';
-import { Bell, Mail, MessageSquare, Tag, Heart, Store, Sparkles } from 'lucide-react';
+import { Bell, Tag, Sparkles } from 'lucide-react';
 import { useToast } from '../../hooks/useToast';
 import { getSettings, updateSettings, type NotificationSettings } from '../../services/sellerService';
 import { ApiError } from '../../lib/axios';
@@ -7,12 +7,8 @@ import ToggleSwitch from '../../components/ui/ToggleSwitch';
 import CmsPageLinks from '../cms/CmsPageLinks';
 
 const DEFAULT_SETTINGS: NotificationSettings = {
-  pushNotifications:  true,
-  emailUpdates:       true,
-  smsAlerts:          false,
+  pushNotifications: true,
   offersAndPromotions: true,
-  wishlistPriceDrops: true,
-  sellerUpdates:      true,
   useAiForPrimaryImage: true,
 };
 
@@ -24,12 +20,8 @@ interface NotifRow {
 }
 
 const NOTIF_ROWS: NotifRow[] = [
-  { key: 'pushNotifications',  label: 'Push notifications',  description: 'Order alerts and app activity', Icon: Bell         },
-  { key: 'emailUpdates',       label: 'Email updates',       description: 'Tips, offers and reminders',     Icon: Mail         },
-  { key: 'smsAlerts',          label: 'SMS alerts',          description: 'Critical alerts via text',       Icon: MessageSquare },
-  { key: 'offersAndPromotions',label: 'Offers & promotions', description: 'Deals and promotional campaigns', Icon: Tag          },
-  { key: 'wishlistPriceDrops', label: 'Wishlist price drops',description: 'Notify buyers when prices drop', Icon: Heart        },
-  { key: 'sellerUpdates',      label: 'Seller updates',      description: 'Platform news and policy changes',Icon: Store        },
+  { key: 'pushNotifications',   label: 'Push notifications',  description: 'Order alerts and app activity',   Icon: Bell },
+  { key: 'offersAndPromotions', label: 'Offers & promotions', description: 'Deals and promotional campaigns', Icon: Tag  },
 ];
 
 function SkeletonRow(): JSX.Element {

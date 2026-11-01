@@ -5,6 +5,8 @@ import { getCmsPages } from '../../services/cmsPageService';
 import { useToast } from '../../hooks/useToast';
 import type { CmsPageSummary } from '../../types';
 
+const LEGAL_PAGE_SLUGS: readonly string[] = ['privacy-policy', 'terms-and-conditions'];
+
 function SkeletonLink(): JSX.Element {
   return (
     <div className="flex items-center gap-4 px-5 py-4">
@@ -21,7 +23,7 @@ export default function CmsPageLinks(): JSX.Element | null {
 
   useEffect(() => {
     getCmsPages()
-      .then((r) => setPages(r.cmsPages))
+      .then((r) => setPages(r.cmsPages.filter((p) => LEGAL_PAGE_SLUGS.includes(p.slug))))
       .catch(() => toast.error('Failed to load legal pages'))
       .finally(() => setLoading(false));
   }, []);

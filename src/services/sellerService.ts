@@ -113,11 +113,7 @@ export function toggleVariant(
 
 export interface NotificationSettings {
   pushNotifications: boolean;
-  emailUpdates: boolean;
-  smsAlerts: boolean;
   offersAndPromotions: boolean;
-  wishlistPriceDrops: boolean;
-  sellerUpdates: boolean;
   useAiForPrimaryImage: boolean;
 }
 
