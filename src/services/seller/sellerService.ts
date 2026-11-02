@@ -550,7 +550,11 @@ export async function setSellerKycVerification(
     }
     await profile.update({ isVerified: true, verifiedBy: adminId, verifiedAt: new Date(), kycRejection: null });
   } else {
-    await profile.update({ isVerified: false, verifiedBy: null, verifiedAt: null });
+    // Marks the seller as awaiting new documents so the next replacement re-notifies admins.
+    const kycRejection: KycRejection | null = statusChanged
+      ? { documentTypes: [], reason: null, rejectedAt: new Date().toISOString(), revoked: true }
+      : profile.kycRejection;
+    await profile.update({ isVerified: false, verifiedBy: null, verifiedAt: null, kycRejection });
   }
 
   if (statusChanged) await notifySafely(sellerId, verified ? 'kyc_verified' : 'kyc_revoked', {});

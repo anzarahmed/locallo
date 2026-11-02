@@ -77,6 +77,7 @@ export interface KycRejection {
   documentTypes: KycDocumentType[];
   reason: string | null;
   rejectedAt: string;
+  revoked?: boolean;
 }
 
 export type BrandDocumentType = 'certification' | 'other';

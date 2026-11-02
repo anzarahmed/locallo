@@ -263,6 +263,7 @@ export async function setKycVerification(req: Request, res: Response): Promise<v
       isVerified: profile.isVerified,
       verifiedBy: profile.verifiedBy,
       verifiedAt: profile.verifiedAt,
+      kycRejection: profile.kycRejection ?? null,
     }, verified ? 'Seller verified' : 'Verification revoked');
   } catch (err: unknown) {
     handleServiceError(err, res);
