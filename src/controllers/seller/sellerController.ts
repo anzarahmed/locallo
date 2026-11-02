@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, getOwnKycDocuments as fetchOwnKycDocuments, uploadOwnKycDocument as saveOwnKycDocument, setSellerKycVerification, uploadSellerBrandDocument, requestSellerAccountDeletion, SELLER_DELETION_HOLD_DAYS } from '../../services/seller/sellerService';
+import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, getOwnKycDocuments as fetchOwnKycDocuments, uploadOwnKycDocument as saveOwnKycDocument, setSellerKycVerification, rejectSellerKycDocuments, uploadSellerBrandDocument, requestSellerAccountDeletion, SELLER_DELETION_HOLD_DAYS } from '../../services/seller/sellerService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import { Category } from '../../models/Category';
@@ -193,8 +193,8 @@ export async function uploadKycDocument(req: Request, res: Response): Promise<vo
   try {
     const parsed = parseKycUpload(req, res);
     if (!parsed) return;
-    const kycDocuments = await uploadSellerKycDocument(req.params.id as string, parsed.documentType, parsed.file);
-    sendSuccess(res, { kycDocuments: await signKycDocuments(kycDocuments) }, 'Document uploaded');
+    const { kycDocuments, kycRejection } = await uploadSellerKycDocument(req.params.id as string, parsed.documentType, parsed.file);
+    sendSuccess(res, { kycDocuments: await signKycDocuments(kycDocuments), kycRejection }, 'Document uploaded');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
@@ -202,8 +202,8 @@ export async function uploadKycDocument(req: Request, res: Response): Promise<vo
 
 export async function getOwnKycDocuments(req: Request, res: Response): Promise<void> {
   try {
-    const { isVerified, kycDocuments } = await fetchOwnKycDocuments(req.seller!.id);
-    sendSuccess(res, { isVerified, kycDocuments: await signKycDocuments(kycDocuments) }, 'KYC documents fetched');
+    const { isVerified, kycDocuments, kycRejection } = await fetchOwnKycDocuments(req.seller!.id);
+    sendSuccess(res, { isVerified, kycDocuments: await signKycDocuments(kycDocuments), kycRejection }, 'KYC documents fetched');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
@@ -213,8 +213,8 @@ export async function uploadOwnKycDocument(req: Request, res: Response): Promise
   try {
     const parsed = parseKycUpload(req, res);
     if (!parsed) return;
-    const { isVerified, kycDocuments } = await saveOwnKycDocument(req.seller!.id, parsed.documentType, parsed.file);
-    sendSuccess(res, { isVerified, kycDocuments: await signKycDocuments(kycDocuments) }, 'Document uploaded');
+    const { isVerified, kycDocuments, kycRejection } = await saveOwnKycDocument(req.seller!.id, parsed.documentType, parsed.file);
+    sendSuccess(res, { isVerified, kycDocuments: await signKycDocuments(kycDocuments), kycRejection }, 'Document uploaded');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
@@ -239,6 +239,17 @@ export async function uploadBrandDocument(req: Request, res: Response): Promise<
 
     const brandDocuments = await uploadSellerBrandDocument(req.params.id as string, brandId, documentType as BrandDocumentType, req.file);
     sendSuccess(res, { brandDocuments: await signBrandDocuments(brandDocuments) }, 'Document uploaded');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function rejectKycDocuments(req: Request, res: Response): Promise<void> {
+  try {
+    const documentTypes = req.body.documentTypes as KycDocumentType[];
+    const reason = typeof req.body.reason === 'string' && req.body.reason.trim() ? req.body.reason.trim() : null;
+    const { kycDocuments, kycRejection } = await rejectSellerKycDocuments(req.params.id as string, documentTypes, reason);
+    sendSuccess(res, { kycDocuments: await signKycDocuments(kycDocuments), kycRejection }, 'Documents rejected');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }

@@ -8,8 +8,8 @@ import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { Review } from '../../models/Review';
 import { Session } from '../../models/Session';
-import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
-import { hasRequiredKycDocuments } from '../../utils/kyc';
+import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, KycRejection, BrandDocumentType, BrandDocuments } from '../../types';
+import { hasRequiredKycDocuments, isKycRejectionResolved, KYC_DOCUMENT_LABELS } from '../../utils/kyc';
 import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
 import { notifySafely } from '../notifications/notifyService';
 import { notifyAdminsKycSubmitted } from '../admin/kycReviewNotifier';
@@ -444,43 +444,96 @@ export async function getSellerById(
   return { user, profile };
 }
 
+export interface KycState {
+  kycDocuments: KycDocuments;
+  kycRejection: KycRejection | null;
+}
+
 export async function uploadSellerKycDocument(
   sellerId: string,
   documentType: KycDocumentType,
   file: Express.Multer.File,
-): Promise<KycDocuments> {
+): Promise<KycState> {
   const profile = await requireSellerProfile(sellerId);
   const key = await saveKycDocument(file, sellerId, documentType);
   const kycDocuments: KycDocuments = { ...profile.kycDocuments, [documentType]: key };
-  await profile.update({ kycDocuments });
-  return kycDocuments;
+  const kycRejection = profile.kycRejection && !isKycRejectionResolved(profile.kycRejection, kycDocuments)
+    ? profile.kycRejection
+    : null;
+  await profile.update({ kycDocuments, kycRejection });
+  return { kycDocuments, kycRejection };
 }
 
-export async function getOwnKycDocuments(sellerId: string): Promise<{ isVerified: boolean; kycDocuments: KycDocuments }> {
+export async function getOwnKycDocuments(sellerId: string): Promise<{ isVerified: boolean } & KycState> {
   const profile = await requireSellerProfile(sellerId);
-  return { isVerified: profile.isVerified, kycDocuments: profile.kycDocuments };
+  return { isVerified: profile.isVerified, kycDocuments: profile.kycDocuments, kycRejection: profile.kycRejection ?? null };
+}
+
+export async function rejectSellerKycDocuments(
+  sellerId: string,
+  documentTypes: KycDocumentType[],
+  reason: string | null,
+): Promise<KycState> {
+  const profile = await requireSellerProfile(sellerId);
+  if (profile.isVerified) {
+    throw Object.assign(new Error('Revoke verification before rejecting documents'), { status: 409 });
+  }
+  const missing = documentTypes.filter((type) => !profile.kycDocuments[type]);
+  if (missing.length > 0) {
+    throw Object.assign(
+      new Error(`Not uploaded: ${missing.map((type) => KYC_DOCUMENT_LABELS[type]).join(', ')}`),
+      { status: 400 },
+    );
+  }
+
+  const removedKeys = documentTypes.map((type) => profile.kycDocuments[type] as string);
+  const kycDocuments: KycDocuments = { ...profile.kycDocuments };
+  for (const type of documentTypes) kycDocuments[type] = null;
+  const stillMissing = (profile.kycRejection?.documentTypes ?? []).filter((type) => !kycDocuments[type]);
+  const kycRejection: KycRejection = {
+    documentTypes: [...new Set([...stillMissing, ...documentTypes])],
+    reason: reason ?? (stillMissing.length > 0 ? profile.kycRejection?.reason ?? null : null),
+    rejectedAt: new Date().toISOString(),
+  };
+  await profile.update({ kycDocuments, kycRejection });
+
+  for (const key of removedKeys) {
+    deleteImage(key).catch((err: unknown) => {
+      console.error('rejectSellerKycDocuments: failed to delete S3 object', key, err);
+    });
+  }
+
+  await notifySafely(sellerId, 'kyc_rejected', {
+    documents: documentTypes.map((type) => KYC_DOCUMENT_LABELS[type]).join(', '),
+    reason,
+  });
+
+  return { kycDocuments, kycRejection };
 }
 
 export async function uploadOwnKycDocument(
   sellerId: string,
   documentType: KycDocumentType,
   file: Express.Multer.File,
-): Promise<{ isVerified: boolean; kycDocuments: KycDocuments }> {
+): Promise<{ isVerified: boolean } & KycState> {
   const profile = await requireSellerProfile(sellerId);
   if (profile.isVerified) {
     throw Object.assign(new Error('Your KYC is already verified'), { status: 403 });
   }
 
   const wasComplete = hasRequiredKycDocuments(profile.kycDocuments);
-  const kycDocuments = await uploadSellerKycDocument(sellerId, documentType, file);
+  const hadRejection = Boolean(profile.kycRejection);
+  const state = await uploadSellerKycDocument(sellerId, documentType, file);
+  const rejectionResolved = hadRejection && state.kycRejection === null;
 
-  if (!wasComplete && hasRequiredKycDocuments(kycDocuments)) {
+  // A rejection of optional documents only never makes the required set incomplete, so check it too.
+  if (hasRequiredKycDocuments(state.kycDocuments) && (!wasComplete || rejectionResolved)) {
     notifyAdminsKycSubmitted(sellerId).catch((err: unknown) => {
       console.error('uploadOwnKycDocument: failed to notify admins', err);
     });
   }
 
-  return { isVerified: false, kycDocuments };
+  return { isVerified: false, ...state };
 }
 
 export async function setSellerKycVerification(
@@ -495,7 +548,7 @@ export async function setSellerKycVerification(
     if (!hasRequiredKycDocuments(profile.kycDocuments)) {
       throw Object.assign(new Error('Aadhaar (front and back) and PAN are required before verification'), { status: 400 });
     }
-    await profile.update({ isVerified: true, verifiedBy: adminId, verifiedAt: new Date() });
+    await profile.update({ isVerified: true, verifiedBy: adminId, verifiedAt: new Date(), kycRejection: null });
   } else {
     await profile.update({ isVerified: false, verifiedBy: null, verifiedAt: null });
   }

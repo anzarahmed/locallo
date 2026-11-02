@@ -117,6 +117,7 @@ const SAMPLE_PARAMS: SampleBuilders = {
   kyc_pending: async () => ({}),
   kyc_verified: async () => ({}),
   kyc_revoked: async () => ({}),
+  kyc_rejected: async () => ({ documents: 'PAN card', reason: 'The photo is blurry. Please upload a clear image.' }),
   views_milestone: async (userId) => {
     const { productId, productName } = await sampleSellerProduct(userId);
     return { productId, productName, milestone: 1000 };

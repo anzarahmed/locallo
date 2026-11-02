@@ -1,4 +1,5 @@
 import * as Yup from 'yup';
+import { KYC_DOCUMENT_TYPES } from '../../utils/kyc';
 
 export const setCustomDaySchema = Yup.object({
   date: Yup.string()
@@ -110,4 +111,13 @@ export const createSellerSchema = Yup.object({
     saturday: dayScheduleSchema.required(),
     sunday: dayScheduleSchema.required()
   }).nullable().default(null)
+});
+
+export const rejectKycDocumentsSchema = Yup.object({
+  documentTypes: Yup.array()
+    .of(Yup.string().oneOf(KYC_DOCUMENT_TYPES).required())
+    .min(1, 'Select at least one document to reject')
+    .test('unique', 'Each document can be selected only once', (types) => !types || new Set(types).size === types.length)
+    .required('Select at least one document to reject'),
+  reason: Yup.string().trim().max(500, 'Reason must be at most 500 characters').nullable(),
 });

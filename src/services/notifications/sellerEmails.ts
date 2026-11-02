@@ -6,6 +6,7 @@ import { startUploadingEmail } from '../../utils/emailTemplates/seller/startUplo
 import { uploadGuideEmail } from '../../utils/emailTemplates/seller/uploadGuideEmail';
 import { completeKycEmail } from '../../utils/emailTemplates/seller/completeKycEmail';
 import { kycVerificationEmail } from '../../utils/emailTemplates/seller/kycVerificationEmail';
+import { kycRejectedEmail } from '../../utils/emailTemplates/seller/kycRejectedEmail';
 import { viewsMilestoneEmail } from '../../utils/emailTemplates/seller/viewsMilestoneEmail';
 import { uploadLimitReachedEmail } from '../../utils/emailTemplates/seller/uploadLimitReachedEmail';
 import { uploadLimitFullEmail } from '../../utils/emailTemplates/seller/uploadLimitFullEmail';
@@ -47,6 +48,10 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
   kyc_revoked: {
     gate: 'always',
     build: (_, name, { businessName }) => kycVerificationEmail(name, businessName ?? name, false),
+  },
+  kyc_rejected: {
+    gate: 'always',
+    build: ({ documents, reason }, name) => kycRejectedEmail(name, documents, reason),
   },
   views_milestone: {
     gate: 'always',

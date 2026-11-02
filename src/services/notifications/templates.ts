@@ -18,6 +18,7 @@ export interface TemplateParamsMap {
   kyc_pending: Record<string, never>;
   kyc_verified: Record<string, never>;
   kyc_revoked: Record<string, never>;
+  kyc_rejected: { documents: string; reason: string | null };
   views_milestone: { productId: string; productName: string; milestone: number };
   out_of_stock_digest: { count: number };
   seller_inactive: Record<string, never>;
@@ -213,6 +214,14 @@ export const TEMPLATES: TemplateRegistry = {
     build: () => ({
       title: 'Your KYC verification has been revoked',
       body: 'Please contact support or re-submit your KYC documents.',
+      screen: 'kyc',
+    }),
+  },
+  kyc_rejected: {
+    audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: true,
+    build: ({ documents }) => ({
+      title: 'Your KYC documents need attention',
+      body: `Please re-upload: ${documents}`,
       screen: 'kyc',
     }),
   },

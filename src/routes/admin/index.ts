@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
-import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, uploadSellerPhoto, setKycVerification, uploadBrandDocument } from '../../controllers/seller/sellerController';
+import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, uploadSellerPhoto, setKycVerification, rejectKycDocuments, uploadBrandDocument } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import { getMasterCategories, addMasterCategory, editMasterCategory, removeMasterCategory, uploadMasterCategoryIcon } from '../../controllers/admin/masterCategoryController';
 import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
@@ -29,7 +29,7 @@ import upload, { uploadIcon, uploadDocument } from '../../middleware/upload';
 import { requireAdmin, requireSuperAdmin, requirePermission } from '../../middleware/auth';
 import { verifyRecaptcha } from '../../middleware/recaptcha';
 import { adminLoginSchema, forgotPasswordSchema, resetPasswordSchema } from '../../validation/admin/adminSchemas';
-import { createSellerSchema, adminUpdateSellerSchema, updateSellerBrandsSchema } from '../../validation/seller/sellerSchemas';
+import { createSellerSchema, adminUpdateSellerSchema, updateSellerBrandsSchema, rejectKycDocumentsSchema } from '../../validation/seller/sellerSchemas';
 import { createCategorySchema, updateCategorySchema } from '../../validation/admin/categorySchemas';
 import { createMasterCategorySchema, updateMasterCategorySchema } from '../../validation/admin/masterCategorySchemas';
 import { createBrandSchema, updateBrandSchema } from '../../validation/admin/brandSchemas';
@@ -80,6 +80,7 @@ router.put   ('/sellers/:id',         requireAdmin, requirePermission('sellers',
 router.patch ('/sellers/:id/status',  requireAdmin, requirePermission('sellers', 'edit'),   patchSellerStatus);
 router.post  ('/sellers/:id/kyc/documents', requireAdmin, requirePermission('sellers', 'edit'), upload.single('document'), uploadKycDocument);
 router.patch ('/sellers/:id/kyc/verify',    requireAdmin, requirePermission('sellers', 'edit'), setKycVerification);
+router.post  ('/sellers/:id/kyc/reject',    requireAdmin, requirePermission('sellers', 'edit'), validate(rejectKycDocumentsSchema), rejectKycDocuments);
 router.patch ('/sellers/:id/brands',        requireAdmin, requireSuperAdmin, validate(updateSellerBrandsSchema), patchSellerBrands);
 router.post  ('/sellers/:id/brands/:brandId/documents', requireAdmin, requireSuperAdmin, uploadDocument.single('document'), uploadBrandDocument);
 

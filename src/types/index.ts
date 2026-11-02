@@ -73,6 +73,12 @@ export interface KycDocuments {
   other: string | null;
 }
 
+export interface KycRejection {
+  documentTypes: KycDocumentType[];
+  reason: string | null;
+  rejectedAt: string;
+}
+
 export type BrandDocumentType = 'certification' | 'other';
 
 export interface BrandDocumentSet {
