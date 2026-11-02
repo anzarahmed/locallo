@@ -43,8 +43,22 @@ export const ROLE_BADGE_CLASSES: Record<string, string> = {
   operator: 'bg-violet-100 text-violet-700',
 };
 
-export const KYC_DOCS: { type: KycDocumentType; label: string; required: boolean }[] = [
-  { type: 'aadhar',                  label: 'Aadhar Card',              required: true },
+export type AadhaarSide = 'aadhar' | 'aadharBack';
+
+export const AADHAAR_SIDES: { type: AadhaarSide; label: string }[] = [
+  { type: 'aadhar',     label: 'Front side' },
+  { type: 'aadharBack', label: 'Back side' },
+];
+
+export const KYC_DOC_LABELS: Record<KycDocumentType, string> = {
+  aadhar:                  'Aadhaar Card — Front',
+  aadharBack:              'Aadhaar Card — Back',
+  pan:                     'PAN Card',
+  registrationCertificate: 'Registration Certificate',
+  other:                   'Other Document',
+};
+
+export const KYC_DOCS: { type: Exclude<KycDocumentType, AadhaarSide>; label: string; required: boolean }[] = [
   { type: 'pan',                     label: 'PAN Card',                 required: true },
   { type: 'registrationCertificate', label: 'Registration Certificate', required: false },
   { type: 'other',                   label: 'Other Document',           required: false },

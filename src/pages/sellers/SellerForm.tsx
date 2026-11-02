@@ -17,7 +17,8 @@ import type { Seller } from '../../services/sellerService';
 import { getCategories } from '../../services/categoryService';
 import { requestMobileOtp } from '../../services/mobileVerificationService';
 import type { Category, KycDocumentType } from '../../types';
-import { KYC_DOCS } from '../../lib/constants';
+import { KYC_DOCS, KYC_DOC_LABELS } from '../../lib/constants';
+import AadhaarDocCard from './AadhaarDocCard';
 import { ApiError } from '../../lib/axios';
 import { useToast } from '../../hooks/useToast';
 import {
@@ -385,7 +386,7 @@ export default function SellerForm(): JSX.Element {
   const [kycFiles, setKycFiles] = useState<Partial<Record<KycDocumentType, File>>>({});
   const [captureFor, setCaptureFor] = useState<KycDocumentType | null>(null);
   const kycFileInputRefs = useRef<Record<KycDocumentType, HTMLInputElement | null>>({
-    aadhar: null, pan: null, registrationCertificate: null, other: null,
+    aadhar: null, aadharBack: null, pan: null, registrationCertificate: null, other: null,
   });
 
   useEffect((): void => {
@@ -772,6 +773,17 @@ export default function SellerForm(): JSX.Element {
               hint="Optional — upload now, or later from Edit Seller"
             >
               <div className="space-y-2">
+                <AadhaarDocCard
+                  sides={{
+                    aadhar:     { url: seller?.profile?.kycDocuments?.aadhar ?? null,     stagedFile: kycFiles.aadhar },
+                    aadharBack: { url: seller?.profile?.kycDocuments?.aadharBack ?? null, stagedFile: kycFiles.aadharBack },
+                  }}
+                  disabled={f.isSubmitting}
+                  onFile={stageKycFile}
+                  onCapture={(side): void => { setCaptureFor(side); }}
+                  onClear={handleKycFileClear}
+                  required={false}
+                />
                 {KYC_DOCS.map(({ type, label }) => (
                   <KycDocRow
                     key={type}
@@ -791,7 +803,7 @@ export default function SellerForm(): JSX.Element {
 
             <CameraCaptureModal
               isOpen={captureFor !== null}
-              title={`Capture ${KYC_DOCS.find(d => d.type === captureFor)?.label ?? 'Document'}`}
+              title={`Capture ${captureFor ? KYC_DOC_LABELS[captureFor] : 'Document'}`}
               onCapture={(file): void => {
                 if (captureFor) stageKycFile(captureFor, file);
                 setCaptureFor(null);

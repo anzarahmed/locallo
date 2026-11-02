@@ -3,10 +3,11 @@ export type PermissionModule = 'sellers' | 'categories' | 'masterCategories' | '
 export type PermissionAction = 'list' | 'view' | 'add' | 'edit' | 'delete';
 export type PermissionMap = Partial<Record<PermissionModule, PermissionAction[]>>;
 export type SellerStatus = 'active' | 'inactive' | 'pending';
-export type KycDocumentType = 'aadhar' | 'pan' | 'registrationCertificate' | 'other';
+export type KycDocumentType = 'aadhar' | 'aadharBack' | 'pan' | 'registrationCertificate' | 'other';
 
 export interface KycDocuments {
   aadhar: string | null;
+  aadharBack: string | null;
   pan: string | null;
   registrationCertificate: string | null;
   other: string | null;

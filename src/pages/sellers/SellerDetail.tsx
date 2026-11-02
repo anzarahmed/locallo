@@ -3,14 +3,16 @@ import { useNavigate } from 'react-router-dom';
 import {
   X, Phone, Mail, MapPin, Store, Clock,
   Pencil, ToggleLeft, ToggleRight, Loader2,
-  ShieldCheck, ShieldAlert, Upload, Camera, ExternalLink,
+  ShieldCheck, ShieldAlert, Upload, Camera, ExternalLink, Check, XCircle,
 } from 'lucide-react';
 import { getSellerById, toggleSellerStatus, uploadKycDocument, setKycVerification, type Seller } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import type { WorkingHours, KycDocumentType } from '../../types';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { getInitials, getAvatarColor } from '../../lib/avatar';
-import { KYC_DOCS } from '../../lib/constants';
+import { KYC_DOCS, KYC_DOC_LABELS } from '../../lib/constants';
+import { hasRequiredKycDocuments } from '../../lib/kyc';
+import AadhaarDocCard from './AadhaarDocCard';
 import CameraCaptureModal from '../../components/ui/CameraCaptureModal';
 
 function KycStatusBadge({ verified }: { verified: boolean }): JSX.Element {
@@ -84,6 +86,25 @@ function SellerDetailSkeleton(): JSX.Element {
   );
 }
 
+interface KycChecklistItem {
+  label: string;
+  done: boolean;
+}
+
+function KycChecklist({ items }: { items: KycChecklistItem[] }): JSX.Element {
+  return (
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 px-1 text-xs">
+      <span className="text-gray-500">Required to verify:</span>
+      {items.map(({ label, done }) => (
+        <span key={label} className={`inline-flex items-center gap-1 ${done ? 'text-emerald-700' : 'text-amber-700'}`}>
+          {done ? <Check className="w-3 h-3" /> : <XCircle className="w-3 h-3" />}
+          {label}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDetailProps): JSX.Element {
   const navigate = useNavigate();
   const toast = useToast();
@@ -95,6 +116,7 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
   const [captureFor, setCaptureFor] = useState<KycDocumentType | null>(null);
   const fileInputRefs = useRef<Record<KycDocumentType, HTMLInputElement | null>>({
     aadhar: null,
+    aadharBack: null,
     pan: null,
     registrationCertificate: null,
     other: null,
@@ -107,6 +129,8 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
       .catch((): void => { toast.error('Failed to load seller'); onClose(); })
       .finally((): void => { setLoading(false); });
   }, [sellerId]);
+
+  const kycReady = hasRequiredKycDocuments(seller?.profile?.kycDocuments);
 
   async function handleToggle(): Promise<void> {
     if (!seller) return;
@@ -155,7 +179,7 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
       onToggled(updated);
       toast.success(verified ? 'Seller verified' : 'Verification revoked');
     } catch {
-      toast.error(verified ? 'Aadhar and PAN are required before verification' : 'Failed to revoke verification');
+      toast.error(verified ? 'Aadhaar (front and back) and PAN are required before verification' : 'Failed to revoke verification');
     } finally {
       setVerifying(false);
     }
@@ -286,6 +310,16 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
                       <KycStatusBadge verified={seller.profile.isVerified} />
                     </div>
                     <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-2">
+                      <AadhaarDocCard
+                        sides={{
+                          aadhar:     { url: seller.profile.kycDocuments?.aadhar ?? null },
+                          aadharBack: { url: seller.profile.kycDocuments?.aadharBack ?? null },
+                        }}
+                        uploadingSide={uploadingType === 'aadhar' || uploadingType === 'aadharBack' ? uploadingType : null}
+                        disabled={uploadingType !== null}
+                        onFile={(side, file): void => { void uploadKycFile(side, file); }}
+                        onCapture={(side): void => { setCaptureFor(side); }}
+                      />
                       {KYC_DOCS.map(({ type, label, required }) => {
                         const url = seller.profile!.kycDocuments?.[type] ?? null;
                         const isUploading = uploadingType === type;
@@ -341,11 +375,21 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
                         );
                       })}
 
+                      {!seller.profile.isVerified && !kycReady && (
+                        <KycChecklist
+                          items={[
+                            { label: 'Aadhaar front', done: Boolean(seller.profile.kycDocuments?.aadhar) },
+                            { label: 'Aadhaar back',  done: Boolean(seller.profile.kycDocuments?.aadharBack) },
+                            { label: 'PAN',           done: Boolean(seller.profile.kycDocuments?.pan) },
+                          ]}
+                        />
+                      )}
+
                       <button
                         type="button"
-                        disabled={verifying || (!seller.profile.isVerified && (!seller.profile.kycDocuments?.aadhar || !seller.profile.kycDocuments?.pan))}
+                        disabled={verifying || (!seller.profile.isVerified && !kycReady)}
                         onClick={(): void => { void handleKycVerify(!seller.profile!.isVerified); }}
-                        title={!seller.profile.isVerified && (!seller.profile.kycDocuments?.aadhar || !seller.profile.kycDocuments?.pan) ? 'Upload Aadhar and PAN before verifying' : undefined}
+                        title={!seller.profile.isVerified && !kycReady ? 'Upload both sides of Aadhaar and PAN before verifying' : undefined}
                         className={`w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-xl disabled:opacity-50 transition-colors ${
                           seller.profile.isVerified
                             ? 'text-gray-700 border border-gray-200 hover:bg-gray-100'
@@ -424,7 +468,7 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
 
       <CameraCaptureModal
         isOpen={captureFor !== null}
-        title={`Capture ${KYC_DOCS.find(d => d.type === captureFor)?.label ?? 'Document'}`}
+        title={`Capture ${captureFor ? KYC_DOC_LABELS[captureFor] : 'Document'}`}
         onCapture={(file): void => {
           if (captureFor) void uploadKycFile(captureFor, file);
           setCaptureFor(null);
