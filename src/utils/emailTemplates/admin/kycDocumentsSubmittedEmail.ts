@@ -8,9 +8,10 @@ export interface KycSubmittedSeller {
   mobile: string;
 }
 
-function adminPanelUrl(path: string): string {
-  const base = (process.env.ADMIN_PANEL_URL ?? 'http://localhost:5173').replace(/\/+$/, '');
-  return `${base}${path}`;
+// ADMIN_PANEL_URL may be set with or without the /admin base path; normalise to the site root.
+function sellerEditUrl(sellerId: string): string {
+  const root = (process.env.ADMIN_PANEL_URL ?? 'http://localhost:5173').replace(/\/+$/, '').replace(/\/admin$/, '');
+  return `${root}/admin/sellers/${encodeURIComponent(sellerId)}/edit`;
 }
 
 export function kycDocumentsSubmittedEmail(adminName: string, seller: KycSubmittedSeller): EmailContent {
@@ -25,6 +26,6 @@ export function kycDocumentsSubmittedEmail(adminName: string, seller: KycSubmitt
       { label: 'Owner', value: seller.ownerName ?? '—' },
       { label: 'Mobile', value: seller.mobile },
     ],
-    cta: { label: 'REVIEW DOCUMENTS', url: adminPanelUrl(`/sellers?view=${encodeURIComponent(seller.id)}`) },
+    cta: { label: 'REVIEW DOCUMENTS', url: sellerEditUrl(seller.id) },
   });
 }
