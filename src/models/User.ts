@@ -76,7 +76,7 @@ export class User extends Model {
   @Column(DataType.DATE)
   declare firstLoginAt: Date | null;
 
-  @Default(false)
+  @Default(true)
   @AllowNull(false)
   @Column(DataType.BOOLEAN)
   declare promotionalPush: boolean;

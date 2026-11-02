@@ -263,6 +263,19 @@ export function notifySafely<T extends NotificationType>(
   );
 }
 
+// The welcome row is created during verify-OTP, before the app can register a push
+// token, so it is stored as skipped and queued here on the first token registration.
+export async function queueWelcomePush(userId: string): Promise<void> {
+  await sequelize.query(
+    `UPDATE notifications
+        SET push_status = 'pending', send_after = NOW()
+      WHERE user_id = :userId AND type = 'welcome_customer'
+        AND push_status = 'skipped' AND push_attempts = 0
+        AND created_at > NOW() - INTERVAL '24 hours'`,
+    { replacements: { userId } },
+  );
+}
+
 export async function removeNotificationsOfType(userId: string, type: NotificationType): Promise<void> {
   await Notification.destroy({ where: { customerId: userId, type } });
 }

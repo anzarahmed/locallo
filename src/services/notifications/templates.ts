@@ -67,7 +67,7 @@ function formatViews(n: number): string {
 
 export const TEMPLATES: TemplateRegistry = {
   welcome_customer: {
-    audience: 'customer', pushClass: 'transactional', channel: 'transactional', push: false,
+    audience: 'customer', pushClass: 'transactional', channel: 'transactional', push: true,
     build: () => ({
       title: 'Welcome to Loccalo!',
       body: 'Join, support & discover amazing local sellers. Shop now.',
