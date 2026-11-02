@@ -4,6 +4,7 @@ import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { SellerProfile } from '../../models/SellerProfile';
 import { hasVisibleVariantsSql, inStockSql } from './productService';
+import { snapshotWishlistStock } from '../notifications/scheduledNotifications';
 
 const LIST_ATTRIBUTES = ['id', 'name', 'mrp', 'sellingPrice', 'images', 'sellerId', 'categoryId'];
 const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'stock', 'sellingPrice', 'mrp', 'isActive'];
@@ -54,7 +55,8 @@ export async function toggleWishlist(
     throw Object.assign(new Error('Product not found'), { status: 404 });
   }
 
-  await Wishlist.create({ customerId, productId, variantId: variantId ?? null });
+  const created = await Wishlist.create({ customerId, productId, variantId: variantId ?? null });
+  await snapshotWishlistStock(created.id);
   return true;
 }
 

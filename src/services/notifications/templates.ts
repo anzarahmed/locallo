@@ -108,7 +108,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   wishlist_out_of_stock: {
-    audience: 'customer', pushClass: 'transactional', channel: 'wishlist', push: false,
+    audience: 'customer', pushClass: 'transactional', channel: 'wishlist', push: true,
     build: ({ productId, variantId, productName }) => ({
       title: 'Out of stock',
       body: `${productName} from your wishlist is out of stock right now. We'll let you know when it's back.`,

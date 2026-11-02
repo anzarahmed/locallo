@@ -160,6 +160,21 @@ interface WishlistStockRow {
   visible: boolean;
 }
 
+// Without a baseline at save time, a stock change before the next sync would be
+// recorded silently as the first state instead of notified.
+export async function snapshotWishlistStock(wishlistId: string): Promise<void> {
+  await sequelize.query(
+    `UPDATE wishlists SET in_stock = (
+       SELECT ${WISHLIST_IN_STOCK_SQL}
+         FROM wishlists w
+         JOIN products p ON p.id = w.product_id
+         LEFT JOIN product_variants v ON v.id = w.variant_id
+        WHERE w.id = :id)
+      WHERE id = :id`,
+    { replacements: { id: wishlistId } },
+  );
+}
+
 // Compares each wishlist row's last seen stock state with the current one, so every
 // stock path (sales, purchases, edits, variant toggles) is covered without hooks.
 export async function syncWishlistStock(now: Date = new Date()): Promise<void> {
