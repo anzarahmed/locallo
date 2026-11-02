@@ -72,7 +72,8 @@ export async function verifyCustomerOtp(
   }
 
   const isNewUser = !user.isVerified;
-  const accountRestored = Boolean(user.deletionRequestedAt);
+  const deletionRequestedAt = user.deletionRequestedAt;
+  const accountRestored = Boolean(deletionRequestedAt);
   const isFirstLogin = !user.firstLoginAt;
 
   await user.update({
@@ -87,6 +88,11 @@ export async function verifyCustomerOtp(
 
   const token = await createUserSession(user.id, 'CUSTOMER', data.deviceId, data.deviceType);
   if (isFirstLogin) await notifySafely(user.id, 'welcome_customer', {}, { dedupeKey: `welcome_customer:${user.id}` });
+  if (deletionRequestedAt) {
+    await notifySafely(user.id, 'welcome_back_customer', { name: user.fullName ?? '' }, {
+      dedupeKey: `welcome_back_customer:${user.id}:${new Date(deletionRequestedAt).getTime()}`,
+    });
+  }
 
   return {
     token,

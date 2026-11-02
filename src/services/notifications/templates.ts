@@ -4,6 +4,7 @@ export type NotificationAudience = 'customer' | 'seller';
 
 export interface TemplateParamsMap {
   welcome_customer: Record<string, never>;
+  welcome_back_customer: { name: string };
   welcome_seller: Record<string, never>;
   seller_registered: Record<string, never>;
   profile_incomplete: Record<string, never>;
@@ -71,6 +72,14 @@ export const TEMPLATES: TemplateRegistry = {
     build: () => ({
       title: 'Welcome to Loccalo!',
       body: 'Join, support & discover amazing local sellers. Shop now.',
+      screen: 'home',
+    }),
+  },
+  welcome_back_customer: {
+    audience: 'customer', pushClass: 'transactional', channel: 'transactional', push: true,
+    build: ({ name }) => ({
+      title: name.trim() ? `Welcome back ${name.trim()}!` : 'Welcome back!',
+      body: 'Explore & support the domestic sellers.',
       screen: 'home',
     }),
   },

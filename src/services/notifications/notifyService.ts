@@ -103,7 +103,7 @@ async function resolvePushEligible<P>(
 ): Promise<Set<string>> {
   if (!template.push || !isPushConfigured() || userIds.length === 0) return new Set();
   // Created at verify-OTP before any token exists; queueWelcomePush queues it on the first token registration.
-  if (type === 'welcome_customer') return new Set();
+  if (type === 'welcome_customer' || type === 'welcome_back_customer') return new Set();
 
   // Devices are resolved at send time by pushDispatchJob: a token registered after the
   // row is created must still receive it.
@@ -262,7 +262,7 @@ export async function queueWelcomePush(userId: string): Promise<void> {
   await sequelize.query(
     `UPDATE notifications
         SET push_status = 'pending', send_after = NOW()
-      WHERE user_id = :userId AND type = 'welcome_customer'
+      WHERE user_id = :userId AND type IN ('welcome_customer', 'welcome_back_customer')
         AND push_status = 'skipped' AND push_attempts = 0
         AND created_at > NOW() - INTERVAL '24 hours'`,
     { replacements: { userId } },

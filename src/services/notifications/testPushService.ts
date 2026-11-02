@@ -5,6 +5,7 @@ import { Offer } from '../../models/Offer';
 import { Product } from '../../models/Product';
 import { ProductBoost } from '../../models/ProductBoost';
 import { Session } from '../../models/Session';
+import { User } from '../../models/User';
 import { Wishlist } from '../../models/Wishlist';
 import { getSellerLimits } from '../seller/productLimitService';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
@@ -90,6 +91,7 @@ async function sampleBoost(userId: string): Promise<SampleBoost> {
 
 const SAMPLE_PARAMS: SampleBuilders = {
   welcome_customer: async () => ({}),
+  welcome_back_customer: async (userId) => ({ name: (await User.findByPk(userId))?.fullName ?? 'Customer' }),
   welcome_seller: async () => ({}),
   seller_registered: async () => ({}),
   profile_incomplete: async () => ({}),
