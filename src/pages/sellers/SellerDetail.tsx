@@ -10,9 +10,8 @@ import { useToast } from '../../hooks/useToast';
 import type { WorkingHours, KycDocumentType } from '../../types';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { getInitials, getAvatarColor } from '../../lib/avatar';
-import { KYC_DOCS, KYC_DOC_LABELS } from '../../lib/constants';
+import { KYC_DOCS } from '../../lib/constants';
 import { hasRequiredKycDocuments } from '../../lib/kyc';
-import AadhaarDocCard from './AadhaarDocCard';
 import CameraCaptureModal from '../../components/ui/CameraCaptureModal';
 
 function KycStatusBadge({ verified }: { verified: boolean }): JSX.Element {
@@ -310,16 +309,6 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
                       <KycStatusBadge verified={seller.profile.isVerified} />
                     </div>
                     <div className="bg-gray-50 border border-gray-100 rounded-xl p-3 space-y-2">
-                      <AadhaarDocCard
-                        sides={{
-                          aadhar:     { url: seller.profile.kycDocuments?.aadhar ?? null },
-                          aadharBack: { url: seller.profile.kycDocuments?.aadharBack ?? null },
-                        }}
-                        uploadingSide={uploadingType === 'aadhar' || uploadingType === 'aadharBack' ? uploadingType : null}
-                        disabled={uploadingType !== null}
-                        onFile={(side, file): void => { void uploadKycFile(side, file); }}
-                        onCapture={(side): void => { setCaptureFor(side); }}
-                      />
                       {KYC_DOCS.map(({ type, label, required }) => {
                         const url = seller.profile!.kycDocuments?.[type] ?? null;
                         const isUploading = uploadingType === type;
@@ -468,7 +457,7 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
 
       <CameraCaptureModal
         isOpen={captureFor !== null}
-        title={`Capture ${captureFor ? KYC_DOC_LABELS[captureFor] : 'Document'}`}
+        title={`Capture ${KYC_DOCS.find(d => d.type === captureFor)?.label ?? 'Document'}`}
         onCapture={(file): void => {
           if (captureFor) void uploadKycFile(captureFor, file);
           setCaptureFor(null);

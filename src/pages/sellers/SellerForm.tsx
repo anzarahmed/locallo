@@ -17,8 +17,7 @@ import type { Seller } from '../../services/sellerService';
 import { getCategories } from '../../services/categoryService';
 import { requestMobileOtp } from '../../services/mobileVerificationService';
 import type { Category, KycDocumentType } from '../../types';
-import { KYC_DOCS, KYC_DOC_LABELS } from '../../lib/constants';
-import AadhaarDocCard from './AadhaarDocCard';
+import { KYC_DOCS } from '../../lib/constants';
 import { ApiError } from '../../lib/axios';
 import { useToast } from '../../hooks/useToast';
 import {
@@ -773,17 +772,6 @@ export default function SellerForm(): JSX.Element {
               hint="Optional — upload now, or later from Edit Seller"
             >
               <div className="space-y-2">
-                <AadhaarDocCard
-                  sides={{
-                    aadhar:     { url: seller?.profile?.kycDocuments?.aadhar ?? null,     stagedFile: kycFiles.aadhar },
-                    aadharBack: { url: seller?.profile?.kycDocuments?.aadharBack ?? null, stagedFile: kycFiles.aadharBack },
-                  }}
-                  disabled={f.isSubmitting}
-                  onFile={stageKycFile}
-                  onCapture={(side): void => { setCaptureFor(side); }}
-                  onClear={handleKycFileClear}
-                  required={false}
-                />
                 {KYC_DOCS.map(({ type, label }) => (
                   <KycDocRow
                     key={type}
@@ -803,7 +791,7 @@ export default function SellerForm(): JSX.Element {
 
             <CameraCaptureModal
               isOpen={captureFor !== null}
-              title={`Capture ${captureFor ? KYC_DOC_LABELS[captureFor] : 'Document'}`}
+              title={`Capture ${KYC_DOCS.find(d => d.type === captureFor)?.label ?? 'Document'}`}
               onCapture={(file): void => {
                 if (captureFor) stageKycFile(captureFor, file);
                 setCaptureFor(null);
