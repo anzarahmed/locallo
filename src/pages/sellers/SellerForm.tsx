@@ -27,6 +27,7 @@ import {
   type Day,
   COUNTRY_CODES,
   DEFAULT_WORKING_HOURS,
+  normalizeWorkingHours,
 } from './sellerSchemas';
 
 type DayFieldErrors  = Partial<{ open: string; close: string }>;
@@ -419,7 +420,7 @@ export default function SellerForm(): JSX.Element {
       mobile:       seller.mobile,
       categoryIds:  p?.categoryIds ?? [],
       bio:          p?.bio ?? '',
-      workingHours: p?.workingHours ?? DEFAULT_WORKING_HOURS,
+      workingHours: normalizeWorkingHours(p?.workingHours),
       latitude:     Number(p?.lat ?? 28.6139),
       longitude:    Number(p?.long ?? 77.2090),
       address:      p?.address ?? '',

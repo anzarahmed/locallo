@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, type JSX } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, Pencil, Trash2, Power, Eye, Package, ShieldCheck, ShieldAlert, Tags } from 'lucide-react';
 import { type ColumnDef, type Row, type SortingState, type ColumnFiltersState } from '@tanstack/react-table';
 import DataGrid from '../../components/ui/DataGrid';
@@ -60,7 +60,8 @@ export default function SellerList(): JSX.Element {
   const [deleteId, setDeleteId]   = useState<string | null>(null);
   const [toggleId, setToggleId]   = useState<string | null>(null);
   const [toggling, setToggling]   = useState(false);
-  const [viewId, setViewId]       = useState<string | null>(null);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [viewId, setViewId]       = useState<string | null>(() => searchParams.get('view'));
   const [brandsSellerId, setBrandsSellerId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -356,7 +357,10 @@ export default function SellerList(): JSX.Element {
       {viewId !== null && (
         <SellerDetail
           sellerId={viewId}
-          onClose={() => setViewId(null)}
+          onClose={() => {
+            setViewId(null);
+            if (searchParams.has('view')) setSearchParams({}, { replace: true });
+          }}
           onToggled={(updated) => {
             setSellers(list => list.map(s => s.id === updated.id ? { ...s, isActive: updated.isActive, profile: updated.profile } : s));
           }}

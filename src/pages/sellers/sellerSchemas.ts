@@ -73,3 +73,23 @@ export const DEFAULT_WORKING_HOURS: SellerFormValues['workingHours'] = {
   saturday:  { ...openDay },
   sunday:    { isClosed: true, open: '', close: '' },
 };
+
+type DayHours = SellerFormValues['workingHours'][Day];
+
+// Stored hours can be {} or miss days (older/admin-created sellers); fill each gap from the defaults.
+export function normalizeWorkingHours(raw: unknown): SellerFormValues['workingHours'] {
+  const source = raw !== null && typeof raw === 'object' ? (raw as Partial<Record<Day, Partial<DayHours> | null>>) : {};
+  const result = { ...DEFAULT_WORKING_HOURS };
+  for (const day of DAYS) {
+    const stored = source[day];
+    const fallback = DEFAULT_WORKING_HOURS[day];
+    result[day] = stored && typeof stored === 'object'
+      ? {
+          isClosed: typeof stored.isClosed === 'boolean' ? stored.isClosed : fallback.isClosed,
+          open:     stored.open ?? fallback.open,
+          close:    stored.close ?? fallback.close,
+        }
+      : { ...fallback };
+  }
+  return result;
+}
