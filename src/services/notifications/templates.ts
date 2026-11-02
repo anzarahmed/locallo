@@ -148,7 +148,7 @@ export const TEMPLATES: TemplateRegistry = {
     audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true,
     build: ({ offerId, offerTitle }) => ({
       title: 'Big sale alert!',
-      body: `${offerTitle} starts tomorrow. Get your wishlist ready.`,
+      body: 'Deals drop tomorrow. Prepare your wishlist.',
       screen: 'offers',
       targetId: String(offerId),
       dataTitle: offerTitle,
