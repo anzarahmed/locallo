@@ -9,7 +9,7 @@ import type { SellerProfile } from '../../models/SellerProfile';
 import type { KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
 import { saveImage, getPresignedUrl, getPresignedUrlOrNull, getS3PresignedUrl } from '../../utils/imageStorage';
 import { countUnreadNotifications } from '../../services/customer/notificationService';
-import { KYC_DOCUMENT_TYPES } from '../../utils/kyc';
+import { KYC_DOCUMENT_TYPES, hasRequiredKycDocuments } from '../../utils/kyc';
 
 const BRAND_DOCUMENT_TYPES: BrandDocumentType[] = ['certification', 'other'];
 
@@ -79,7 +79,11 @@ export async function getProfile(req: Request, res: Response): Promise<void> {
     const categories = await resolveCats(profile.categoryIds ?? []);
     const response = await buildSellerResponse(user, profile, categories);
     const unreadNotificationCount = await countUnreadNotifications(req.seller!.id);
-    sendSuccess(res, { ...response, unreadNotificationCount }, 'Profile fetched');
+    sendSuccess(res, {
+      ...response,
+      unreadNotificationCount,
+      requiredDocsUploaded: hasRequiredKycDocuments(profile.kycDocuments),
+    }, 'Profile fetched');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
