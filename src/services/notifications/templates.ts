@@ -94,15 +94,15 @@ export const TEMPLATES: TemplateRegistry = {
     audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true,
     build: () => ({
       title: 'Complete your profile',
-      body: 'Get personalised picks and nearby deals in 1 minute.',
+      body: 'Complete your profile for personalized recommendations & nearby deals',
       screen: 'profile',
     }),
   },
   wishlist_weekly: {
     audience: 'customer', pushClass: 'promotional', channel: 'wishlist', push: true,
     build: ({ count }) => ({
-      title: 'Your wishlist is waiting',
-      body: `You've saved ${count} ${count === 1 ? 'item' : 'items'}. Take another look before they're gone.`,
+      title: '❤️ Your Wishlist Is Waiting!',
+      body: `You've saved ${count} ${count === 1 ? 'product' : 'products'} for 7 days. Take another look before they're gone.`,
       screen: 'wishlist',
       collapseKey: 'wishlist_weekly',
     }),
@@ -111,7 +111,7 @@ export const TEMPLATES: TemplateRegistry = {
     audience: 'customer', pushClass: 'transactional', channel: 'wishlist', push: true,
     build: ({ productId, variantId, productName }) => ({
       title: 'Out of stock',
-      body: `${productName} from your wishlist is out of stock right now. We'll let you know when it's back.`,
+      body: `😢 ${productName} from your wishlist is out of stock right now.`,
       screen: 'product',
       targetId: productId,
       variantId,
@@ -123,8 +123,8 @@ export const TEMPLATES: TemplateRegistry = {
   back_in_stock: {
     audience: 'customer', pushClass: 'transactional', channel: 'wishlist', push: true,
     build: ({ productId, variantId, productName, imageUrl }) => ({
-      title: 'Back in stock!',
-      body: `${productName} is available again. Don't miss it this time.`,
+      title: '😍 Back in Stock!',
+      body: "The product you love is available again. Don't miss your chance this time!",
       screen: 'product',
       targetId: productId,
       variantId,
