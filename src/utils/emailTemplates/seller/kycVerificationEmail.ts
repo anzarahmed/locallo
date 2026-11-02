@@ -14,8 +14,8 @@ export function kycVerificationEmail(sellerName: string, businessName: string, v
   return renderSellerEmail('Your KYC verification has been revoked', {
     sellerName,
     paragraphs: [
-      `Your seller verification for ${businessName} on Loccalo has been revoked. Please contact support or re-submit your KYC documents.`,
+      `Your seller verification for ${businessName} on Loccalo has been revoked. Please review and re-upload your KYC documents using the button below. If you have any questions, contact support.`,
     ],
-    cta: { label: 'VIEW PROFILE', url: sellerPanelUrl('/profile') },
+    cta: { label: 'RE-UPLOAD YOUR DOCUMENTS', url: sellerPanelUrl('/kyc-documents') },
   });
 }
