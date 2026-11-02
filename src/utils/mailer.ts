@@ -42,3 +42,13 @@ export async function sendSellerEmail(to: string, content: EmailContent): Promis
     text: content.text,
   });
 }
+
+export async function sendAdminEmail(to: string, content: EmailContent): Promise<void> {
+  await transporter.sendMail({
+    from: `"Loccalo" <${process.env.GMAIL_USER}>`,
+    to,
+    subject: content.subject,
+    html: content.html,
+    text: content.text,
+  });
+}

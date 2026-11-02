@@ -9,7 +9,7 @@ export function completeKycEmail(sellerName: string): EmailContent {
       'To activate your seller account and access selling features on Loccalo, please complete the required KYC process at the earliest.',
       'Completing your KYC helps us verify your seller information and keep the marketplace secure for buyers and sellers.',
     ],
-    cta: { label: 'COMPLETE KYC', url: sellerPanelUrl('/profile') },
+    cta: { label: 'UPLOAD DOCUMENTS', url: sellerPanelUrl('/kyc-documents') },
     afterCta: ['If you have already completed your KYC, please ignore this email.'],
   });
 }

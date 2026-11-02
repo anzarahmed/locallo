@@ -12,6 +12,7 @@ import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocum
 import { hasRequiredKycDocuments } from '../../utils/kyc';
 import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
 import { notifySafely } from '../notifications/notifyService';
+import { notifyAdminsKycSubmitted } from '../admin/kycReviewNotifier';
 import { isIstDateTodayOrFuture } from '../../utils/istDate';
 import { createDefaultLedgers } from './ledgerService';
 import type { createSellerSchema, updateSellerSchema, updateAddressSchema, adminUpdateSellerSchema } from '../../validation/seller/sellerSchemas';
@@ -453,6 +454,33 @@ export async function uploadSellerKycDocument(
   const kycDocuments: KycDocuments = { ...profile.kycDocuments, [documentType]: key };
   await profile.update({ kycDocuments });
   return kycDocuments;
+}
+
+export async function getOwnKycDocuments(sellerId: string): Promise<{ isVerified: boolean; kycDocuments: KycDocuments }> {
+  const profile = await requireSellerProfile(sellerId);
+  return { isVerified: profile.isVerified, kycDocuments: profile.kycDocuments };
+}
+
+export async function uploadOwnKycDocument(
+  sellerId: string,
+  documentType: KycDocumentType,
+  file: Express.Multer.File,
+): Promise<{ isVerified: boolean; kycDocuments: KycDocuments }> {
+  const profile = await requireSellerProfile(sellerId);
+  if (profile.isVerified) {
+    throw Object.assign(new Error('Your KYC is already verified'), { status: 403 });
+  }
+
+  const wasComplete = hasRequiredKycDocuments(profile.kycDocuments);
+  const kycDocuments = await uploadSellerKycDocument(sellerId, documentType, file);
+
+  if (!wasComplete && hasRequiredKycDocuments(kycDocuments)) {
+    notifyAdminsKycSubmitted(sellerId).catch((err: unknown) => {
+      console.error('uploadOwnKycDocument: failed to notify admins', err);
+    });
+  }
+
+  return { isVerified: false, kycDocuments };
 }
 
 export async function setSellerKycVerification(

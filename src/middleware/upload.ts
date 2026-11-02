@@ -109,4 +109,21 @@ export const uploadDocument = multer({
   },
 });
 
+export function uploadDocumentSingle(field: string) {
+  const middleware = uploadDocument.single(field);
+  return (req: Request, res: Response, next: NextFunction): void => {
+    middleware(req, res, (err: unknown) => {
+      if (err instanceof multer.MulterError && err.code === 'LIMIT_FILE_SIZE') {
+        sendError(res, `Each document must be ${MAX_SIZE_MB} MB or smaller`, 400);
+        return;
+      }
+      if (err) {
+        sendError(res, err instanceof Error ? err.message : 'Document upload failed', 400);
+        return;
+      }
+      next();
+    });
+  };
+}
+
 export default upload;

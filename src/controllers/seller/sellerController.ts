@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, setSellerKycVerification, uploadSellerBrandDocument, requestSellerAccountDeletion, SELLER_DELETION_HOLD_DAYS } from '../../services/seller/sellerService';
+import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, getOwnKycDocuments as fetchOwnKycDocuments, uploadOwnKycDocument as saveOwnKycDocument, setSellerKycVerification, uploadSellerBrandDocument, requestSellerAccountDeletion, SELLER_DELETION_HOLD_DAYS } from '../../services/seller/sellerService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import { Category } from '../../models/Category';
@@ -176,20 +176,45 @@ export async function patchSellerBrands(req: Request, res: Response): Promise<vo
   }
 }
 
+function parseKycUpload(req: Request, res: Response): { documentType: KycDocumentType; file: Express.Multer.File } | null {
+  const documentType = req.body?.documentType as string;
+  if (!KYC_DOCUMENT_TYPES.includes(documentType as KycDocumentType)) {
+    sendError(res, 'Invalid document type', 422);
+    return null;
+  }
+  if (!req.file) {
+    sendError(res, 'Document file is required', 422);
+    return null;
+  }
+  return { documentType: documentType as KycDocumentType, file: req.file };
+}
+
 export async function uploadKycDocument(req: Request, res: Response): Promise<void> {
   try {
-    const documentType = req.body.documentType as string;
-    if (!KYC_DOCUMENT_TYPES.includes(documentType as KycDocumentType)) {
-      sendError(res, 'Invalid document type', 422);
-      return;
-    }
-    if (!req.file) {
-      sendError(res, 'Document file is required', 422);
-      return;
-    }
-
-    const kycDocuments = await uploadSellerKycDocument(req.params.id as string, documentType as KycDocumentType, req.file);
+    const parsed = parseKycUpload(req, res);
+    if (!parsed) return;
+    const kycDocuments = await uploadSellerKycDocument(req.params.id as string, parsed.documentType, parsed.file);
     sendSuccess(res, { kycDocuments: await signKycDocuments(kycDocuments) }, 'Document uploaded');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function getOwnKycDocuments(req: Request, res: Response): Promise<void> {
+  try {
+    const { isVerified, kycDocuments } = await fetchOwnKycDocuments(req.seller!.id);
+    sendSuccess(res, { isVerified, kycDocuments: await signKycDocuments(kycDocuments) }, 'KYC documents fetched');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function uploadOwnKycDocument(req: Request, res: Response): Promise<void> {
+  try {
+    const parsed = parseKycUpload(req, res);
+    if (!parsed) return;
+    const { isVerified, kycDocuments } = await saveOwnKycDocument(req.seller!.id, parsed.documentType, parsed.file);
+    sendSuccess(res, { isVerified, kycDocuments: await signKycDocuments(kycDocuments) }, 'Document uploaded');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }

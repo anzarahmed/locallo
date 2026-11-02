@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { requireSeller } from '../../middleware/auth';
 import { getDashboardStats, getTopProducts as getTopDashboardProducts } from '../../controllers/seller/dashboardController';
-import { getProfile, updateSeller, updateAddress, getSettings, updateSettings, getCustomDayOverride, setCustomDayOverride, clearCustomDayOverride, deleteAccount } from '../../controllers/seller/sellerController';
+import { getProfile, updateSeller, updateAddress, getSettings, updateSettings, getCustomDayOverride, setCustomDayOverride, clearCustomDayOverride, deleteAccount, getOwnKycDocuments, uploadOwnKycDocument } from '../../controllers/seller/sellerController';
 import { requestOtp, verifyOtp, logout } from '../../controllers/seller/sellerAuthController';
 import {
   uploadImage, createProduct, getProducts,
@@ -26,7 +26,7 @@ import { getTestEmailTypes, getTestPushTypes, postAllTestEmails, postTestEmail, 
 import { registerPushTokenSchema } from '../../validation/shared/pushTokenSchemas';
 import { sendTestEmailSchema, sendTestPushSchema } from '../../validation/shared/testPushSchemas';
 import { validate } from '../../middleware/validate';
-import { uploadSingle } from '../../middleware/upload';
+import { uploadSingle, uploadDocumentSingle } from '../../middleware/upload';
 import { updateSellerSchema, updateAddressSchema, updateNotificationSettingsSchema, setCustomDaySchema } from '../../validation/seller/sellerSchemas';
 import { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/sellerAuthSchemas';
 import { createProductSchema, updateProductSchema } from '../../validation/seller/productSchemas';
@@ -67,6 +67,9 @@ router.get('/profile', requireSeller, getProfile);
 router.put('/profile', requireSeller, validate(updateSellerSchema),  updateSeller);
 router.put('/address', requireSeller, validate(updateAddressSchema), updateAddress);
 router.delete('/account', requireSeller, deleteAccount);
+
+router.get('/kyc/documents',  requireSeller, getOwnKycDocuments);
+router.post('/kyc/documents', requireSeller, uploadDocumentSingle('document'), uploadOwnKycDocument);
 
 router.get('/settings', requireSeller, getSettings);
 router.put('/settings', requireSeller, validate(updateNotificationSettingsSchema), updateSettings);
