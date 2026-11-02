@@ -63,10 +63,11 @@ export interface CustomDayOverride {
 export type DayOfWeek = 'sunday' | 'monday' | 'tuesday' | 'wednesday' | 'thursday' | 'friday' | 'saturday';
 export type WorkingHours = Record<DayOfWeek, CustomDayTime>;
 
-export type KycDocumentType = 'aadhar' | 'pan' | 'registrationCertificate' | 'other';
+export type KycDocumentType = 'aadhar' | 'aadharBack' | 'pan' | 'registrationCertificate' | 'other';
 
 export interface KycDocuments {
   aadhar: string | null;
+  aadharBack: string | null;
   pan: string | null;
   registrationCertificate: string | null;
   other: string | null;

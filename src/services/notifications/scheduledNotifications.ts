@@ -324,7 +324,7 @@ export async function sendKycReminders(now: Date = new Date()): Promise<void> {
          FROM users u
          JOIN seller_profiles sp ON sp.user_id = u.id
         WHERE u.role = 'SELLER' AND u.is_active = true AND sp.is_verified = false
-          AND (sp.kyc_documents->>'aadhar' IS NULL OR sp.kyc_documents->>'pan' IS NULL)
+          AND (sp.kyc_documents->>'aadhar' IS NULL OR sp.kyc_documents->>'aadharBack' IS NULL OR sp.kyc_documents->>'pan' IS NULL)
      ) pending
      WHERE days_registered >= 7`,
     { replacements: { now }, type: QueryTypes.SELECT },

@@ -38,7 +38,7 @@ export async function sendKycRemindersTest(now: Date = new Date()): Promise<void
     `SELECT u.id FROM users u
        JOIN seller_profiles sp ON sp.user_id = u.id
       WHERE u.id IN (:ids) AND u.role = 'SELLER' AND u.is_active = true AND sp.is_verified = false
-        AND (sp.kyc_documents->>'aadhar' IS NULL OR sp.kyc_documents->>'pan' IS NULL)
+        AND (sp.kyc_documents->>'aadhar' IS NULL OR sp.kyc_documents->>'aadharBack' IS NULL OR sp.kyc_documents->>'pan' IS NULL)
         AND u.created_at <= :cutoff`,
     { cutoff: new Date(now.getTime() - KYC_INTERVAL_MINUTES * MINUTE_MS) },
   );

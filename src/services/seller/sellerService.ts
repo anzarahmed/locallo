@@ -9,6 +9,7 @@ import { ProductVariant } from '../../models/ProductVariant';
 import { Review } from '../../models/Review';
 import { Session } from '../../models/Session';
 import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../../types';
+import { hasRequiredKycDocuments } from '../../utils/kyc';
 import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
 import { notifySafely } from '../notifications/notifyService';
 import { isIstDateTodayOrFuture } from '../../utils/istDate';
@@ -463,8 +464,8 @@ export async function setSellerKycVerification(
   const statusChanged = profile.isVerified !== verified;
 
   if (verified) {
-    if (!profile.kycDocuments.aadhar || !profile.kycDocuments.pan) {
-      throw Object.assign(new Error('Aadhar and PAN documents are required before verification'), { status: 400 });
+    if (!hasRequiredKycDocuments(profile.kycDocuments)) {
+      throw Object.assign(new Error('Aadhaar (front and back) and PAN are required before verification'), { status: 400 });
     }
     await profile.update({ isVerified: true, verifiedBy: adminId, verifiedAt: new Date() });
   } else {

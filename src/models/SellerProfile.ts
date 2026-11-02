@@ -117,7 +117,7 @@ export class SellerProfile extends Model {
   @Column(DataType.DATE)
   declare verifiedAt: Date | null;
 
-  @Default({ aadhar: null, pan: null, registrationCertificate: null, other: null })
+  @Default({ aadhar: null, aadharBack: null, pan: null, registrationCertificate: null, other: null })
   @AllowNull(false)
   @Column(DataType.JSONB)
   declare kycDocuments: KycDocuments;
