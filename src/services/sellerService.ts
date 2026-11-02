@@ -1,6 +1,6 @@
 import { apiPost, apiGet, apiPut, apiPatch } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { WorkingHours, KycDocumentType, KycDocuments, BrandDocumentType, BrandDocuments } from '../types';
+import type { WorkingHours, KycDocumentType, KycDocuments, KycRejection, BrandDocumentType, BrandDocuments } from '../types';
 import type { SellerFormValues } from '../pages/sellers/sellerSchemas';
 
 interface CreateSellerResponse {
@@ -29,6 +29,7 @@ export interface SellerProfile {
   isVerified: boolean;
   verifiedAt: string | null;
   kycDocuments: KycDocuments;
+  kycRejection: KycRejection | null;
   brandDocuments: BrandDocuments;
 }
 
@@ -119,11 +120,20 @@ export function toggleSellerStatus(id: string): Promise<{ id: string; isActive: 
   return apiPatch<{ id: string; isActive: boolean }>(PATHS.SELLERS.STATUS(id), {});
 }
 
-export function uploadKycDocument(id: string, documentType: KycDocumentType, file: File): Promise<{ kycDocuments: KycDocuments }> {
+export interface KycStateResponse {
+  kycDocuments: KycDocuments;
+  kycRejection: KycRejection | null;
+}
+
+export function uploadKycDocument(id: string, documentType: KycDocumentType, file: File): Promise<KycStateResponse> {
   const form = new FormData();
   form.append('documentType', documentType);
   form.append('document', file);
-  return apiPost<{ kycDocuments: KycDocuments }>(PATHS.SELLERS.KYC_DOCUMENTS(id), form);
+  return apiPost<KycStateResponse>(PATHS.SELLERS.KYC_DOCUMENTS(id), form);
+}
+
+export function rejectKycDocuments(id: string, documentTypes: KycDocumentType[], reason: string): Promise<KycStateResponse> {
+  return apiPost<KycStateResponse>(PATHS.SELLERS.KYC_REJECT(id), { documentTypes, reason: reason.trim() || null });
 }
 
 export function setKycVerification(id: string, verified: boolean): Promise<{ isVerified: boolean; verifiedBy: string | null; verifiedAt: string | null }> {

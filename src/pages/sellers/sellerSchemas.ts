@@ -93,3 +93,12 @@ export function normalizeWorkingHours(raw: unknown): SellerFormValues['workingHo
   }
   return result;
 }
+
+export const rejectKycSchema = Yup.object({
+  documentTypes: Yup.array()
+    .of(Yup.string().oneOf(['aadhar', 'aadharBack', 'pan', 'registrationCertificate', 'other'] as const).required())
+    .min(1, 'Select at least one document')
+    .required(),
+  reason: Yup.string().trim().max(500, 'Reason must be at most 500 characters').default(''),
+});
+export type RejectKycFormValues = Yup.InferType<typeof rejectKycSchema>;

@@ -7,12 +7,14 @@ import {
 } from 'lucide-react';
 import { getSellerById, toggleSellerStatus, uploadKycDocument, setKycVerification, type Seller } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
-import type { WorkingHours, KycDocumentType } from '../../types';
+import type { WorkingHours, KycDocumentType, KycRejection } from '../../types';
 import StatusBadge from '../../components/ui/StatusBadge';
 import { getInitials, getAvatarColor } from '../../lib/avatar';
 import { KYC_DOCS } from '../../lib/constants';
 import { hasRequiredKycDocuments } from '../../lib/kyc';
 import CameraCaptureModal from '../../components/ui/CameraCaptureModal';
+import { formatDate } from '../../lib/dateFormat';
+import RejectKycModal from './RejectKycModal';
 
 function KycStatusBadge({ verified }: { verified: boolean }): JSX.Element {
   const colors = verified
@@ -85,6 +87,17 @@ function SellerDetailSkeleton(): JSX.Element {
   );
 }
 
+function KycRejectionNote({ rejection }: { rejection: KycRejection }): JSX.Element {
+  const labels = rejection.documentTypes.map(type => KYC_DOCS.find(d => d.type === type)?.label ?? type);
+  return (
+    <div className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2">
+      <p className="font-medium">Rejected on {formatDate(rejection.rejectedAt)}: {labels.join(', ')}</p>
+      {rejection.reason && <p className="mt-0.5">Reason: {rejection.reason}</p>}
+      <p className="mt-0.5 text-amber-700">Waiting for the seller to re-upload.</p>
+    </div>
+  );
+}
+
 interface KycChecklistItem {
   label: string;
   done: boolean;
@@ -113,6 +126,7 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
   const [uploadingType, setUploadingType] = useState<KycDocumentType | null>(null);
   const [verifying, setVerifying] = useState(false);
   const [captureFor, setCaptureFor] = useState<KycDocumentType | null>(null);
+  const [rejecting, setRejecting] = useState(false);
   const fileInputRefs = useRef<Record<KycDocumentType, HTMLInputElement | null>>({
     aadhar: null,
     aadharBack: null,
@@ -130,6 +144,7 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
   }, [sellerId]);
 
   const kycReady = hasRequiredKycDocuments(seller?.profile?.kycDocuments);
+  const hasAnyKycDocument = KYC_DOCS.some(({ type }) => Boolean(seller?.profile?.kycDocuments?.[type]));
 
   async function handleToggle(): Promise<void> {
     if (!seller) return;
@@ -151,8 +166,8 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
     if (!seller?.profile) return;
     setUploadingType(documentType);
     try {
-      const { kycDocuments } = await uploadKycDocument(seller.id, documentType, file);
-      setSeller({ ...seller, profile: { ...seller.profile, kycDocuments } });
+      const { kycDocuments, kycRejection } = await uploadKycDocument(seller.id, documentType, file);
+      setSeller({ ...seller, profile: { ...seller.profile, kycDocuments, kycRejection } });
       toast.success('Document uploaded');
     } catch {
       toast.error('Failed to upload document');
@@ -173,7 +188,15 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
     setVerifying(true);
     try {
       const result = await setKycVerification(seller.id, verified);
-      const updated: Seller = { ...seller, profile: { ...seller.profile, isVerified: result.isVerified, verifiedAt: result.verifiedAt } };
+      const updated: Seller = {
+        ...seller,
+        profile: {
+          ...seller.profile,
+          isVerified: result.isVerified,
+          verifiedAt: result.verifiedAt,
+          kycRejection: result.isVerified ? null : seller.profile.kycRejection,
+        },
+      };
       setSeller(updated);
       onToggled(updated);
       toast.success(verified ? 'Seller verified' : 'Verification revoked');
@@ -364,6 +387,10 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
                         );
                       })}
 
+                      {!seller.profile.isVerified && seller.profile.kycRejection && (
+                        <KycRejectionNote rejection={seller.profile.kycRejection} />
+                      )}
+
                       {!seller.profile.isVerified && !kycReady && (
                         <KycChecklist
                           items={[
@@ -393,6 +420,17 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
                         }
                         {seller.profile.isVerified ? 'Revoke Verification' : 'Verify Seller'}
                       </button>
+
+                      {!seller.profile.isVerified && hasAnyKycDocument && (
+                        <button
+                          type="button"
+                          onClick={(): void => { setRejecting(true); }}
+                          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium text-red-600 border border-red-200 rounded-xl hover:bg-red-50 transition-colors"
+                        >
+                          <XCircle className="w-4 h-4" />
+                          Reject Documents
+                        </button>
+                      )}
                     </div>
                   </div>
                 )}
@@ -464,6 +502,18 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
         }}
         onClose={(): void => { setCaptureFor(null); }}
       />
+
+      {rejecting && seller?.profile && (
+        <RejectKycModal
+          sellerId={seller.id}
+          kycDocuments={seller.profile.kycDocuments}
+          onClose={(): void => { setRejecting(false); }}
+          onRejected={({ kycDocuments, kycRejection }): void => {
+            if (seller.profile) setSeller({ ...seller, profile: { ...seller.profile, kycDocuments, kycRejection } });
+            setRejecting(false);
+          }}
+        />
+      )}
     </div>
   );
 }
