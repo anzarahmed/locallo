@@ -16,6 +16,7 @@ export const PATHS = {
   ANALYZE_IMAGE:  '/api/sellers/products/analyze-image',
   CATEGORIES:     '/api/sellers/categories',
   SETTINGS:       '/api/sellers/settings',
+  KYC_DOCUMENTS:  '/api/sellers/kyc/documents',
   CUSTOM_DAY:     '/api/sellers/custom-day',
   SOLD_LOGS:      '/api/sellers/sold-logs',
   PAYMENTS:       '/api/sellers/payments',

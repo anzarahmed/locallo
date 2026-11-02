@@ -22,6 +22,7 @@ const SoldLogs    = lazy(() => import('./pages/sold-logs/SoldLogs'));
 const PaymentList = lazy(() => import('./pages/payments/PaymentList'));
 const PurchaseLogs = lazy(() => import('./pages/purchase-logs/PurchaseLogs'));
 const ProductLimits = lazy(() => import('./pages/product-limits/ProductLimits'));
+const KycDocuments = lazy(() => import('./pages/kyc/KycDocuments'));
 const AcceptedOffers = lazy(() => import('./pages/offers/AcceptedOffers'));
 const OfferDetail = lazy(() => import('./pages/offers/OfferDetail'));
 const AcceptOfferProducts = lazy(() => import('./pages/offers/AcceptOfferProducts'));
@@ -96,6 +97,7 @@ const router = createBrowserRouter(
         <Route path="/payments"              element={<PaymentList />} />
         <Route path="/purchase-logs"         element={<PurchaseLogs />} />
         <Route path="/product-limits"        element={<ProductLimits />} />
+        <Route path="/kyc-documents"         element={<KycDocuments />} />
         <Route path="/offers"                element={<AcceptedOffers />} />
         <Route path="/offers/:id"            element={<OfferDetail />} />
         <Route path="/offers/:id/accept"     element={<AcceptOfferProducts />} />

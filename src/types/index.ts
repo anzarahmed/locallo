@@ -68,6 +68,7 @@ export interface SellerProfile {
   workingHours: Record<string, unknown> | null;
   isVerified: boolean;
   isActive: boolean;
+  kycDocuments?: Partial<KycDocuments> | null;
 }
 
 export interface ProfileResponse {
@@ -442,4 +443,13 @@ export interface CmsPageSummary {
 
 export interface CmsPage extends CmsPageSummary {
   content: string;
+}
+
+export type KycDocumentType = 'aadhar' | 'aadharBack' | 'pan' | 'registrationCertificate' | 'other';
+
+export type KycDocuments = Record<KycDocumentType, string | null>;
+
+export interface KycDocumentsResponse {
+  isVerified: boolean;
+  kycDocuments: KycDocuments;
 }

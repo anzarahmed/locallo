@@ -27,6 +27,26 @@ export const DEFAULT_WORKING_HOURS: Record<Day, { isClosed: boolean; open: strin
   sunday:    { isClosed: true, open: '', close: '' },
 };
 
+type DayHours = { isClosed: boolean; open: string; close: string };
+
+// Stored hours can be {} or miss days (older/admin-created sellers); fill each gap from the defaults.
+export function normalizeWorkingHours(raw: unknown): Record<Day, DayHours> {
+  const source = raw !== null && typeof raw === 'object' ? (raw as Partial<Record<Day, Partial<DayHours> | null>>) : {};
+  const result = {} as Record<Day, DayHours>;
+  for (const day of DAYS) {
+    const stored = source[day];
+    const fallback = DEFAULT_WORKING_HOURS[day];
+    result[day] = stored && typeof stored === 'object'
+      ? {
+          isClosed: typeof stored.isClosed === 'boolean' ? stored.isClosed : fallback.isClosed,
+          open:     stored.open ?? fallback.open,
+          close:    stored.close ?? fallback.close,
+        }
+      : { ...fallback };
+  }
+  return result;
+}
+
 export const profileSchema = Yup.object({
   businessName: Yup.string().required('Shop name is required'),
   fullName:     Yup.string().default(''),

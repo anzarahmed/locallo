@@ -1,6 +1,6 @@
 import { apiGet, apiPost, apiPut, apiPatch, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
-import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse, PurchaseLogsResponse, CategoryLimit, ProductLimitLogsResponse, CustomDayOverride, TopProduct, ProductBoost, ProductReviewsResponse, PaymentsResponse, PaymentStatus } from '../types';
+import type { ProfileResponse, ProductsResponse, SellerCategory, Product, ImageAnalysisResult, ProductVariant, DashboardStats, SoldLogsResponse, PurchaseLogsResponse, CategoryLimit, ProductLimitLogsResponse, CustomDayOverride, TopProduct, ProductBoost, ProductReviewsResponse, PaymentsResponse, PaymentStatus, KycDocumentType, KycDocumentsResponse } from '../types';
 import type { FilterTab } from '../constants';
 
 export function getDashboardStats(): Promise<DashboardStats> {
@@ -13,6 +13,17 @@ export function getTopProducts(): Promise<{ products: TopProduct[] }> {
 
 export function getProfile(): Promise<ProfileResponse> {
   return apiGet(PATHS.PROFILE);
+}
+
+export function getKycDocuments(): Promise<KycDocumentsResponse> {
+  return apiGet(PATHS.KYC_DOCUMENTS);
+}
+
+export function uploadKycDocument(documentType: KycDocumentType, file: File): Promise<KycDocumentsResponse> {
+  const form = new FormData();
+  form.append('documentType', documentType);
+  form.append('document', file);
+  return apiPost<KycDocumentsResponse>(PATHS.KYC_DOCUMENTS, form);
 }
 
 export function updateProfile(data: Record<string, unknown>): Promise<ProfileResponse> {

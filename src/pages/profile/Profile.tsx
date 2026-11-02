@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
-import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight, CalendarDays, Pencil, X, Trash2, Share2 } from 'lucide-react';
+import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight, CalendarDays, Pencil, X, Trash2, Share2, ShieldAlert, Upload } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
@@ -9,7 +9,7 @@ import { getProfile, updateProfile, getCustomDay, setCustomDay, clearCustomDay, 
 import {
   profileSchema,
   customDaySchema,
-  DAYS, DEFAULT_WORKING_HOURS,
+  DAYS, DEFAULT_WORKING_HOURS, normalizeWorkingHours,
   type ProfileFormValues, type Day, type CustomDayFormValues,
 } from '../../validation/profileSchemas';
 import { ApiError } from '../../lib/axios';
@@ -20,6 +20,7 @@ import DatePicker from '../../components/ui/DatePicker';
 import { formatDate, toDate, toIsoDate } from '../../lib/dateFormat';
 import { shopLinkUrl } from '../../lib/shopLink';
 import { copyToClipboard } from '../../lib/clipboard';
+import { hasRequiredKycDocuments } from '../../lib/kyc';
 
 type DayFieldErrors  = Partial<{ open: string; close: string }>;
 type DayFieldTouched = Partial<{ open: boolean; close: boolean }>;
@@ -64,6 +65,7 @@ export default function Profile(): JSX.Element {
   const [lat, setLat] = useState(DEFAULT_LAT);
   const [lng, setLng] = useState(DEFAULT_LNG);
   const [loadingProfile, setLoadingProfile] = useState(true);
+  const [kyc, setKyc] = useState<{ isVerified: boolean; documentsComplete: boolean }>({ isVerified: true, documentsComplete: false });
   const [copiedDay, setCopiedDay] = useState<Day | null>(null);
   const [workingHours, setWorkingHours] = useState<ProfileFormValues['workingHours']>(DEFAULT_WORKING_HOURS);
   const [customDayOverride, setCustomDayOverride] = useState<CustomDayOverride | null>(null);
@@ -94,8 +96,9 @@ export default function Profile(): JSX.Element {
 
         if (profileData.status === 'fulfilled') {
           const p = profileData.value.profile;
-          const wh = (p.workingHours as ProfileFormValues['workingHours']) ?? DEFAULT_WORKING_HOURS;
+          const wh: ProfileFormValues['workingHours'] = normalizeWorkingHours(p.workingHours);
 
+          setKyc({ isVerified: p.isVerified, documentsComplete: hasRequiredKycDocuments(p.kycDocuments) });
           setCategories(p.categories ?? []);
           setCategoryIds(p.categoryIds ?? []);
           setWorkingHours(wh);
@@ -198,6 +201,8 @@ export default function Profile(): JSX.Element {
       </div>
 
       <div className="px-4 md:px-8 -mt-10 relative z-10 pb-10 max-w-3xl mx-auto">
+        {!kyc.isVerified && <KycCard documentsComplete={kyc.documentsComplete} />}
+
         {/* ── Shop Info card ── */}
         <div className="bg-white rounded-2xl shadow-sm p-5 mb-4">
           <form noValidate onSubmit={profileForm.handleSubmit} className="flex flex-col gap-4">
@@ -963,6 +968,34 @@ function WorkingHoursRow({
           <Clipboard size={13} />
         </button>
       </div>
+    </div>
+  );
+}
+
+/* ── KYC card ── */
+function KycCard({ documentsComplete }: { documentsComplete: boolean }): JSX.Element {
+  return (
+    <div className="bg-white rounded-2xl shadow-sm p-5 mb-4 flex flex-col sm:flex-row sm:items-center gap-4">
+      <div className="flex items-start gap-3 flex-1 min-w-0">
+        <span className="w-10 h-10 rounded-full bg-amber-50 flex items-center justify-center shrink-0">
+          <ShieldAlert size={20} className="text-amber-600" />
+        </span>
+        <div className="min-w-0">
+          <p className="text-sm font-semibold text-gray-900">KYC verification pending</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {documentsComplete
+              ? 'Your documents are under review. You can still replace them if needed.'
+              : 'Upload your Aadhaar and PAN card to get your shop verified.'}
+          </p>
+        </div>
+      </div>
+      <Link
+        to="/kyc-documents"
+        className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors shrink-0"
+      >
+        <Upload size={16} />
+        Upload Documents
+      </Link>
     </div>
   );
 }

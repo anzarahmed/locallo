@@ -1,4 +1,4 @@
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { LayoutDashboard, Archive, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt, Bell, BadgePercent, AlertTriangle, CreditCard, Gauge } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
@@ -142,7 +142,10 @@ function KycPendingBanner(): JSX.Element {
       <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
       <p className="text-xs sm:text-sm text-amber-800 leading-snug">
         <span className="font-semibold">Your KYC verification is pending.</span>{' '}
-        Please complete your KYC — until it's verified, your products won't be visible to customers.
+        Please complete your KYC — until it's verified, your products won't be visible to customers.{' '}
+        <Link to="/kyc-documents" className="font-semibold underline underline-offset-2 hover:text-amber-900">
+          Upload documents
+        </Link>
       </p>
     </div>
   );
