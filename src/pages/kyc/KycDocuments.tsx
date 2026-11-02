@@ -158,6 +158,17 @@ export default function KycDocuments(): JSX.Element {
 
 function RejectionBanner({ rejection }: { rejection: KycRejection }): JSX.Element {
   const labels = rejection.documentTypes.map(type => KYC_DOCUMENT_LABELS[type]);
+  if (labels.length === 0) {
+    return (
+      <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-2.5">
+        <XCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
+        <div className="text-sm text-red-800">
+          <p className="font-semibold">Your KYC verification was revoked</p>
+          <p className="mt-0.5">Please replace your documents with current, valid copies so we can review them again.</p>
+        </div>
+      </div>
+    );
+  }
   return (
     <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-2.5">
       <XCircle size={18} className="text-red-600 shrink-0 mt-0.5" />

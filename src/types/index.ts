@@ -453,6 +453,7 @@ export interface KycRejection {
   documentTypes: KycDocumentType[];
   reason: string | null;
   rejectedAt: string;
+  revoked?: boolean;
 }
 
 export interface KycDocumentsResponse {
