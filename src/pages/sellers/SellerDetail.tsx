@@ -89,6 +89,14 @@ function SellerDetailSkeleton(): JSX.Element {
 
 function KycRejectionNote({ rejection }: { rejection: KycRejection }): JSX.Element {
   const labels = rejection.documentTypes.map(type => KYC_DOCS.find(d => d.type === type)?.label ?? type);
+  if (labels.length === 0) {
+    return (
+      <div className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2">
+        <p className="font-medium">Verification revoked on {formatDate(rejection.rejectedAt)}</p>
+        <p className="mt-0.5 text-amber-700">Waiting for the seller to replace documents.</p>
+      </div>
+    );
+  }
   return (
     <div className="text-xs bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2">
       <p className="font-medium">Rejected on {formatDate(rejection.rejectedAt)}: {labels.join(', ')}</p>
@@ -194,7 +202,7 @@ export default function SellerDetail({ sellerId, onClose, onToggled }: SellerDet
           ...seller.profile,
           isVerified: result.isVerified,
           verifiedAt: result.verifiedAt,
-          kycRejection: result.isVerified ? null : seller.profile.kycRejection,
+          kycRejection: result.kycRejection,
         },
       };
       setSeller(updated);

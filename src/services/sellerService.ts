@@ -136,7 +136,7 @@ export function rejectKycDocuments(id: string, documentTypes: KycDocumentType[],
   return apiPost<KycStateResponse>(PATHS.SELLERS.KYC_REJECT(id), { documentTypes, reason: reason.trim() || null });
 }
 
-export function setKycVerification(id: string, verified: boolean): Promise<{ isVerified: boolean; verifiedBy: string | null; verifiedAt: string | null }> {
+export function setKycVerification(id: string, verified: boolean): Promise<{ isVerified: boolean; verifiedBy: string | null; verifiedAt: string | null; kycRejection: KycRejection | null }> {
   return apiPatch(PATHS.SELLERS.KYC_VERIFY(id), { verified });
 }
 
