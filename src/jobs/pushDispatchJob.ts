@@ -12,6 +12,7 @@ const MAX_BATCHES_PER_TICK = 20;
 const RETRY_DELAY_MS = 2 * 60 * 1000;
 
 let isRunning = false;
+let rerunRequested = false;
 
 // Leases due rows by pushing send_after forward under SKIP LOCKED, so two server
 // processes never send the same row and a crash mid-send is retried after the lease.
@@ -96,9 +97,31 @@ async function dispatchRow(row: Notification): Promise<void> {
 }
 
 export async function processPendingPushes(): Promise<void> {
-  if (isRunning || !isPushConfigured()) return;
+  if (!isPushConfigured()) return;
+  if (isRunning) {
+    rerunRequested = true;
+    return;
+  }
   isRunning = true;
 
+  try {
+    do {
+      rerunRequested = false;
+      await dispatchDueBatches();
+    } while (rerunRequested);
+  } finally {
+    isRunning = false;
+  }
+}
+
+// Called right after rows are queued so a push goes out in seconds, not on the next minute tick.
+export function triggerPushDispatch(): void {
+  processPendingPushes().catch((err) => {
+    console.error('pushDispatchJob: triggered dispatch failed', err);
+  });
+}
+
+async function dispatchDueBatches(): Promise<void> {
   try {
     for (let batch = 0; batch < MAX_BATCHES_PER_TICK; batch++) {
       const ids = await claimDueRows();
@@ -122,8 +145,6 @@ export async function processPendingPushes(): Promise<void> {
     }
   } catch (err) {
     console.error('pushDispatchJob: cron tick failed', err);
-  } finally {
-    isRunning = false;
   }
 }
 

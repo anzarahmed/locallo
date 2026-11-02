@@ -2,10 +2,10 @@ import crypto from 'crypto';
 import { Op, QueryTypes } from 'sequelize';
 import sequelize from '../../config/database';
 import { Notification } from '../../models/Notification';
-import { Session } from '../../models/Session';
 import { User } from '../../models/User';
 import { SellerProfile } from '../../models/SellerProfile';
 import { isPushConfigured } from '../../utils/push';
+import { triggerPushDispatch } from '../../jobs/pushDispatchJob';
 import { getIstDateParts, getIstTimeString, istCalendarDateToUtc } from '../../utils/istDate';
 import type { EmailStatus, PushOptions, PushStatus } from '../../types';
 import type { EmailContent } from '../../utils/emailTemplates/sellerEmailLayout';
@@ -33,19 +33,6 @@ export function nextSendTime(now: Date = new Date()): Date | null {
   const { year, month, day } = getIstDateParts(now);
   const morning = istCalendarDateToUtc(year, month, day, QUIET_HOURS_END);
   return hour >= QUIET_HOURS_START ? new Date(morning.getTime() + DAY_MS) : morning;
-}
-
-async function usersWithDevices(userIds: string[]): Promise<Set<string>> {
-  const sessions = await Session.findAll({
-    where: {
-      actorType: 'user',
-      actorId: { [Op.in]: userIds },
-      pushToken: { [Op.ne]: null },
-      [Op.or]: [{ expiresAt: null }, { expiresAt: { [Op.gt]: new Date() } }],
-    },
-    attributes: ['actorId'],
-  });
-  return new Set(sessions.map((s) => s.actorId));
 }
 
 async function usersWithPrefsOn<P>(
@@ -115,13 +102,15 @@ async function resolvePushEligible<P>(
   template: NotificationTemplate<P>,
 ): Promise<Set<string>> {
   if (!template.push || !isPushConfigured() || userIds.length === 0) return new Set();
+  // Created at verify-OTP before any token exists; queueWelcomePush queues it on the first token registration.
+  if (type === 'welcome_customer') return new Set();
 
-  let eligible = await usersWithDevices(userIds);
-  if (eligible.size === 0) return eligible;
-
-  const withPrefs = await usersWithPrefsOn([...eligible], type, template);
-  eligible = new Set([...eligible].filter((id) => withPrefs.has(id)));
-  if (eligible.size === 0 || template.pushClass === 'transactional') return eligible;
+  // Devices are resolved at send time by pushDispatchJob: a token registered after the
+  // row is created must still receive it.
+  const eligible = await usersWithPrefsOn(userIds, type, template);
+  if (eligible.size === 0 || template.pushClass === 'transactional' || template.audience === 'customer') {
+    return eligible;
+  }
 
   return usersUnderPromoCap([...eligible]);
 }
@@ -214,6 +203,7 @@ export async function notifyMany<T extends NotificationType>(
   const quietUntil = template.pushClass === 'promotional' ? nextSendTime() : null;
 
   let created = 0;
+  let dueNow = false;
   for (let i = 0; i < userIds.length; i += CHUNK_SIZE) {
     const chunk = await withoutExistingDedupeKeys(userIds.slice(i, i + CHUNK_SIZE), dedupeKeyFor);
     if (chunk.length === 0) continue;
@@ -235,7 +225,10 @@ export async function notifyMany<T extends NotificationType>(
     // ignoreDuplicates still guards a concurrent insert that slipped past the pre-check.
     await Notification.bulkCreate(rows, { ignoreDuplicates: true });
     created += rows.length;
+    const now = Date.now();
+    dueNow ||= rows.some((r) => r.pushStatus === 'pending' && r.sendAfter !== null && r.sendAfter.getTime() <= now);
   }
+  if (dueNow) triggerPushDispatch();
   return created;
 }
 
@@ -274,6 +267,7 @@ export async function queueWelcomePush(userId: string): Promise<void> {
         AND created_at > NOW() - INTERVAL '24 hours'`,
     { replacements: { userId } },
   );
+  triggerPushDispatch();
 }
 
 export async function removeNotificationsOfType(userId: string, type: NotificationType): Promise<void> {

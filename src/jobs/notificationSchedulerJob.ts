@@ -52,8 +52,7 @@ function schedule(name: string, expression: string, tasks: Task[]): void {
 }
 
 export function startNotificationSchedulerCron(): void {
-  schedule('minute', '* * * * *', [sendClosingReminders, sendStartUploadingNudges]);
-  schedule('five-minutes', '*/5 * * * *', [syncWishlistStock, sendOfferLiveNotifications]);
+  schedule('minute', '* * * * *', [syncWishlistStock, sendOfferLiveNotifications, sendClosingReminders, sendStartUploadingNudges]);
   schedule('hourly', '7 * * * *', [sendProfileReminders, sendUploadGuideNudges, sendViewMilestones]);
   schedule('daily', '0 10 * * *', [sendOfferUpcomingNotifications, sendOutOfStockDigests, sendInactivityReminders, sendBoostSuggestions, sendKycReminders]);
   schedule('weekly-wishlist', '0 11 * * 0', [sendWishlistWeekly]);

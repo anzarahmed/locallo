@@ -3,6 +3,7 @@ import { getMessaging, type Message } from 'firebase-admin/messaging';
 import type { PushOptions } from '../types';
 
 const FCM_BATCH_SIZE = 500;
+const FCM_SEND_TIMEOUT_MS = 30_000;
 // Both mobile apps create only this channel; any other id lands in Android's fallback channel.
 const ANDROID_CHANNEL_ID = 'default_notification_channel';
 
@@ -121,6 +122,19 @@ function classifyError(code: string, message: string): TokenOutcome {
   return 'failed';
 }
 
+// A hung FCM request would otherwise hold pushDispatchJob's isRunning lock until a restart.
+async function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T | null> {
+  let timer: NodeJS.Timeout | undefined;
+  const timeout = new Promise<null>((resolve) => {
+    timer = setTimeout(() => resolve(null), ms);
+  });
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
 export async function sendPushToTokens(tokens: string[], content: PushContent): Promise<TokenResult[]> {
   const app = getFirebaseApp();
   if (!app) throw new Error('FCM is not configured (FIREBASE_* env vars missing)');
@@ -131,7 +145,14 @@ export async function sendPushToTokens(tokens: string[], content: PushContent): 
 
   for (let i = 0; i < tokens.length; i += FCM_BATCH_SIZE) {
     const batch = tokens.slice(i, i + FCM_BATCH_SIZE);
-    const response = await messaging.sendEach(batch.map((token) => buildPushMessage(token, content)), dryRun);
+    const response = await withTimeout(
+      messaging.sendEach(batch.map((token) => buildPushMessage(token, content)), dryRun),
+      FCM_SEND_TIMEOUT_MS,
+    );
+    if (!response) {
+      batch.forEach((token) => results.push({ token, outcome: 'retryable', error: 'fcm/timeout: FCM did not respond in time' }));
+      continue;
+    }
 
     response.responses.forEach((r, index) => {
       const token = batch[index];
