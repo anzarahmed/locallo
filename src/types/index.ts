@@ -449,7 +449,14 @@ export type KycDocumentType = 'aadhar' | 'aadharBack' | 'pan' | 'registrationCer
 
 export type KycDocuments = Record<KycDocumentType, string | null>;
 
+export interface KycRejection {
+  documentTypes: KycDocumentType[];
+  reason: string | null;
+  rejectedAt: string;
+}
+
 export interface KycDocumentsResponse {
   isVerified: boolean;
   kycDocuments: KycDocuments;
+  kycRejection: KycRejection | null;
 }

@@ -8,10 +8,11 @@ interface KycUploadSlotProps {
   url: string | null;
   uploading: boolean;
   disabled: boolean;
+  rejected?: boolean;
   onSelect: (file: File) => void;
 }
 
-export default function KycUploadSlot({ label, required, url, uploading, disabled, onSelect }: KycUploadSlotProps): JSX.Element {
+export default function KycUploadSlot({ label, required, url, uploading, disabled, rejected = false, onSelect }: KycUploadSlotProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
@@ -43,7 +44,11 @@ export default function KycUploadSlot({ label, required, url, uploading, disable
           type="button"
           onClick={openPicker}
           disabled={disabled || uploading}
-          className="relative w-full h-40 rounded-2xl border-2 border-dashed border-teal-300/70 bg-gray-50 hover:bg-teal-50/40 hover:border-teal-400 transition-colors flex flex-col items-center justify-center gap-2 disabled:cursor-not-allowed"
+          className={`relative w-full h-40 rounded-2xl border-2 border-dashed transition-colors flex flex-col items-center justify-center gap-2 disabled:cursor-not-allowed ${
+            rejected
+              ? 'border-red-300 bg-red-50/40 hover:bg-red-50 hover:border-red-400'
+              : 'border-teal-300/70 bg-gray-50 hover:bg-teal-50/40 hover:border-teal-400'
+          }`}
         >
           {uploading ? (
             <Loader2 size={26} className="text-teal-600 animate-spin" />
@@ -54,6 +59,7 @@ export default function KycUploadSlot({ label, required, url, uploading, disable
               </span>
               <span className="text-sm font-semibold text-gray-800">Click to upload</span>
               <span className="text-xs text-gray-400">JPG, PNG, WebP or PDF · max 10 MB</span>
+              {rejected && <span className="text-xs font-medium text-red-600">Not accepted · please upload again</span>}
             </>
           )}
         </button>

@@ -1,11 +1,11 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Navigate, useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, CheckCircle2 } from 'lucide-react';
+import { ArrowLeft, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
 import { getKycDocuments, uploadKycDocument } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { hasRequiredKycDocuments, KYC_DOCUMENT_LABELS } from '../../lib/kyc';
-import type { KycDocumentType, KycDocuments as KycDocumentMap } from '../../types';
+import type { KycDocumentType, KycDocuments as KycDocumentMap, KycRejection } from '../../types';
 import KycUploadSlot from './KycUploadSlot';
 
 interface KycSlot {
@@ -39,6 +39,7 @@ export default function KycDocuments(): JSX.Element {
   const navigate = useNavigate();
   const [docs, setDocs] = useState<KycDocumentMap | null>(null);
   const [isVerified, setIsVerified] = useState(false);
+  const [rejection, setRejection] = useState<KycRejection | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploadingType, setUploadingType] = useState<KycDocumentType | null>(null);
 
@@ -46,6 +47,7 @@ export default function KycDocuments(): JSX.Element {
     getKycDocuments()
       .then(data => {
         setDocs(data.kycDocuments);
+        setRejection(data.kycRejection ?? null);
         setIsVerified(data.isVerified);
         if (data.isVerified) toast.info('Your KYC is already verified');
       })
@@ -58,6 +60,7 @@ export default function KycDocuments(): JSX.Element {
     try {
       const data = await uploadKycDocument(type, file);
       setDocs(data.kycDocuments);
+      setRejection(data.kycRejection ?? null);
       toast.success(`${KYC_DOCUMENT_LABELS[type]} uploaded`);
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
@@ -105,6 +108,8 @@ export default function KycDocuments(): JSX.Element {
           <KycSkeleton />
         ) : (
           <>
+            {rejection && <RejectionBanner rejection={rejection} />}
+
             {KYC_SECTIONS.map(section => (
               <section key={section.title} className="bg-white rounded-2xl shadow-sm p-5">
                 <h2 className="text-base font-bold text-gray-900">
@@ -121,6 +126,7 @@ export default function KycDocuments(): JSX.Element {
                       url={docs[slot.type]}
                       uploading={uploadingType === slot.type}
                       disabled={uploadingType !== null && uploadingType !== slot.type}
+                      rejected={rejection?.documentTypes.includes(slot.type) === true && docs[slot.type] === null}
                       onSelect={file => void handleSelect(slot.type, file)}
                     />
                   ))}
@@ -145,6 +151,20 @@ export default function KycDocuments(): JSX.Element {
             )}
           </>
         )}
+      </div>
+    </div>
+  );
+}
+
+function RejectionBanner({ rejection }: { rejection: KycRejection }): JSX.Element {
+  const labels = rejection.documentTypes.map(type => KYC_DOCUMENT_LABELS[type]);
+  return (
+    <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-2.5">
+      <XCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
+      <div className="text-sm text-red-800">
+        <p className="font-semibold">Some documents were not accepted: {labels.join(', ')}</p>
+        {rejection.reason && <p className="mt-0.5">Reason: {rejection.reason}</p>}
+        <p className="mt-0.5">Please upload them again to continue your KYC verification.</p>
       </div>
     </div>
   );
