@@ -12,8 +12,7 @@ interface JwtPayload {
   role?: string;
 }
 
-// TEMP: the one-minute value is for email frequency QA; restore the plain one-hour constant afterwards.
-const LAST_ACTIVE_THROTTLE_MS = process.env.EMAIL_FREQ_TEST_SELLER_IDS ? 60 * 1000 : 60 * 60 * 1000;
+const LAST_ACTIVE_THROTTLE_MS = 60 * 60 * 1000;
 
 function touchLastActive(user: User): void {
   const last = user.lastActiveAt?.getTime() ?? 0;
