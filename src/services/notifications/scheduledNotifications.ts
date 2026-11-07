@@ -17,12 +17,17 @@ const DAY_MS = 24 * HOUR_MS;
 const VIEW_MILESTONES = [500, 1000, 10000, 100000];
 export const OUT_OF_STOCK_DIGEST_THRESHOLD = 10;
 const START_UPLOADING_DELAY_MS = 60 * 1000;
+const KYC_AFTER_LOGIN_DELAY_MS = 3 * 60 * 1000;
 const BOOST_SUGGESTION_INTERVAL_DAYS = 15;
 const CLOSING_REMINDER_LEAD_MINUTES = 10;
 const OFFER_LIVE_WINDOW_MS = HOUR_MS;
 
 const PRODUCT_IN_STOCK_SQL = inStockSql('p.id', 'p.stock');
 const PRODUCT_HAS_VISIBLE_VARIANTS_SQL = hasVisibleVariantsSql('p.id');
+
+// Needs `users u` joined to `seller_profiles sp`.
+const KYC_PENDING_SQL = `(u.role = 'SELLER' AND u.is_active = true AND sp.is_verified = false
+  AND (sp.kyc_documents->>'aadhar' IS NULL OR sp.kyc_documents->>'aadharBack' IS NULL OR sp.kyc_documents->>'pan' IS NULL))`;
 
 // A wishlist row pinned to a variant follows that variant; otherwise the product's stock.
 const WISHLIST_IN_STOCK_SQL = `(p.is_active AND CASE
@@ -315,14 +320,34 @@ export async function sendKycReminders(now: Date = new Date()): Promise<void> {
               ((:now::timestamptz AT TIME ZONE 'Asia/Kolkata')::date - (u.created_at AT TIME ZONE 'Asia/Kolkata')::date) AS days_registered
          FROM users u
          JOIN seller_profiles sp ON sp.user_id = u.id
-        WHERE u.role = 'SELLER' AND u.is_active = true AND sp.is_verified = false
-          AND (sp.kyc_documents->>'aadhar' IS NULL OR sp.kyc_documents->>'aadharBack' IS NULL OR sp.kyc_documents->>'pan' IS NULL)
+        WHERE ${KYC_PENDING_SQL}
      ) pending
      WHERE days_registered >= 7`,
     { replacements: { now }, type: QueryTypes.SELECT },
   );
   const weekById = new Map(rows.map((r) => [r.id, r.week]));
   await notifyMany([...weekById.keys()], 'kyc_pending', {}, (id) => `kyc_pending:${id}:w${weekById.get(id)}`);
+}
+
+// Testing trigger: every seller login (one sessions row per OTP login) gets a KYC reminder
+// 3 minutes later. Keyed per session, so each login sends once; the weekly sweep is separate.
+export async function sendKycAfterLoginReminders(now: Date = new Date()): Promise<void> {
+  const rows = await sequelize.query<{ id: string; session_id: string }>(
+    `SELECT DISTINCT ON (u.id) u.id, s.id AS session_id
+       FROM sessions s
+       JOIN users u ON u.id = s.actor_id
+       JOIN seller_profiles sp ON sp.user_id = u.id
+      WHERE s.actor_type = 'user'
+        AND s.created_at BETWEEN :from AND :to
+        AND ${KYC_PENDING_SQL}
+      ORDER BY u.id, s.created_at DESC`,
+    {
+      replacements: { from: new Date(now.getTime() - DAY_MS), to: new Date(now.getTime() - KYC_AFTER_LOGIN_DELAY_MS) },
+      type: QueryTypes.SELECT,
+    },
+  );
+  const sessionById = new Map(rows.map((r) => [r.id, r.session_id]));
+  await notifyMany([...sessionById.keys()], 'kyc_pending', {}, (id) => `kyc_pending:login:${sessionById.get(id)}`);
 }
 
 export async function sendShareShopReminders(now: Date = new Date()): Promise<void> {

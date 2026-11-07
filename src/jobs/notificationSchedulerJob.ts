@@ -12,6 +12,7 @@ import {
   sendInactivityReminders,
   sendBoostSuggestions,
   sendKycReminders,
+  sendKycAfterLoginReminders,
   sendShareShopReminders,
   sendClosingReminders,
 } from '../services/notifications/scheduledNotifications';
@@ -46,7 +47,7 @@ function schedule(name: string, expression: string, tasks: Task[]): void {
 }
 
 export function startNotificationSchedulerCron(): void {
-  schedule('minute', '* * * * *', [syncWishlistStock, sendOfferLiveNotifications, sendClosingReminders, sendStartUploadingNudges]);
+  schedule('minute', '* * * * *', [syncWishlistStock, sendOfferLiveNotifications, sendClosingReminders, sendStartUploadingNudges, sendKycAfterLoginReminders]);
   schedule('hourly', '7 * * * *', [sendProfileReminders, sendUploadGuideNudges, sendViewMilestones]);
   schedule('daily', '0 10 * * *', [sendOfferUpcomingNotifications, sendOutOfStockDigests, sendInactivityReminders, sendBoostSuggestions, sendKycReminders]);
   schedule('weekly-wishlist', '0 11 * * 0', [sendWishlistWeekly]);
