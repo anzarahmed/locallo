@@ -18,7 +18,6 @@ const VIEW_MILESTONES = [500, 1000, 10000, 100000];
 export const OUT_OF_STOCK_DIGEST_THRESHOLD = 10;
 const START_UPLOADING_DELAY_MS = 60 * 1000;
 const BOOST_SUGGESTION_INTERVAL_DAYS = 15;
-const RESTOCK_NOTIFY_COOLDOWN_DAYS = 7;
 const CLOSING_REMINDER_LEAD_MINUTES = 10;
 const OFFER_LIVE_WINDOW_MS = HOUR_MS;
 
@@ -152,7 +151,6 @@ interface WishlistStockRow {
   product_id: string;
   variant_id: string | null;
   in_stock: boolean | null;
-  restock_notified_at: Date | null;
   name: string;
   product_images: string[] | null;
   variant_images: string[] | null;
@@ -179,7 +177,7 @@ export async function snapshotWishlistStock(wishlistId: string): Promise<void> {
 // stock path (sales, purchases, edits, variant toggles) is covered without hooks.
 export async function syncWishlistStock(now: Date = new Date()): Promise<void> {
   const rows = await sequelize.query<WishlistStockRow>(
-    `SELECT w.id, w.customer_id, w.product_id, w.variant_id, w.in_stock, w.restock_notified_at,
+    `SELECT w.id, w.customer_id, w.product_id, w.variant_id, w.in_stock,
             p.name, p.images AS product_images, v.images AS variant_images,
             ${WISHLIST_IN_STOCK_SQL} AS now_in_stock,
             ${WISHLIST_VISIBLE_SQL} AS visible
@@ -191,16 +189,15 @@ export async function syncWishlistStock(now: Date = new Date()): Promise<void> {
   );
   if (rows.length === 0) return;
 
-  const day = getIstDateString(now);
-  const cooldownStart = now.getTime() - RESTOCK_NOTIFY_COOLDOWN_DAYS * DAY_MS;
-  const restockNotified: string[] = [];
+  // Every stock change is notified; the per-minute key only guards against two
+  // instances running the same cron tick.
+  const tick = now.toISOString().slice(0, 16);
 
   for (const row of rows) {
     if (row.in_stock === null) continue;
     const variantId = row.variant_id ?? undefined;
 
     if (row.now_in_stock) {
-      if (row.restock_notified_at && row.restock_notified_at.getTime() > cooldownStart) continue;
       const imageKey = row.variant_images?.[0] ?? row.product_images?.[0] ?? null;
       await notify(
         row.customer_id,
@@ -211,16 +208,15 @@ export async function syncWishlistStock(now: Date = new Date()): Promise<void> {
           productName: row.name,
           imageUrl: (await getPresignedUrlOrNull(imageKey)) ?? undefined,
         },
-        { dedupeKey: `back_in_stock:${row.id}:${day}` },
+        { dedupeKey: `back_in_stock:${row.id}:${tick}` },
       );
-      restockNotified.push(row.id);
     } else if (row.visible) {
       // A product or variant the seller hid isn't out of stock, and its link would 404.
       await notify(
         row.customer_id,
         'wishlist_out_of_stock',
         { productId: row.product_id, variantId, productName: row.name },
-        { dedupeKey: `wishlist_out_of_stock:${row.id}:${day}` },
+        { dedupeKey: `wishlist_out_of_stock:${row.id}:${tick}` },
       );
     }
   }
@@ -228,11 +224,7 @@ export async function syncWishlistStock(now: Date = new Date()): Promise<void> {
   const nowInStock = rows.filter((r) => r.now_in_stock).map((r) => r.id);
   const nowOutOfStock = rows.filter((r) => !r.now_in_stock).map((r) => r.id);
   if (nowInStock.length > 0) await Wishlist.update({ inStock: true }, { where: { id: { [Op.in]: nowInStock } } });
-  if (nowOutOfStock.length > 0) await Wishlist.update({ inStock: false }, { where: { id: { [Op.in]: nowOutOfStock } } });
-  if (restockNotified.length > 0) {
-    await Wishlist.update({ restockNotifiedAt: now }, { where: { id: { [Op.in]: restockNotified } } });
-  }
-}
+  if (nowOutOfStock.length > 0) await Wishlist.update({ inStock: false }, { where: { id: { [Op.in]: nowOutOfStock } } });}
 
 export async function sendViewMilestones(): Promise<void> {
   const rows = await sequelize.query<{ product_id: string; seller_id: string; name: string; views: number }>(
