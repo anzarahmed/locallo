@@ -103,7 +103,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   profile_incomplete: {
-    audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true,
+    audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true, ignoreQuietHours: true,
     build: () => ({
       title: 'Complete your profile',
       body: 'Complete your profile for personalized recommendations & nearby deals',
@@ -111,7 +111,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   wishlist_weekly: {
-    audience: 'customer', pushClass: 'promotional', channel: 'wishlist', push: true,
+    audience: 'customer', pushClass: 'promotional', channel: 'wishlist', push: true, ignoreQuietHours: true,
     build: ({ count }) => ({
       title: '❤️ Your Wishlist Is Waiting!',
       body: `You've saved ${count} ${count === 1 ? 'product' : 'products'} for 7 days. Take another look before they're gone.`,
@@ -148,7 +148,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   offer_upcoming: {
-    audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true,
+    audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true, ignoreQuietHours: true,
     build: ({ offerId, offerTitle }) => ({
       title: 'Big sale alert!',
       body: 'Deals drop tomorrow. Prepare your wishlist.',
@@ -175,7 +175,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   offer_join: {
-    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true,
+    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true, ignoreQuietHours: true,
     build: ({ offerId, offerTitle, description }) => ({
       title: `Join ${offerTitle}!`,
       body: description ?? 'Create special deals and boost your sales.',
@@ -187,7 +187,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   first_product_nudge: {
-    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true,
+    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true, ignoreQuietHours: true,
     build: () => ({
       title: 'Ready to start selling?',
       body: 'Upload your first product in 3 easy steps.',
@@ -253,7 +253,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   seller_inactive: {
-    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true,
+    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true, ignoreQuietHours: true,
     build: () => ({
       title: 'We miss you!',
       body: '👋 We Miss You! You’ve been inactive for over 30 days. Keep uploading products and stay connected with your customers.',
@@ -261,7 +261,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   boost_suggestion: {
-    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true,
+    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true, ignoreQuietHours: true,
     build: () => ({
       title: 'Get more eyes on your products',
       body: '🚀Boost product to Boost your product visibility & sales',
@@ -293,7 +293,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   share_shop: {
-    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true,
+    audience: 'seller', pushClass: 'promotional', channel: 'seller_updates', push: true, ignoreQuietHours: true,
     build: () => ({
       title: 'Share your shop!',
       body: 'Your new products are live. Share your shop link so more customers find you.',
@@ -326,7 +326,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   buy_storage: {
-    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true,
+    audience: 'seller', pushClass: 'promotional', channel: 'offers', push: true, ignoreQuietHours: true,
     build: () => ({
       title: 'Need more space for your products?',
       body: 'Buy additional storage to showcase more products.',
