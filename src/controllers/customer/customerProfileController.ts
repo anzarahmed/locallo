@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { getCustomerProfile, updateCustomerProfile, uploadCustomerProfileImage, requestCustomerAccountDeletion, getCustomerSettings, updateCustomerSettings } from '../../services/customer/customerProfileService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { getPresignedUrlOrNull } from '../../utils/imageStorage';
+import { countUnreadNotifications } from '../../services/customer/notificationService';
 import type { User } from '../../models/User';
 
 async function buildProfileResponse(user: User): Promise<Record<string, unknown>> {
@@ -22,7 +23,11 @@ async function buildProfileResponse(user: User): Promise<Record<string, unknown>
 export async function getProfile(req: Request, res: Response): Promise<void> {
   try {
     const user = await getCustomerProfile(req.customer!.id);
-    sendSuccess(res, await buildProfileResponse(user));
+    const [profile, unreadNotificationCount] = await Promise.all([
+      buildProfileResponse(user),
+      countUnreadNotifications(req.customer!.id),
+    ]);
+    sendSuccess(res, { ...profile, unreadNotificationCount });
   } catch (err: unknown) {
     handleServiceError(err, res);
   }
