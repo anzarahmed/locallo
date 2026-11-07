@@ -56,6 +56,8 @@ export interface NotificationTemplate<P> {
   channel: PushChannel;
   // false = inbox only: the user is already in the app, or the message isn't actionable.
   push: boolean;
+  // Promotional pushes wait out quiet hours (21:00–09:00 IST); true sends them at once anyway.
+  ignoreQuietHours?: boolean;
   build: (params: P) => BuiltNotification;
 }
 
@@ -159,7 +161,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   offer_live: {
-    audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true,
+    audience: 'customer', pushClass: 'promotional', channel: 'offers', push: true, ignoreQuietHours: true,
     build: ({ offerId, offerTitle, endsAt }) => ({
       title: `${offerTitle} is LIVE!`,
       body: 'Limited time only. Shop now.',

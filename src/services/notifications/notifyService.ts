@@ -200,7 +200,7 @@ export async function notifyMany<T extends NotificationType>(
 ): Promise<number> {
   const template = TEMPLATES[type] as NotificationTemplate<TemplateParamsMap[T]>;
   const built = template.build(params);
-  const quietUntil = template.pushClass === 'promotional' ? nextSendTime() : null;
+  const quietUntil = template.pushClass === 'promotional' && !template.ignoreQuietHours ? nextSendTime() : null;
 
   let created = 0;
   let dueNow = false;
