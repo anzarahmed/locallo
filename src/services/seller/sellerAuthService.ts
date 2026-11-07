@@ -5,8 +5,6 @@ import { sendOtp } from '../../utils/msg91';
 import { generateOtp, makeOtpExpiresAt } from '../../utils/otp';
 import { hashToken, createUserSession } from '../../utils/session';
 import { notifySafely } from '../notifications/notifyService';
-import { SellerProfile } from '../../models/SellerProfile'; // TEMP (QA kyc_pending on login)
-import { hasRequiredKycDocuments } from '../../utils/kyc'; // TEMP (QA kyc_pending on login)
 import type { requestOtpSchema, verifyOtpSchema } from '../../validation/seller/sellerAuthSchemas';
 
 type RequestOtpInput = InferType<typeof requestOtpSchema>;
@@ -74,13 +72,6 @@ export async function verifySellerOtp(
 
   const token = await createUserSession(user.id, 'SELLER', data.deviceId, data.deviceType);
   if (isFirstLogin) await notifySafely(user.id, 'welcome_seller', {}, { dedupeKey: `welcome_seller:${user.id}` });
-
-  // TEMP (QA): kyc_pending on every login while KYC is pending — revert after testing.
-  // Delayed 60 s so the app can register its push token for the new session first.
-  const kycProfile = await SellerProfile.findOne({ where: { userId: user.id }, attributes: ['isVerified', 'kycDocuments'] });
-  if (kycProfile && !kycProfile.isVerified && !hasRequiredKycDocuments(kycProfile.kycDocuments ?? {})) {
-    await notifySafely(user.id, 'kyc_pending', {}, { sendAfter: new Date(Date.now() + 60_000) });
-  }
 
   return {
     token,
