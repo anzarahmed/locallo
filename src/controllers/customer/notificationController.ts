@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import * as notificationService from '../../services/customer/notificationService';
+import type { Notification } from '../../models/Notification';
 
 interface NotificationItem {
   id: string;
@@ -9,19 +10,25 @@ interface NotificationItem {
   message: string;
   type: string;
   isRead: boolean;
+  createdAt: Date;
+}
+
+function toItem(n: Notification): NotificationItem {
+  return {
+    id: n.id,
+    title: n.title,
+    message: n.message,
+    type: n.type,
+    isRead: n.isRead,
+    createdAt: n.createdAt,
+  };
 }
 
 export async function getNotifications(req: Request, res: Response): Promise<void> {
   const { page, limit } = parsePagination(req);
   const { rows, count } = await notificationService.listNotifications(req.customer!.id, page, limit);
 
-  const notifications: NotificationItem[] = rows.map((n) => ({
-    id: n.id,
-    title: n.title,
-    message: n.message,
-    type: n.type,
-    isRead: n.isRead,
-  }));
+  const notifications = rows.map(toItem);
 
   sendSuccess(res, { notifications, total: count, page, limit }, 'Notifications fetched');
 }
@@ -29,14 +36,7 @@ export async function getNotifications(req: Request, res: Response): Promise<voi
 export async function markNotificationRead(req: Request, res: Response): Promise<void> {
   try {
     const notification = await notificationService.markNotificationRead(req.customer!.id, String(req.params.id));
-    const item: NotificationItem = {
-      id: notification.id,
-      title: notification.title,
-      message: notification.message,
-      type: notification.type,
-      isRead: notification.isRead,
-    };
-    sendSuccess(res, item, 'Notification marked as read');
+    sendSuccess(res, toItem(notification), 'Notification marked as read');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Notification not found');
   }
