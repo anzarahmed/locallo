@@ -332,7 +332,7 @@ export async function sendShareShopReminders(now: Date = new Date()): Promise<vo
       WHERE u.role = 'SELLER' AND u.is_active = true
         AND EXISTS (
           SELECT 1 FROM products p
-           WHERE p.seller_id = u.id AND p.is_active = true AND p.created_at > NOW() - INTERVAL '30 days')`,
+           WHERE p.seller_id = u.id AND p.is_active = true)`,
   );
   const month = getIstDateString(now).slice(0, 7);
   await notifyMany(ids, 'share_shop', {}, (id) => `share_shop:${id}:${month}`);
