@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { Navigate, useNavigate, useOutletContext } from 'react-router-dom';
-import { ArrowLeft, Clock, Loader2, XCircle } from 'lucide-react';
+import { ArrowLeft, Loader2, XCircle } from 'lucide-react';
 import { getKycDocuments, uploadKycDocument } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
@@ -160,7 +160,6 @@ export default function KycDocuments(): JSX.Element {
         ) : (
           <>
             {rejection && <RejectionBanner rejection={rejection} />}
-            {readOnly && <UnderReviewBanner />}
 
             {KYC_SECTIONS.map(section => (
               <section key={section.title} className="bg-white rounded-2xl shadow-sm p-5">
@@ -227,18 +226,6 @@ function RejectionBanner({ rejection }: { rejection: KycRejection }): JSX.Elemen
         <p className="font-semibold text-[15px]">Some documents were not accepted: {labels.join(', ')}</p>
         {rejection.reason && <p className="mt-0.5">Reason: {rejection.reason}</p>}
         <p className="mt-0.5">Please upload them again to continue your KYC verification.</p>
-      </div>
-    </div>
-  );
-}
-
-function UnderReviewBanner(): JSX.Element {
-  return (
-    <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3.5 flex items-start gap-2.5">
-      <Clock size={20} className="text-amber-600 shrink-0 mt-0.5" />
-      <div className="text-sm text-amber-800">
-        <p className="font-semibold text-[15px]">Your documents are under review</p>
-        <p className="mt-0.5">You can view them here. We will notify you once they are verified.</p>
       </div>
     </div>
   );

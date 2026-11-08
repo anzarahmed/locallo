@@ -90,7 +90,7 @@ interface FilledSlotProps {
 
 function FilledSlot({ imageUrl, fileName, viewUrl, busy, onReplace, onRemove, onImageError }: FilledSlotProps): JSX.Element {
   const preview = imageUrl ? (
-    <img src={imageUrl} alt={fileName} onError={onImageError} className="w-full h-full object-cover" />
+    <img src={imageUrl} alt={fileName} onError={onImageError} className="w-full h-full object-contain p-1.5" />
   ) : (
     <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-3">
       <FileText size={32} className="text-teal-700" />
