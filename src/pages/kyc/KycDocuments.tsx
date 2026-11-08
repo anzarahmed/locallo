@@ -1,47 +1,64 @@
-import { useEffect, useState, type JSX } from 'react';
-import { Navigate, useNavigate } from 'react-router-dom';
-import { ArrowLeft, AlertTriangle, CheckCircle2, XCircle } from 'lucide-react';
+import { useEffect, useRef, useState, type JSX } from 'react';
+import { Navigate, useNavigate, useOutletContext } from 'react-router-dom';
+import { ArrowLeft, Loader2, XCircle } from 'lucide-react';
 import { getKycDocuments, uploadKycDocument } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
-import { hasRequiredKycDocuments, KYC_DOCUMENT_LABELS } from '../../lib/kyc';
+import { canUploadKycDocuments, KYC_DOCUMENT_LABELS, kycFileError, type StagedKycFile } from '../../lib/kyc';
+import type { AppLayoutContext } from '../../components/layout/AppLayout';
 import type { KycDocumentType, KycDocuments as KycDocumentMap, KycRejection } from '../../types';
 import KycUploadSlot from './KycUploadSlot';
 
 interface KycSlot {
   type: KycDocumentType;
   label?: string;
-  required: boolean;
 }
 
 interface KycSection {
   title: string;
   description: string;
+  required: boolean;
   slots: KycSlot[];
 }
+
+type StagedMap = Partial<Record<KycDocumentType, StagedKycFile>>;
 
 const KYC_SECTIONS: KycSection[] = [
   {
     title: 'Aadhaar Card',
     description: 'Upload front and back side',
+    required: true,
     slots: [
-      { type: 'aadhar',     label: 'Front side', required: true },
-      { type: 'aadharBack', label: 'Back side',  required: true },
+      { type: 'aadhar',     label: 'Front side' },
+      { type: 'aadharBack', label: 'Back side' },
     ],
   },
-  { title: 'PAN Card',                 description: 'Upload your PAN card',                          slots: [{ type: 'pan', required: true }] },
-  { title: 'Registration Certificate', description: 'Upload your business registration certificate', slots: [{ type: 'registrationCertificate', required: false }] },
-  { title: 'Other Document',           description: 'Any other supporting document',                 slots: [{ type: 'other', required: false }] },
+  { title: 'PAN Card',                 description: 'Upload your PAN card',                          required: true,  slots: [{ type: 'pan' }] },
+  { title: 'Registration Certificate', description: 'Upload your business registration certificate', required: false, slots: [{ type: 'registrationCertificate' }] },
+  { title: 'Other Document',           description: 'Any other supporting document',                 required: false, slots: [{ type: 'other' }] },
 ];
+
+const SUBMIT_ORDER: KycDocumentType[] = KYC_SECTIONS.flatMap(section => section.slots.map(slot => slot.type));
+
+function revokePreview(entry: StagedKycFile | undefined): void {
+  if (entry?.previewUrl) URL.revokeObjectURL(entry.previewUrl);
+}
 
 export default function KycDocuments(): JSX.Element {
   const toast = useToast();
   const navigate = useNavigate();
+  const { setKycCanUpload } = useOutletContext<AppLayoutContext>();
   const [docs, setDocs] = useState<KycDocumentMap | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [rejection, setRejection] = useState<KycRejection | null>(null);
   const [loading, setLoading] = useState(true);
-  const [uploadingType, setUploadingType] = useState<KycDocumentType | null>(null);
+  const [staged, setStaged] = useState<StagedMap>({});
+  const [submitting, setSubmitting] = useState(false);
+  const stagedRef = useRef<StagedMap>(staged);
+
+  useEffect(() => {
+    stagedRef.current = staged;
+  }, [staged]);
 
   useEffect(() => {
     getKycDocuments()
@@ -49,19 +66,73 @@ export default function KycDocuments(): JSX.Element {
         setDocs(data.kycDocuments);
         setRejection(data.kycRejection ?? null);
         setIsVerified(data.isVerified);
+        const canUpload = canUploadKycDocuments(data);
+        setKycCanUpload(canUpload);
         if (data.isVerified) toast.info('Your KYC is already verified');
+        else if (!canUpload) {
+          toast.info('Your documents are under review');
+          navigate('/profile', { replace: true });
+        }
       })
       .catch((err: unknown) => toast.error(err instanceof ApiError ? err.message : 'Failed to load documents'))
       .finally(() => setLoading(false));
-  }, []); // toast is stable
+  }, []); // toast, navigate and setKycCanUpload are stable
 
-  async function handleSelect(type: KycDocumentType, file: File): Promise<void> {
-    setUploadingType(type);
+  useEffect(() => () => Object.values(stagedRef.current).forEach(revokePreview), []);
+
+  const stagedCount = Object.keys(staged).length;
+
+  useEffect(() => {
+    if (stagedCount === 0) return;
+    function warn(e: BeforeUnloadEvent): void {
+      e.preventDefault();
+    }
+    window.addEventListener('beforeunload', warn);
+    return () => window.removeEventListener('beforeunload', warn);
+  }, [stagedCount]);
+
+  function stageFile(type: KycDocumentType, file: File): void {
+    const error = kycFileError(file);
+    if (error) {
+      toast.error(error);
+      return;
+    }
+    const previewUrl = file.type === 'application/pdf' ? null : URL.createObjectURL(file);
+    setStaged(prev => {
+      revokePreview(prev[type]);
+      return { ...prev, [type]: { file, previewUrl } };
+    });
+  }
+
+  function unstage(type: KycDocumentType): void {
+    setStaged(prev => {
+      revokePreview(prev[type]);
+      const next = { ...prev };
+      delete next[type];
+      return next;
+    });
+  }
+
+  async function handleSubmit(): Promise<void> {
+    const types = SUBMIT_ORDER.filter(type => staged[type] !== undefined);
+    if (types.length === 0) return;
+    setSubmitting(true);
+    let canUploadMore = true;
     try {
-      const data = await uploadKycDocument(type, file);
-      setDocs(data.kycDocuments);
-      setRejection(data.kycRejection ?? null);
-      toast.success(`${KYC_DOCUMENT_LABELS[type]} uploaded`);
+      for (const type of types) {
+        const entry = staged[type];
+        if (!entry) continue;
+        const data = await uploadKycDocument(type, entry.file);
+        setDocs(data.kycDocuments);
+        setRejection(data.kycRejection ?? null);
+        unstage(type);
+        canUploadMore = canUploadKycDocuments(data);
+      }
+      toast.success('Documents submitted for verification');
+      if (!canUploadMore) {
+        setKycCanUpload(false);
+        navigate('/profile', { replace: true });
+      }
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         toast.info(err.message);
@@ -70,24 +141,16 @@ export default function KycDocuments(): JSX.Element {
       }
       toast.error(err instanceof ApiError ? err.message : 'Upload failed');
     } finally {
-      setUploadingType(null);
+      setSubmitting(false);
     }
   }
 
   if (isVerified) return <Navigate to="/profile" replace />;
 
-  const complete = hasRequiredKycDocuments(docs);
-
   return (
-    <div className="min-h-screen bg-gray-100">
-      <div
-        className="px-5 md:px-8 pt-8 pb-16"
-        style={{
-          background: 'linear-gradient(150deg, #26B8B2 0%, #1A9E98 45%, #14817C 100%)',
-          borderRadius: '0 0 28px 28px',
-        }}
-      >
-        <div className="flex items-center gap-3">
+    <div className="min-h-screen bg-gray-50">
+      <div className="bg-[#14817C] px-4 md:px-8 py-4">
+        <div className="max-w-3xl mx-auto flex items-center gap-3">
           <button
             type="button"
             onClick={() => navigate('/profile')}
@@ -96,14 +159,11 @@ export default function KycDocuments(): JSX.Element {
           >
             <ArrowLeft size={18} />
           </button>
-          <div className="min-w-0">
-            <h1 className="text-white text-xl font-bold">Documents</h1>
-            <p className="text-white/70 text-sm mt-0.5">Upload your KYC documents to get verified</p>
-          </div>
+          <h1 className="text-white text-xl font-bold">Documents</h1>
         </div>
       </div>
 
-      <div className="px-4 md:px-8 -mt-10 relative z-10 pb-10 max-w-3xl mx-auto flex flex-col gap-4">
+      <div className="px-4 md:px-8 py-5 pb-10 max-w-3xl mx-auto flex flex-col gap-4">
         {loading || docs === null ? (
           <KycSkeleton />
         ) : (
@@ -114,41 +174,37 @@ export default function KycDocuments(): JSX.Element {
               <section key={section.title} className="bg-white rounded-2xl shadow-sm p-5">
                 <h2 className="text-base font-bold text-gray-900">
                   {section.title}
-                  {section.slots.length === 1 && section.slots[0].required && <span className="text-red-500 ml-0.5">*</span>}
+                  {section.required
+                    ? <span className="text-red-500 ml-0.5">*</span>
+                    : <span className="text-sm font-normal text-gray-400 ml-1">(Optional)</span>}
                 </h2>
                 <p className="text-sm text-gray-400 mt-0.5 mb-4">{section.description}</p>
-                <div className={section.slots.length > 1 ? 'grid grid-cols-1 sm:grid-cols-2 gap-4' : ''}>
+                <div className={section.slots.length > 1 ? 'grid grid-cols-2 gap-3 sm:gap-4' : ''}>
                   {section.slots.map(slot => (
                     <KycUploadSlot
                       key={slot.type}
                       label={slot.label}
-                      required={slot.required}
-                      url={docs[slot.type]}
-                      uploading={uploadingType === slot.type}
-                      disabled={uploadingType !== null && uploadingType !== slot.type}
-                      rejected={rejection?.documentTypes.includes(slot.type) === true && docs[slot.type] === null}
-                      onSelect={file => void handleSelect(slot.type, file)}
+                      serverUrl={docs[slot.type]}
+                      staged={staged[slot.type] ?? null}
+                      busy={submitting}
+                      rejected={rejection?.documentTypes.includes(slot.type) === true && docs[slot.type] === null && staged[slot.type] === undefined}
+                      onPick={file => stageFile(slot.type, file)}
+                      onRemove={() => unstage(slot.type)}
                     />
                   ))}
                 </div>
               </section>
             ))}
 
-            {complete ? (
-              <div className="rounded-2xl bg-teal-50 border border-teal-200 px-4 py-3 flex items-start gap-2.5">
-                <CheckCircle2 size={18} className="text-teal-700 shrink-0 mt-0.5" />
-                <p className="text-sm text-teal-800">
-                  All required documents uploaded. Our team will review and verify your KYC.
-                </p>
-              </div>
-            ) : (
-              <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3 flex items-start gap-2.5">
-                <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
-                <p className="text-sm text-amber-800">
-                  Upload Aadhaar front, Aadhaar back and PAN card to send your KYC for verification.
-                </p>
-              </div>
-            )}
+            <button
+              type="button"
+              onClick={() => void handleSubmit()}
+              disabled={stagedCount === 0 || submitting}
+              className="w-full py-4 rounded-2xl bg-[#14817C] hover:bg-[#106B67] text-white text-base font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+            >
+              {submitting && <Loader2 size={18} className="animate-spin" />}
+              {submitting ? 'Submitting…' : 'Submit'}
+            </button>
           </>
         )}
       </div>
@@ -160,20 +216,20 @@ function RejectionBanner({ rejection }: { rejection: KycRejection }): JSX.Elemen
   const labels = rejection.documentTypes.map(type => KYC_DOCUMENT_LABELS[type]);
   if (labels.length === 0) {
     return (
-      <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-2.5">
-        <XCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
-        <div className="text-sm text-red-800">
-          <p className="font-semibold">Your KYC verification was revoked</p>
+      <div className="rounded-2xl bg-red-50 border border-red-300 px-4 py-3.5 flex items-start gap-2.5">
+        <XCircle size={20} className="text-red-600 shrink-0 mt-0.5" />
+        <div className="text-sm text-red-600">
+          <p className="font-semibold text-[15px]">Your KYC verification was revoked</p>
           <p className="mt-0.5">Please replace your documents with current, valid copies so we can review them again.</p>
         </div>
       </div>
     );
   }
   return (
-    <div className="rounded-2xl bg-red-50 border border-red-200 px-4 py-3 flex items-start gap-2.5">
-      <XCircle size={18} className="text-red-600 shrink-0 mt-0.5" />
-      <div className="text-sm text-red-800">
-        <p className="font-semibold">Some documents were not accepted: {labels.join(', ')}</p>
+    <div className="rounded-2xl bg-red-50 border border-red-300 px-4 py-3.5 flex items-start gap-2.5">
+      <XCircle size={20} className="text-red-600 shrink-0 mt-0.5" />
+      <div className="text-sm text-red-600">
+        <p className="font-semibold text-[15px]">Some documents were not accepted: {labels.join(', ')}</p>
         {rejection.reason && <p className="mt-0.5">Reason: {rejection.reason}</p>}
         <p className="mt-0.5">Please upload them again to continue your KYC verification.</p>
       </div>

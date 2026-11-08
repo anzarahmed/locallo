@@ -20,7 +20,7 @@ import DatePicker from '../../components/ui/DatePicker';
 import { formatDate, toDate, toIsoDate } from '../../lib/dateFormat';
 import { shopLinkUrl } from '../../lib/shopLink';
 import { copyToClipboard } from '../../lib/clipboard';
-import { hasRequiredKycDocuments } from '../../lib/kyc';
+import { canUploadKycDocuments } from '../../lib/kyc';
 
 type DayFieldErrors  = Partial<{ open: string; close: string }>;
 type DayFieldTouched = Partial<{ open: boolean; close: boolean }>;
@@ -65,7 +65,7 @@ export default function Profile(): JSX.Element {
   const [lat, setLat] = useState(DEFAULT_LAT);
   const [lng, setLng] = useState(DEFAULT_LNG);
   const [loadingProfile, setLoadingProfile] = useState(true);
-  const [kyc, setKyc] = useState<{ isVerified: boolean; documentsComplete: boolean }>({ isVerified: true, documentsComplete: false });
+  const [kyc, setKyc] = useState<{ isVerified: boolean; canUpload: boolean; rejected: boolean }>({ isVerified: true, canUpload: false, rejected: false });
   const [copiedDay, setCopiedDay] = useState<Day | null>(null);
   const [workingHours, setWorkingHours] = useState<ProfileFormValues['workingHours']>(DEFAULT_WORKING_HOURS);
   const [customDayOverride, setCustomDayOverride] = useState<CustomDayOverride | null>(null);
@@ -98,7 +98,7 @@ export default function Profile(): JSX.Element {
           const p = profileData.value.profile;
           const wh: ProfileFormValues['workingHours'] = normalizeWorkingHours(p.workingHours);
 
-          setKyc({ isVerified: p.isVerified, documentsComplete: hasRequiredKycDocuments(p.kycDocuments) });
+          setKyc({ isVerified: p.isVerified, canUpload: canUploadKycDocuments(p), rejected: Boolean(p.kycRejection) });
           setCategories(p.categories ?? []);
           setCategoryIds(p.categoryIds ?? []);
           setWorkingHours(wh);
@@ -201,7 +201,7 @@ export default function Profile(): JSX.Element {
       </div>
 
       <div className="px-4 md:px-8 -mt-10 relative z-10 pb-10 max-w-3xl mx-auto">
-        {!kyc.isVerified && <KycCard documentsComplete={kyc.documentsComplete} />}
+        {!kyc.isVerified && <KycCard canUpload={kyc.canUpload} rejected={kyc.rejected} />}
 
         {/* ── Shop Info card ── */}
         <div className="bg-white rounded-2xl shadow-sm p-5 mb-4">
@@ -973,7 +973,7 @@ function WorkingHoursRow({
 }
 
 /* ── KYC card ── */
-function KycCard({ documentsComplete }: { documentsComplete: boolean }): JSX.Element {
+function KycCard({ canUpload, rejected }: { canUpload: boolean; rejected: boolean }): JSX.Element {
   return (
     <div className="bg-white rounded-2xl shadow-sm p-5 mb-4 flex flex-col sm:flex-row sm:items-center gap-4">
       <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -983,19 +983,23 @@ function KycCard({ documentsComplete }: { documentsComplete: boolean }): JSX.Ele
         <div className="min-w-0">
           <p className="text-sm font-semibold text-gray-900">KYC verification pending</p>
           <p className="text-xs text-gray-500 mt-0.5">
-            {documentsComplete
-              ? 'Your documents are under review. You can still replace them if needed.'
-              : 'Upload your Aadhaar and PAN card to get your shop verified.'}
+            {!canUpload
+              ? 'Your documents are under review. We will notify you once they are verified.'
+              : rejected
+                ? 'Some of your documents were not accepted. Please upload them again.'
+                : 'Upload your Aadhaar and PAN card to get your shop verified.'}
           </p>
         </div>
       </div>
-      <Link
-        to="/kyc-documents"
-        className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors shrink-0"
-      >
-        <Upload size={16} />
-        Upload Documents
-      </Link>
+      {canUpload && (
+        <Link
+          to="/kyc-documents"
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors shrink-0"
+        >
+          <Upload size={16} />
+          Upload Documents
+        </Link>
+      )}
     </div>
   );
 }

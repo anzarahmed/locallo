@@ -69,6 +69,7 @@ export interface SellerProfile {
   isVerified: boolean;
   isActive: boolean;
   kycDocuments?: Partial<KycDocuments> | null;
+  kycRejection?: KycRejection | null;
 }
 
 export interface ProfileResponse {

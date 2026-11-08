@@ -1,11 +1,12 @@
 import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
-import { LayoutDashboard, Archive, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt, Bell, BadgePercent, AlertTriangle, CreditCard, Gauge } from 'lucide-react';
+import { LayoutDashboard, Archive, Plus, LogOut, BarChart2, User, ChevronDown, Settings, Receipt, Bell, BadgePercent, AlertTriangle, CreditCard, Gauge, FileText } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
 import { useState, useRef, useEffect, type JSX } from 'react';
 import logo from '../../assets/logo.png';
 import { getProfile } from '../../services/sellerService';
 import { resolveImage } from '../../lib/imageUtils';
+import { canUploadKycDocuments } from '../../lib/kyc';
 
 interface NavItem {
   to: string;
@@ -28,6 +29,7 @@ const SETTINGS_NAV: NavItem = { to: '/settings', icon: <Settings size={20} />, l
 
 export interface AppLayoutContext {
   setHasUnread: (hasUnread: boolean) => void;
+  setKycCanUpload: (canUpload: boolean) => void;
 }
 
 export default function AppLayout(): JSX.Element {
@@ -36,12 +38,14 @@ export default function AppLayout(): JSX.Element {
   const navigate = useNavigate();
   const [hasUnread, setHasUnread] = useState(false);
   const [kycPending, setKycPending] = useState(false);
+  const [kycCanUpload, setKycCanUpload] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     getProfile()
       .then(data => {
         setKycPending(!data.profile.isVerified);
+        setKycCanUpload(canUploadKycDocuments(data.profile));
         setPhoto(data.photo);
         setHasUnread(data.unreadNotificationCount > 0);
       })
@@ -100,15 +104,15 @@ export default function AppLayout(): JSX.Element {
           <img src={logo} alt="Loccalo" className="h-7 w-auto md:hidden" />
           <div className="flex items-center gap-2 ml-auto">
             <NotificationBell hasUnread={hasUnread} onClick={() => navigate('/notifications')} />
-            <ProfileMenu seller={seller} photo={photo} logout={logout} navigate={navigate} />
+            <ProfileMenu seller={seller} photo={photo} kycCanUpload={kycCanUpload} logout={logout} navigate={navigate} />
           </div>
         </header>
 
-        {kycPending && <KycPendingBanner />}
+        {kycPending && <KycPendingBanner canUpload={kycCanUpload} />}
 
         {/* ── Main content ── */}
         <main className="flex-1 pb-20 md:pb-0">
-          <Outlet context={{ setHasUnread } satisfies AppLayoutContext} />
+          <Outlet context={{ setHasUnread, setKycCanUpload } satisfies AppLayoutContext} />
         </main>
       </div>
 
@@ -136,7 +140,19 @@ export default function AppLayout(): JSX.Element {
 }
 
 /* ── KYC pending banner ── */
-function KycPendingBanner(): JSX.Element {
+function KycPendingBanner({ canUpload }: { canUpload: boolean }): JSX.Element {
+  if (!canUpload) {
+    return (
+      <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-start sm:items-center gap-2.5">
+        <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
+        <p className="text-xs sm:text-sm text-amber-800 leading-snug">
+          <span className="font-semibold">Your KYC documents are under review.</span>{' '}
+          Until your KYC is verified, your products won't be visible to customers.
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-start sm:items-center gap-2.5">
       <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
@@ -176,11 +192,12 @@ function NotificationBell({ hasUnread, onClick }: NotificationBellProps): JSX.El
 interface ProfileMenuProps {
   seller: ReturnType<typeof useAuth>['seller'];
   photo: string | null;
+  kycCanUpload: boolean;
   logout: () => void;
   navigate: (path: string) => void;
 }
 
-function ProfileMenu({ seller, photo, logout, navigate }: ProfileMenuProps): JSX.Element {
+function ProfileMenu({ seller, photo, kycCanUpload, logout, navigate }: ProfileMenuProps): JSX.Element {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -220,7 +237,7 @@ function ProfileMenu({ seller, photo, logout, navigate }: ProfileMenuProps): JSX
       </button>
 
       {open && (
-        <div className="absolute right-0 top-10 w-44 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
+        <div className="absolute right-0 top-10 w-64 bg-white rounded-xl shadow-lg border border-gray-100 py-1 z-50">
           {/* Seller name header */}
           <div className="px-4 py-2.5 border-b border-gray-50">
             <p className="text-xs font-semibold text-gray-800 truncate">
@@ -253,6 +270,19 @@ function ProfileMenu({ seller, photo, logout, navigate }: ProfileMenuProps): JSX
             <Settings size={15} className="text-gray-400" />
             Settings
           </button>
+
+          {kycCanUpload && (
+            <button
+              onClick={() => { setOpen(false); navigate('/kyc-documents'); }}
+              className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+            >
+              <FileText size={15} className="text-gray-400 shrink-0" />
+              Documents
+              <span className="ml-auto shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-600 whitespace-nowrap">
+                Verification pending
+              </span>
+            </button>
+          )}
 
           <div className="border-t border-gray-50 mt-1 pt-1">
             <button
