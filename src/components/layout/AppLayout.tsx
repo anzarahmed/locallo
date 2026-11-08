@@ -284,7 +284,9 @@ function ProfileMenu({ seller, photo, kycStatus, logout, navigate }: ProfileMenu
             >
               <FileText size={15} className="text-gray-400 shrink-0" />
               Documents
-              <span className="ml-auto shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600 whitespace-nowrap">
+              <span className={`ml-auto shrink-0 rounded-full px-2 py-0.5 text-[11px] font-semibold whitespace-nowrap ${
+                kycStatus === 'verified' ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-600'
+              }`}>
                 {KYC_UPLOAD_STATUS_LABELS[kycStatus]}
               </span>
             </button>

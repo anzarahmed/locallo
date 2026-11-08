@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
-import { Navigate, useNavigate, useOutletContext } from 'react-router-dom';
+import { useNavigate, useOutletContext } from 'react-router-dom';
 import { ArrowLeft, Loader2, XCircle } from 'lucide-react';
 import { getKycDocuments, uploadKycDocument } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
@@ -67,7 +67,6 @@ export default function KycDocuments(): JSX.Element {
         setRejection(data.kycRejection ?? null);
         setIsVerified(data.isVerified);
         setKycState(data);
-        if (data.isVerified) toast.info('Your KYC is already verified');
       })
       .catch((err: unknown) => toast.error(err instanceof ApiError ? err.message : 'Failed to load documents'))
       .finally(() => setLoading(false));
@@ -77,7 +76,7 @@ export default function KycDocuments(): JSX.Element {
 
   const stagedCount = Object.keys(staged).length;
   const readOnly = !canUploadKycDocuments({ isVerified, kycDocuments: docs, kycRejection: rejection });
-  const hasEmptySlot = docs !== null && SUBMIT_ORDER.some(type => !docs[type]);
+  const canAddMissing = !isVerified && docs !== null && SUBMIT_ORDER.some(type => !docs[type]);
 
   useEffect(() => {
     if (stagedCount === 0) return;
@@ -137,8 +136,6 @@ export default function KycDocuments(): JSX.Element {
     }
   }
 
-  if (isVerified) return <Navigate to="/profile" replace />;
-
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="bg-[#14817C] px-4 md:px-8 py-4">
@@ -180,6 +177,7 @@ export default function KycDocuments(): JSX.Element {
                       staged={staged[slot.type] ?? null}
                       busy={submitting}
                       readOnly={readOnly}
+                      locked={isVerified}
                       rejected={rejection?.documentTypes.includes(slot.type) === true && docs[slot.type] === null && staged[slot.type] === undefined}
                       onPick={file => stageFile(slot.type, file)}
                       onRemove={() => unstage(slot.type)}
@@ -189,7 +187,7 @@ export default function KycDocuments(): JSX.Element {
               </section>
             ))}
 
-            {(!readOnly || hasEmptySlot) && (
+            {(!readOnly || canAddMissing) && (
               <button
                 type="button"
                 onClick={() => void handleSubmit()}

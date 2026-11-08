@@ -9,11 +9,12 @@ interface KycUploadSlotProps {
   rejected: boolean;
   busy: boolean;
   readOnly?: boolean;
+  locked?: boolean;
   onPick: (file: File) => void;
   onRemove: () => void;
 }
 
-export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy, readOnly = false, onPick, onRemove }: KycUploadSlotProps): JSX.Element {
+export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy, readOnly = false, locked = false, onPick, onRemove }: KycUploadSlotProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
@@ -51,6 +52,11 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
           onReplace={readOnly ? undefined : openPicker}
           onImageError={() => setFailedUrl(serverUrl)}
         />
+      ) : locked ? (
+        <div className="w-full h-36 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1.5 px-2">
+          <FileText size={24} className="text-gray-300" />
+          <span className="text-sm font-medium text-gray-400">Not uploaded</span>
+        </div>
       ) : (
         <button
           type="button"
