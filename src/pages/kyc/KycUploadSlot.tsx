@@ -1,5 +1,5 @@
 import { useRef, useState, type ChangeEvent, type JSX } from 'react';
-import { Camera, FileText, X } from 'lucide-react';
+import { Camera, CheckCircle2, FileText, X } from 'lucide-react';
 import { KYC_ACCEPT, isPdfUrl, type StagedKycFile } from '../../lib/kyc';
 
 interface KycUploadSlotProps {
@@ -46,6 +46,7 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
           imageUrl={isPdfUrl(serverUrl) || failedUrl === serverUrl ? null : serverUrl}
           fileName="Document uploaded"
           viewUrl={serverUrl}
+          uploaded={readOnly}
           busy={busy}
           onReplace={readOnly ? undefined : openPicker}
           onImageError={() => setFailedUrl(serverUrl)}
@@ -82,13 +83,14 @@ interface FilledSlotProps {
   imageUrl: string | null;
   fileName: string;
   viewUrl?: string;
+  uploaded?: boolean;
   busy: boolean;
   onReplace?: () => void;
   onRemove?: () => void;
   onImageError?: () => void;
 }
 
-function FilledSlot({ imageUrl, fileName, viewUrl, busy, onReplace, onRemove, onImageError }: FilledSlotProps): JSX.Element {
+function FilledSlot({ imageUrl, fileName, viewUrl, uploaded = false, busy, onReplace, onRemove, onImageError }: FilledSlotProps): JSX.Element {
   const preview = imageUrl ? (
     <img src={imageUrl} alt={fileName} onError={onImageError} className="w-full h-full object-contain p-1.5" />
   ) : (
@@ -109,6 +111,13 @@ function FilledSlot({ imageUrl, fileName, viewUrl, busy, onReplace, onRemove, on
           preview
         )}
       </div>
+
+      {uploaded && (
+        <span className="pointer-events-none absolute top-2 left-2 inline-flex items-center gap-1 rounded-full bg-[#14817C] px-2.5 py-1 text-xs font-semibold text-white shadow-sm">
+          <CheckCircle2 size={14} />
+          Uploaded
+        </span>
+      )}
 
       {onRemove && (
         <button
