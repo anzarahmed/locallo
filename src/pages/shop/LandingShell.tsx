@@ -4,6 +4,7 @@ import type { LucideIcon } from 'lucide-react';
 import logo from '../../assets/logo.png';
 import { APP_STORE_URL, PLAY_STORE_URL } from '../../lib/storeLinks';
 import StoreButton from './StoreButton';
+import StoreQrCode from './StoreQrCode';
 
 interface Benefit {
   icon: LucideIcon;
@@ -58,6 +59,20 @@ export default function LandingShell({ icon: HeadingIcon, children }: LandingShe
           <StoreButton store="android" url={PLAY_STORE_URL} />
           <StoreButton store="ios" url={APP_STORE_URL} />
         </div>
+
+        {(PLAY_STORE_URL || APP_STORE_URL) && (
+          <div className="hidden sm:block">
+            <div className="mt-6 flex items-center gap-3 text-xs font-medium text-gray-400">
+              <span className="h-px flex-1 bg-gray-200" />
+              Or scan to download
+              <span className="h-px flex-1 bg-gray-200" />
+            </div>
+            <div className="mt-4 flex justify-center gap-6">
+              <StoreQrCode store="android" url={PLAY_STORE_URL} />
+              <StoreQrCode store="ios" url={APP_STORE_URL} />
+            </div>
+          </div>
+        )}
       </main>
 
       <p className="relative mt-6 text-xs text-white/80">© Loccalo</p>
