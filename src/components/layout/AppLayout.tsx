@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, type JSX } from 'react';
 import logo from '../../assets/logo.png';
 import { getProfile } from '../../services/sellerService';
 import { resolveImage } from '../../lib/imageUtils';
-import { canUploadKycDocuments } from '../../lib/kyc';
+import { getKycUploadStatus, KYC_UPLOAD_STATUS_LABELS, type KycUploadStatus } from '../../lib/kyc';
 
 interface NavItem {
   to: string;
@@ -29,7 +29,7 @@ const SETTINGS_NAV: NavItem = { to: '/settings', icon: <Settings size={20} />, l
 
 export interface AppLayoutContext {
   setHasUnread: (hasUnread: boolean) => void;
-  setKycCanUpload: (canUpload: boolean) => void;
+  setKycStatus: (status: KycUploadStatus | null) => void;
 }
 
 export default function AppLayout(): JSX.Element {
@@ -38,14 +38,14 @@ export default function AppLayout(): JSX.Element {
   const navigate = useNavigate();
   const [hasUnread, setHasUnread] = useState(false);
   const [kycPending, setKycPending] = useState(false);
-  const [kycCanUpload, setKycCanUpload] = useState(false);
+  const [kycStatus, setKycStatus] = useState<KycUploadStatus | null>(null);
   const [photo, setPhoto] = useState<string | null>(null);
 
   useEffect(() => {
     getProfile()
       .then(data => {
         setKycPending(!data.profile.isVerified);
-        setKycCanUpload(canUploadKycDocuments(data.profile));
+        setKycStatus(getKycUploadStatus(data.profile));
         setPhoto(data.photo);
         setHasUnread(data.unreadNotificationCount > 0);
       })
@@ -104,15 +104,15 @@ export default function AppLayout(): JSX.Element {
           <img src={logo} alt="Loccalo" className="h-7 w-auto md:hidden" />
           <div className="flex items-center gap-2 ml-auto">
             <NotificationBell hasUnread={hasUnread} onClick={() => navigate('/notifications')} />
-            <ProfileMenu seller={seller} photo={photo} kycCanUpload={kycCanUpload} logout={logout} navigate={navigate} />
+            <ProfileMenu seller={seller} photo={photo} kycStatus={kycStatus} logout={logout} navigate={navigate} />
           </div>
         </header>
 
-        {kycPending && <KycPendingBanner canUpload={kycCanUpload} />}
+        {kycPending && <KycPendingBanner canUpload={kycStatus !== null} />}
 
         {/* ── Main content ── */}
         <main className="flex-1 pb-20 md:pb-0">
-          <Outlet context={{ setHasUnread, setKycCanUpload } satisfies AppLayoutContext} />
+          <Outlet context={{ setHasUnread, setKycStatus } satisfies AppLayoutContext} />
         </main>
       </div>
 
@@ -192,12 +192,12 @@ function NotificationBell({ hasUnread, onClick }: NotificationBellProps): JSX.El
 interface ProfileMenuProps {
   seller: ReturnType<typeof useAuth>['seller'];
   photo: string | null;
-  kycCanUpload: boolean;
+  kycStatus: KycUploadStatus | null;
   logout: () => void;
   navigate: (path: string) => void;
 }
 
-function ProfileMenu({ seller, photo, kycCanUpload, logout, navigate }: ProfileMenuProps): JSX.Element {
+function ProfileMenu({ seller, photo, kycStatus, logout, navigate }: ProfileMenuProps): JSX.Element {
   const [open, setOpen] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -271,15 +271,15 @@ function ProfileMenu({ seller, photo, kycCanUpload, logout, navigate }: ProfileM
             Settings
           </button>
 
-          {kycCanUpload && (
+          {kycStatus && (
             <button
               onClick={() => { setOpen(false); navigate('/kyc-documents'); }}
               className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
             >
               <FileText size={15} className="text-gray-400 shrink-0" />
               Documents
-              <span className="ml-auto shrink-0 rounded-full bg-orange-50 px-2 py-0.5 text-[11px] font-semibold text-orange-600 whitespace-nowrap">
-                Verification pending
+              <span className="ml-auto shrink-0 rounded-full bg-red-50 px-2 py-0.5 text-[11px] font-semibold text-red-600 whitespace-nowrap">
+                {KYC_UPLOAD_STATUS_LABELS[kycStatus]}
               </span>
             </button>
           )}

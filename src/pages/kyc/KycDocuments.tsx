@@ -4,7 +4,7 @@ import { ArrowLeft, Loader2, XCircle } from 'lucide-react';
 import { getKycDocuments, uploadKycDocument } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
-import { canUploadKycDocuments, KYC_DOCUMENT_LABELS, kycFileError, type StagedKycFile } from '../../lib/kyc';
+import { canUploadKycDocuments, getKycUploadStatus, KYC_DOCUMENT_LABELS, kycFileError, type StagedKycFile } from '../../lib/kyc';
 import type { AppLayoutContext } from '../../components/layout/AppLayout';
 import type { KycDocumentType, KycDocuments as KycDocumentMap, KycRejection } from '../../types';
 import KycUploadSlot from './KycUploadSlot';
@@ -47,7 +47,7 @@ function revokePreview(entry: StagedKycFile | undefined): void {
 export default function KycDocuments(): JSX.Element {
   const toast = useToast();
   const navigate = useNavigate();
-  const { setKycCanUpload } = useOutletContext<AppLayoutContext>();
+  const { setKycStatus } = useOutletContext<AppLayoutContext>();
   const [docs, setDocs] = useState<KycDocumentMap | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [rejection, setRejection] = useState<KycRejection | null>(null);
@@ -67,7 +67,7 @@ export default function KycDocuments(): JSX.Element {
         setRejection(data.kycRejection ?? null);
         setIsVerified(data.isVerified);
         const canUpload = canUploadKycDocuments(data);
-        setKycCanUpload(canUpload);
+        setKycStatus(getKycUploadStatus(data));
         if (data.isVerified) toast.info('Your KYC is already verified');
         else if (!canUpload) {
           toast.info('Your documents are under review');
@@ -76,7 +76,7 @@ export default function KycDocuments(): JSX.Element {
       })
       .catch((err: unknown) => toast.error(err instanceof ApiError ? err.message : 'Failed to load documents'))
       .finally(() => setLoading(false));
-  }, []); // toast, navigate and setKycCanUpload are stable
+  }, []); // toast, navigate and setKycStatus are stable
 
   useEffect(() => () => Object.values(stagedRef.current).forEach(revokePreview), []);
 
@@ -117,7 +117,7 @@ export default function KycDocuments(): JSX.Element {
     const types = SUBMIT_ORDER.filter(type => staged[type] !== undefined);
     if (types.length === 0) return;
     setSubmitting(true);
-    let canUploadMore = true;
+    let status = getKycUploadStatus({ isVerified, kycDocuments: docs, kycRejection: rejection });
     try {
       for (const type of types) {
         const entry = staged[type];
@@ -126,13 +126,11 @@ export default function KycDocuments(): JSX.Element {
         setDocs(data.kycDocuments);
         setRejection(data.kycRejection ?? null);
         unstage(type);
-        canUploadMore = canUploadKycDocuments(data);
+        status = getKycUploadStatus(data);
       }
       toast.success('Documents submitted for verification');
-      if (!canUploadMore) {
-        setKycCanUpload(false);
-        navigate('/profile', { replace: true });
-      }
+      setKycStatus(status);
+      if (status === null) navigate('/profile', { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         toast.info(err.message);
