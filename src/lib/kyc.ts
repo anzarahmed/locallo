@@ -4,7 +4,7 @@ export function hasRequiredKycDocuments(docs: Partial<KycDocuments> | null | und
   return Boolean(docs?.aadhar && docs.aadharBack && docs.pan);
 }
 
-interface KycUploadState {
+export interface KycUploadState {
   isVerified: boolean;
   kycDocuments?: Partial<KycDocuments> | null;
   kycRejection?: KycRejection | null;
@@ -24,7 +24,7 @@ export const KYC_UPLOAD_STATUS_LABELS: Record<KycUploadStatus, string> = {
 };
 
 export function getKycUploadStatus(state: KycUploadState): KycUploadStatus | null {
-  if (!canUploadKycDocuments(state)) return null;
+  if (state.isVerified) return null;
   if (state.kycRejection?.revoked) return 'revoked';
   if (state.kycRejection) return 'rejected';
   return 'pending';

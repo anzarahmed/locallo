@@ -8,11 +8,12 @@ interface KycUploadSlotProps {
   staged: StagedKycFile | null;
   rejected: boolean;
   busy: boolean;
+  readOnly?: boolean;
   onPick: (file: File) => void;
   onRemove: () => void;
 }
 
-export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy, onPick, onRemove }: KycUploadSlotProps): JSX.Element {
+export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy, readOnly = false, onPick, onRemove }: KycUploadSlotProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
@@ -30,7 +31,7 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
     <div className="flex flex-col min-w-0">
       {label && <p className="text-sm font-semibold text-gray-800 mb-2">{label}</p>}
 
-      <input ref={inputRef} type="file" accept={KYC_ACCEPT} className="hidden" onChange={handleChange} />
+      {!readOnly && <input ref={inputRef} type="file" accept={KYC_ACCEPT} className="hidden" onChange={handleChange} />}
 
       {staged ? (
         <FilledSlot
@@ -46,9 +47,14 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
           fileName="Document uploaded"
           viewUrl={serverUrl}
           busy={busy}
-          onReplace={openPicker}
+          onReplace={readOnly ? undefined : openPicker}
           onImageError={() => setFailedUrl(serverUrl)}
         />
+      ) : readOnly ? (
+        <div className="w-full h-36 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1.5 px-2">
+          <FileText size={24} className="text-gray-300" />
+          <span className="text-sm font-medium text-gray-400">Not uploaded</span>
+        </div>
       ) : (
         <button
           type="button"
@@ -64,7 +70,7 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
             <Camera size={20} className="text-teal-700" />
           </span>
           <span className="text-sm font-bold text-gray-800">Click to upload</span>
-          <span className="text-xs text-gray-400">Image or PDF · max 10 MB</span>
+          <span className="text-xs text-gray-400">Image</span>
           {rejected && <span className="text-xs font-medium text-red-600 text-center">Not accepted · please upload again</span>}
         </button>
       )}
@@ -77,7 +83,7 @@ interface FilledSlotProps {
   fileName: string;
   viewUrl?: string;
   busy: boolean;
-  onReplace: () => void;
+  onReplace?: () => void;
   onRemove?: () => void;
   onImageError?: () => void;
 }
@@ -116,14 +122,16 @@ function FilledSlot({ imageUrl, fileName, viewUrl, busy, onReplace, onRemove, on
         </button>
       )}
 
-      <button
-        type="button"
-        onClick={onReplace}
-        disabled={busy}
-        className="absolute bottom-2 right-2 rounded-full bg-gray-700/75 hover:bg-gray-800/85 px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
-      >
-        Replace
-      </button>
+      {onReplace && (
+        <button
+          type="button"
+          onClick={onReplace}
+          disabled={busy}
+          className="absolute bottom-2 right-2 rounded-full bg-gray-700/75 hover:bg-gray-800/85 px-3.5 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+        >
+          Replace
+        </button>
+      )}
     </div>
   );
 }

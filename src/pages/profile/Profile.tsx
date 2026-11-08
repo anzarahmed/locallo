@@ -1,7 +1,7 @@
 import { useEffect, useState, type JSX } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useFormik, type FormikErrors, type FormikTouched, type FormikHelpers } from 'formik';
-import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight, CalendarDays, Pencil, X, Trash2, Share2, ShieldAlert, Upload } from 'lucide-react';
+import { Clock, MapPin, Navigation, BarChart2, Save, Copy, Clipboard, Tag, Settings, ChevronRight, CalendarDays, Pencil, X, Trash2, Share2, ShieldAlert, Upload, Eye } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
 import { useModulePrefs } from '../../hooks/useModulePrefs';
@@ -991,13 +991,21 @@ function KycCard({ canUpload, rejected }: { canUpload: boolean; rejected: boolea
           </p>
         </div>
       </div>
-      {canUpload && (
+      {canUpload ? (
         <Link
           to="/kyc-documents"
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-teal-600 hover:bg-teal-700 px-4 py-2.5 text-sm font-semibold text-white transition-colors shrink-0"
         >
           <Upload size={16} />
           Upload Documents
+        </Link>
+      ) : (
+        <Link
+          to="/kyc-documents"
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-teal-600 text-teal-700 hover:bg-teal-50 px-4 py-2.5 text-sm font-semibold transition-colors shrink-0"
+        >
+          <Eye size={16} />
+          View Documents
         </Link>
       )}
     </div>

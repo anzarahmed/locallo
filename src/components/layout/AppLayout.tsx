@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, type JSX } from 'react';
 import logo from '../../assets/logo.png';
 import { getProfile } from '../../services/sellerService';
 import { resolveImage } from '../../lib/imageUtils';
-import { getKycUploadStatus, KYC_UPLOAD_STATUS_LABELS, type KycUploadStatus } from '../../lib/kyc';
+import { canUploadKycDocuments, getKycUploadStatus, KYC_UPLOAD_STATUS_LABELS, type KycUploadState, type KycUploadStatus } from '../../lib/kyc';
 
 interface NavItem {
   to: string;
@@ -29,7 +29,7 @@ const SETTINGS_NAV: NavItem = { to: '/settings', icon: <Settings size={20} />, l
 
 export interface AppLayoutContext {
   setHasUnread: (hasUnread: boolean) => void;
-  setKycStatus: (status: KycUploadStatus | null) => void;
+  setKycState: (state: KycUploadState) => void;
 }
 
 export default function AppLayout(): JSX.Element {
@@ -39,13 +39,19 @@ export default function AppLayout(): JSX.Element {
   const [hasUnread, setHasUnread] = useState(false);
   const [kycPending, setKycPending] = useState(false);
   const [kycStatus, setKycStatus] = useState<KycUploadStatus | null>(null);
+  const [kycCanUpload, setKycCanUpload] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
+
+  function setKycState(state: KycUploadState): void {
+    setKycStatus(getKycUploadStatus(state));
+    setKycCanUpload(canUploadKycDocuments(state));
+  }
 
   useEffect(() => {
     getProfile()
       .then(data => {
         setKycPending(!data.profile.isVerified);
-        setKycStatus(getKycUploadStatus(data.profile));
+        setKycState(data.profile);
         setPhoto(data.photo);
         setHasUnread(data.unreadNotificationCount > 0);
       })
@@ -108,11 +114,11 @@ export default function AppLayout(): JSX.Element {
           </div>
         </header>
 
-        {kycPending && <KycPendingBanner canUpload={kycStatus !== null} />}
+        {kycPending && <KycPendingBanner canUpload={kycCanUpload} />}
 
         {/* ── Main content ── */}
         <main className="flex-1 pb-20 md:pb-0">
-          <Outlet context={{ setHasUnread, setKycStatus } satisfies AppLayoutContext} />
+          <Outlet context={{ setHasUnread, setKycState } satisfies AppLayoutContext} />
         </main>
       </div>
 

@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState, type JSX } from 'react';
 import { Navigate, useNavigate, useOutletContext } from 'react-router-dom';
-import { ArrowLeft, Loader2, XCircle } from 'lucide-react';
+import { ArrowLeft, Clock, Loader2, XCircle } from 'lucide-react';
 import { getKycDocuments, uploadKycDocument } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
-import { canUploadKycDocuments, getKycUploadStatus, KYC_DOCUMENT_LABELS, kycFileError, type StagedKycFile } from '../../lib/kyc';
+import { canUploadKycDocuments, KYC_DOCUMENT_LABELS, kycFileError, type StagedKycFile } from '../../lib/kyc';
 import type { AppLayoutContext } from '../../components/layout/AppLayout';
 import type { KycDocumentType, KycDocuments as KycDocumentMap, KycRejection } from '../../types';
 import KycUploadSlot from './KycUploadSlot';
@@ -47,7 +47,7 @@ function revokePreview(entry: StagedKycFile | undefined): void {
 export default function KycDocuments(): JSX.Element {
   const toast = useToast();
   const navigate = useNavigate();
-  const { setKycStatus } = useOutletContext<AppLayoutContext>();
+  const { setKycState } = useOutletContext<AppLayoutContext>();
   const [docs, setDocs] = useState<KycDocumentMap | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [rejection, setRejection] = useState<KycRejection | null>(null);
@@ -66,21 +66,17 @@ export default function KycDocuments(): JSX.Element {
         setDocs(data.kycDocuments);
         setRejection(data.kycRejection ?? null);
         setIsVerified(data.isVerified);
-        const canUpload = canUploadKycDocuments(data);
-        setKycStatus(getKycUploadStatus(data));
+        setKycState(data);
         if (data.isVerified) toast.info('Your KYC is already verified');
-        else if (!canUpload) {
-          toast.info('Your documents are under review');
-          navigate('/profile', { replace: true });
-        }
       })
       .catch((err: unknown) => toast.error(err instanceof ApiError ? err.message : 'Failed to load documents'))
       .finally(() => setLoading(false));
-  }, []); // toast, navigate and setKycStatus are stable
+  }, []); // toast and setKycState are stable
 
   useEffect(() => () => Object.values(stagedRef.current).forEach(revokePreview), []);
 
   const stagedCount = Object.keys(staged).length;
+  const readOnly = !canUploadKycDocuments({ isVerified, kycDocuments: docs, kycRejection: rejection });
 
   useEffect(() => {
     if (stagedCount === 0) return;
@@ -117,7 +113,6 @@ export default function KycDocuments(): JSX.Element {
     const types = SUBMIT_ORDER.filter(type => staged[type] !== undefined);
     if (types.length === 0) return;
     setSubmitting(true);
-    let status = getKycUploadStatus({ isVerified, kycDocuments: docs, kycRejection: rejection });
     try {
       for (const type of types) {
         const entry = staged[type];
@@ -126,11 +121,9 @@ export default function KycDocuments(): JSX.Element {
         setDocs(data.kycDocuments);
         setRejection(data.kycRejection ?? null);
         unstage(type);
-        status = getKycUploadStatus(data);
+        setKycState(data);
       }
       toast.success('Documents submitted for verification');
-      setKycStatus(status);
-      if (status === null) navigate('/profile', { replace: true });
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         toast.info(err.message);
@@ -167,6 +160,7 @@ export default function KycDocuments(): JSX.Element {
         ) : (
           <>
             {rejection && <RejectionBanner rejection={rejection} />}
+            {readOnly && <UnderReviewBanner />}
 
             {KYC_SECTIONS.map(section => (
               <section key={section.title} className="bg-white rounded-2xl shadow-sm p-5">
@@ -185,6 +179,7 @@ export default function KycDocuments(): JSX.Element {
                       serverUrl={docs[slot.type]}
                       staged={staged[slot.type] ?? null}
                       busy={submitting}
+                      readOnly={readOnly}
                       rejected={rejection?.documentTypes.includes(slot.type) === true && docs[slot.type] === null && staged[slot.type] === undefined}
                       onPick={file => stageFile(slot.type, file)}
                       onRemove={() => unstage(slot.type)}
@@ -194,15 +189,17 @@ export default function KycDocuments(): JSX.Element {
               </section>
             ))}
 
-            <button
-              type="button"
-              onClick={() => void handleSubmit()}
-              disabled={stagedCount === 0 || submitting}
-              className="w-full py-4 rounded-2xl bg-[#14817C] hover:bg-[#106B67] text-white text-base font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
-            >
-              {submitting && <Loader2 size={18} className="animate-spin" />}
-              {submitting ? 'Submitting…' : 'Submit'}
-            </button>
+            {!readOnly && (
+              <button
+                type="button"
+                onClick={() => void handleSubmit()}
+                disabled={stagedCount === 0 || submitting}
+                className="w-full py-4 rounded-2xl bg-[#14817C] hover:bg-[#106B67] text-white text-base font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
+              >
+                {submitting && <Loader2 size={18} className="animate-spin" />}
+                {submitting ? 'Submitting…' : 'Submit'}
+              </button>
+            )}
           </>
         )}
       </div>
@@ -230,6 +227,18 @@ function RejectionBanner({ rejection }: { rejection: KycRejection }): JSX.Elemen
         <p className="font-semibold text-[15px]">Some documents were not accepted: {labels.join(', ')}</p>
         {rejection.reason && <p className="mt-0.5">Reason: {rejection.reason}</p>}
         <p className="mt-0.5">Please upload them again to continue your KYC verification.</p>
+      </div>
+    </div>
+  );
+}
+
+function UnderReviewBanner(): JSX.Element {
+  return (
+    <div className="rounded-2xl bg-amber-50 border border-amber-200 px-4 py-3.5 flex items-start gap-2.5">
+      <Clock size={20} className="text-amber-600 shrink-0 mt-0.5" />
+      <div className="text-sm text-amber-800">
+        <p className="font-semibold text-[15px]">Your documents are under review</p>
+        <p className="mt-0.5">You can view them here. We will notify you once they are verified.</p>
       </div>
     </div>
   );
