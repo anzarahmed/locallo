@@ -179,6 +179,7 @@ export default function KycDocuments(): JSX.Element {
                       staged={staged[slot.type] ?? null}
                       busy={submitting}
                       readOnly={readOnly}
+                      half={section.slots.length > 1}
                       rejected={rejection?.documentTypes.includes(slot.type) === true && docs[slot.type] === null && staged[slot.type] === undefined}
                       onPick={file => stageFile(slot.type, file)}
                       onRemove={() => unstage(slot.type)}
