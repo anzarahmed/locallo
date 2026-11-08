@@ -9,13 +9,11 @@ interface KycUploadSlotProps {
   rejected: boolean;
   busy: boolean;
   readOnly?: boolean;
-  half?: boolean;
   onPick: (file: File) => void;
   onRemove: () => void;
 }
 
-export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy, readOnly = false, half = false, onPick, onRemove }: KycUploadSlotProps): JSX.Element {
-  const sizeClass = half ? 'aspect-[5/4]' : 'aspect-[5/2]';
+export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy, readOnly = false, onPick, onRemove }: KycUploadSlotProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
@@ -39,7 +37,6 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
         <FilledSlot
           imageUrl={staged.previewUrl}
           fileName={staged.file.name}
-          sizeClass={sizeClass}
           busy={busy}
           onReplace={openPicker}
           onRemove={onRemove}
@@ -49,13 +46,12 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
           imageUrl={isPdfUrl(serverUrl) || failedUrl === serverUrl ? null : serverUrl}
           fileName="Document uploaded"
           viewUrl={serverUrl}
-          sizeClass={sizeClass}
           busy={busy}
           onReplace={readOnly ? undefined : openPicker}
           onImageError={() => setFailedUrl(serverUrl)}
         />
       ) : readOnly ? (
-        <div className={`w-full ${sizeClass} rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1.5 px-2`}>
+        <div className="w-full h-36 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1.5 px-2">
           <FileText size={24} className="text-gray-300" />
           <span className="text-sm font-medium text-gray-400">Not uploaded</span>
         </div>
@@ -64,7 +60,7 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
           type="button"
           onClick={openPicker}
           disabled={busy}
-          className={`w-full ${sizeClass} rounded-2xl border-2 transition-colors flex flex-col items-center justify-center gap-1.5 px-2 disabled:cursor-not-allowed ${
+          className={`w-full h-36 rounded-2xl border-2 transition-colors flex flex-col items-center justify-center gap-1.5 px-2 disabled:cursor-not-allowed ${
             rejected
               ? 'border-red-300 bg-red-50/40 hover:bg-red-50'
               : 'border-teal-300/70 bg-gray-50 hover:bg-teal-50/40'
@@ -86,16 +82,15 @@ interface FilledSlotProps {
   imageUrl: string | null;
   fileName: string;
   viewUrl?: string;
-  sizeClass: string;
   busy: boolean;
   onReplace?: () => void;
   onRemove?: () => void;
   onImageError?: () => void;
 }
 
-function FilledSlot({ imageUrl, fileName, viewUrl, sizeClass, busy, onReplace, onRemove, onImageError }: FilledSlotProps): JSX.Element {
+function FilledSlot({ imageUrl, fileName, viewUrl, busy, onReplace, onRemove, onImageError }: FilledSlotProps): JSX.Element {
   const preview = imageUrl ? (
-    <img src={imageUrl} alt={fileName} onError={onImageError} className="w-full h-full object-cover object-top" />
+    <img src={imageUrl} alt={fileName} onError={onImageError} className="w-full h-full object-contain p-1.5" />
   ) : (
     <div className="w-full h-full flex flex-col items-center justify-center gap-2 px-3">
       <FileText size={32} className="text-teal-700" />
@@ -104,8 +99,8 @@ function FilledSlot({ imageUrl, fileName, viewUrl, sizeClass, busy, onReplace, o
   );
 
   return (
-    <div className={`relative w-full ${sizeClass}`}>
-      <div className="absolute inset-0 rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
+    <div className="relative w-full h-36">
+      <div className="w-full h-full rounded-2xl border border-gray-200 bg-gray-50 overflow-hidden">
         {viewUrl ? (
           <a href={viewUrl} target="_blank" rel="noopener noreferrer" title="View document" className="block w-full h-full">
             {preview}
