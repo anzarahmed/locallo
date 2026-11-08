@@ -31,7 +31,7 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
     <div className="flex flex-col min-w-0">
       {label && <p className="text-sm font-semibold text-gray-800 mb-2">{label}</p>}
 
-      {!readOnly && <input ref={inputRef} type="file" accept={KYC_ACCEPT} className="hidden" onChange={handleChange} />}
+      <input ref={inputRef} type="file" accept={KYC_ACCEPT} className="hidden" onChange={handleChange} />
 
       {staged ? (
         <FilledSlot
@@ -51,11 +51,6 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
           onReplace={readOnly ? undefined : openPicker}
           onImageError={() => setFailedUrl(serverUrl)}
         />
-      ) : readOnly ? (
-        <div className="w-full h-36 rounded-2xl border-2 border-dashed border-gray-200 bg-gray-50 flex flex-col items-center justify-center gap-1.5 px-2">
-          <FileText size={24} className="text-gray-300" />
-          <span className="text-sm font-medium text-gray-400">Not uploaded</span>
-        </div>
       ) : (
         <button
           type="button"

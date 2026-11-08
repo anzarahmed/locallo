@@ -77,6 +77,7 @@ export default function KycDocuments(): JSX.Element {
 
   const stagedCount = Object.keys(staged).length;
   const readOnly = !canUploadKycDocuments({ isVerified, kycDocuments: docs, kycRejection: rejection });
+  const hasEmptySlot = docs !== null && SUBMIT_ORDER.some(type => !docs[type]);
 
   useEffect(() => {
     if (stagedCount === 0) return;
@@ -188,7 +189,7 @@ export default function KycDocuments(): JSX.Element {
               </section>
             ))}
 
-            {!readOnly && (
+            {(!readOnly || hasEmptySlot) && (
               <button
                 type="button"
                 onClick={() => void handleSubmit()}
