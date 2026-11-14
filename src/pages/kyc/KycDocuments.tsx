@@ -147,7 +147,7 @@ export default function KycDocuments(): JSX.Element {
         unstage(type);
         setKycState(data);
       }
-      toast.success('Documents submitted for verification');
+      toast.success('Documents submitted successfully');
     } catch (err) {
       if (err instanceof ApiError && err.status === 403) {
         toast.info(err.message);
