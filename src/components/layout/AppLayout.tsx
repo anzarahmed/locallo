@@ -152,13 +152,13 @@ interface KycBannerCopy {
 
 const KYC_BANNER_COPY: Record<Exclude<KycUploadStatus, 'verified'>, KycBannerCopy> = {
   pending: {
-    title: 'Your KYC approval is pending.',
-    body: "Please complete your KYC — until it's approved, your products won't be visible to customers.",
+    title: 'Your KYC submission is pending.',
+    body: "Please complete and submit all required documents. Your products won't be visible to customers until your KYC is approved.",
     linkLabel: 'Upload documents',
   },
   under_review: {
-    title: 'Your KYC documents are under review.',
-    body: "Until your KYC is approved, your products won't be visible to customers.",
+    title: 'Your KYC is under review.',
+    body: 'Our team is reviewing your submitted documents. Your products will become visible to customers once your KYC is approved. No further action is required at this time.',
     linkLabel: null,
   },
   rejected: {
