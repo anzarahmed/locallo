@@ -3,7 +3,9 @@ import { Camera, CheckCircle2, FileText, X } from 'lucide-react';
 import { KYC_ACCEPT, isPdfUrl, type StagedKycFile } from '../../lib/kyc';
 
 interface KycUploadSlotProps {
+  id?: string;
   label?: string;
+  error?: string;
   serverUrl: string | null;
   staged: StagedKycFile | null;
   rejected: boolean;
@@ -14,7 +16,7 @@ interface KycUploadSlotProps {
   onRemove: () => void;
 }
 
-export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy, readOnly = false, locked = false, onPick, onRemove }: KycUploadSlotProps): JSX.Element {
+export default function KycUploadSlot({ id, label, error, serverUrl, staged, rejected, busy, readOnly = false, locked = false, onPick, onRemove }: KycUploadSlotProps): JSX.Element {
   const inputRef = useRef<HTMLInputElement>(null);
   const [failedUrl, setFailedUrl] = useState<string | null>(null);
 
@@ -29,7 +31,7 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
   }
 
   return (
-    <div className="flex flex-col min-w-0">
+    <div id={id} className="flex flex-col min-w-0">
       {label && <p className="text-sm font-semibold text-gray-800 mb-2">{label}</p>}
 
       <input ref={inputRef} type="file" accept={KYC_ACCEPT} className="hidden" onChange={handleChange} />
@@ -63,7 +65,7 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
           onClick={openPicker}
           disabled={busy}
           className={`w-full h-36 rounded-2xl border-2 transition-colors flex flex-col items-center justify-center gap-1.5 px-2 disabled:cursor-not-allowed ${
-            rejected
+            rejected || error
               ? 'border-red-300 bg-red-50/40 hover:bg-red-50'
               : 'border-teal-300/70 bg-gray-50 hover:bg-teal-50/40'
           }`}
@@ -76,6 +78,8 @@ export default function KycUploadSlot({ label, serverUrl, staged, rejected, busy
           {rejected && <span className="text-xs font-medium text-red-600 text-center">Not accepted · please upload again</span>}
         </button>
       )}
+
+      {error && <p className="mt-2 text-sm text-red-600">{error}</p>}
     </div>
   );
 }

@@ -40,6 +40,16 @@ const KYC_SECTIONS: KycSection[] = [
 
 const SUBMIT_ORDER: KycDocumentType[] = KYC_SECTIONS.flatMap(section => section.slots.map(slot => slot.type));
 
+const REQUIRED_TYPES: KycDocumentType[] = KYC_SECTIONS
+  .filter(section => section.required)
+  .flatMap(section => section.slots.map(slot => slot.type));
+
+const REQUIRED_MESSAGE = 'This document is required.';
+
+function slotId(type: KycDocumentType): string {
+  return `kyc-slot-${type}`;
+}
+
 function revokePreview(entry: StagedKycFile | undefined): void {
   if (entry?.previewUrl) URL.revokeObjectURL(entry.previewUrl);
 }
@@ -54,6 +64,7 @@ export default function KycDocuments(): JSX.Element {
   const [loading, setLoading] = useState(true);
   const [staged, setStaged] = useState<StagedMap>({});
   const [submitting, setSubmitting] = useState(false);
+  const [submitAttempted, setSubmitAttempted] = useState(false);
   const stagedRef = useRef<StagedMap>(staged);
 
   useEffect(() => {
@@ -109,9 +120,22 @@ export default function KycDocuments(): JSX.Element {
     });
   }
 
+  function isMissing(type: KycDocumentType): boolean {
+    return docs !== null && !docs[type] && staged[type] === undefined;
+  }
+
   async function handleSubmit(): Promise<void> {
+    setSubmitAttempted(true);
+    const firstMissing = REQUIRED_TYPES.find(isMissing);
+    if (firstMissing) {
+      document.getElementById(slotId(firstMissing))?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      return;
+    }
     const types = SUBMIT_ORDER.filter(type => staged[type] !== undefined);
-    if (types.length === 0) return;
+    if (types.length === 0) {
+      toast.error('Please select a document to upload');
+      return;
+    }
     setSubmitting(true);
     try {
       for (const type of types) {
@@ -172,7 +196,9 @@ export default function KycDocuments(): JSX.Element {
                   {section.slots.map(slot => (
                     <KycUploadSlot
                       key={slot.type}
+                      id={slotId(slot.type)}
                       label={slot.label}
+                      error={submitAttempted && section.required && isMissing(slot.type) ? REQUIRED_MESSAGE : undefined}
                       serverUrl={docs[slot.type]}
                       staged={staged[slot.type] ?? null}
                       busy={submitting}
@@ -191,7 +217,7 @@ export default function KycDocuments(): JSX.Element {
               <button
                 type="button"
                 onClick={() => void handleSubmit()}
-                disabled={stagedCount === 0 || submitting}
+                disabled={submitting}
                 className="w-full py-4 rounded-2xl bg-[#14817C] hover:bg-[#106B67] text-white text-base font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
               >
                 {submitting && <Loader2 size={18} className="animate-spin" />}
