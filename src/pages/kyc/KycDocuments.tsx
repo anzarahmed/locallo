@@ -86,6 +86,7 @@ export default function KycDocuments(): JSX.Element {
   useEffect(() => () => Object.values(stagedRef.current).forEach(revokePreview), []);
 
   const stagedCount = Object.keys(staged).length;
+  const awaitingRevokedReupload = rejection?.revoked === true && stagedCount === 0;
   const readOnly = !canUploadKycDocuments({ isVerified, kycDocuments: docs, kycRejection: rejection });
   const canAddMissing = !isVerified && docs !== null && SUBMIT_ORDER.some(type => !docs[type]);
 
@@ -217,7 +218,7 @@ export default function KycDocuments(): JSX.Element {
               <button
                 type="button"
                 onClick={() => void handleSubmit()}
-                disabled={submitting}
+                disabled={submitting || awaitingRevokedReupload}
                 className="w-full py-4 rounded-2xl bg-[#14817C] hover:bg-[#106B67] text-white text-base font-bold transition-colors disabled:opacity-50 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2"
               >
                 {submitting && <Loader2 size={18} className="animate-spin" />}
