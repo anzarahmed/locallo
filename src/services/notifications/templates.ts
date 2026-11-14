@@ -318,7 +318,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   upload_limit_100: {
-    audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: false,
+    audience: 'seller', pushClass: 'transactional', channel: 'seller_updates', push: true,
     build: ({ categoryName }) => ({
       title: `You’ve reached your ${categoryName} limit`,
       body: '📦 Out of listing space? Upgrade storage now & expand your catalog.',
