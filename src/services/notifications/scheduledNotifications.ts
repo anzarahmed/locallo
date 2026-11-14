@@ -35,6 +35,10 @@ const WISHLIST_VISIBLE_SQL = `(p.is_active AND CASE
     ELSE ${PRODUCT_HAS_VISIBLE_VARIANTS_SQL}
   END)`;
 
+// Products of a seller whose KYC is not verified are hidden from customers.
+const SELLER_VERIFIED_SQL =
+  'EXISTS (SELECT 1 FROM seller_profiles sp WHERE sp.user_id = p.seller_id AND sp.is_verified = true)';
+
 async function selectIds(sql: string, replacements: Record<string, unknown> = {}): Promise<string[]> {
   const rows = await sequelize.query<{ id: string }>(sql, { replacements, type: QueryTypes.SELECT });
   return rows.map((r) => r.id);
@@ -130,7 +134,7 @@ export async function sendWishlistWeekly(now: Date = new Date()): Promise<void> 
        JOIN users u ON u.id = w.customer_id AND u.is_active = true
        JOIN products p ON p.id = w.product_id
        LEFT JOIN product_variants v ON v.id = w.variant_id
-      WHERE w.created_at <= :savedBefore AND ${WISHLIST_IN_STOCK_SQL}
+      WHERE w.created_at <= :savedBefore AND ${WISHLIST_IN_STOCK_SQL} AND ${SELLER_VERIFIED_SQL}
       GROUP BY w.customer_id`,
     { replacements: { savedBefore: new Date(now.getTime() - 7 * DAY_MS) }, type: QueryTypes.SELECT },
   );
@@ -156,6 +160,7 @@ interface WishlistStockRow {
   variant_images: string[] | null;
   now_in_stock: boolean;
   visible: boolean;
+  seller_verified: boolean;
 }
 
 // Without a baseline at save time, a stock change before the next sync would be
@@ -180,7 +185,8 @@ export async function syncWishlistStock(now: Date = new Date()): Promise<void> {
     `SELECT w.id, w.customer_id, w.product_id, w.variant_id, w.in_stock,
             p.name, p.images AS product_images, v.images AS variant_images,
             ${WISHLIST_IN_STOCK_SQL} AS now_in_stock,
-            ${WISHLIST_VISIBLE_SQL} AS visible
+            ${WISHLIST_VISIBLE_SQL} AS visible,
+            ${SELLER_VERIFIED_SQL} AS seller_verified
        FROM wishlists w
        JOIN products p ON p.id = w.product_id
        LEFT JOIN product_variants v ON v.id = w.variant_id
@@ -194,7 +200,8 @@ export async function syncWishlistStock(now: Date = new Date()): Promise<void> {
   const tick = now.toISOString().slice(0, 16);
 
   for (const row of rows) {
-    if (row.in_stock === null) continue;
+    // in_stock is still updated below, so re-verifying doesn't replay stale changes.
+    if (row.in_stock === null || !row.seller_verified) continue;
     const variantId = row.variant_id ?? undefined;
 
     if (row.now_in_stock) {

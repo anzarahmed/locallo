@@ -14,7 +14,9 @@ const VARIANT_ATTRIBUTES = ['id', 'attributes', 'images', 'stock', 'sellingPrice
 const WISHLIST_VISIBLE_CONDITION = literal(
   '(CASE WHEN "Wishlist".variant_id IS NULL ' +
   `THEN ${hasVisibleVariantsSql('"Wishlist".product_id')} ` +
-  'ELSE EXISTS (SELECT 1 FROM product_variants wv WHERE wv.id = "Wishlist".variant_id AND wv.is_active = true) END)',
+  'ELSE EXISTS (SELECT 1 FROM product_variants wv WHERE wv.id = "Wishlist".variant_id AND wv.is_active = true) END) ' +
+  'AND EXISTS (SELECT 1 FROM products wp JOIN seller_profiles sp ON sp.user_id = wp.seller_id ' +
+  'WHERE wp.id = "Wishlist".product_id AND sp.is_verified = true)',
 );
 
 const WISHLIST_IN_STOCK_SQL =
@@ -26,6 +28,10 @@ async function hasVisibleVariants(productId: string): Promise<boolean> {
   const variantCount = await ProductVariant.count({ where: { productId } });
   if (variantCount === 0) return true;
   return (await ProductVariant.count({ where: { productId, isActive: true } })) > 0;
+}
+
+async function isSellerVerified(sellerId: string): Promise<boolean> {
+  return (await SellerProfile.count({ where: { userId: sellerId, isVerified: true } })) > 0;
 }
 
 export async function toggleWishlist(
@@ -49,6 +55,11 @@ export async function toggleWishlist(
   if (existing) {
     await existing.destroy();
     return false;
+  }
+
+  // Rows saved before a KYC revoke are kept (hidden by listWishlist) so they return on re-verify.
+  if (!(await isSellerVerified(product.sellerId))) {
+    throw Object.assign(new Error('Product not found'), { status: 404 });
   }
 
   if (!variantId && !(await hasVisibleVariants(productId))) {
