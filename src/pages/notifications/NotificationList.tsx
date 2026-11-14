@@ -1,6 +1,6 @@
 import { useEffect, useState, type JSX } from 'react';
 import { useNavigate, useOutletContext } from 'react-router-dom';
-import { Bell, BadgePercent } from 'lucide-react';
+import { BadgeCheck, Bell, CircleAlert, ShieldX, type LucideIcon } from 'lucide-react';
 import { getNotifications } from '../../services/notificationService';
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
@@ -20,13 +20,47 @@ function resolveRoute(notification: Notification): string | null {
   return null;
 }
 
-function typeIcon({ type, offerType }: Notification): JSX.Element {
-  if (offerType) {
-    const OfferIcon = offerTypeIcon(offerType);
-    return <OfferIcon size={18} className="text-teal-600" />;
+function iconFor({ type, offerType }: Notification): LucideIcon {
+  switch (type) {
+    case 'kyc_verified': return BadgeCheck;
+    case 'kyc_rejected': return CircleAlert;
+    case 'kyc_revoked': return ShieldX;
+    case 'offer':
+    case 'offer_join':
+      return offerType ? offerTypeIcon(offerType) : Bell;
+    default: return Bell;
   }
-  if (type === 'offer') return <BadgePercent size={18} className="text-teal-600" />;
-  return <Bell size={18} className="text-teal-600" />;
+}
+
+interface IconAccent {
+  icon: string;
+  circle: string;
+}
+
+const TEAL_ACCENT: IconAccent = { icon: 'text-[#14817C]', circle: 'bg-[#14817C]/10' };
+
+// Same accents as the mobile app's _colorFor; the circle is the accent at 10% opacity.
+function accentFor({ type }: Notification): IconAccent {
+  switch (type) {
+    case 'kyc_verified': return { icon: 'text-[#16A34A]', circle: 'bg-[#16A34A]/10' };
+    case 'kyc_rejected': return { icon: 'text-[#B45309]', circle: 'bg-[#B45309]/10' };
+    case 'kyc_revoked': return { icon: 'text-[#DC2626]', circle: 'bg-[#DC2626]/10' };
+    default: return TEAL_ACCENT;
+  }
+}
+
+// Mobile uses the filled Material "verified" badge: solid badge, white tick.
+const FILLED_BADGE_CLASS = 'fill-current [&>path:last-child]:stroke-white';
+
+function NotificationIcon({ notification }: { notification: Notification }): JSX.Element {
+  const Icon = iconFor(notification);
+  const accent = accentFor(notification);
+  const filled = notification.type === 'kyc_verified' ? FILLED_BADGE_CLASS : '';
+  return (
+    <div className={`w-10 h-10 rounded-full ${accent.circle} flex items-center justify-center shrink-0`}>
+      <Icon size={20} className={`${accent.icon} ${filled}`} />
+    </div>
+  );
 }
 
 export default function NotificationList(): JSX.Element {
@@ -162,9 +196,7 @@ function NotificationCard({ notification, onClick }: NotificationCardProps): JSX
         clickable ? 'cursor-pointer hover:shadow-md hover:border-teal-100' : ''
       } ${notification.isRead ? 'border-gray-100' : 'border-teal-100'}`}
     >
-      <div className="w-10 h-10 rounded-full bg-teal-50 flex items-center justify-center shrink-0">
-        {typeIcon(notification)}
-      </div>
+      <NotificationIcon notification={notification} />
 
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
