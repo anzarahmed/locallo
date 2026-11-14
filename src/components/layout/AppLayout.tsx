@@ -6,7 +6,7 @@ import { useState, useRef, useEffect, type JSX } from 'react';
 import logo from '../../assets/logo.png';
 import { getProfile } from '../../services/sellerService';
 import { resolveImage } from '../../lib/imageUtils';
-import { canUploadKycDocuments, getKycUploadStatus, KYC_UPLOAD_STATUS_LABELS, type KycUploadState, type KycUploadStatus } from '../../lib/kyc';
+import { getKycUploadStatus, KYC_UPLOAD_STATUS_LABELS, type KycUploadState, type KycUploadStatus } from '../../lib/kyc';
 
 interface NavItem {
   to: string;
@@ -39,12 +39,10 @@ export default function AppLayout(): JSX.Element {
   const [hasUnread, setHasUnread] = useState(false);
   const [kycPending, setKycPending] = useState(false);
   const [kycStatus, setKycStatus] = useState<KycUploadStatus | null>(null);
-  const [kycCanUpload, setKycCanUpload] = useState(false);
   const [photo, setPhoto] = useState<string | null>(null);
 
   function setKycState(state: KycUploadState): void {
     setKycStatus(getKycUploadStatus(state));
-    setKycCanUpload(canUploadKycDocuments(state));
   }
 
   useEffect(() => {
@@ -114,7 +112,7 @@ export default function AppLayout(): JSX.Element {
           </div>
         </header>
 
-        {kycPending && <KycPendingBanner canUpload={kycCanUpload} />}
+        {kycPending && kycStatus && <KycPendingBanner status={kycStatus} />}
 
         {/* ── Main content ── */}
         <main className="flex-1 pb-20 md:pb-0">
@@ -146,28 +144,53 @@ export default function AppLayout(): JSX.Element {
 }
 
 /* ── KYC pending banner ── */
-function KycPendingBanner({ canUpload }: { canUpload: boolean }): JSX.Element {
-  if (!canUpload) {
-    return (
-      <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-start sm:items-center gap-2.5">
-        <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
-        <p className="text-xs sm:text-sm text-amber-800 leading-snug">
-          <span className="font-semibold">Your KYC documents are under review.</span>{' '}
-          Until your KYC is approved, your products won't be visible to customers.
-        </p>
-      </div>
-    );
-  }
+interface KycBannerCopy {
+  title: string;
+  body: string;
+  linkLabel: string | null;
+}
+
+const KYC_BANNER_COPY: Record<Exclude<KycUploadStatus, 'verified'>, KycBannerCopy> = {
+  pending: {
+    title: 'Your KYC approval is pending.',
+    body: "Please complete your KYC — until it's approved, your products won't be visible to customers.",
+    linkLabel: 'Upload documents',
+  },
+  under_review: {
+    title: 'Your KYC documents are under review.',
+    body: "Until your KYC is approved, your products won't be visible to customers.",
+    linkLabel: null,
+  },
+  rejected: {
+    title: 'Your KYC verification was rejected.',
+    body: "Please review the rejection reasons, correct the documents, and upload them again. Your products won't be visible to customers until your KYC is approved.",
+    linkLabel: 'Re-upload documents',
+  },
+  revoked: {
+    title: 'Your KYC approval has been revoked.',
+    body: 'Your products are no longer visible to customers. Please re-upload the required documents for verification. Your products will become visible again once your KYC is approved.',
+    linkLabel: 'Re-upload documents',
+  },
+};
+
+function KycPendingBanner({ status }: { status: KycUploadStatus }): JSX.Element | null {
+  if (status === 'verified') return null;
+  const { title, body, linkLabel } = KYC_BANNER_COPY[status];
 
   return (
     <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-start sm:items-center gap-2.5">
       <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
       <p className="text-xs sm:text-sm text-amber-800 leading-snug">
-        <span className="font-semibold">Your KYC approval is pending.</span>{' '}
-        Please complete your KYC — until it's approved, your products won't be visible to customers.{' '}
-        <Link to="/kyc-documents" className="font-semibold underline underline-offset-2 hover:text-amber-900">
-          Upload documents
-        </Link>
+        <span className="font-semibold">{title}</span>{' '}
+        {body}
+        {linkLabel && (
+          <>
+            {' '}
+            <Link to="/kyc-documents" className="font-semibold underline underline-offset-2 hover:text-amber-900">
+              {linkLabel}
+            </Link>
+          </>
+        )}
       </p>
     </div>
   );
