@@ -15,8 +15,8 @@ import { getSellerEmailTemplate, isEmailGateOpen } from './sellerEmails';
 import { loadSellerRecipients } from './sellerRecipients';
 
 const CHUNK_SIZE = 1000;
-const PROMO_DAILY_CAP = 1;
-const PROMO_WEEKLY_CAP = 3;
+const PROMO_DAILY_CAP = 100;
+const PROMO_WEEKLY_CAP = 700;
 const QUIET_HOURS_START = 21;
 const QUIET_HOURS_END = 9;
 const DAY_MS = 24 * 60 * 60 * 1000;
