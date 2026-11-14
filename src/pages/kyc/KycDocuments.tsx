@@ -58,6 +58,13 @@ export default function KycDocuments(): JSX.Element {
   const toast = useToast();
   const navigate = useNavigate();
   const { setKycState } = useOutletContext<AppLayoutContext>();
+
+  function goBack(): void {
+    // React Router stamps each in-app entry with idx; 0 means this page was opened directly (new tab, refresh, email link).
+    const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0;
+    if (idx > 0) navigate(-1);
+    else navigate('/profile', { replace: true });
+  }
   const [docs, setDocs] = useState<KycDocumentMap | null>(null);
   const [isVerified, setIsVerified] = useState(false);
   const [rejection, setRejection] = useState<KycRejection | null>(null);
@@ -167,8 +174,8 @@ export default function KycDocuments(): JSX.Element {
         <div className="max-w-3xl mx-auto flex items-center gap-3">
           <button
             type="button"
-            onClick={() => navigate('/profile')}
-            aria-label="Back to profile"
+            onClick={goBack}
+            aria-label="Back"
             className="shrink-0 p-2.5 rounded-full bg-white/15 hover:bg-white/25 text-white transition-colors"
           >
             <ArrowLeft size={18} />
