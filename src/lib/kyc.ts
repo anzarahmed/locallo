@@ -15,20 +15,21 @@ export function canUploadKycDocuments({ isVerified, kycDocuments, kycRejection }
   return !hasRequiredKycDocuments(kycDocuments) || Boolean(kycRejection);
 }
 
-export type KycUploadStatus = 'pending' | 'rejected' | 'revoked' | 'verified';
+export type KycUploadStatus = 'pending' | 'under_review' | 'rejected' | 'revoked' | 'verified';
 
 export const KYC_UPLOAD_STATUS_LABELS: Record<KycUploadStatus, string> = {
-  pending:  'Verification Pending',
-  rejected: 'Rejected',
-  revoked:  'Revoked',
-  verified: 'Verified',
+  pending:      'Pending',
+  under_review: 'Approval Pending',
+  rejected:     'Rejected',
+  revoked:      'Revoked',
+  verified:     'Approved',
 };
 
-export function getKycUploadStatus(state: KycUploadState): KycUploadStatus | null {
+export function getKycUploadStatus(state: KycUploadState): KycUploadStatus {
   if (state.isVerified) return 'verified';
   if (state.kycRejection?.revoked) return 'revoked';
   if (state.kycRejection) return 'rejected';
-  return 'pending';
+  return hasRequiredKycDocuments(state.kycDocuments) ? 'under_review' : 'pending';
 }
 
 export const KYC_ACCEPT = 'image/jpeg,image/png,image/webp,application/pdf';

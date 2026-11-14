@@ -153,7 +153,7 @@ function KycPendingBanner({ canUpload }: { canUpload: boolean }): JSX.Element {
         <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
         <p className="text-xs sm:text-sm text-amber-800 leading-snug">
           <span className="font-semibold">Your KYC documents are under review.</span>{' '}
-          Until your KYC is verified, your products won't be visible to customers.
+          Until your KYC is approved, your products won't be visible to customers.
         </p>
       </div>
     );
@@ -163,8 +163,8 @@ function KycPendingBanner({ canUpload }: { canUpload: boolean }): JSX.Element {
     <div className="bg-amber-50 border-b border-amber-200 px-4 py-2.5 flex items-start sm:items-center gap-2.5">
       <AlertTriangle size={16} className="text-amber-600 shrink-0 mt-0.5 sm:mt-0" />
       <p className="text-xs sm:text-sm text-amber-800 leading-snug">
-        <span className="font-semibold">Your KYC verification is pending.</span>{' '}
-        Please complete your KYC — until it's verified, your products won't be visible to customers.{' '}
+        <span className="font-semibold">Your KYC approval is pending.</span>{' '}
+        Please complete your KYC — until it's approved, your products won't be visible to customers.{' '}
         <Link to="/kyc-documents" className="font-semibold underline underline-offset-2 hover:text-amber-900">
           Upload documents
         </Link>
