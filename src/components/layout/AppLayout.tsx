@@ -262,14 +262,6 @@ function ProfileMenu({ seller, photo, kycStatus, logout, navigate }: ProfileMenu
           </button>
 
           <button
-            onClick={() => { setOpen(false); navigate('/product-limits'); }}
-            className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
-          >
-            <Gauge size={15} className="text-gray-400" />
-            Listing Limits
-          </button>
-
-          <button
             onClick={() => { setOpen(false); navigate('/settings'); }}
             className="w-full flex items-center gap-2.5 px-4 py-2.5 text-sm text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
           >
