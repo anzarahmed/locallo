@@ -8,7 +8,8 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import ActionMenu, { type ActionMenuItem } from '../../components/ui/ActionMenu';
 import SellerDetail from './SellerDetail';
 import SellerBrandsModal from './SellerBrandsModal';
-import { getSellerList, toggleSellerStatus, type Seller } from '../../services/sellerService';
+import DeleteSellerModal from './DeleteSellerModal';
+import { getSellerList, toggleSellerStatus, deleteSeller, type Seller } from '../../services/sellerService';
 import { useToast } from '../../hooks/useToast';
 import { useAuth } from '../../hooks/useAuth';
 import { SkeletonAvatarCell, SkeletonNameBadgeCell } from '../../components/ui/SkeletonCells';
@@ -127,11 +128,16 @@ export default function SellerList(): JSX.Element {
     }
   }
 
-  function confirmDelete(id: string): void {
-    setSellers(prev => prev.filter(s => s.id !== id));
-    setDeleteId(null);
-    setTotalRecords(n => n - 1);
-    toast.success('Seller removed');
+  async function confirmDelete(id: string): Promise<void> {
+    try {
+      await deleteSeller(id);
+      setSellers(prev => prev.filter(s => s.id !== id));
+      setTotalRecords(n => n - 1);
+      setDeleteId(null);
+      toast.success('Seller permanently deleted');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to delete seller');
+    }
   }
 
   const columns = useMemo<ColumnDef<Seller>[]>(() => [
@@ -386,33 +392,16 @@ export default function SellerList(): JSX.Element {
         );
       })()}
 
-      {deleteId !== null && (
-        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl p-6 max-w-sm w-full">
-            <div className="flex items-center justify-center w-12 h-12 bg-red-100 rounded-full mx-auto mb-4">
-              <Trash2 className="w-6 h-6 text-red-600" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 text-center mb-2">Delete seller?</h3>
-            <p className="text-sm text-gray-500 text-center mb-6">
-              This action cannot be undone. The seller and all their data will be permanently removed.
-            </p>
-            <div className="flex gap-3">
-              <button
-                onClick={() => setDeleteId(null)}
-                className="flex-1 px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => { if (deleteId) confirmDelete(deleteId); }}
-                className="flex-1 px-4 py-2 text-sm font-medium text-white bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
-              >
-                Delete
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {deleteId !== null && (() => {
+        const target = sellers.find(s => s.id === deleteId);
+        return (
+          <DeleteSellerModal
+            sellerName={target?.businessName || target?.fullName || 'this seller'}
+            onCancel={() => setDeleteId(null)}
+            onConfirm={() => confirmDelete(deleteId)}
+          />
+        );
+      })()}
     </div>
   );
 }

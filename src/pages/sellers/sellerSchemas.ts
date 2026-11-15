@@ -102,3 +102,13 @@ export const rejectKycSchema = Yup.object({
   reason: Yup.string().trim().max(500, 'Reason must be at most 500 characters').default(''),
 });
 export type RejectKycFormValues = Yup.InferType<typeof rejectKycSchema>;
+
+export const DELETE_SELLER_CONFIRM_WORD = 'DELETE';
+
+export const deleteSellerSchema = Yup.object({
+  confirmation: Yup.string()
+    .required(`Type ${DELETE_SELLER_CONFIRM_WORD} to confirm`)
+    .oneOf([DELETE_SELLER_CONFIRM_WORD], `Type ${DELETE_SELLER_CONFIRM_WORD} exactly to confirm`),
+});
+
+export type DeleteSellerFormValues = Yup.InferType<typeof deleteSellerSchema>;

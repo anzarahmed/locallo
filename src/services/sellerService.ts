@@ -1,4 +1,4 @@
-import { apiPost, apiGet, apiPut, apiPatch } from '../lib/axios';
+import { apiPost, apiGet, apiPut, apiPatch, apiDelete } from '../lib/axios';
 import { PATHS } from '../api/paths';
 import type { WorkingHours, KycDocumentType, KycDocuments, KycRejection, BrandDocumentType, BrandDocuments } from '../types';
 import type { SellerFormValues } from '../pages/sellers/sellerSchemas';
@@ -114,6 +114,10 @@ export function getSellerList(params: SellerListParams): Promise<GetSellersRespo
 
 export function getSellerById(id: string): Promise<Seller> {
   return apiGet<Seller>(PATHS.SELLERS.BY_ID(id));
+}
+
+export function deleteSeller(id: string): Promise<void> {
+  return apiDelete<null>(PATHS.SELLERS.BY_ID(id)).then(() => undefined);
 }
 
 export function toggleSellerStatus(id: string): Promise<{ id: string; isActive: boolean }> {
