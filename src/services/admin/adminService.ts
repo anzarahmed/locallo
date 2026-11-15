@@ -1,7 +1,8 @@
 import bcrypt from 'bcrypt';
-import jwt from 'jsonwebtoken';
 import crypto from 'crypto';
 import { Admin } from '../../models/Admin';
+import { Session } from '../../models/Session';
+import { createAdminSession, hashToken } from '../../utils/session';
 import { sendPasswordResetEmail } from '../../utils/mailer';
 
 interface LoginResult {
@@ -25,16 +26,16 @@ export async function loginAdmin(email: string, password: string): Promise<Login
     throw Object.assign(new Error('Invalid credentials'), { status: 401 });
   }
 
-  const token = jwt.sign(
-    { id: admin.id, role: admin.role },
-    process.env.JWT_SECRET as string,
-    { expiresIn: '7d' },
-  );
+  const token = await createAdminSession(admin.id, admin.role);
 
   return {
     token,
     admin: { id: admin.id, email: admin.email, role: admin.role },
   };
+}
+
+export async function logoutAdmin(token: string): Promise<void> {
+  await Session.destroy({ where: { tokenHash: hashToken(token), actorType: 'admin' } });
 }
 
 export async function forgotAdminPassword(email: string): Promise<void> {

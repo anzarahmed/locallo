@@ -1,6 +1,7 @@
 import bcrypt from 'bcrypt';
 import { Op } from 'sequelize';
 import { Admin } from '../../models/Admin';
+import { Session } from '../../models/Session';
 import type { AdminRole } from '../../types';
 
 export interface SubAdminRow {
@@ -104,6 +105,7 @@ export async function deleteSubAdmin(id: string, requesterId: string): Promise<v
     throw Object.assign(new Error('Sub-admin not found'), { status: 404 });
   }
 
+  await Session.destroy({ where: { actorType: 'admin', actorId: id } });
   await admin.destroy();
 }
 

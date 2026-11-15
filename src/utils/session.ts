@@ -9,6 +9,29 @@ export function hashToken(token: string): string {
   return crypto.createHash('sha256').update(token).digest('hex');
 }
 
+export const ADMIN_SESSION_TTL_DAYS = 7;
+
+export async function createAdminSession(adminId: string, role: string): Promise<string> {
+  const token = jwt.sign(
+    { id: adminId, role },
+    process.env.JWT_SECRET as string,
+    { expiresIn: `${ADMIN_SESSION_TTL_DAYS}d` },
+  );
+
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + ADMIN_SESSION_TTL_DAYS);
+
+  await Session.create({
+    actorType: 'admin',
+    actorId: adminId,
+    tokenHash: hashToken(token),
+    deviceType: 'web',
+    expiresAt,
+  });
+
+  return token;
+}
+
 export async function createUserSession(
   userId: string,
   role: string,

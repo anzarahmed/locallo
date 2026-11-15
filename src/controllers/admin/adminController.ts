@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { loginAdmin, forgotAdminPassword, resetAdminPassword } from '../../services/admin/adminService';
+import { loginAdmin, logoutAdmin, forgotAdminPassword, resetAdminPassword } from '../../services/admin/adminService';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 
 export async function login(req: Request, res: Response): Promise<void> {
@@ -7,6 +7,15 @@ export async function login(req: Request, res: Response): Promise<void> {
     const { email, password } = req.body as { email: string; password: string };
     const result = await loginAdmin(email, password);
     sendSuccess(res, result, 'Login successful');
+  } catch (err: unknown) {
+    handleServiceError(err, res);
+  }
+}
+
+export async function logout(req: Request, res: Response): Promise<void> {
+  try {
+    await logoutAdmin(req.headers.authorization!.slice(7));
+    sendSuccess(res, null, 'Logged out successfully');
   } catch (err: unknown) {
     handleServiceError(err, res);
   }

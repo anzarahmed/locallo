@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
+import { login, logout, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
 import { addSeller, getSellers, getSeller, adminEditSeller, removeSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, uploadSellerPhoto, setKycVerification, rejectKycDocuments, uploadBrandDocument } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import { getMasterCategories, addMasterCategory, editMasterCategory, removeMasterCategory, uploadMasterCategoryIcon } from '../../controllers/admin/masterCategoryController';
@@ -54,6 +54,7 @@ router.post('/mobile/request-otp', requireAdmin, validate(requestMobileOtpSchema
 router.post('/mobile/verify-otp',  requireAdmin, validate(verifyMobileOtpSchema),  verifyMobileOtp);
 
 // My permissions (any authenticated admin)
+router.post('/logout',         requireAdmin, logout);
 router.get('/me/permissions', requireAdmin, fetchMyPermissions);
 
 // Dashboard (any authenticated admin)

@@ -39,6 +39,12 @@ export async function requireAdmin(req: Request, res: Response, next: NextFuncti
     return;
   }
 
+  const session = await Session.findOne({ where: { tokenHash: hashToken(token), actorType: 'admin' } });
+  if (!session) {
+    res.status(401).json({ message: 'Session expired or logged out' });
+    return;
+  }
+
   const admin = await Admin.findByPk(payload.id);
   if (!admin || !admin.isActive) {
     res.status(401).json({ message: 'Unauthorized' });
