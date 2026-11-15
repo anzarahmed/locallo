@@ -70,7 +70,7 @@ export async function verifySellerOtp(
     ...(isFirstLogin ? { firstLoginAt: new Date() } : {}),
   });
 
-  const token = await createUserSession(user.id, 'SELLER', data.deviceId, data.deviceType);
+  const token = await createUserSession(user.id, 'SELLER', data.deviceId, data.deviceType, data.fcmToken);
   if (isFirstLogin) await notifySafely(user.id, 'welcome_seller', {}, { dedupeKey: `welcome_seller:${user.id}` });
 
   return {

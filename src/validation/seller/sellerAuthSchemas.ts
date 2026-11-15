@@ -13,4 +13,11 @@ export const verifyOtpSchema = Yup.object({
   otp: Yup.string().length(4, 'OTP must be 4 digits').required('OTP is required'),
   deviceId: Yup.string().required('Device ID is required'),
   deviceType: Yup.string().oneOf(['android', 'ios', 'web'], 'Invalid device type').required('Device type is required'),
+  fcmToken: Yup.string()
+    .trim()
+    .transform((v: string) => (v === '' ? undefined : v))
+    .min(20, 'Invalid push token')
+    .max(4096, 'Invalid push token')
+    .nullable()
+    .optional(),
 });

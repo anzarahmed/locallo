@@ -1,6 +1,7 @@
 import crypto from 'crypto';
 import jwt from 'jsonwebtoken';
 import { Session } from '../models/Session';
+import { registerPushToken } from '../services/notifications/pushTokenService';
 
 const SESSION_TTL_DAYS = 30;
 
@@ -13,6 +14,7 @@ export async function createUserSession(
   role: string,
   deviceId: string,
   deviceType: string,
+  pushToken?: string | null,
 ): Promise<string> {
   const token = jwt.sign(
     { id: userId, role },
@@ -23,7 +25,7 @@ export async function createUserSession(
   const expiresAt = new Date();
   expiresAt.setDate(expiresAt.getDate() + SESSION_TTL_DAYS);
 
-  await Session.create({
+  const session = await Session.create({
     actorType: 'user',
     actorId: userId,
     tokenHash: hashToken(token),
@@ -31,6 +33,7 @@ export async function createUserSession(
     deviceType,
     expiresAt,
   });
+  if (pushToken) await registerPushToken(session.id, pushToken);
 
   return token;
 }

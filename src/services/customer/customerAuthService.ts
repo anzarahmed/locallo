@@ -5,7 +5,7 @@ import { sendOtp } from '../../utils/msg91';
 import { generateOtp, makeOtpExpiresAt } from '../../utils/otp';
 import { createUserSession, hashToken } from '../../utils/session';
 import { Session } from '../../models/Session';
-import { notifySafely } from '../notifications/notifyService';
+import { notifySafely, queueWelcomePush } from '../notifications/notifyService';
 import type { requestOtpSchema, verifyOtpSchema } from '../../validation/customer/customerAuthSchemas';
 
 type RequestOtpInput = InferType<typeof requestOtpSchema>;
@@ -86,12 +86,16 @@ export async function verifyCustomerOtp(
     ...(isFirstLogin ? { firstLoginAt: new Date() } : {}),
   });
 
-  const token = await createUserSession(user.id, 'CUSTOMER', data.deviceId, data.deviceType);
+  const token = await createUserSession(user.id, 'CUSTOMER', data.deviceId, data.deviceType, data.fcmToken);
   if (isFirstLogin) await notifySafely(user.id, 'welcome_customer', {}, { dedupeKey: `welcome_customer:${user.id}` });
   if (deletionRequestedAt) {
     await notifySafely(user.id, 'welcome_back_customer', { name: user.fullName ?? '' }, {
       dedupeKey: `welcome_back_customer:${user.id}:${new Date(deletionRequestedAt).getTime()}`,
     });
+  }
+  if (data.fcmToken) {
+    await queueWelcomePush(user.id).catch((err: unknown) =>
+      console.error(`verify-otp: failed to queue welcome push for ${user.id}`, err));
   }
 
   return {
