@@ -29,3 +29,7 @@ export function forgotPassword(
 export function resetPassword(token: string, password: string): Promise<null> {
   return apiPost<null>(PATHS.AUTH.RESET_PASSWORD, { token, password });
 }
+
+export function logout(token: string): Promise<null> {
+  return apiPost<null>(PATHS.AUTH.LOGOUT, undefined, { Authorization: `Bearer ${token}` });
+}

@@ -30,7 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [permissions, setPermissions] = useState<PermissionMap>({});
   const [isRestoring, setIsRestoring] = useState<boolean>(true);
   const navigate = useNavigate();
-  const logoutRef = useRef<() => void>(() => undefined);
+  const clearSessionRef = useRef<() => void>(() => undefined);
 
   // On mount: restore session and fetch permissions fresh from API (no localStorage cache)
   useEffect((): void => {
@@ -73,18 +73,24 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setPermissions(perms);
   }
 
-  function logout(): void {
+  function clearSession(): void {
     localStorage.removeItem('admin_token');
     localStorage.removeItem('admin_user');
     setState({ token: null, admin: null });
     setPermissions({});
   }
 
-  logoutRef.current = logout;
+  function logout(): void {
+    const token = localStorage.getItem('admin_token');
+    clearSession();
+    if (token) authService.logout(token).catch(() => undefined);
+  }
+
+  clearSessionRef.current = clearSession;
 
   useEffect((): (() => void) => {
     function onUnauthorized(): void {
-      logoutRef.current();
+      clearSessionRef.current();
       navigate('/login', { replace: true });
     }
     window.addEventListener('admin:unauthorized', onUnauthorized);

@@ -45,8 +45,8 @@ export async function apiGet<T>(url: string): Promise<T> {
   return (res.data as ApiSuccess<T>).data;
 }
 
-export async function apiPost<T>(url: string, body?: unknown): Promise<T> {
-  const res = await http.post<ApiEnvelope<T>>(url, body);
+export async function apiPost<T>(url: string, body?: unknown, headers?: Record<string, string>): Promise<T> {
+  const res = await http.post<ApiEnvelope<T>>(url, body, { headers });
   return (res.data as ApiSuccess<T>).data;
 }
 

@@ -1,6 +1,7 @@
 export const PATHS = {
   AUTH: {
     LOGIN:            '/api/admins/login',
+    LOGOUT:           '/api/admins/logout',
     FORGOT_PASSWORD:  '/api/admins/forgot-password',
     RESET_PASSWORD:   '/api/admins/reset-password',
   },
