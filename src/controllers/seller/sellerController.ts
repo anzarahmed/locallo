@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express';
-import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, getOwnKycDocuments as fetchOwnKycDocuments, uploadOwnKycDocument as saveOwnKycDocument, setSellerKycVerification, rejectSellerKycDocuments, uploadSellerBrandDocument, requestSellerAccountDeletion, SELLER_DELETION_HOLD_DAYS } from '../../services/seller/sellerService';
+import { createSeller, getSellerList, getSellerById, adminUpdateSeller, updateSellerProfile, updateSellerAddress, toggleSellerStatus, updateSellerBrands, getSellerSettings, updateSellerSettings, getCustomDay, setCustomDay, clearCustomDay, uploadSellerKycDocument, getOwnKycDocuments as fetchOwnKycDocuments, uploadOwnKycDocument as saveOwnKycDocument, setSellerKycVerification, rejectSellerKycDocuments, uploadSellerBrandDocument, requestSellerAccountDeletion, permanentlyDeleteSellerAccount, SELLER_DELETION_HOLD_DAYS } from '../../services/seller/sellerService';
 import { sendSuccess, sendError, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import { Category } from '../../models/Category';
@@ -142,6 +142,15 @@ export async function deleteAccount(req: Request, res: Response): Promise<void> 
     sendSuccess(res, null, `Account scheduled for deletion in ${SELLER_DELETION_HOLD_DAYS} days. Log in again during this period to reactivate it.`);
   } catch (err: unknown) {
     handleServiceError(err, res, 'Failed to delete account');
+  }
+}
+
+export async function removeSeller(req: Request, res: Response): Promise<void> {
+  try {
+    await permanentlyDeleteSellerAccount(req.params.id as string);
+    sendSuccess(res, null, 'Seller permanently deleted');
+  } catch (err: unknown) {
+    handleServiceError(err, res, 'Failed to delete seller');
   }
 }
 

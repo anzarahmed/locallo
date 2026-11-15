@@ -1,4 +1,4 @@
-import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand, CopyObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
+import { S3Client, PutObjectCommand, DeleteObjectCommand, DeleteObjectsCommand, ListObjectsV2Command, GetObjectCommand, CopyObjectCommand, HeadObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 import path from 'path';
@@ -206,6 +206,28 @@ export async function deleteImage(urlOrKey: string): Promise<void> {
     Bucket: BUCKET,
     Key: toKey(urlOrKey),
   }));
+}
+
+export async function deletePrefix(prefix: string): Promise<number> {
+  let deleted = 0;
+  let continuationToken: string | undefined;
+  do {
+    const page = await s3.send(new ListObjectsV2Command({
+      Bucket: BUCKET,
+      Prefix: prefix,
+      ContinuationToken: continuationToken,
+    }));
+    const keys = (page.Contents ?? []).map(o => o.Key).filter((k): k is string => Boolean(k));
+    if (keys.length > 0) {
+      await s3.send(new DeleteObjectsCommand({
+        Bucket: BUCKET,
+        Delete: { Objects: keys.map(Key => ({ Key })), Quiet: true },
+      }));
+      deleted += keys.length;
+    }
+    continuationToken = page.IsTruncated ? page.NextContinuationToken : undefined;
+  } while (continuationToken);
+  return deleted;
 }
 
 export async function commitImage(tempKey: string): Promise<string> {

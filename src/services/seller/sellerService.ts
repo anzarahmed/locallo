@@ -8,9 +8,10 @@ import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { Review } from '../../models/Review';
 import { Session } from '../../models/Session';
+import { AuditLog } from '../../models/AuditLog';
 import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, KycRejection, BrandDocumentType, BrandDocuments } from '../../types';
 import { hasRequiredKycDocuments, isKycRejectionResolved, isRequiredKycDocument, KYC_DOCUMENT_LABELS } from '../../utils/kyc';
-import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
+import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage, deletePrefix, toThumbnailKey } from '../../utils/imageStorage';
 import { notifySafely } from '../notifications/notifyService';
 import { notifyAdminsKycSubmitted } from '../admin/kycReviewNotifier';
 import { isIstDateTodayOrFuture } from '../../utils/istDate';
@@ -188,10 +189,11 @@ export async function permanentlyDeleteSellerAccount(userId: string): Promise<vo
     ? await Review.findAll({ where: { productId: productIds }, attributes: ['images'] })
     : [];
 
+  const catalogImages = [...products.flatMap((p) => p.images), ...variants.flatMap((v) => v.images)];
   const imageKeys = [
     ...(user.profileImage ? [user.profileImage] : []),
-    ...products.flatMap((p) => p.images),
-    ...variants.flatMap((v) => v.images),
+    ...catalogImages,
+    ...catalogImages.map((key) => toThumbnailKey(normalizeImageKey(key))),
     ...reviews.flatMap((r) => r.images),
     ...(profile ? Object.values(profile.kycDocuments).filter((v): v is string => Boolean(v)) : []),
     ...(profile
@@ -201,12 +203,21 @@ export async function permanentlyDeleteSellerAccount(userId: string): Promise<vo
 
   await sequelize.transaction(async (t) => {
     await Session.destroy({ where: { actorType: 'user', actorId: userId }, transaction: t });
+    await AuditLog.destroy({ where: { actorType: 'user', actorId: userId }, transaction: t });
     await user.destroy({ transaction: t });
   });
 
   await Promise.all(
     imageKeys.map((key) =>
       deleteImage(key).catch((err) => console.error(`Failed to delete image ${key} for deleted seller ${userId}:`, err)),
+    ),
+  );
+
+  // Sweeps objects no DB row points at any more (abandoned temp uploads, replaced documents).
+  const sellerPrefixes = ['products', 'temp', 'kyc', 'brand-documents'].map((dir) => `uploads/${dir}/${userId}/`);
+  await Promise.all(
+    sellerPrefixes.map((prefix) =>
+      deletePrefix(prefix).catch((err) => console.error(`Failed to sweep ${prefix} for deleted seller ${userId}:`, err)),
     ),
   );
 }

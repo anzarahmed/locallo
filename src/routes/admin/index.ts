@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { login, forgotPassword, resetPassword } from '../../controllers/admin/adminController';
-import { addSeller, getSellers, getSeller, adminEditSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, uploadSellerPhoto, setKycVerification, rejectKycDocuments, uploadBrandDocument } from '../../controllers/seller/sellerController';
+import { addSeller, getSellers, getSeller, adminEditSeller, removeSeller, patchSellerStatus, patchSellerBrands, uploadKycDocument, uploadSellerPhoto, setKycVerification, rejectKycDocuments, uploadBrandDocument } from '../../controllers/seller/sellerController';
 import { getCategories, addCategory, editCategory, removeCategory, uploadCategoryIcon } from '../../controllers/admin/categoryController';
 import { getMasterCategories, addMasterCategory, editMasterCategory, removeMasterCategory, uploadMasterCategoryIcon } from '../../controllers/admin/masterCategoryController';
 import { getBrands, addBrand, editBrand, removeBrand, uploadBrandLogo } from '../../controllers/admin/brandController';
@@ -77,6 +77,7 @@ router.post  ('/sellers',             requireAdmin, requirePermission('sellers',
 router.get   ('/sellers',             requireAdmin, requirePermission('sellers', 'list'),   getSellers);
 router.get   ('/sellers/:id',         requireAdmin, requirePermission('sellers', 'view'),   getSeller);
 router.put   ('/sellers/:id',         requireAdmin, requirePermission('sellers', 'edit'),   validate(adminUpdateSellerSchema), adminEditSeller);
+router.delete('/sellers/:id',         requireAdmin, requirePermission('sellers', 'delete'), removeSeller);
 router.patch ('/sellers/:id/status',  requireAdmin, requirePermission('sellers', 'edit'),   patchSellerStatus);
 router.post  ('/sellers/:id/kyc/documents', requireAdmin, requirePermission('sellers', 'edit'), upload.single('document'), uploadKycDocument);
 router.patch ('/sellers/:id/kyc/verify',    requireAdmin, requirePermission('sellers', 'edit'), setKycVerification);
