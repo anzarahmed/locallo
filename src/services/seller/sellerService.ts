@@ -9,7 +9,7 @@ import { ProductVariant } from '../../models/ProductVariant';
 import { Review } from '../../models/Review';
 import { Session } from '../../models/Session';
 import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocuments, KycRejection, BrandDocumentType, BrandDocuments } from '../../types';
-import { hasRequiredKycDocuments, isKycRejectionResolved, KYC_DOCUMENT_LABELS } from '../../utils/kyc';
+import { hasRequiredKycDocuments, isKycRejectionResolved, isRequiredKycDocument, KYC_DOCUMENT_LABELS } from '../../utils/kyc';
 import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage } from '../../utils/imageStorage';
 import { notifySafely } from '../notifications/notifyService';
 import { notifyAdminsKycSubmitted } from '../admin/kycReviewNotifier';
@@ -489,12 +489,16 @@ export async function rejectSellerKycDocuments(
   const removedKeys = documentTypes.map((type) => profile.kycDocuments[type] as string);
   const kycDocuments: KycDocuments = { ...profile.kycDocuments };
   for (const type of documentTypes) kycDocuments[type] = null;
+  // Optional documents are removed silently: no rejection record (status unchanged) and no notification.
+  const requiredTypes = documentTypes.filter(isRequiredKycDocument);
   const stillMissing = (profile.kycRejection?.documentTypes ?? []).filter((type) => !kycDocuments[type]);
-  const kycRejection: KycRejection = {
-    documentTypes: [...new Set([...stillMissing, ...documentTypes])],
-    reason: reason ?? (stillMissing.length > 0 ? profile.kycRejection?.reason ?? null : null),
-    rejectedAt: new Date().toISOString(),
-  };
+  const kycRejection: KycRejection | null = requiredTypes.length > 0
+    ? {
+      documentTypes: [...new Set([...stillMissing, ...requiredTypes])],
+      reason: reason ?? (stillMissing.length > 0 ? profile.kycRejection?.reason ?? null : null),
+      rejectedAt: new Date().toISOString(),
+    }
+    : profile.kycRejection ?? null;
   await profile.update({ kycDocuments, kycRejection });
 
   for (const key of removedKeys) {
@@ -503,10 +507,12 @@ export async function rejectSellerKycDocuments(
     });
   }
 
-  await notifySafely(sellerId, 'kyc_rejected', {
-    documents: documentTypes.map((type) => KYC_DOCUMENT_LABELS[type]).join(', '),
-    reason,
-  });
+  if (requiredTypes.length > 0) {
+    await notifySafely(sellerId, 'kyc_rejected', {
+      documents: requiredTypes.map((type) => KYC_DOCUMENT_LABELS[type]).join(', '),
+      reason,
+    });
+  }
 
   return { kycDocuments, kycRejection };
 }
@@ -526,7 +532,6 @@ export async function uploadOwnKycDocument(
   const state = await uploadSellerKycDocument(sellerId, documentType, file);
   const rejectionResolved = hadRejection && state.kycRejection === null;
 
-  // A rejection of optional documents only never makes the required set incomplete, so check it too.
   if (hasRequiredKycDocuments(state.kycDocuments) && (!wasComplete || rejectionResolved)) {
     notifyAdminsKycSubmitted(sellerId).catch((err: unknown) => {
       console.error('uploadOwnKycDocument: failed to notify admins', err);
