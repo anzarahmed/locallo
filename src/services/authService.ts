@@ -25,3 +25,7 @@ export function verifyOtp(
     deviceType: getDeviceType(),
   });
 }
+
+export function logout(token: string): Promise<null> {
+  return apiPost(PATHS.AUTH.LOGOUT, undefined, { Authorization: `Bearer ${token}` });
+}

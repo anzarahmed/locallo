@@ -1,11 +1,13 @@
 import { createContext, useContext, useState, useEffect, useRef, type ReactNode, type JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { AuthState, Seller } from '../types';
+import { logout as logoutRequest } from '../services/authService';
 
 interface AuthContextValue extends AuthState {
   isRestoring: boolean;
   login: (token: string, seller: Seller) => void;
   logout: () => void;
+  clearSession: () => void;
   updateSeller: (partial: Partial<Seller>) => void;
 }
 
@@ -15,7 +17,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   const [isRestoring, setIsRestoring] = useState(true);
   const [state, setState] = useState<AuthState>({ seller: null, token: null });
   const navigate = useNavigate();
-  const logoutRef = useRef<() => void>(() => undefined);
+  const clearSessionRef = useRef<() => void>(() => undefined);
 
   useEffect(() => {
     const token = localStorage.getItem('seller_token');
@@ -37,17 +39,23 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
     setState({ token, seller });
   }
 
-  function logout(): void {
+  function clearSession(): void {
     localStorage.removeItem('seller_token');
     localStorage.removeItem('seller_user');
     setState({ token: null, seller: null });
   }
 
-  logoutRef.current = logout;
+  function logout(): void {
+    const token = localStorage.getItem('seller_token');
+    clearSession();
+    if (token) logoutRequest(token).catch(() => undefined);
+  }
+
+  clearSessionRef.current = clearSession;
 
   useEffect((): (() => void) => {
     function onUnauthorized(): void {
-      logoutRef.current();
+      clearSessionRef.current();
       navigate('/login', { replace: true });
     }
     window.addEventListener('seller:unauthorized', onUnauthorized);
@@ -64,7 +72,7 @@ export function AuthProvider({ children }: { children: ReactNode }): JSX.Element
   }
 
   return (
-    <AuthContext.Provider value={{ ...state, isRestoring, login, logout, updateSeller }}>
+    <AuthContext.Provider value={{ ...state, isRestoring, login, logout, clearSession, updateSeller }}>
       {children}
     </AuthContext.Provider>
   );

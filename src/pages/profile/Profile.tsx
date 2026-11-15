@@ -38,7 +38,7 @@ const DEFAULT_LAT = 19.076;
 const DEFAULT_LNG = 72.8777;
 
 export default function Profile(): JSX.Element {
-  const { seller, updateSeller, logout } = useAuth();
+  const { seller, updateSeller, clearSession } = useAuth();
   const toast = useToast();
   const { showPnl, setShowPnl } = useModulePrefs();
   const navigate = useNavigate();
@@ -51,7 +51,7 @@ export default function Profile(): JSX.Element {
     try {
       await deleteAccount();
       toast.success('Account scheduled for deletion. Log in within 60 days to reactivate it.');
-      logout();
+      clearSession();
       navigate('/login', { replace: true });
     } catch (err) {
       toast.error(err instanceof ApiError ? err.message : 'Failed to delete account');

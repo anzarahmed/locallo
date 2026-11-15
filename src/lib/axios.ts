@@ -37,8 +37,8 @@ async function request<T>(fn: () => Promise<{ data: { success: boolean; message:
   }
 }
 
-export function apiPost<T>(url: string, body?: unknown): Promise<T> {
-  return request<T>(() => instance.post(url, body));
+export function apiPost<T>(url: string, body?: unknown, headers?: Record<string, string>): Promise<T> {
+  return request<T>(() => instance.post(url, body, { headers }));
 }
 
 export function apiGet<T>(url: string, params?: unknown): Promise<T> {
