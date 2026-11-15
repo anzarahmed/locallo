@@ -15,14 +15,14 @@ export default function ShopLanding(): JSX.Element {
     <LandingShell icon={Store}>
       {shopName ? (
         <>
-          <p className="mt-4 text-xs font-semibold uppercase tracking-widest text-[#14817C]">
+          <p className="mt-3 text-xs font-semibold uppercase tracking-widest text-[#14817C]">
             You're invited to visit
           </p>
-          <h1 className="mt-2 text-3xl font-bold text-gray-900 wrap-break-word">{shopName}</h1>
-          <p className="mt-2 text-gray-500">See this shop on the Loccalo app</p>
+          <h1 className="mt-1 text-2xl sm:text-3xl font-bold text-gray-900 wrap-break-word">{shopName}</h1>
+          <p className="mt-1 text-sm text-gray-500">See this shop on the Loccalo app</p>
         </>
       ) : (
-        <h1 className="mt-4 text-3xl font-bold text-gray-900">Discover this shop on Loccalo</h1>
+        <h1 className="mt-3 text-2xl sm:text-3xl font-bold text-gray-900">Discover this shop on Loccalo</h1>
       )}
     </LandingShell>
   );

@@ -37,7 +37,7 @@ export default function StoreButton({ store, url }: StoreButtonProps): JSX.Eleme
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex items-center justify-center gap-3 rounded-2xl bg-gray-900 px-5 py-3 text-white shadow-md transition hover:-translate-y-0.5 hover:bg-gray-800 hover:shadow-lg"
+      className="flex items-center justify-center gap-3 rounded-2xl bg-gray-900 px-5 py-3 text-white shadow-md transition-colors hover:bg-gray-700"
     >
       {content}
     </a>

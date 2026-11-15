@@ -9,8 +9,8 @@ export default function ProductLanding(): JSX.Element {
 
   return (
     <LandingShell icon={Package}>
-      <h1 className="mt-4 text-3xl font-bold text-gray-900">Discover this product on Loccalo</h1>
-      <p className="mt-2 text-gray-500">See this product on the Loccalo app</p>
+      <h1 className="mt-3 text-2xl sm:text-3xl font-bold text-gray-900">Discover this product on Loccalo</h1>
+      <p className="mt-1 text-sm text-gray-500">See this product on the Loccalo app</p>
     </LandingShell>
   );
 }
