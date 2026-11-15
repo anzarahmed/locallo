@@ -3,6 +3,7 @@ import { sendSuccess, sendError, handleServiceError } from '../../utils/response
 import { getPresignedUrl, toThumbnailKey } from '../../utils/imageStorage';
 import { parsePagination } from '../../utils/pagination';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
+import { getActiveOffersForProducts, offerFieldsFor } from '../../utils/offerPricing';
 import * as wishlistService from '../../services/customer/wishlistService';
 import * as productService from '../../services/customer/productService';
 import type { Wishlist } from '../../models/Wishlist';
@@ -21,6 +22,9 @@ interface WishlistItem {
   variantStock: number | null;
   variantAttributes: Record<string, unknown> | null;
   variantIsActive: boolean | null;
+  offerId: number | null;
+  offerPrice: number | null;
+  offerBadge: string | null;
   inStock: boolean;
   lat: number | null;
   long: number | null;
@@ -49,9 +53,11 @@ export async function getWishlist(req: Request, res: Response): Promise<void> {
 
   const sellerIds = [...new Set(rows.map((w) => w.product.sellerId))];
   const categoryIds = [...new Set(rows.map((w) => w.product.categoryId))];
-  const [locations, attributeSchemasByCategory] = await Promise.all([
+  const productIds = [...new Set(rows.map((w) => w.product.id))];
+  const [locations, attributeSchemasByCategory, offersById] = await Promise.all([
     wishlistService.getSellerLocations(sellerIds),
     productService.getCategoryAttributeSchemas(categoryIds),
+    getActiveOffersForProducts(productIds),
   ]);
 
   const products: WishlistItem[] = await Promise.all(
@@ -59,20 +65,23 @@ export async function getWishlist(req: Request, res: Response): Promise<void> {
       const v = w.variant;
       const image = v?.images[0] ?? w.product.images[0];
       const location = locations.get(w.product.sellerId);
+      const mrp = v?.mrp ?? w.product.mrp;
+      const sellingPrice = v?.sellingPrice ?? w.product.sellingPrice;
       return {
         id: w.product.id,
         productId: w.product.id,
         variantId: w.variantId,
         title: w.product.name,
         image: image ? await getPresignedUrl(toThumbnailKey(image)) : null,
-        mrp: v?.mrp ?? w.product.mrp,
-        sellingPrice: v?.sellingPrice ?? w.product.sellingPrice,
+        mrp,
+        sellingPrice,
         stock: v ? v.stock : w.product.stock,
         variantStock: v ? v.stock : null,
         variantAttributes: v
           ? normalizeFreeTextAttributes(v.attributes as Record<string, unknown>, attributeSchemasByCategory.get(w.product.categoryId) ?? [])
           : null,
         variantIsActive: v ? v.isActive : null,
+        ...offerFieldsFor(offersById, w.product.id, mrp, sellingPrice),
         inStock: Boolean(w.getDataValue('inStock' as keyof Wishlist)),
         lat: location?.lat ?? null,
         long: location?.long ?? null,

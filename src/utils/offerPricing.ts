@@ -8,6 +8,17 @@ export interface OfferPricing {
   offerBadge: string | null;
 }
 
+export interface OfferFields extends OfferPricing {
+  offerId: number | null;
+}
+
+// Offers discount the MRP; products without an MRP fall back to the selling price.
+export function offerFieldsFor(offersById: Map<string, Offer>, productId: string, mrp: number | string | null, sellingPrice: number | string): OfferFields {
+  const offer = offersById.get(productId);
+  if (!offer) return { offerId: null, offerPrice: null, offerBadge: null };
+  return { offerId: offer.id, ...computeOfferPricing(offer, Number(mrp ?? sellingPrice)) };
+}
+
 export async function getActiveOffersForProducts(productIds: string[]): Promise<Map<string, Offer>> {
   if (productIds.length === 0) return new Map();
 

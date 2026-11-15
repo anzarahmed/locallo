@@ -2,7 +2,7 @@ import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 import { withSignedImages, getPresignedUrl, toThumbnailKey } from '../../utils/imageStorage';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
-import { getActiveOffersForProducts, computeOfferPricing } from '../../utils/offerPricing';
+import { getActiveOffersForProducts, offerFieldsFor } from '../../utils/offerPricing';
 import * as productService from '../../services/customer/productService';
 import * as wishlistService from '../../services/customer/wishlistService';
 import * as productViewService from '../../services/customer/productViewService';
@@ -34,13 +34,6 @@ interface ProductListItem {
   isWishlisted: boolean;
   isBoosted: boolean;
   distanceKm?: number;
-}
-
-// Offers discount the MRP; products without an MRP fall back to the selling price.
-function offerFieldsFor(offersById: Map<string, Offer>, productId: string, mrp: number | string | null, sellingPrice: number | string): { offerId: number | null; offerPrice: number | null; offerBadge: string | null } {
-  const offer = offersById.get(productId);
-  if (!offer) return { offerId: null, offerPrice: null, offerBadge: null };
-  return { offerId: offer.id, ...computeOfferPricing(offer, Number(mrp ?? sellingPrice)) };
 }
 
 interface ListItemContext {
