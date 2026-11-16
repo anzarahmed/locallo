@@ -68,7 +68,8 @@ const SAFE_PRODUCT_ATTRIBUTES = [
 const SELLER_LAT_SUBQUERY = '(SELECT lat FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id")';
 const SELLER_LONG_SUBQUERY = '(SELECT long FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id")';
 export const SELLER_VERIFIED_CONDITION = literal(
-  'EXISTS (SELECT 1 FROM seller_profiles WHERE seller_profiles.user_id = "Product"."seller_id" AND seller_profiles.is_verified = true)',
+  'EXISTS (SELECT 1 FROM seller_profiles JOIN users ON users.id = seller_profiles.user_id ' +
+  'WHERE seller_profiles.user_id = "Product"."seller_id" AND seller_profiles.is_verified = true AND users.is_active = true)',
 );
 
 // A product with variant rows is in stock only through an active variant with stock;

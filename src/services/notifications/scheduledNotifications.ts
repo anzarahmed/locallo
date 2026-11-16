@@ -35,9 +35,10 @@ const WISHLIST_VISIBLE_SQL = `(p.is_active AND CASE
     ELSE ${PRODUCT_HAS_VISIBLE_VARIANTS_SQL}
   END)`;
 
-// Products of a seller whose KYC is not verified are hidden from customers.
+// Products of a seller whose KYC is not verified, or who is deactivated, are hidden from customers.
 const SELLER_VERIFIED_SQL =
-  'EXISTS (SELECT 1 FROM seller_profiles sp WHERE sp.user_id = p.seller_id AND sp.is_verified = true)';
+  'EXISTS (SELECT 1 FROM seller_profiles sp JOIN users su ON su.id = sp.user_id ' +
+  'WHERE sp.user_id = p.seller_id AND sp.is_verified = true AND su.is_active = true)';
 
 async function selectIds(sql: string, replacements: Record<string, unknown> = {}): Promise<string[]> {
   const rows = await sequelize.query<{ id: string }>(sql, { replacements, type: QueryTypes.SELECT });

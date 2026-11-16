@@ -3,6 +3,7 @@ import { Wishlist } from '../../models/Wishlist';
 import { Product } from '../../models/Product';
 import { ProductVariant } from '../../models/ProductVariant';
 import { SellerProfile } from '../../models/SellerProfile';
+import { User } from '../../models/User';
 import { hasVisibleVariantsSql, inStockSql } from './productService';
 import { snapshotWishlistStock } from '../notifications/scheduledNotifications';
 
@@ -16,7 +17,8 @@ const WISHLIST_VISIBLE_CONDITION = literal(
   `THEN ${hasVisibleVariantsSql('"Wishlist".product_id')} ` +
   'ELSE EXISTS (SELECT 1 FROM product_variants wv WHERE wv.id = "Wishlist".variant_id AND wv.is_active = true) END) ' +
   'AND EXISTS (SELECT 1 FROM products wp JOIN seller_profiles sp ON sp.user_id = wp.seller_id ' +
-  'WHERE wp.id = "Wishlist".product_id AND sp.is_verified = true)',
+  'JOIN users su ON su.id = sp.user_id ' +
+  'WHERE wp.id = "Wishlist".product_id AND sp.is_verified = true AND su.is_active = true)',
 );
 
 const WISHLIST_IN_STOCK_SQL =
@@ -31,7 +33,10 @@ async function hasVisibleVariants(productId: string): Promise<boolean> {
 }
 
 async function isSellerVerified(sellerId: string): Promise<boolean> {
-  return (await SellerProfile.count({ where: { userId: sellerId, isVerified: true } })) > 0;
+  return (await SellerProfile.count({
+    where: { userId: sellerId, isVerified: true },
+    include: [{ model: User, attributes: [], where: { isActive: true }, required: true }],
+  })) > 0;
 }
 
 export async function toggleWishlist(
