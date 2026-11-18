@@ -5,11 +5,13 @@ import logo from '../../assets/logo.png';
 import { APP_STORE_URL, PLAY_STORE_URL } from '../../lib/storeLinks';
 import StoreButton from './StoreButton';
 import StoreQrCode from './StoreQrCode';
+import { STORES } from './stores';
 import type { StoreKey } from './stores';
 
 interface Benefit {
   icon: LucideIcon;
-  text: string;
+  title: string;
+  description: string;
 }
 
 interface StoreLink {
@@ -23,9 +25,9 @@ interface LandingShellProps {
 }
 
 const BENEFITS: Benefit[] = [
-  { icon: MapPin, text: 'Discover local shops near you' },
-  { icon: Tag, text: 'Get exclusive offers' },
-  { icon: Heart, text: 'Save your favourites' },
+  { icon: MapPin, title: 'Explore Nearby', description: 'Discover local stores around you' },
+  { icon: Tag, title: 'Exclusive Offers', description: 'Enjoy special deals and discounts' },
+  { icon: Heart, title: 'Save Favourites', description: 'Save stores and products you love' },
 ];
 
 const STORE_LINKS: StoreLink[] = [
@@ -52,20 +54,20 @@ export default function LandingShell({ icon: HeadingIcon, children }: LandingShe
         </div>
 
         <ul className="mt-5 grid grid-cols-3 gap-2">
-          {BENEFITS.map(({ icon: Icon, text }) => (
-            <li key={text} className="flex flex-col items-center gap-1.5 text-center text-xs text-gray-700">
+          {BENEFITS.map(({ icon: Icon, title, description }) => (
+            <li key={title} className="flex flex-col items-center gap-1.5 text-center">
               <span className="flex w-8 h-8 shrink-0 items-center justify-center rounded-full bg-[#26B8B2]/15 text-[#14817C]">
                 <Icon className="w-4 h-4" />
               </span>
-              {text}
+              <span className="text-sm font-semibold text-gray-900">{title}</span>
+              <span className="text-xs text-gray-500">{description}</span>
             </li>
           ))}
         </ul>
 
         <div className="mt-5 flex items-center gap-3 text-xs font-medium text-gray-400">
           <span className="h-px flex-1 bg-gray-200" />
-          <span className="sm:hidden">Download the free app</span>
-          <span className="hidden sm:inline">{SHOW_QR_CODES ? 'Scan or tap to download the free app' : 'Download the free app'}</span>
+          <span>Download the Loccalo app to get started</span>
           <span className="h-px flex-1 bg-gray-200" />
         </div>
 
@@ -73,8 +75,10 @@ export default function LandingShell({ icon: HeadingIcon, children }: LandingShe
           {STORE_LINKS.map(({ store, url }) => (
             <div key={store} className="flex flex-col gap-3">
               {SHOW_QR_CODES && (
-                <div className="hidden sm:flex justify-center">
+                <div className="hidden sm:flex flex-col items-center gap-2">
+                  <span className="text-sm font-semibold text-gray-900">{STORES[store].platformLabel}</span>
                   <StoreQrCode store={store} url={url} />
+                  {url && <span className="text-xs text-gray-500">Scan to download</span>}
                 </div>
               )}
               <StoreButton store={store} url={url} />
