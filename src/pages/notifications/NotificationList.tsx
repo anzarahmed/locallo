@@ -13,11 +13,30 @@ import type { Notification, NotificationFilter } from '../../types';
 
 const PAGE_LIMIT = 20;
 
-function resolveRoute(notification: Notification): string | null {
-  if (notification.referenceType === 'offer' && notification.referenceId) {
-    return `/offers/${notification.referenceId}`;
-  }
-  return null;
+const ROUTE_BY_TYPE: Record<string, string> = {
+  welcome_seller: '/dashboard',
+  seller_registered: '/products/add',
+  first_product_nudge: '/products/add',
+  seller_inactive: '/products/add',
+  kyc_pending: '/kyc-documents',
+  kyc_rejected: '/kyc-documents',
+  kyc_revoked: '/kyc-documents',
+  kyc_verified: '/kyc-documents',
+  out_of_stock_digest: '/products',
+  boost_suggestion: '/products',
+  boost_paid: '/payments',
+  boost_completed: '/payments',
+  share_shop: '/profile',
+  closing_soon: '/profile',
+  upload_limit_90: '/product-limits',
+  upload_limit_100: '/product-limits',
+  buy_storage: '/product-limits',
+};
+
+function resolveRoute({ type, referenceType, referenceId }: Notification): string | null {
+  if (referenceType === 'offer' && referenceId) return `/offers/${referenceId}`;
+  if (type === 'views_milestone' && referenceId) return `/products/${referenceId}`;
+  return ROUTE_BY_TYPE[type] ?? null;
 }
 
 function iconFor({ type, offerType }: Notification): LucideIcon {
