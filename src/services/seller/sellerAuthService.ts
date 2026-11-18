@@ -15,13 +15,15 @@ async function findActiveSeller(phoneNumber: string): Promise<User> {
 
   if (!user) {
     throw Object.assign(
-      new Error('Your account is inactive or no longer available. Please contact the administrator for assistance.'),
+      new Error(
+        'This mobile number is not registered as a Loccalo seller. Please check that you entered the correct number, or contact the Loccalo team to register your shop.',
+      ),
       { status: 404 },
     );
   }
   if (!user.isActive && !user.deletionRequestedAt) {
     throw Object.assign(
-      new Error('Your account is inactive or no longer available. Please contact the administrator for assistance.'),
+      new Error('Your seller account has been deactivated. Please contact the Loccalo team to reactivate it.'),
       { status: 403 },
     );
   }
