@@ -16,7 +16,7 @@ const PAGE_LIMIT = 20;
 const ROUTE_BY_TYPE: Record<string, string> = {
   welcome_seller: '/dashboard',
   seller_registered: '/products/add',
-  first_product_nudge: '/products/add',
+  first_product_nudge: '/pages/product-upload-guide',
   seller_inactive: '/products/add',
   kyc_pending: '/kyc-documents',
   kyc_rejected: '/kyc-documents',
