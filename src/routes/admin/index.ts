@@ -41,6 +41,8 @@ import { requestMobileOtpSchema, verifyMobileOtpSchema } from '../../validation/
 import { createSubAdminSchema, updateSubAdminSchema } from '../../validation/admin/subAdminSchemas';
 import { updateRolePermissionsSchema } from '../../validation/admin/rolePermissionSchemas';
 import { updateAppConfigSchema } from '../../validation/admin/appConfigSchemas';
+import { runTestCronSchema } from '../../validation/admin/testCronSchemas';
+import { getTestCronJobs, postRunTestCronJob } from '../../controllers/admin/testCronController';
 
 const router = Router();
 
@@ -151,5 +153,9 @@ router.get   ('/payments',              requireAdmin, requireSuperAdmin,   getPa
 // App configs — version / force update / maintenance per app + platform (super_admin only)
 router.get   ('/app-configs',           requireAdmin, requireSuperAdmin,   getAppConfigs);
 router.put   ('/app-configs/:app',      requireAdmin, requireSuperAdmin,   validate(updateAppConfigSchema), editAppConfig);
+
+// Temporary QA helper: run a notification cron job on demand (super_admin only)
+router.get ('/test/crons',     requireAdmin, requireSuperAdmin, getTestCronJobs);
+router.post('/test/crons/run', requireAdmin, requireSuperAdmin, validate(runTestCronSchema), postRunTestCronJob);
 
 export default router;
