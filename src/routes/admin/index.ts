@@ -154,8 +154,8 @@ router.get   ('/payments',              requireAdmin, requireSuperAdmin,   getPa
 router.get   ('/app-configs',           requireAdmin, requireSuperAdmin,   getAppConfigs);
 router.put   ('/app-configs/:app',      requireAdmin, requireSuperAdmin,   validate(updateAppConfigSchema), editAppConfig);
 
-// Temporary QA helper: run a notification cron job on demand (super_admin only)
-router.get ('/test/crons',     requireAdmin, requireSuperAdmin, getTestCronJobs);
-router.post('/test/crons/run', requireAdmin, requireSuperAdmin, validate(runTestCronSchema), postRunTestCronJob);
+// Temporary QA helper: run a notification cron job on demand. Public on purpose — remove before production.
+router.get ('/test/crons',     getTestCronJobs);
+router.post('/test/crons/run', validate(runTestCronSchema), postRunTestCronJob);
 
 export default router;
