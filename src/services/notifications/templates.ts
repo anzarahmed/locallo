@@ -285,7 +285,7 @@ export const TEMPLATES: TemplateRegistry = {
     build: ({ boostId, productName, amount }) => ({
       title: 'Boost payment successful',
       body: `Payment of ₹${amount} received. Your boost for ${productName} is now live.`,
-      screen: 'boost_detail',
+      screen: 'boost_paid',
       targetId: boostId,
       dataTitle: productName,
       referenceType: 'boost',
