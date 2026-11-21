@@ -21,11 +21,25 @@ interface NotificationItem {
   referenceType: string | null;
   referenceId: string | null;
   offerType: OfferType | null;
+  productId: string | null;
   isRead: boolean;
   createdAt: Date;
 }
 
-function toItem(n: Notification, offerTypes: Map<string, OfferType>): NotificationItem {
+interface NotificationLookups {
+  offerTypes: Map<string, OfferType>;
+  boostProductIds: Map<string, string>;
+}
+
+async function loadLookups(rows: Notification[]): Promise<NotificationLookups> {
+  const [offerTypes, boostProductIds] = await Promise.all([
+    notificationService.getOfferTypes(rows),
+    notificationService.getBoostProductIds(rows),
+  ]);
+  return { offerTypes, boostProductIds };
+}
+
+function toItem(n: Notification, { offerTypes, boostProductIds }: NotificationLookups): NotificationItem {
   return {
     id: n.id,
     title: n.title,
@@ -34,6 +48,7 @@ function toItem(n: Notification, offerTypes: Map<string, OfferType>): Notificati
     referenceType: n.referenceType,
     referenceId: n.referenceId,
     offerType: n.referenceType === 'offer' ? offerTypes.get(n.referenceId ?? '') ?? null : null,
+    productId: n.referenceType === 'boost' ? boostProductIds.get(n.referenceId ?? '') ?? null : null,
     isRead: n.isRead,
     createdAt: n.createdAt,
   };
@@ -45,16 +60,16 @@ export async function getNotifications(req: Request, res: Response): Promise<voi
   const { rows, count } = await notificationService.listNotifications(req.seller!.id, page, limit, filter);
   // Must run after listNotifications, which marks the returned rows as read.
   const unreadCount = await notificationService.countUnreadNotifications(req.seller!.id);
-  const offerTypes = await notificationService.getOfferTypes(rows);
-  const notifications = rows.map((n) => toItem(n, offerTypes));
+  const lookups = await loadLookups(rows);
+  const notifications = rows.map((n) => toItem(n, lookups));
   sendSuccess(res, { notifications, total: count, page, limit, unreadCount }, 'Notifications fetched');
 }
 
 export async function markNotificationRead(req: Request, res: Response): Promise<void> {
   try {
     const notification = await notificationService.markNotificationRead(req.seller!.id, String(req.params.id));
-    const offerTypes = await notificationService.getOfferTypes([notification]);
-    sendSuccess(res, toItem(notification, offerTypes), 'Notification marked as read');
+    const lookups = await loadLookups([notification]);
+    sendSuccess(res, toItem(notification, lookups), 'Notification marked as read');
   } catch (err: unknown) {
     handleServiceError(err, res, 'Notification not found');
   }

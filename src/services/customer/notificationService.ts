@@ -1,6 +1,7 @@
 import { Op } from 'sequelize';
 import { Notification } from '../../models/Notification';
 import { Offer } from '../../models/Offer';
+import { ProductBoost } from '../../models/ProductBoost';
 import { OFFER_NOTIFICATION_TYPES } from '../notifications/templates';
 import type { OfferType } from '../../types';
 
@@ -18,6 +19,23 @@ export async function getOfferTypes(notifications: Notification[]): Promise<Map<
     attributes: ['id', 'offerType'],
   });
   return new Map(offers.map((offer) => [String(offer.id), offer.offerType]));
+}
+
+export async function getBoostProductIds(notifications: Notification[]): Promise<Map<string, string>> {
+  const boostIds = notifications
+    .filter((n) => n.referenceType === 'boost' && n.referenceId)
+    .map((n) => n.referenceId as string);
+  if (boostIds.length === 0) return new Map();
+
+  const boosts = await ProductBoost.findAll({
+    where: { id: { [Op.in]: [...new Set(boostIds)] } },
+    attributes: ['id', 'productId'],
+  });
+  return new Map(
+    boosts
+      .filter((boost) => boost.productId !== null)
+      .map((boost) => [boost.id, boost.productId as string]),
+  );
 }
 
 export async function listNotifications(
