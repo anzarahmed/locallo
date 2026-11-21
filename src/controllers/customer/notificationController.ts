@@ -3,8 +3,10 @@ import { sendSuccess, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
 import * as notificationService from '../../services/customer/notificationService';
 import type { Notification } from '../../models/Notification';
+import { refFieldsFor } from './notificationRefFields';
+import type { NotificationRefFields } from './notificationRefFields';
 
-interface NotificationItem {
+interface NotificationItem extends NotificationRefFields {
   id: string;
   title: string;
   message: string;
@@ -21,6 +23,7 @@ function toItem(n: Notification): NotificationItem {
     type: n.type,
     isRead: n.isRead,
     createdAt: n.createdAt,
+    ...refFieldsFor(n),
   };
 }
 
