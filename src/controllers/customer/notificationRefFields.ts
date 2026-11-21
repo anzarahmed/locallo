@@ -23,6 +23,7 @@ const REF_RESOLVERS: Partial<Record<NotificationType, RefResolver>> = {
   wishlist_out_of_stock: productRef,
   back_in_stock: productRef,
   offer_upcoming: offerRef,
+  offer_live: offerRef,
 };
 
 export function refFieldsFor(n: Notification): NotificationRefFields {
