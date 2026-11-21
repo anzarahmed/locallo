@@ -33,9 +33,10 @@ const ROUTE_BY_TYPE: Record<string, string> = {
   buy_storage: '/product-limits',
 };
 
-function resolveRoute({ type, referenceType, referenceId }: Notification): string | null {
+function resolveRoute({ type, referenceType, referenceId, productId }: Notification): string | null {
   if (referenceType === 'offer' && referenceId) return `/offers/${referenceId}`;
   if (type === 'views_milestone' && referenceId) return `/products/${referenceId}`;
+  if (type === 'boost_completed' && productId) return `/products/${productId}`;
   return ROUTE_BY_TYPE[type] ?? null;
 }
 

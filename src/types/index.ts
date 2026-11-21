@@ -316,6 +316,7 @@ export interface Notification {
   referenceType: string | null;
   referenceId: string | null;
   offerType: OfferType | null;
+  productId: string | null;
   isRead: boolean;
   createdAt: string;
 }
