@@ -79,7 +79,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   welcome_back_customer: {
-    audience: 'customer', pushClass: 'transactional', channel: 'transactional', push: true,
+    audience: 'customer', pushClass: 'promotional', channel: 'transactional', push: true, ignoreQuietHours: true,
     build: ({ name }) => ({
       title: name.trim() ? `Welcome back ${name.trim()}!` : 'Welcome back!',
       body: 'Explore & support the domestic sellers.',
@@ -120,7 +120,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   wishlist_out_of_stock: {
-    audience: 'customer', pushClass: 'transactional', channel: 'wishlist', push: true,
+    audience: 'customer', pushClass: 'promotional', channel: 'wishlist', push: true, ignoreQuietHours: true,
     build: ({ productId, variantId, productName }) => ({
       title: 'Out of stock',
       body: `😢 ${productName} from your wishlist is out of stock right now.`,
@@ -133,7 +133,7 @@ export const TEMPLATES: TemplateRegistry = {
     }),
   },
   back_in_stock: {
-    audience: 'customer', pushClass: 'transactional', channel: 'wishlist', push: true,
+    audience: 'customer', pushClass: 'promotional', channel: 'wishlist', push: true, ignoreQuietHours: true,
     build: ({ productId, variantId, productName, imageUrl }) => ({
       title: '😍 Back in Stock!',
       body: "The product you love is available again. Don't miss your chance this time!",

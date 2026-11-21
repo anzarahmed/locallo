@@ -260,11 +260,14 @@ export function notifySafely<T extends NotificationType>(
 // token, so it is stored as skipped and queued here on the first token registration.
 export async function queueWelcomePush(userId: string): Promise<void> {
   await sequelize.query(
-    `UPDATE notifications
+    `UPDATE notifications n
         SET push_status = 'pending', send_after = NOW()
-      WHERE user_id = :userId AND type IN ('welcome_customer', 'welcome_back_customer')
-        AND push_status = 'skipped' AND push_attempts = 0
-        AND created_at > NOW() - INTERVAL '24 hours'`,
+      WHERE n.user_id = :userId
+        AND n.push_status = 'skipped' AND n.push_attempts = 0
+        AND n.created_at > NOW() - INTERVAL '24 hours'
+        AND (n.type = 'welcome_customer'
+             OR (n.type = 'welcome_back_customer'
+                 AND EXISTS (SELECT 1 FROM users u WHERE u.id = n.user_id AND u.promotional_push = true)))`,
     { replacements: { userId } },
   );
   triggerPushDispatch();
