@@ -1,11 +1,24 @@
 import nodemailer from 'nodemailer';
 import type { EmailContent } from './emailTemplates/sellerEmailLayout';
 
+// const transporter = nodemailer.createTransport({
+//   service: 'gmail',
+//   auth: {
+//     user: process.env.GMAIL_USER,
+//     pass: process.env.GMAIL_APP_PASSWORD,
+//   },
+//   connectionTimeout: 10_000,
+//   greetingTimeout: 10_000,
+//   socketTimeout: 10_000,
+// });
+
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: 'smtpout.secureserver.net',
+  port: 465,
+  secure: true, // SSL
   auth: {
-    user: process.env.GMAIL_USER,
-    pass: process.env.GMAIL_APP_PASSWORD,
+    user: process.env.SMTP_USER,
+    pass: process.env.SMTP_PASSWORD,
   },
   connectionTimeout: 10_000,
   greetingTimeout: 10_000,
