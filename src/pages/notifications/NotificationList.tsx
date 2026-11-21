@@ -21,7 +21,7 @@ const ROUTE_BY_TYPE: Record<string, string> = {
   kyc_pending: '/kyc-documents',
   kyc_rejected: '/kyc-documents',
   kyc_revoked: '/kyc-documents',
-  kyc_verified: '/kyc-documents',
+  kyc_verified: '/dashboard',
   out_of_stock_digest: '/products',
   boost_suggestion: '/products',
   boost_paid: '/payments',
