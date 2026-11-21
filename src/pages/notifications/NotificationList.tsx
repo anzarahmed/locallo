@@ -17,7 +17,7 @@ const ROUTE_BY_TYPE: Record<string, string> = {
   welcome_seller: '/dashboard',
   seller_registered: '/products/add',
   first_product_nudge: '/pages/product-upload-guide',
-  seller_inactive: '/products/add',
+  seller_inactive: '/dashboard',
   kyc_pending: '/kyc-documents',
   kyc_rejected: '/kyc-documents',
   kyc_revoked: '/kyc-documents',
