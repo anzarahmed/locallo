@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { otpRequestLimiter, otpVerifyLimiter } from '../../middleware/otpRateLimit';
 import { requireSeller } from '../../middleware/auth';
 import { getDashboardStats, getTopProducts as getTopDashboardProducts } from '../../controllers/seller/dashboardController';
 import { getProfile, updateSeller, updateAddress, getSettings, updateSettings, getCustomDayOverride, setCustomDayOverride, clearCustomDayOverride, deleteAccount, getOwnKycDocuments, uploadOwnKycDocument } from '../../controllers/seller/sellerController';
@@ -39,8 +40,8 @@ import { acceptOfferSchema } from '../../validation/seller/offerSchemas';
 
 const router = Router();
 
-router.post('/auth/request-otp', validate(requestOtpSchema), requestOtp);
-router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
+router.post('/auth/request-otp', otpRequestLimiter, validate(requestOtpSchema), requestOtp);
+router.post('/auth/verify-otp',  otpVerifyLimiter,  validate(verifyOtpSchema),  verifyOtp);
 router.post('/auth/logout',      requireSeller,               logout);
 
 router.put('/push-token',    requireSeller, validate(registerPushTokenSchema), savePushToken);

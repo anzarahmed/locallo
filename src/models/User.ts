@@ -57,6 +57,25 @@ export class User extends Model {
   @Column(DataType.DATE)
   declare otpExpiresAt: Date | null;
 
+  @Default(0)
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  declare otpAttempts: number;
+
+  @Column(DataType.DATE)
+  declare otpLastSentAt: Date | null;
+
+  @Default(0)
+  @AllowNull(false)
+  @Column(DataType.INTEGER)
+  declare otpSendCount: number;
+
+  @Column(DataType.DATE)
+  declare otpSendWindowStart: Date | null;
+
+  @Column(DataType.DATE)
+  declare otpLockedUntil: Date | null;
+
   @Default(false)
   @AllowNull(false)
   @Column(DataType.BOOLEAN)

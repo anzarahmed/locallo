@@ -2,7 +2,15 @@ import type { InferType } from 'yup';
 import { UniqueConstraintError } from 'sequelize';
 import { User } from '../../models/User';
 import { sendOtp } from '../../utils/msg91';
-import { generateOtp, makeOtpExpiresAt } from '../../utils/otp';
+import { generateOtp } from '../../utils/otp';
+import {
+  assertCanSendOtp,
+  assertNotLocked,
+  isOtpMatch,
+  OTP_GUARD_RESET,
+  recordOtpSent,
+  registerFailedAttempt,
+} from '../../utils/otpGuard';
 import { createUserSession, hashToken } from '../../utils/session';
 import { Session } from '../../models/Session';
 import { notifySafely, queueWelcomePush } from '../notifications/notifyService';
@@ -43,8 +51,9 @@ async function findOrCreateCustomer(phoneNumber: string, countryCode: string): P
 export async function requestCustomerOtp(data: RequestOtpInput): Promise<{ otp: string }> {
   const user = await findOrCreateCustomer(data.phoneNumber, data.countryCode);
 
+  assertCanSendOtp(user);
   const otp = generateOtp();
-  await user.update({ otpCode: otp, otpExpiresAt: makeOtpExpiresAt() });
+  await recordOtpSent(user, otp);
   await sendOtp(data.countryCode, data.phoneNumber, otp);
   return { otp };
 }
@@ -61,14 +70,15 @@ export async function verifyCustomerOtp(
     throw Object.assign(new Error('Account is not active'), { status: 403 });
   }
 
+  assertNotLocked(user);
   if (!user.otpCode || !user.otpExpiresAt) {
     throw Object.assign(new Error('OTP not requested'), { status: 410 });
   }
   if (user.otpExpiresAt < new Date()) {
     throw Object.assign(new Error('OTP expired'), { status: 410 });
   }
-  if (user.otpCode !== data.otp) {
-    throw Object.assign(new Error('Invalid OTP'), { status: 422 });
+  if (!isOtpMatch(user.otpCode, data.otp)) {
+    await registerFailedAttempt(user.id);
   }
 
   const isNewUser = !user.isVerified;
@@ -79,6 +89,7 @@ export async function verifyCustomerOtp(
   await user.update({
     otpCode: null,
     otpExpiresAt: null,
+    ...OTP_GUARD_RESET,
     isVerified: true,
     isActive: true,
     deletionRequestedAt: null,

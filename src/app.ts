@@ -7,6 +7,10 @@ import webhookRoutes from './routes/webhooks/index';
 
 const app = express();
 
+// Behind nginx every request arrives from the proxy, so without this the OTP rate limiter would key
+// every user to one IP. TRUST_PROXY=0 when the API is exposed directly.
+app.set('trust proxy', Number(process.env.TRUST_PROXY ?? 1));
+
 app.use(cors());
 app.use(
   express.json({

@@ -1,4 +1,5 @@
 import { Router } from 'express';
+import { otpRequestLimiter, otpVerifyLimiter } from '../../middleware/otpRateLimit';
 import { requestOtp, verifyOtp, logout } from '../../controllers/customer/customerAuthController';
 import { getProfile, updateProfile, uploadProfileImage, deleteAccount, getSettings, updateSettings } from '../../controllers/customer/customerProfileController';
 import { savePushToken, removePushToken } from '../../controllers/shared/pushTokenController';
@@ -25,8 +26,8 @@ import { createReviewSchema, updateReviewSchema } from '../../validation/custome
 
 const router = Router();
 
-router.post('/auth/request-otp', validate(requestOtpSchema), requestOtp);
-router.post('/auth/verify-otp',  validate(verifyOtpSchema),  verifyOtp);
+router.post('/auth/request-otp', otpRequestLimiter, validate(requestOtpSchema), requestOtp);
+router.post('/auth/verify-otp',  otpVerifyLimiter,  validate(verifyOtpSchema),  verifyOtp);
 router.post('/auth/logout',      requireCustomer,             logout);
 
 router.put('/push-token',    requireCustomer, validate(registerPushTokenSchema), savePushToken);

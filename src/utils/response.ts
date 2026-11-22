@@ -17,6 +17,10 @@ export function sendError(
 }
 
 export function handleServiceError(err: unknown, res: Response, fallback = 'Internal server error'): void {
-  const e = err as { message?: string; status?: number };
+  const e = err as { message?: string; status?: number; data?: unknown };
+  if (e.data !== undefined) {
+    res.status(e.status ?? 500).json({ success: false, message: e.message ?? fallback, data: e.data });
+    return;
+  }
   sendError(res, e.message ?? fallback, e.status ?? 500);
 }
