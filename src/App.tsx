@@ -31,6 +31,7 @@ const Pnl = lazy(() => import('./pages/pnl/Pnl'));
 const Expenses = lazy(() => import('./pages/expenses/Expenses'));
 const CmsPage = lazy(() => import('./pages/cms/CmsPage'));
 const CmsStandalonePage = lazy(() => import('./pages/cms/CmsStandalonePage'));
+const ProductUploadGuide = lazy(() => import('./pages/upload-guide/ProductUploadGuide'));
 
 function AuthGuard({ children }: { children: JSX.Element }): JSX.Element {
   const { token, isRestoring } = useAuth();
@@ -78,6 +79,9 @@ const router = createBrowserRouter(
 
       {/* Public routes — reachable signed in or out (linked from login + app stores) */}
       <Route path="/pages/:slug" element={<CmsPage />} />
+      <Route path="/product-upload-guide" element={<ProductUploadGuide />} />
+      {/* Links in already-sent "Upload guide" emails */}
+      <Route path="/pages/product-upload-guide" element={<Navigate to="/product-upload-guide" replace />} />
 
       {/* Standalone mobile-app routes — no header/footer chrome, embedded via WebView */}
       <Route path="/privacy-policy" element={<CmsStandalonePage slug="privacy-policy" />} />
