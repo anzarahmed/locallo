@@ -16,7 +16,6 @@ import { inactiveSellerEmail } from '../../utils/emailTemplates/seller/inactiveS
 import { boostSuggestionEmail } from '../../utils/emailTemplates/seller/boostSuggestionEmail';
 import { boostTargetReachedEmail } from '../../utils/emailTemplates/seller/boostTargetReachedEmail';
 import { boostPaymentReceivedEmail } from '../../utils/emailTemplates/seller/boostPaymentReceivedEmail';
-import { accountDeletedEmail } from '../../utils/emailTemplates/seller/accountDeletedEmail';
 import { shareShopEmail } from '../../utils/emailTemplates/seller/shareShopEmail';
 import type { SellerRecipient } from './sellerRecipients';
 import type { NotificationType, TemplateParamsMap } from './templates';
@@ -82,7 +81,6 @@ export const SELLER_EMAILS: SellerEmailRegistry = {
     gate: 'always',
     build: (_, name, { userId, businessName }) => shareShopEmail(name, userId, businessName ?? name),
   },
-  account_deleted: { gate: 'always', build: ({ recoveryDays }, name) => accountDeletedEmail(name, recoveryDays) },
 };
 
 export function getSellerEmailTemplate<T extends NotificationType>(type: T): SellerEmailTemplate<TemplateParamsMap[T]> | undefined {

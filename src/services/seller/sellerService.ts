@@ -13,6 +13,9 @@ import type { NotificationSettings, CustomDayOverride, KycDocumentType, KycDocum
 import { hasRequiredKycDocuments, isKycRejectionResolved, isRequiredKycDocument, KYC_DOCUMENT_LABELS } from '../../utils/kyc';
 import { saveKycDocument, saveBrandDocument, normalizeImageKey, commitSellerPhoto, deleteImage, deletePrefix, toThumbnailKey } from '../../utils/imageStorage';
 import { notifySafely } from '../notifications/notifyService';
+import { getSellerRecipient } from '../notifications/sellerRecipients';
+import { sendSellerEmail } from '../../utils/mailer';
+import { accountDeletedEmail } from '../../utils/emailTemplates/seller/accountDeletedEmail';
 import { notifyAdminsKycSubmitted } from '../admin/kycReviewNotifier';
 import { isIstDateTodayOrFuture } from '../../utils/istDate';
 import { createDefaultLedgers } from './ledgerService';
@@ -170,7 +173,15 @@ export async function requestSellerAccountDeletion(userId: string): Promise<void
     await user.update({ isActive: false, deletionRequestedAt: new Date() }, { transaction: t });
   });
 
-  await notifySafely(userId, 'account_deleted', { recoveryDays: SELLER_DELETION_HOLD_DAYS });
+  // Sent directly, not via notifySafely: the seller can't open the inbox while deleted, so no row is written.
+  try {
+    const recipient = await getSellerRecipient(userId);
+    if (recipient?.email) {
+      await sendSellerEmail(recipient.email, accountDeletedEmail(recipient.name, SELLER_DELETION_HOLD_DAYS));
+    }
+  } catch (err) {
+    console.error('requestSellerAccountDeletion: failed to send account deleted email', err);
+  }
 }
 
 export async function permanentlyDeleteSellerAccount(userId: string): Promise<void> {

@@ -19,6 +19,8 @@ import type { SellerRecipient } from './sellerRecipients';
 import { sendSellerEmail } from '../../utils/mailer';
 import { offerManiaEmail } from '../../utils/emailTemplates/seller/offerManiaEmail';
 import { boostPaymentFailedEmail } from '../../utils/emailTemplates/seller/boostPaymentFailedEmail';
+import { accountDeletedEmail } from '../../utils/emailTemplates/seller/accountDeletedEmail';
+import { SELLER_DELETION_HOLD_DAYS } from '../seller/sellerService';
 import type { EmailContent } from '../../utils/emailTemplates/sellerEmailLayout';
 import { TEMPLATES } from './templates';
 import type { NotificationAudience, NotificationTemplate, NotificationType, TemplateParamsMap } from './templates';
@@ -146,7 +148,6 @@ const SAMPLE_PARAMS: SampleBuilders = {
     return { categoryId: first?.categoryId ?? 0, categoryName: first?.categoryName ?? 'Fashion', used: 200, limit: 200 };
   },
   buy_storage: async () => ({}),
-  account_deleted: async () => ({ recoveryDays: 60 }),
 };
 
 export interface TestPushTypeItem {
@@ -284,7 +285,7 @@ export async function sendTestPush(
 }
 
 // Emails sent outside the notification pipeline (direct sendSellerEmail calls), so they have no NotificationType.
-const DIRECT_EMAIL_TYPES = ['boost_payment_failed'] as const;
+const DIRECT_EMAIL_TYPES = ['boost_payment_failed', 'account_deleted'] as const;
 type DirectEmailType = typeof DIRECT_EMAIL_TYPES[number];
 export type TestEmailType = NotificationType | DirectEmailType;
 
@@ -340,10 +341,14 @@ export interface TestEmailBatchResult {
 }
 
 async function buildDirectTestEmail(
+  type: DirectEmailType,
   userId: string,
   recipient: SellerRecipient,
   overrides: Record<string, unknown>,
 ): Promise<EmailContent> {
+  if (type === 'account_deleted') {
+    return accountDeletedEmail(recipient.name, Number(overrides.recoveryDays ?? SELLER_DELETION_HOLD_DAYS));
+  }
   const { productName, amount } = await sampleBoost(userId);
   const params = { productName, amount, ...overrides } as { productName: string; amount: number };
   return boostPaymentFailedEmail(recipient.name, params.productName, Number(params.amount));
@@ -355,7 +360,7 @@ async function buildTestEmail<T extends NotificationType>(
   recipient: SellerRecipient,
   overrides: Record<string, unknown>,
 ): Promise<EmailContent | null> {
-  if (isDirectEmailType(type)) return buildDirectTestEmail(userId, recipient, overrides);
+  if (isDirectEmailType(type)) return buildDirectTestEmail(type, userId, recipient, overrides);
   const params = { ...(await SAMPLE_PARAMS[type](userId)), ...overrides } as TemplateParamsMap[T];
   // offer_join's email is sent by the offer outbox, not the notification pipeline.
   if (type === 'offer_join') return offerManiaEmail(recipient.name, (params as TemplateParamsMap['offer_join']).offerId);

@@ -30,7 +30,6 @@ export interface TemplateParamsMap {
   upload_limit_90: { categoryId: number; categoryName: string; used: number; limit: number };
   upload_limit_100: { categoryId: number; categoryName: string; used: number; limit: number };
   buy_storage: Record<string, never>;
-  account_deleted: { recoveryDays: number };
 }
 
 export type NotificationType = keyof TemplateParamsMap;
@@ -330,14 +329,6 @@ export const TEMPLATES: TemplateRegistry = {
     build: () => ({
       title: 'Need more space for your products?',
       body: 'Buy additional storage to showcase more products.',
-      screen: 'dashboard',
-    }),
-  },
-  account_deleted: {
-    audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: false,
-    build: ({ recoveryDays }) => ({
-      title: 'Your seller account has been deleted',
-      body: `Log in again within ${recoveryDays} days to restore your account.`,
       screen: 'dashboard',
     }),
   },
