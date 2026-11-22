@@ -28,6 +28,7 @@ export default function Expenses(): JSX.Element {
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [dateFilter, setDateFilter] = useState<string>(todayIso());
+  const [fetchKey, setFetchKey] = useState(0);
 
   const [ledgers, setLedgers] = useState<Ledger[]>([]);
 
@@ -60,6 +61,9 @@ export default function Expenses(): JSX.Element {
         });
         setExpenses(data.expenses);
         setTotal(data.total);
+        if (data.expenses.length === 0 && page > 1) {
+          setPage(Math.max(1, Math.ceil(data.total / PAGE_LIMIT)));
+        }
       } catch (err) {
         toast.error(err instanceof ApiError ? err.message : 'Failed to load expenses');
       } finally {
@@ -67,7 +71,7 @@ export default function Expenses(): JSX.Element {
       }
     }
     void load();
-  }, [page, dateFilter]); // toast is stable
+  }, [page, dateFilter, fetchKey]); // toast is stable
 
   function handleDateChange(value: string): void {
     setDateFilter(value);
@@ -264,7 +268,10 @@ export default function Expenses(): JSX.Element {
             setLedgers(prev => prev.map(existing => (existing.id === l.id ? l : existing)));
             setExpenses(prev => prev.map(e => (e.ledgerId === l.id ? { ...e, ledger: l } : e)));
           }}
-          onLedgerDeleted={(id) => setLedgers(prev => prev.filter(l => l.id !== id))}
+          onLedgerDeleted={(id) => {
+            setLedgers(prev => prev.filter(l => l.id !== id));
+            setFetchKey(k => k + 1);
+          }}
           onClose={() => setShowLedgerManager(false)}
         />
       )}
