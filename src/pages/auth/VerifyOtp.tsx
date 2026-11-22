@@ -15,6 +15,12 @@ import { useToast } from '../../hooks/useToast';
 
 const RESEND_COOLDOWN = 30;
 
+function formatCountdown(seconds: number): string {
+  const m = Math.floor(seconds / 60);
+  const sec = seconds % 60;
+  return `${m}:${String(sec).padStart(2, '0')}`;
+}
+
 interface LocationState {
   countryCode: string;
   phoneNumber: string;
@@ -32,6 +38,8 @@ export default function VerifyOtp(): JSX.Element {
   const [loading, setLoading] = useState(false);
   const [cooldown, setCooldown] = useState(RESEND_COOLDOWN);
   const [success, setSuccess] = useState(false);
+  const [attemptsLeft, setAttemptsLeft] = useState<number | null>(null);
+  const [lockSeconds, setLockSeconds] = useState(0);
   const inputRefs = useRef<Array<HTMLInputElement | null>>([null, null, null, null]);
 
   useEffect(() => {
@@ -45,8 +53,23 @@ export default function VerifyOtp(): JSX.Element {
   }, [cooldown]);
 
   useEffect(() => {
+    if (lockSeconds <= 0) return;
+    const t = setTimeout(() => setLockSeconds((s) => s - 1), 1000);
+    return () => clearTimeout(t);
+  }, [lockSeconds]);
+
+  useEffect(() => {
     inputRefs.current[0]?.focus();
   }, []);
+
+  const locked = lockSeconds > 0;
+
+  function applyRateLimit(err: ApiError): void {
+    const retryAfter = err.numberField('retryAfterSeconds') ?? RESEND_COOLDOWN;
+    setLockSeconds(retryAfter);
+    setCooldown(retryAfter);
+    setAttemptsLeft(null);
+  }
 
   function handleDigitChange(index: number, value: string): void {
     const digit = value.replace(/\D/g, '').slice(-1);
@@ -92,7 +115,12 @@ export default function VerifyOtp(): JSX.Element {
         err instanceof ApiError ? err.message : 'Something went wrong. Please try again.',
       );
       setDigits(['', '', '', '']);
-      inputRefs.current[0]?.focus();
+      if (err instanceof ApiError && err.status === 429) {
+        applyRateLimit(err);
+      } else {
+        setAttemptsLeft(err instanceof ApiError ? err.numberField('attemptsLeft') : null);
+        inputRefs.current[0]?.focus();
+      }
     } finally {
       setLoading(false);
     }
@@ -108,12 +136,16 @@ export default function VerifyOtp(): JSX.Element {
       setCooldown(RESEND_COOLDOWN);
       setDigits(['', '', '', '']);
       setHasError(false);
+      setAttemptsLeft(null);
       toast.success(`OTP resent successfully: ${otp}`);
       inputRefs.current[0]?.focus();
     } catch (err) {
       toast.error(
         err instanceof ApiError ? err.message : 'Failed to resend OTP. Please try again.',
       );
+      if (err instanceof ApiError && err.status === 429) {
+        setCooldown(err.numberField('retryAfterSeconds') ?? RESEND_COOLDOWN);
+      }
     }
   }
 
@@ -140,7 +172,7 @@ export default function VerifyOtp(): JSX.Element {
             onChange={(e) => handleDigitChange(i, e.target.value)}
             onKeyDown={(e) => handleKeyDown(i, e)}
             onPaste={handlePaste}
-            disabled={loading || success}
+            disabled={loading || success || locked}
             className={`w-16 h-16 text-center text-xl font-semibold rounded-2xl border-2 outline-none transition-all disabled:opacity-70
               ${
                 success
@@ -154,6 +186,18 @@ export default function VerifyOtp(): JSX.Element {
           />
         ))}
       </div>
+
+      {locked ? (
+        <p className="text-center text-sm text-red-600 mb-6">
+          Too many incorrect attempts. Try again in {formatCountdown(lockSeconds)}.
+        </p>
+      ) : (
+        attemptsLeft !== null && hasError && (
+          <p className="text-center text-sm text-red-600 mb-6">
+            {attemptsLeft} attempt{attemptsLeft === 1 ? '' : 's'} left
+          </p>
+        )
+      )}
 
       {/* Success checkmark */}
       {success && (
@@ -187,7 +231,7 @@ export default function VerifyOtp(): JSX.Element {
       <div className="text-center">
         {cooldown > 0 ? (
           <span className="text-sm text-gray-400 cursor-not-allowed select-none">
-            Resend OTP ({cooldown}s)
+            Resend OTP ({cooldown >= 60 ? formatCountdown(cooldown) : `${cooldown}s`})
           </span>
         ) : (
           <button

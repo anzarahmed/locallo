@@ -13,9 +13,17 @@ instance.interceptors.request.use((config) => {
 
 export class ApiError extends Error {
   status: number;
-  constructor(status: number, message: string) {
+  data: unknown;
+  constructor(status: number, message: string, data?: unknown) {
     super(message);
     this.status = status;
+    this.data = data;
+  }
+
+  numberField(key: string): number | null {
+    if (typeof this.data !== 'object' || this.data === null) return null;
+    const value = (this.data as Record<string, unknown>)[key];
+    return typeof value === 'number' ? value : null;
   }
 }
 
@@ -31,7 +39,7 @@ async function request<T>(fn: () => Promise<{ data: { success: boolean; message:
       if (err.response.status === 413) {
         throw new ApiError(413, `Image size should not exceed ${MAX_IMAGE_SIZE_MB} MB. Please choose a smaller image.`);
       }
-      throw new ApiError(err.response.status, err.response.data?.message ?? 'Request failed');
+      throw new ApiError(err.response.status, err.response.data?.message ?? 'Request failed', err.response.data?.data);
     }
     throw err;
   }
