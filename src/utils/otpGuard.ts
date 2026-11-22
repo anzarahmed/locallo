@@ -10,7 +10,7 @@ function intEnv(name: string, fallback: number): number {
 }
 
 export const OTP_MAX_ATTEMPTS = intEnv('OTP_MAX_ATTEMPTS', 3);
-export const OTP_LOCK_MINUTES = intEnv('OTP_LOCK_MINUTES', 60);
+export const OTP_LOCK_MINUTES = intEnv('OTP_LOCK_MINUTES', 15);
 export const OTP_RESEND_COOLDOWN_SECONDS = intEnv('OTP_RESEND_COOLDOWN_SECONDS', 30);
 export const OTP_MAX_SENDS = intEnv('OTP_MAX_SENDS', 5);
 export const OTP_SEND_WINDOW_MINUTES = intEnv('OTP_SEND_WINDOW_MINUTES', 60);
