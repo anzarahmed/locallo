@@ -4,6 +4,7 @@ import { createLedger, updateLedger, deleteLedger } from '../../services/pnlServ
 import { useToast } from '../../hooks/useToast';
 import { ApiError } from '../../lib/axios';
 import { isReservedLedgerName, RESERVED_LEDGER_MESSAGE, MAX_CUSTOM_LEDGERS, MAX_CUSTOM_LEDGERS_MESSAGE } from '../../validation/pnlSchemas';
+import ConfirmDeleteModal from '../../components/ui/ConfirmDeleteModal';
 import type { Ledger } from '../../types';
 
 interface LedgerManagerModalProps {
@@ -32,6 +33,7 @@ export default function LedgerManagerModal({
 
   const customCount = ledgers.filter(l => !l.isDefault).length;
   const limitReached = customCount >= MAX_CUSTOM_LEDGERS;
+  const confirmLedger = confirmId ? ledgers.find(l => l.id === confirmId) : undefined;
 
   async function handleCreate(): Promise<void> {
     const trimmed = name.trim();
@@ -176,23 +178,7 @@ export default function LedgerManagerModal({
                         </span>
                       )}
                     </span>
-                    {ledger.isDefault ? null : confirmId === ledger.id ? (
-                      <div className="flex items-center gap-2 shrink-0">
-                        <button
-                          onClick={() => void handleDelete(ledger.id)}
-                          disabled={deletingId === ledger.id}
-                          className="text-xs font-semibold text-rose-600 hover:underline disabled:opacity-50"
-                        >
-                          {deletingId === ledger.id ? 'Deleting…' : 'Confirm'}
-                        </button>
-                        <button
-                          onClick={() => setConfirmId(null)}
-                          className="text-xs font-semibold text-gray-400 hover:underline"
-                        >
-                          Cancel
-                        </button>
-                      </div>
-                    ) : (
+                    {ledger.isDefault ? null : (
                       <div className="flex items-center gap-3 shrink-0">
                         <button
                           onClick={() => startEdit(ledger)}
@@ -217,6 +203,15 @@ export default function LedgerManagerModal({
           )}
         </div>
       </div>
+      {confirmLedger && (
+        <ConfirmDeleteModal
+          title="Delete Ledger"
+          message={`Deleting "${confirmLedger.name}" will also delete all expenses recorded under this ledger. This cannot be undone.`}
+          loading={deletingId === confirmLedger.id}
+          onConfirm={() => void handleDelete(confirmLedger.id)}
+          onCancel={() => setConfirmId(null)}
+        />
+      )}
     </div>
   );
 }
