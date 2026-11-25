@@ -7,6 +7,7 @@ import { SoldLog } from '../../models/SoldLog';
 import { syncProductStock } from './variantService';
 import { getPresignedUrl } from '../../utils/imageStorage';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
+import { istDateBoundary } from '../../utils/istDate';
 import type { AttributeField } from '../../types';
 
 export async function markProductSold(
@@ -116,8 +117,8 @@ export async function getSoldLogs(
 ): Promise<{ rows: SoldLogRow[]; count: number }> {
   const dateWhere = (from || to) ? {
     soldAt: {
-      ...(from && { [Op.gte]: new Date(from) }),
-      ...(to   && { [Op.lte]: new Date(to) }),
+      ...(from && { [Op.gte]: istDateBoundary(from, 'start') }),
+      ...(to   && { [Op.lte]: istDateBoundary(to, 'end') }),
     },
   } : {};
 

@@ -30,8 +30,8 @@ export async function createExpense(sellerId: string, data: CreateExpenseInput):
 }
 
 export interface ListExpensesOptions {
-  from?: Date;
-  to?: Date;
+  from?: string;
+  to?: string;
   ledgerId?: string;
 }
 

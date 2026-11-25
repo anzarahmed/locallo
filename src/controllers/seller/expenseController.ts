@@ -1,7 +1,17 @@
 import type { Request, Response } from 'express';
 import { sendSuccess, handleServiceError } from '../../utils/response';
 import { parsePagination } from '../../utils/pagination';
+import { getIstDateString } from '../../utils/istDate';
 import * as expenseService from '../../services/seller/expenseService';
+
+// expense_date is a DATE column, so filters must be IST calendar dates (YYYY-MM-DD),
+// never Date instants — formatting an instant can shift the day by the server's timezone.
+function toIstDateOnly(value: string | undefined): string | undefined {
+  if (!value) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? undefined : getIstDateString(parsed);
+}
 
 export async function addExpense(req: Request, res: Response): Promise<void> {
   try {
@@ -19,8 +29,8 @@ export async function addExpense(req: Request, res: Response): Promise<void> {
 
 export async function getExpenses(req: Request, res: Response): Promise<void> {
   const { page, limit } = parsePagination(req);
-  const from     = typeof req.query.from === 'string' ? new Date(req.query.from) : undefined;
-  const to       = typeof req.query.to   === 'string' ? new Date(req.query.to)   : undefined;
+  const from     = toIstDateOnly(typeof req.query.from === 'string' ? req.query.from : undefined);
+  const to       = toIstDateOnly(typeof req.query.to   === 'string' ? req.query.to   : undefined);
   const ledgerId = typeof req.query.ledgerId === 'string' ? req.query.ledgerId : undefined;
 
   const { rows, count } = await expenseService.listExpenses(req.seller!.id, page, limit, { from, to, ledgerId });

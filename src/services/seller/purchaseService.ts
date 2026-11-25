@@ -5,6 +5,7 @@ import { Category } from '../../models/Category';
 import { PurchaseLog } from '../../models/PurchaseLog';
 import { getPresignedUrl } from '../../utils/imageStorage';
 import { normalizeFreeTextAttributes } from '../../utils/attributeDisplay';
+import { istDateBoundary } from '../../utils/istDate';
 import type { AttributeField } from '../../types';
 
 export interface RecordPurchaseInput {
@@ -63,8 +64,8 @@ export async function getPurchaseLogs(
 ): Promise<{ rows: PurchaseLogRow[]; count: number }> {
   const dateWhere = (from || to) ? {
     purchasedAt: {
-      ...(from && { [Op.gte]: new Date(from) }),
-      ...(to   && { [Op.lte]: new Date(to) }),
+      ...(from && { [Op.gte]: istDateBoundary(from, 'start') }),
+      ...(to   && { [Op.lte]: istDateBoundary(to, 'end') }),
     },
   } : {};
 

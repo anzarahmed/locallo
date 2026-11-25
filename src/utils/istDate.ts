@@ -101,3 +101,14 @@ export function getIstMonthRange(date: Date = new Date()): DateRange {
     to: istCalendarDateToUtc(year, month, lastDay, 23, 59, 59, 999),
   };
 }
+
+// Resolves a query date filter to a timestamp bound. A bare "YYYY-MM-DD" is treated as
+// an IST calendar day (start or end), so date-only filters don't silently shift by the
+// server's timezone. A full timestamp/ISO string is used as-is (exact instant).
+export function istDateBoundary(value: string, edge: 'start' | 'end'): Date {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) return new Date(value);
+  const { year, month, day } = parseIstDateString(value);
+  return edge === 'start'
+    ? istCalendarDateToUtc(year, month, day, 0, 0, 0, 0)
+    : istCalendarDateToUtc(year, month, day, 23, 59, 59, 999);
+}
