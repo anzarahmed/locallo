@@ -4,6 +4,7 @@ import adminRoutes from './routes/admin/index';
 import sellerRoutes from './routes/seller/index';
 import customerRoutes from './routes/customer/index';
 import webhookRoutes from './routes/webhooks/index';
+import { apiLimiter } from './middleware/apiRateLimit';
 
 const app = express();
 
@@ -23,6 +24,8 @@ app.use(
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok' });
 });
+
+app.use('/api', apiLimiter);
 
 app.use('/api/admins', adminRoutes);
 app.use('/api/sellers', sellerRoutes);
