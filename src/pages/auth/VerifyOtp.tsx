@@ -8,7 +8,7 @@ import {
 } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AuthLayout from './AuthLayout';
-import { verifyOtp } from '../../services/authService';
+import { verifyOtp, requestOtp } from '../../services/authService';
 import { ApiError } from '../../lib/axios';
 import { useAuth } from '../../hooks/useAuth';
 import { useToast } from '../../hooks/useToast';
@@ -129,7 +129,7 @@ export default function VerifyOtp(): JSX.Element {
   async function handleResend(): Promise<void> {
     if (cooldown > 0 || !state) return;
     try {
-      const { requestOtp } = await import('../../services/authService');
+      //const { requestOtp } = await import('../../services/authService');
       // TEMPORARY: SMS delivery isn't live yet, so surface the OTP in the toast for testing.
       // Remove this once MSG91 delivery is confirmed working.
       const { otp } = await requestOtp(state.countryCode, state.phoneNumber);
