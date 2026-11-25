@@ -109,6 +109,16 @@ async function stockValueAsOf(
 }
 
 export async function getPnlSummary(sellerId: string, from: Date, to: Date): Promise<PnlSummary> {
+  // Expense dates are stored as DATE (calendar dates), so compare them as IST calendar dates.
+  // Passing the boundary Date instants directly makes Sequelize inline them as timestamp
+  // strings formatted in the Node process's local timezone; PostgreSQL then casts those to
+  // DATE (matching the column type), discarding the time/offset. When the server runs in UTC
+  // (typical in production), an IST day boundary such as 2026-11-25T00:00+05:30 renders as
+  // "2026-11-24 18:30 +00:00" and truncates to 2026-11-24, pulling the previous day into the
+  // start of every period. Comparing explicit IST date strings with ::date is TZ-independent.
+  const fromDate = toIsoDateString(from);
+  const toDate   = toIsoDateString(to);
+
   const [salesCost] = await sequelize.query<SalesCostRow>(
     `SELECT
        COALESCE(SUM(selling_price_at_sale * quantity), 0) AS "totalSales",
@@ -121,8 +131,8 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
   const [expenses] = await sequelize.query<ExpensesRow>(
     `SELECT COALESCE(SUM(amount), 0) AS "totalExpenses"
      FROM expenses
-     WHERE seller_id = :sellerId AND expense_date BETWEEN :from AND :to`,
-    { type: QueryTypes.SELECT, replacements: { sellerId, from, to } },
+     WHERE seller_id = :sellerId AND expense_date BETWEEN :fromDate::date AND :toDate::date`,
+    { type: QueryTypes.SELECT, replacements: { sellerId, fromDate, toDate } },
   );
 
   // LEFT JOIN so default ledgers are always returned (amount 0 when no expenses were
@@ -131,7 +141,8 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
     `SELECT sl.id AS "ledgerId", sl.name AS "ledgerName", COALESCE(SUM(e.amount), 0) AS "amount", sl.is_default AS "isDefault"
      FROM seller_ledgers sl
      LEFT JOIN expenses e
-       ON e.ledger_id = sl.id AND e.seller_id = :sellerId AND e.expense_date BETWEEN :from AND :to
+       ON e.ledger_id = sl.id AND e.seller_id = :sellerId
+       AND e.expense_date BETWEEN :fromDate::date AND :toDate::date
      WHERE sl.seller_id = :sellerId
      GROUP BY sl.id, sl.name, sl.is_default, sl.created_at
      HAVING sl.is_default = true OR COUNT(e.id) > 0
@@ -141,7 +152,7 @@ export async function getPnlSummary(sellerId: string, from: Date, to: Date): Pro
        sl.id ASC`,
     {
       type: QueryTypes.SELECT,
-      replacements: { sellerId, from, to, defaultNames: [...DEFAULT_LEDGER_NAMES], defaultCount: DEFAULT_LEDGER_NAMES.length },
+      replacements: { sellerId, fromDate, toDate, defaultNames: [...DEFAULT_LEDGER_NAMES], defaultCount: DEFAULT_LEDGER_NAMES.length },
     },
   );
 
