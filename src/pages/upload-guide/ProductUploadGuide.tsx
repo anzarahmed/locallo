@@ -2,6 +2,7 @@ import type { JSX } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../../hooks/useAuth';
+import LockedYouTubePlayer from '../../components/upload-guide/LockedYouTubePlayer';
 
 const VIDEO_ID = 'RFGlNe-uv3s';
 const TITLE = 'Product Upload Guide';
@@ -41,16 +42,7 @@ export default function ProductUploadGuide(): JSX.Element {
 
       <div className="px-4 md:px-8 -mt-4 pb-10 max-w-3xl mx-auto">
         <div className="bg-white rounded-2xl shadow-sm p-3 md:p-5">
-          <div className="aspect-video w-full overflow-hidden rounded-xl bg-black">
-            <iframe
-              src={`https://www.youtube-nocookie.com/embed/${VIDEO_ID}?rel=0`}
-              title={TITLE}
-              className="h-full w-full"
-              allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
-              referrerPolicy="strict-origin-when-cross-origin"
-              allowFullScreen
-            />
-          </div>
+          <LockedYouTubePlayer videoId={VIDEO_ID} title={TITLE} />
         </div>
       </div>
     </div>
