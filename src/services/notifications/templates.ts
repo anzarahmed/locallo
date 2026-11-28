@@ -269,11 +269,11 @@ export const TEMPLATES: TemplateRegistry = {
   },
   boost_completed: {
     audience: 'seller', pushClass: 'transactional', channel: 'transactional', push: true,
-    build: ({ boostId, productName }) => ({
+    build: ({ boostId, productId, productName }) => ({
       title: 'Your boost went viral!',
       body: `${productName} reached its target views. Boost again to reach more customers.`,
       screen: 'boost_detail',
-      targetId: boostId,
+      targetId: productId ?? boostId,
       dataTitle: productName,
       referenceType: 'boost',
       referenceId: boostId,
